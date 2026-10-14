@@ -8,14 +8,145 @@
         <a href="{{ route('admin.bookings.index') }}" class="text-sm text-accent hover:underline">← Kembali ke booking</a>
     </div>
     <article class="mt-6 rounded-2xl border border-border bg-surface p-5">
-        <div class="grid gap-3 text-sm sm:grid-cols-2">
+        @php
+            $statusLabels = [
+                'menunggu_pembayaran' => 'Menunggu pembayaran',
+                'menunggu_konfirmasi' => 'Menunggu konfirmasi',
+                'terkonfirmasi' => 'Terkonfirmasi',
+                'kedaluwarsa' => 'Kedaluwarsa',
+                'hadir' => 'Hadir',
+                'tidak_hadir' => 'Tidak hadir',
+                'dibatalkan' => 'Dibatalkan',
+            ];
+            $statusStyles = [
+                'menunggu_pembayaran' => 'bg-warning/15 text-warning',
+                'menunggu_konfirmasi' => 'bg-accent/15 text-accent',
+                'terkonfirmasi' => 'bg-success/15 text-success',
+                'kedaluwarsa' => 'bg-danger/10 text-danger',
+                'hadir' => 'bg-success/10 text-success',
+                'tidak_hadir' => 'bg-surface-2 text-text-muted',
+                'dibatalkan' => 'bg-danger/10 text-danger',
+            ];
+        @endphp
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-text-muted">Status:</span>
+                <span class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold {{ $statusStyles[$booking->status] ?? 'bg-surface-2 text-text-muted' }}">
+                    {{ $statusLabels[$booking->status] ?? $booking->status }}
+                </span>
+                @if ($booking->payment_proof_path)
+                    <span class="rounded-full bg-success/15 px-2 py-0.5 text-xs font-bold text-success">Bukti diunggah</span>
+                @endif
+            </div>
+            <p class="text-xs text-text-muted">Metode bayar: <strong class="uppercase text-text">{{ ['di_tempat' => 'Bayar di tempat', 'qris' => 'QRIS', 'transfer' => 'Transfer'][$booking->payment_method] ?? $booking->payment_method }}</strong></p>
+        </div>
+
+        <div class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <p><span class="text-text-muted">Pemesan:</span> {{ $booking->customer_name }} · {{ $booking->whatsapp }}</p>
             <p><span class="text-text-muted">Sesi:</span> {{ $booking->session->session_date }} · {{ substr((string) $booking->session->start_time, 0, 5) }} WIB</p>
             <p><span class="text-text-muted">Film:</span> {{ $booking->film?->title ?? '—' }}</p>
             <p><span class="text-text-muted">Jumlah:</span> {{ $booking->booking_type === 'private' ? 'Sewa Private (6 kursi)' : $booking->pax.' orang' }}</p>
             <p><span class="text-text-muted">Tiket:</span> Rp {{ number_format($booking->ticket_total, 0, ',', '.') }}</p>
             <p><span class="text-text-muted">Jajan:</span> Rp {{ number_format($booking->snack_total, 0, ',', '.') }}</p>
-            <p class="font-bold text-accent sm:col-span-2">Total booking saat ini: Rp {{ number_format($booking->total_price, 0, ',', '.') }}</p>
+            <p class="font-black text-accent text-lg sm:col-span-2">Total booking: Rp {{ number_format($booking->total_price, 0, ',', '.') }}</p>
+            @if ($booking->status === 'menunggu_pembayaran' && $booking->payment_expires_at)
+                <p class="sm:col-span-2 text-xs font-semibold text-warning">Batas waktu pembayaran: {{ $booking->payment_expires_at->locale('id')->diffForHumans() }} ({{ $booking->payment_expires_at->format('H:i') }} WIB)</p>
+            @endif
+        </div>
+
+        @if ($booking->proof_rejection_note)
+            <div class="mt-4 rounded-xl border border-danger/40 bg-danger/10 p-3.5 text-xs text-danger">
+                <p class="font-bold">Bukti transfer sebelumnya ditolak admin:</p>
+                <p class="mt-1 font-semibold underline">{{ $booking->proof_rejection_note }}</p>
+            </div>
+        @endif
+
+        @if ($booking->payment_proof_path)
+            <div class="mt-4 border-t border-border pt-4">
+                <p class="text-xs font-bold uppercase tracking-wider text-text-muted">Bukti Pembayaran Pelanggan</p>
+                <div class="mt-3 flex flex-wrap items-center gap-4">
+                    <a href="{{ route('admin.bookings.proof', $booking) }}" target="_blank" rel="noopener noreferrer" class="group relative block overflow-hidden rounded-2xl border border-border bg-surface-2 p-1 transition hover:border-accent">
+                        <img src="{{ route('admin.bookings.proof', $booking) }}" alt="Bukti pembayaran {{ $booking->code }}" class="h-28 w-28 rounded-xl object-cover">
+                        <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
+                            <span class="rounded-lg bg-black/75 px-2 py-1 text-xs font-bold text-white">Buka penuh ↗</span>
+                        </div>
+                    </a>
+                    <div class="space-y-1.5 text-xs">
+                        <p class="font-bold text-success">File bukti transfer tersimpan</p>
+                        @if ($booking->payment_proof_uploaded_at)
+                            <p class="text-text-muted">Diunggah: {{ $booking->payment_proof_uploaded_at->locale('id')->translatedFormat('d M Y, H:i') }} WIB ({{ $booking->payment_proof_uploaded_at->locale('id')->diffForHumans() }})</p>
+                        @endif
+                        <a href="{{ route('admin.bookings.proof', $booking) }}" target="_blank" rel="noopener noreferrer" class="inline-block font-bold text-accent hover:underline">Lihat gambar ukuran penuh ↗</a>
+                    </div>
+                </div>
+            </div>
+        @elseif ($booking->isOnlinePayment() && $booking->status === 'menunggu_pembayaran')
+            <div class="mt-4 border-t border-border pt-4">
+                <p class="text-xs font-bold uppercase tracking-wider text-text-muted">Bukti Pembayaran</p>
+                <p class="mt-1 text-xs text-text-muted">Pelanggan belum mengunggah bukti pembayaran.</p>
+            </div>
+        @endif
+
+        <div class="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+            @if ($booking->status === 'menunggu_pembayaran')
+                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" onsubmit="return confirm('Tandai booking ini sudah dibayar?')">
+                    @csrf @method('PATCH')
+                    <input type="hidden" name="action" value="tandai_dibayar">
+                    <button class="inline-flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 text-sm font-bold text-accent-contrast hover:opacity-90">Tandai sudah dibayar</button>
+                </form>
+            @elseif ($booking->status === 'menunggu_konfirmasi')
+                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}">
+                    @csrf @method('PATCH')
+                    <input type="hidden" name="action" value="konfirmasi">
+                    <button class="inline-flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 text-sm font-bold text-accent-contrast hover:opacity-90">Konfirmasi booking & pembayaran</button>
+                </form>
+                @if ($booking->payment_proof_path)
+                    <div x-data="{ openReject: false }">
+                        <button type="button" @click="openReject = true" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-warning px-4 text-sm font-semibold text-warning hover:bg-warning/10">Tolak bukti transfer</button>
+                        <div x-show="openReject" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4" @click.self="openReject = false">
+                            <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-5 shadow-token">
+                                <h3 class="text-base font-bold text-text">Tolak Bukti Transfer</h3>
+                                <p class="mt-1 text-xs text-text-muted">Masukkan alasan penolakan. Status akan kembali ke menunggu pembayaran agar pelanggan dapat mengunggah bukti yang benar.</p>
+                                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" class="mt-4">
+                                    @csrf @method('PATCH')
+                                    <input type="hidden" name="action" value="tolak_bukti">
+                                    <label for="modal_rejection_note" class="text-xs font-semibold text-text">Alasan Penolakan</label>
+                                    <textarea id="modal_rejection_note" name="rejection_note" required rows="3" placeholder="Contoh: Nominal transfer kurang / struk tidak terbaca" class="mt-1 w-full rounded-xl border border-border bg-bg p-3 text-sm text-text"></textarea>
+                                    <div class="mt-4 flex justify-end gap-2">
+                                        <button type="button" @click="openReject = false" class="min-h-10 rounded-lg border border-border px-3 text-xs font-semibold">Batal</button>
+                                        <button class="min-h-10 rounded-lg bg-danger px-3 text-xs font-bold text-danger-contrast">Tolak Bukti</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            @elseif ($booking->status === 'terkonfirmasi')
+                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}">
+                    @csrf @method('PATCH')
+                    <input type="hidden" name="action" value="hadir">
+                    <button class="inline-flex min-h-11 items-center justify-center rounded-xl bg-success px-4 text-sm font-bold text-success-contrast hover:opacity-90">Tandai hadir</button>
+                </form>
+                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" onsubmit="return confirm('Tandai pemesan tidak hadir? Ini akan menambah catatan no-show pelanggan.')">
+                    @csrf @method('PATCH')
+                    <input type="hidden" name="action" value="tidak_hadir">
+                    <button class="inline-flex min-h-11 items-center justify-center rounded-xl border border-warning px-4 text-sm font-semibold text-warning hover:bg-warning/10">Tidak hadir (no-show)</button>
+                </form>
+            @elseif ($booking->status === 'kedaluwarsa')
+                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" onsubmit="return confirm('Pulihkan booking ini? Kursi akan ditahan kembali jika sesi masih memiliki kapasitas.')">
+                    @csrf @method('PATCH')
+                    <input type="hidden" name="action" value="pulihkan">
+                    <button class="inline-flex min-h-11 items-center justify-center rounded-xl border border-accent bg-accent/10 px-4 text-sm font-bold text-accent hover:bg-accent/20">Pulihkan booking kedaluwarsa</button>
+                </form>
+            @endif
+
+            @if ($booking->status !== 'dibatalkan' && $booking->status !== 'kedaluwarsa')
+                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" onsubmit="return confirm('Batalkan booking ini?')">
+                    @csrf @method('PATCH')
+                    <input type="hidden" name="action" value="batal">
+                    <button class="inline-flex min-h-11 items-center justify-center rounded-xl border border-danger/40 px-3 text-sm font-semibold text-danger hover:bg-danger/10">Batalkan booking</button>
+                </form>
+            @endif
         </div>
     </article>
 

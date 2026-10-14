@@ -12,3 +12,6 @@ Schedule::command('sessions:generate --days=14')
     ->dailyAt('00:05')
     ->timezone('Asia/Jakarta')
     ->withoutOverlapping();
+
+Schedule::command('bookings:expire-unpaid')
+    ->everyMinute();

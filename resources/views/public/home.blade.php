@@ -33,7 +33,7 @@
                         <p class="self-center text-sm text-text-muted">Jadwal baru segera dibuka, ya.</p>
                     @endif
                 </div>
-                <p class="mt-4 text-sm font-semibold text-text-muted">🎟 Tiket mulai Rp {{ number_format($weekdayPrice, 0, ',', '.') }} per orang · maksimal 6 kursi per sesi</p>
+                <p class="mt-4 text-sm font-semibold text-text-muted">Tiket mulai Rp {{ number_format($weekdayPrice, 0, ',', '.') }} per orang · maksimal 6 kursi per sesi</p>
             </div>
             <div aria-hidden="true" class="pointer-events-none absolute bottom-0 right-12 hidden h-56 w-40 -rotate-6 rounded-t-[2rem] border border-accent/30 bg-surface-2 shadow-token md:block">
                 <div class="absolute inset-4 rounded-2xl border border-border bg-bg"></div>

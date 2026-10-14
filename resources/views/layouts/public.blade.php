@@ -50,6 +50,7 @@
             })();
         </script>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @stack('styles')
     </head>
     <body class="min-h-screen bg-bg font-sans text-text antialiased">
         <header class="border-b border-border bg-surface">

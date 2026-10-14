@@ -12,7 +12,33 @@
         <a href="{{ route('admin.schedule.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 text-sm font-bold text-accent-contrast hover:opacity-90">Kelola sesi</a>
     </div>
 
-    <div class="mt-7 grid gap-3 sm:grid-cols-3">
+    @if ($qrisWarning)
+        <div role="alert" class="mt-6 flex items-start gap-3 rounded-2xl border border-warning/40 bg-warning/10 p-4 text-warning">
+            <svg class="mt-0.5 size-5 shrink-0 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div class="flex-1 text-sm leading-relaxed text-text">
+                <p class="font-bold text-warning">Metode bayar QRIS dinonaktifkan sementara</p>
+                <p class="mt-0.5 text-xs text-text-muted">Metode pembayaran QRIS dipilih aktif di pengaturan, namun gambar kode QRIS belum diunggah atau filenya hilang. Pelanggan saat ini tidak melihat opsi QRIS.</p>
+                <a href="{{ route('admin.settings.edit') }}#qris-section" class="mt-2 inline-flex items-center gap-1 font-bold text-accent hover:underline">Unggah gambar QRIS di Pengaturan →</a>
+            </div>
+        </div>
+    @endif
+
+    @if ($transferWarning)
+        <div role="alert" class="mt-4 flex items-start gap-3 rounded-2xl border border-warning/40 bg-warning/10 p-4 text-warning">
+            <svg class="mt-0.5 size-5 shrink-0 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div class="flex-1 text-sm leading-relaxed text-text">
+                <p class="font-bold text-warning">Metode Transfer belum memiliki rekening aktif</p>
+                <p class="mt-0.5 text-xs text-text-muted">Metode pembayaran transfer bank/e-wallet dipilih aktif di pengaturan, namun belum ada rekening yang ditambahkan. Pelanggan saat ini tidak melihat opsi Transfer.</p>
+                <a href="{{ route('admin.settings.edit') }}#transfer-section" class="mt-2 inline-flex items-center gap-1 font-bold text-accent hover:underline">Tambah rekening di Pengaturan →</a>
+            </div>
+        </div>
+    @endif
+
+    <div class="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <article class="rounded-2xl border border-border bg-surface p-5">
             <p class="text-sm text-text-muted">Sesi hari ini</p>
             <p class="mt-2 text-3xl font-black text-accent">{{ $todaySessions->count() }}</p>
@@ -25,6 +51,16 @@
             <p class="text-sm text-text-muted">Menunggu konfirmasi</p>
             <p class="mt-2 text-3xl font-black text-warning">{{ $waitingBookings }}</p>
             <a href="{{ route('admin.bookings.index', ['status' => 'menunggu_konfirmasi']) }}" class="mt-2 inline-block text-xs text-accent hover:underline">Lihat booking →</a>
+        </article>
+        <article class="rounded-2xl border border-border bg-surface p-5">
+            <p class="text-sm text-text-muted">Menunggu pembayaran</p>
+            <p class="mt-2 text-3xl font-black text-accent">{{ $awaitingPaymentCount }}</p>
+            <a href="{{ route('admin.bookings.index', ['status' => 'menunggu_pembayaran']) }}" class="mt-2 inline-block text-xs text-accent hover:underline">Lihat antrean →</a>
+        </article>
+        <article class="rounded-2xl border border-border bg-surface p-5">
+            <p class="text-sm text-text-muted">Perlu verifikasi bukti</p>
+            <p class="mt-2 text-3xl font-black text-success">{{ $needProofVerificationCount }}</p>
+            <a href="{{ route('admin.bookings.index', ['status' => 'menunggu_konfirmasi', 'has_proof' => 1]) }}" class="mt-2 inline-block text-xs text-accent hover:underline">Periksa bukti →</a>
         </article>
     </div>
 

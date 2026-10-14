@@ -44,7 +44,18 @@ class Session extends Model
 
     public function occupiedBookings(): HasMany
     {
-        return $this->bookings()->where('status', '!=', 'dibatalkan');
+        return $this->bookings()
+            ->whereNotIn('status', ['dibatalkan', 'kedaluwarsa'])
+            ->where(function ($query) {
+                $query->where('status', '!=', 'menunggu_pembayaran')
+                    ->orWhere(function ($q) {
+                        $q->where('status', 'menunggu_pembayaran')
+                            ->where(function ($sub) {
+                                $sub->whereNull('payment_expires_at')
+                                    ->orWhere('payment_expires_at', '>', now());
+                            });
+                    });
+            });
     }
 
     public function blockedDates(): HasMany

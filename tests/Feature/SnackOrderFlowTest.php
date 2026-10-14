@@ -81,7 +81,8 @@ class SnackOrderFlowTest extends TestCase
         $this->assertSame('Air mineral', $item->fresh()->name_snapshot);
         $this->assertSame(3000, $item->fresh()->price_snapshot);
         $this->assertSame(11000, $booking->fresh()->total_price);
-        $this->get(route('booking.success', $booking->code))
+        $this->followingRedirects()
+            ->get(route('booking.success', $booking->code))
             ->assertOk()
             ->assertSee('Air mineral × 2')
             ->assertSee('Rp 11.000');
@@ -299,7 +300,7 @@ class SnackOrderFlowTest extends TestCase
         $this->assertSame('dibatalkan', $booking->items()->firstOrFail()->status);
         $this->assertSame(0, (int) $session->fresh()->occupiedBookings()->sum('seats_reserved'));
 
-        $this->post(route('booking.lookup'), [
+        $this->followingRedirects()->post(route('booking.lookup'), [
             'code' => $booking->code,
             'whatsapp' => '081234567890',
         ])->assertOk()
@@ -327,7 +328,7 @@ class SnackOrderFlowTest extends TestCase
             'status' => 'dibatalkan',
         ]);
 
-        $response = $this->post(route('booking.lookup'), [
+        $response = $this->followingRedirects()->post(route('booking.lookup'), [
             'code' => $booking->code,
             'whatsapp' => '081234567890',
         ])->assertOk();
@@ -399,7 +400,7 @@ class SnackOrderFlowTest extends TestCase
             'snacks' => [$this->noodle->id => ['qty' => 2, 'note' => 'Tidak pedas']],
         ]);
 
-        $this->post(route('booking.lookup'), [
+        $this->followingRedirects()->post(route('booking.lookup'), [
             'code' => $booking->code,
             'whatsapp' => '081234567890',
         ])->assertOk()

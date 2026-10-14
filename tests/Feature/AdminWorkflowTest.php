@@ -248,7 +248,7 @@ class AdminWorkflowTest extends TestCase
             route('home'),
             route('schedule.date', '2026-10-14'),
             route('booking.create', $session),
-            route('booking.success', $booking->code),
+            route('booking.ticket', $booking->code),
             route('booking.lookup.form'),
             route('admin.dashboard'),
             route('admin.bookings.index'),
@@ -488,6 +488,7 @@ class AdminWorkflowTest extends TestCase
             'snack_prep_buffer_minutes' => 20,
             'snack_max_qty_per_item' => 8,
             'payment_methods' => ['di_tempat', 'qris'],
+            'qris_image' => UploadedFile::fake()->image('qris.png', 400, 400),
         ])->assertRedirect();
 
         $this->assertDatabaseHas('settings', ['key' => 'admin_whatsapp', 'value' => '6281234567890']);

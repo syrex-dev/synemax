@@ -44,13 +44,13 @@
                 <h2 class="mt-1 text-2xl font-bold text-text">{{ $date->locale('id')->translatedFormat('l, d F Y') }}</h2>
             </div>
             @if ($holidayDates->has($date->toDateString()))
-                <span class="rounded-full bg-warning/15 px-3 py-2 text-sm font-bold text-warning">☀ Hari libur</span>
+                <span class="rounded-full bg-warning/15 px-3 py-2 text-sm font-bold text-warning">Hari libur</span>
             @endif
         </div>
 
         @if ($closedReason)
             <div role="status" class="mt-5 rounded-2xl border border-danger/30 bg-danger/10 p-5">
-                <p class="font-bold text-danger">× Studio tutup hari ini</p>
+                <p class="font-bold text-danger">Studio tutup hari ini</p>
                 <p class="mt-1 text-base text-text-muted">{{ $closedReason }}</p>
             </div>
         @elseif ($sessions->isEmpty())
@@ -65,13 +65,12 @@
                         $occupied = $session->is_private
                             ? $session->seatCapacity()
                             : $session->seatCapacity() - $session->remainingSeats();
-                        $stateIcon = match (true) {
-                            $session->is_private => '🔒',
-                            $label === 'Tersedia' => '✓',
-                            str_starts_with($label, 'Sisa') => '◷',
-                            $label === 'Penuh' => '×',
-                            $label === 'Sudah lewat' => '◷',
-                            default => '■',
+                        $stateDot = match (true) {
+                            $session->is_private => 'bg-text-muted',
+                            $label === 'Tersedia' => 'bg-success',
+                            str_starts_with($label, 'Sisa') => 'bg-accent',
+                            $label === 'Penuh' => 'bg-danger',
+                            default => 'bg-text-muted',
                         };
                     @endphp
                     <article class="rounded-2xl border border-border bg-surface p-4 shadow-token sm:p-5">
@@ -91,7 +90,8 @@
                                         @endif
                                     </p>
                                     <p class="mt-2 inline-flex items-center gap-2 text-sm font-bold {{ $canBook ? 'text-success' : 'text-text-muted' }}">
-                                        <span aria-hidden="true">{{ $stateIcon }}</span><span>{{ $label }}</span>
+                                        <span class="size-2 rounded-full {{ $stateDot }}" aria-hidden="true"></span>
+                                        <span>{{ $label }}</span>
                                     </p>
                                 </div>
                             </div>

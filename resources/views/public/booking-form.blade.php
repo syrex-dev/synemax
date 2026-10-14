@@ -212,7 +212,7 @@
                                 ? 'border-success/60 bg-success-surface/50 text-success'
                                 : 'border-border/60 bg-surface/60 text-text-muted/60')"
                         x-bind:aria-current="step === {{ $stepNumber }} ? 'step' : null">
-                        <span class="block text-sm font-bold" x-text="step > {{ $stepNumber }} ? '✓' : '{{ $stepNumber }}'">{{ $stepNumber }}</span>
+                        <span class="block text-sm font-bold">{{ $stepNumber }}</span>
                         <span class="block truncate font-medium">{{ $label }}</span>
                     </li>
                 @endforeach
@@ -225,7 +225,7 @@
                     <h2 class="text-xl font-bold text-text">Pilih film</h2>
                     @if ($session->film_id)
                         <div class="mt-4 rounded-xl border border-accent/30 bg-accent/5 p-4">
-                            <p class="text-sm font-bold text-accent">🔒 Film sesi sudah terkunci</p>
+                            <p class="text-sm font-bold text-accent">Film sesi sudah ditentukan</p>
                             <p class="mt-2 text-lg font-bold text-text">{{ $session->film?->title ?? 'Film tidak tersedia' }}</p>
                             <p class="mt-1 text-sm text-text-muted">Booking ini akan bergabung ke film yang sama.</p>
                         </div>
@@ -264,7 +264,7 @@
                                     </button>
                                     <div class="mt-auto p-2 pt-0">
                                         <button type="button" @click="chooseFilm({{ $film->id }})" class="inline-flex h-11 min-h-11 w-full items-center justify-center rounded-lg border border-accent px-3 text-sm font-bold text-accent transition-colors" :class="filmId === '{{ $film->id }}' ? 'bg-accent text-accent-contrast' : 'bg-transparent hover:bg-accent/10'">
-                                            <span x-text="filmId === '{{ $film->id }}' ? '✓ Dipilih' : 'Pilih film'"></span>
+                                            <span x-text="filmId === '{{ $film->id }}' ? 'Dipilih' : 'Pilih film'"></span>
                                         </button>
                                     </div>
                                 </article>
@@ -367,7 +367,7 @@
                                         @unless ($item['available'])
                                             <p class="mt-1 inline-flex items-center gap-1 text-sm font-bold text-danger"><span aria-hidden="true">×</span> {{ $item['unavailable_reason'] }}</p>
                                         @else
-                                            <p class="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-success"><span aria-hidden="true">✓</span> Tersedia</p>
+                                            <p class="mt-1 text-sm font-semibold text-success">Tersedia</p>
                                         @endunless
                                         <button type="button" x-show="qty({{ $item['id'] }}) > 0" @click="openNote({{ $item['id'] }})" class="mt-1 min-h-10 text-sm font-semibold text-accent underline underline-offset-2">
                                             <span x-text="(cart[{{ $item['id'] }}] || {}).note ? 'Ubah catatan' : 'Tambah catatan'"></span>
@@ -430,17 +430,17 @@
                             </label>
                         @endforeach
                     </div>
-                    @if ($paymentInstructions !== '')
-                        <div x-show="paymentMethod !== 'di_tempat'" class="mt-4 rounded-xl border border-accent/25 bg-accent/5 p-4 text-base leading-6 text-text">
-                            <p class="font-semibold">Petunjuk pembayaran</p>
-                            <p class="mt-1 whitespace-pre-line">{{ $paymentInstructions }}</p>
-                        </div>
-                    @endif
-                    @if (in_array('qris', $paymentMethods, true) || in_array('transfer', $paymentMethods, true))
-                        <label for="payment_proof" class="mt-4 block text-base font-semibold text-text">Bukti pembayaran (opsional, JPG/PNG/WebP maks. 2 MB)</label>
-                        <input id="payment_proof" name="payment_proof" type="file" accept="image/jpeg,image/png,image/webp" class="mt-2 block w-full text-base text-text file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-surface-2 file:px-4 file:font-semibold file:text-text">
-                        @error('payment_proof')<p role="alert" class="mt-2 text-sm text-danger">{{ $message }}</p>@enderror
-                    @endif
+                    @error('payment_method')<p role="alert" class="mt-2 text-sm text-danger">{{ $message }}</p>@enderror
+
+                    <div x-show="paymentMethod === 'di_tempat'" class="mt-4 rounded-xl border border-border bg-surface-2 p-4 text-sm leading-relaxed text-text">
+                        <p class="font-bold text-text">Bayar di tempat</p>
+                        <p class="mt-1 text-text-muted">Bayar tunai di lokasi sebelum film mulai. Booking kamu akan masuk dengan status menunggu konfirmasi admin.</p>
+                    </div>
+
+                    <div x-show="paymentMethod === 'qris' || paymentMethod === 'transfer'" class="mt-4 rounded-xl border border-accent/30 bg-accent/5 p-4 text-sm leading-relaxed text-text">
+                        <p class="font-bold text-accent" x-text="paymentMethod === 'qris' ? 'Pembayaran QRIS' : 'Pembayaran Transfer Bank / E-Wallet'"></p>
+                        <p class="mt-1 text-text-muted">Setelah menekan tombol <strong>Booking & Lanjut Bayar</strong> di bawah, kamu langsung diarahkan ke halaman pembayaran. Kursi ditahan selama {{ $paymentTimeLimit }} menit, jadi pastikan bayar sebelum batas waktu habis.</p>
+                    </div>
                 </section>
             </section>
 
@@ -453,7 +453,7 @@
                     <p class="mt-4 text-base leading-7 text-text-muted" x-text="filmDetail?.synopsis"></p>
                     <div class="mt-5 flex flex-col gap-3 sm:flex-row">
                         <button type="button" @click="chooseFilm(filmDetail.id)" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-bold text-accent-contrast hover:opacity-90">Pilih film ini</button>
-                        <a x-show="filmDetail?.trailer" :href="filmDetail?.trailer" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-12 items-center justify-center rounded-xl border border-border px-4 font-bold text-text hover:bg-surface-2">▶ Lihat trailer</a>
+                        <a x-show="filmDetail?.trailer" :href="filmDetail?.trailer" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-12 items-center justify-center rounded-xl border border-border px-4 font-bold text-text hover:bg-surface-2">Lihat trailer</a>
                     </div>
                 </section>
             </div>
@@ -491,7 +491,7 @@
                         <button type="button" x-show="step > 2" @click="previousStep()" class="min-h-12 flex-1 rounded-xl border border-border px-3 text-sm font-bold text-text transition-colors hover:bg-surface-2">Kembali</button>
                         <button type="button" x-show="step < 5" @click="nextStep()" :disabled="(step === 2 && !filmId) || (step === 3 && (!type || (type === 'private' && !privateAvailable) || (type === 'per_orang' && !paxIsValid)))" class="min-h-12 flex-1 rounded-xl bg-accent px-3 text-sm font-bold text-accent-contrast transition-opacity disabled:cursor-not-allowed disabled:opacity-45">Lanjut</button>
                         <button type="button" x-bind:type="step === 5 ? 'submit' : 'button'" x-show="step === 5" :disabled="isSubmitting" class="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-accent px-3 text-sm font-bold text-accent-contrast transition-opacity disabled:cursor-wait disabled:opacity-60">
-                            <span x-show="!isSubmitting">Kirim Booking</span>
+                            <span x-show="!isSubmitting" x-text="paymentMethod === 'di_tempat' ? 'Kirim Booking' : 'Booking & Lanjut Bayar'"></span>
                             <span x-show="isSubmitting" x-cloak role="status">Mengirim…</span>
                         </button>
                     </div>

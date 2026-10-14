@@ -161,10 +161,11 @@ class BookingFlowTest extends TestCase
         )->assertRedirect();
         $privateBooking = Booking::query()->firstOrFail();
 
-        $this->get(route('booking.success', $privateBooking->code))
+        $this->followingRedirects()
+            ->get(route('booking.success', $privateBooking->code))
             ->assertOk()
             ->assertSee('Sewa Private (6 kursi)');
-        $this->post(route('booking.lookup'), [
+        $this->followingRedirects()->post(route('booking.lookup'), [
             'code' => $privateBooking->code,
             'whatsapp' => '081234567890',
         ])->assertOk()->assertSee('Sewa Private (6 kursi)');
@@ -178,10 +179,11 @@ class BookingFlowTest extends TestCase
         $privateBooking->update(['status' => 'terkonfirmasi']);
         $perPersonBooking->update(['status' => 'terkonfirmasi']);
 
-        $this->get(route('booking.success', $perPersonBooking->code))
+        $this->followingRedirects()
+            ->get(route('booking.success', $perPersonBooking->code))
             ->assertOk()
             ->assertSee('2 orang');
-        $this->post(route('booking.lookup'), [
+        $this->followingRedirects()->post(route('booking.lookup'), [
             'code' => $perPersonBooking->code,
             'whatsapp' => '082222222222',
         ])->assertOk()->assertSee('2 orang');

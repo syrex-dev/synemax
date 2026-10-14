@@ -10,9 +10,9 @@ use App\Support\WhatsAppNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use RuntimeException;
 
 class BookingService
 {
@@ -34,7 +34,7 @@ class BookingService
      */
     public function create(Session $requestedSession, array $data, ?UploadedFile $paymentProof = null): Booking
     {
-        return DB::transaction(function () use ($requestedSession, $data, $paymentProof): Booking {
+        return DB::transaction(function () use ($requestedSession, $data): Booking {
             $session = Session::query()->lockForUpdate()->findOrFail($requestedSession->getKey());
             $startsAt = $session->startsAt();
             $dayType = $this->scheduleResolver->dayTypeFor($startsAt);
@@ -101,9 +101,10 @@ class BookingService
             }
 
             $paymentMethod = $data['payment_method'];
+            $availableMethods = $this->settings->availablePaymentMethodsForSession($session);
 
-            if (! in_array($paymentMethod, $this->settings->enabledPaymentMethods(), true)) {
-                $this->reject('payment_method', 'Metode pembayaran ini sedang tidak tersedia.');
+            if (! in_array($paymentMethod, $availableMethods, true)) {
+                $this->reject('payment_method', 'Metode pembayaran ini sedang tidak tersedia untuk sesi ini.');
             }
 
             $price = match (true) {
@@ -117,6 +118,18 @@ class BookingService
             $session->film_id = $film->getKey();
             $session->is_private = $isPrivate;
             $session->save();
+
+            $isOnline = in_array($paymentMethod, ['qris', 'transfer'], true);
+            $status = $isOnline ? 'menunggu_pembayaran' : 'menunggu_konfirmasi';
+            $paymentExpiresAt = null;
+
+            if ($isOnline) {
+                $paymentLimitMinutes = $this->settings->paymentTimeLimitMinutes();
+                $onlineBufferMinutes = $this->settings->onlinePaymentCutoffMinutes();
+                $maxTimeByLimit = now()->addMinutes($paymentLimitMinutes);
+                $maxTimeBySession = $startsAt->subMinutes($onlineBufferMinutes);
+                $paymentExpiresAt = $maxTimeByLimit->lessThan($maxTimeBySession) ? $maxTimeByLimit : $maxTimeBySession;
+            }
 
             $booking = Booking::query()->create([
                 'code' => $this->newBookingCode($startsAt),
@@ -133,21 +146,174 @@ class BookingService
                 'snack_total' => 0,
                 'payment_method' => $paymentMethod,
                 'payment_proof_path' => null,
-                'status' => 'menunggu_konfirmasi',
+                'payment_expires_at' => $paymentExpiresAt,
+                'status' => $status,
             ]);
 
             $booking = $this->snackOrders->replaceItems($booking, $data['snacks'] ?? []);
-            $proofPath = $paymentProof?->store('payment-proofs', 'local');
-
-            if ($proofPath === false) {
-                throw new RuntimeException('Bukti pembayaran gagal disimpan. Silakan coba lagi.');
-            }
-
-            if ($proofPath !== null) {
-                $booking->update(['payment_proof_path' => $proofPath]);
-            }
 
             return $booking;
+        }, attempts: 3);
+    }
+
+    public function expireUnpaidBookings(): int
+    {
+        $overdueBookings = Booking::query()
+            ->where('status', 'menunggu_pembayaran')
+            ->where('payment_expires_at', '<=', now())
+            ->get();
+
+        $count = 0;
+        foreach ($overdueBookings as $booking) {
+            DB::transaction(function () use ($booking): void {
+                $lockedBooking = Booking::query()->lockForUpdate()->find($booking->id);
+                if ($lockedBooking === null || $lockedBooking->status !== 'menunggu_pembayaran') {
+                    return;
+                }
+
+                $session = Session::query()->lockForUpdate()->findOrFail($lockedBooking->session_id);
+                $lockedBooking->update(['status' => 'kedaluwarsa']);
+                $this->snackOrders->cancelItems($lockedBooking);
+
+                if (
+                    $session->is_private
+                    && (int) $session->occupiedBookings()->sum('seats_reserved') === 0
+                ) {
+                    $session->update(['is_private' => false]);
+                }
+            }, attempts: 3);
+            $count++;
+        }
+
+        return $count;
+    }
+
+    public function expireIfOverdue(Booking $booking): Booking
+    {
+        if (
+            $booking->status === 'menunggu_pembayaran'
+            && $booking->payment_expires_at !== null
+            && $booking->payment_expires_at->isPast()
+        ) {
+            DB::transaction(function () use ($booking): void {
+                $lockedBooking = Booking::query()->lockForUpdate()->find($booking->id);
+                if ($lockedBooking === null || $lockedBooking->status !== 'menunggu_pembayaran') {
+                    return;
+                }
+
+                $session = Session::query()->lockForUpdate()->findOrFail($lockedBooking->session_id);
+                $lockedBooking->update(['status' => 'kedaluwarsa']);
+                $this->snackOrders->cancelItems($lockedBooking);
+
+                if (
+                    $session->is_private
+                    && (int) $session->occupiedBookings()->sum('seats_reserved') === 0
+                ) {
+                    $session->update(['is_private' => false]);
+                }
+            }, attempts: 3);
+
+            return $booking->fresh();
+        }
+
+        return $booking;
+    }
+
+    public function restoreExpired(Booking $booking): Booking
+    {
+        if ($booking->status !== 'kedaluwarsa') {
+            $this->reject('status', 'Hanya booking yang kedaluwarsa yang dapat dipulihkan.');
+        }
+
+        return DB::transaction(function () use ($booking): Booking {
+            $session = Session::query()->lockForUpdate()->findOrFail($booking->session_id);
+            $lockedBooking = Booking::query()->lockForUpdate()->findOrFail($booking->id);
+
+            $startsAt = $session->startsAt();
+            $onlineBufferMinutes = $this->settings->onlinePaymentCutoffMinutes();
+            $sessionCutoff = $startsAt->subMinutes($onlineBufferMinutes);
+
+            if (now()->greaterThanOrEqualTo($sessionCutoff)) {
+                $this->reject('session', 'Tidak dapat memulihkan booking: sesi sudah terlalu dekat dengan waktu mulai.');
+            }
+
+            if ($session->status !== 'tersedia') {
+                $this->reject('session', 'Tidak dapat memulihkan booking: sesi sedang tidak tersedia.');
+            }
+
+            $isPrivate = $lockedBooking->booking_type === 'private';
+            $seatCapacity = $session->seatCapacity();
+            $occupiedSeats = (int) $session->occupiedBookings()->sum('seats_reserved');
+
+            if ($isPrivate) {
+                if ($session->is_private || $occupiedSeats > 0) {
+                    $this->reject('capacity', 'Tidak dapat memulihkan: sesi ini sudah terisi oleh pemesan lain.');
+                }
+                $session->update(['is_private' => true]);
+            } else {
+                if ($session->is_private || ($occupiedSeats + $lockedBooking->pax > $seatCapacity)) {
+                    $this->reject('capacity', 'Tidak dapat memulihkan: kursi pada sesi ini sudah tidak mencukupi.');
+                }
+            }
+
+            $paymentLimitMinutes = $this->settings->paymentTimeLimitMinutes();
+            $maxTimeByLimit = now()->addMinutes($paymentLimitMinutes);
+            $expiresAt = $maxTimeByLimit->lessThan($sessionCutoff) ? $maxTimeByLimit : $sessionCutoff;
+
+            $lockedBooking->update([
+                'status' => 'menunggu_pembayaran',
+                'payment_expires_at' => $expiresAt,
+                'proof_rejection_note' => null,
+            ]);
+
+            return $lockedBooking->fresh(['session', 'film']);
+        }, attempts: 3);
+    }
+
+    public function rejectProof(Booking $booking, string $reason): Booking
+    {
+        return DB::transaction(function () use ($booking, $reason): Booking {
+            $session = Session::query()->lockForUpdate()->findOrFail($booking->session_id);
+            $lockedBooking = Booking::query()->lockForUpdate()->findOrFail($booking->id);
+
+            $startsAt = $session->startsAt();
+            $onlineBufferMinutes = $this->settings->onlinePaymentCutoffMinutes();
+            $sessionCutoff = $startsAt->subMinutes($onlineBufferMinutes);
+
+            if (now()->greaterThanOrEqualTo($sessionCutoff)) {
+                $this->reject('session', 'Waktu pembayaran online untuk sesi ini sudah lewat batas.');
+            }
+
+            $seatCapacity = $session->seatCapacity();
+            $occupiedSeats = (int) $session->occupiedBookings()->where('id', '!=', $lockedBooking->id)->sum('seats_reserved');
+            $isPrivate = $lockedBooking->booking_type === 'private';
+
+            if ($isPrivate) {
+                if ($occupiedSeats > 0) {
+                    $this->reject('capacity', 'Sesi ini sudah terisi oleh pemesan lain.');
+                }
+            } else {
+                if ($session->is_private || ($occupiedSeats + $lockedBooking->pax > $seatCapacity)) {
+                    $this->reject('capacity', 'Kursi pada sesi ini sudah tidak mencukupi.');
+                }
+            }
+
+            $paymentLimitMinutes = $this->settings->paymentTimeLimitMinutes();
+            $maxTimeByLimit = now()->addMinutes($paymentLimitMinutes);
+            $expiresAt = $maxTimeByLimit->lessThan($sessionCutoff) ? $maxTimeByLimit : $sessionCutoff;
+
+            if ($lockedBooking->payment_proof_path && Storage::disk('local')->exists($lockedBooking->payment_proof_path)) {
+                Storage::disk('local')->delete($lockedBooking->payment_proof_path);
+            }
+
+            $lockedBooking->update([
+                'status' => 'menunggu_pembayaran',
+                'payment_expires_at' => $expiresAt,
+                'payment_proof_path' => null,
+                'proof_rejection_note' => $reason,
+            ]);
+
+            return $lockedBooking->fresh(['session', 'film']);
         }, attempts: 3);
     }
 
@@ -171,7 +337,7 @@ class BookingService
                 $this->reject('code', 'Kode booking atau nomor WhatsApp tidak cocok.');
             }
 
-            if (! in_array($booking->status, ['menunggu_konfirmasi', 'terkonfirmasi'], true)) {
+            if (! in_array($booking->status, ['menunggu_pembayaran', 'menunggu_konfirmasi', 'terkonfirmasi'], true)) {
                 $this->reject('code', 'Booking ini tidak bisa dibatalkan.');
             }
 

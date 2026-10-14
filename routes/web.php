@@ -21,7 +21,15 @@ Route::get('/booking/{session}', [PublicBookingController::class, 'create'])->na
 Route::post('/booking/{session}', [PublicBookingController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('booking.store');
+Route::get('/pembayaran/qris', [PublicBookingController::class, 'qrisImage'])->name('payment.qris');
+Route::get('/pembayaran/{code}', [PublicBookingController::class, 'paymentView'])->name('booking.payment');
+Route::get('/tiket/{code}', [PublicBookingController::class, 'ticketView'])->name('booking.ticket');
 Route::get('/booking/{code}/sukses', [PublicBookingController::class, 'success'])->name('booking.success');
+Route::get('/booking/{code}/status-ringkas', [PublicBookingController::class, 'statusJson'])->name('booking.status.json');
+Route::get('/booking/{code}/bukti', [PublicBookingController::class, 'showProof'])->name('booking.proof.show');
+Route::post('/booking/{code}/bukti', [PublicBookingController::class, 'uploadProof'])
+    ->middleware('throttle:10,1')
+    ->name('booking.proof.upload');
 Route::get('/cek-booking', [PublicBookingController::class, 'lookupForm'])->name('booking.lookup.form');
 Route::post('/cek-booking', [PublicBookingController::class, 'lookup'])
     ->middleware('throttle:10,1')
@@ -80,6 +88,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::patch('/pelanggan/{profile}/blokir', [BookingController::class, 'toggleCustomerBlock'])->name('customers.toggle-block');
     Route::get('/pengaturan', [SettingController::class, 'edit'])->name('settings.edit');
     Route::put('/pengaturan', [SettingController::class, 'update'])->name('settings.update');
+    Route::delete('/pengaturan/qris', [SettingController::class, 'destroyQris'])->name('settings.qris.destroy');
     Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/laporan/export.csv', [ReportController::class, 'export'])->name('reports.export');
 });

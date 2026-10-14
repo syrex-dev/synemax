@@ -8,6 +8,7 @@ use App\Models\CustomerProfile;
 use App\Models\MenuCategory;
 use App\Models\Session;
 use App\Models\User;
+use App\Services\BookingService;
 use App\Services\CinemaSettings;
 use App\Services\SnackOrderService;
 use App\Support\WhatsAppNumber;
@@ -22,11 +23,15 @@ use Symfony\Component\HttpFoundation\Response;
 
 class BookingController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, BookingService $bookingService): View
     {
+        $bookingService->expireUnpaidBookings();
+
         $filters = $request->validate([
-            'status' => ['nullable', 'in:menunggu_konfirmasi,terkonfirmasi,hadir,tidak_hadir,dibatalkan'],
+            'status' => ['nullable', 'in:menunggu_pembayaran,menunggu_konfirmasi,terkonfirmasi,hadir,tidak_hadir,dibatalkan,kedaluwarsa'],
             'session_id' => ['nullable', 'integer', 'exists:screening_sessions,id'],
+            'payment_method' => ['nullable', 'in:di_tempat,qris,transfer'],
+            'has_proof' => ['nullable', 'boolean'],
             'q' => ['nullable', 'string', 'max:100'],
         ]);
 
@@ -34,6 +39,14 @@ class BookingController extends Controller
             ->with(['session.film', 'film', 'customerProfile'])
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
             ->when($filters['session_id'] ?? null, fn (Builder $query, int $sessionId) => $query->where('session_id', $sessionId))
+            ->when($filters['payment_method'] ?? null, fn (Builder $query, string $method) => $query->where('payment_method', $method))
+            ->when(isset($filters['has_proof']), function (Builder $query) use ($filters): void {
+                if ($filters['has_proof']) {
+                    $query->whereNotNull('payment_proof_path');
+                } else {
+                    $query->whereNull('payment_proof_path');
+                }
+            })
             ->when($filters['q'] ?? null, function (Builder $query, string $search): void {
                 $query->where(function (Builder $query) use ($search): void {
                     $query->where('code', 'like', "%{$search}%")
@@ -48,12 +61,15 @@ class BookingController extends Controller
         return view('admin.bookings.index', [
             'bookings' => $bookings,
             'selectedStatus' => $filters['status'] ?? '',
+            'selectedMethod' => $filters['payment_method'] ?? '',
             'search' => $filters['q'] ?? '',
         ]);
     }
 
-    public function show(Booking $booking, CinemaSettings $settings): View
+    public function show(Booking $booking, CinemaSettings $settings, BookingService $bookingService): View
     {
+        $booking = $bookingService->expireIfOverdue($booking);
+
         $booking->load([
             'session.film',
             'film',
@@ -129,25 +145,41 @@ class BookingController extends Controller
         Request $request,
         Booking $booking,
         SnackOrderService $snackOrders,
+        BookingService $bookingService,
     ): RedirectResponse {
         $data = $request->validate([
-            'action' => ['required', 'in:konfirmasi,batal,hadir,tidak_hadir'],
+            'action' => ['required', 'in:konfirmasi,tandai_dibayar,tolak_bukti,batal,hadir,tidak_hadir,pulihkan'],
+            'rejection_note' => ['nullable', 'string', 'max:500'],
         ]);
 
-        DB::transaction(function () use ($booking, $data, $snackOrders): void {
+        if ($data['action'] === 'tolak_bukti' && empty(trim((string) ($data['rejection_note'] ?? '')))) {
+            throw ValidationException::withMessages([
+                'rejection_note' => 'Alasan penolakan bukti pembayaran wajib diisi.',
+            ]);
+        }
+
+        DB::transaction(function () use ($booking, $data, $snackOrders, $bookingService): void {
             $bookingReference = Booking::query()->findOrFail($booking->id);
             $session = Session::query()->lockForUpdate()->findOrFail($bookingReference->session_id);
             $lockedBooking = Booking::query()->lockForUpdate()->findOrFail($booking->id);
 
             match ($data['action']) {
-                'konfirmasi' => $this->confirm($lockedBooking, $snackOrders),
+                'konfirmasi', 'tandai_dibayar' => $this->confirm($lockedBooking, $snackOrders),
+                'tolak_bukti' => $bookingService->rejectProof($lockedBooking, trim((string) $data['rejection_note'])),
+                'pulihkan' => $bookingService->restoreExpired($lockedBooking),
                 'batal' => $this->cancel($lockedBooking, $session, $snackOrders),
                 'hadir' => $this->markAttended($lockedBooking),
                 'tidak_hadir' => $this->markNoShow($lockedBooking),
             };
         }, attempts: 3);
 
-        return back()->with('status', 'Status booking berhasil diperbarui.');
+        $msg = match ($data['action']) {
+            'tolak_bukti' => 'Bukti pembayaran ditolak dan pelanggan diminta mengunggah ulang.',
+            'pulihkan' => 'Booking kedaluwarsa berhasil dipulihkan.',
+            default => 'Status booking berhasil diperbarui.',
+        };
+
+        return back()->with('status', $msg);
     }
 
     public function toggleCustomerBlock(CustomerProfile $profile): RedirectResponse
@@ -178,12 +210,16 @@ class BookingController extends Controller
 
     private function confirm(Booking $booking, SnackOrderService $snackOrders): void
     {
-        if ($booking->status !== 'menunggu_konfirmasi') {
-            $this->reject('Booking ini tidak sedang menunggu konfirmasi.');
+        if (! in_array($booking->status, ['menunggu_konfirmasi', 'menunggu_pembayaran'], true)) {
+            $this->reject('Booking ini tidak sedang menunggu konfirmasi atau pembayaran.');
         }
 
         $snackOrders->confirmStock($booking);
-        $booking->update(['status' => 'terkonfirmasi', 'confirmed_at' => now()]);
+        $booking->update([
+            'status' => 'terkonfirmasi',
+            'confirmed_at' => now(),
+            'proof_rejection_note' => null,
+        ]);
     }
 
     private function cancel(
@@ -191,7 +227,7 @@ class BookingController extends Controller
         Session $session,
         SnackOrderService $snackOrders,
     ): void {
-        if (! in_array($booking->status, ['menunggu_konfirmasi', 'terkonfirmasi'], true)) {
+        if (! in_array($booking->status, ['menunggu_pembayaran', 'menunggu_konfirmasi', 'terkonfirmasi'], true)) {
             $this->reject('Booking ini tidak bisa dibatalkan.');
         }
 

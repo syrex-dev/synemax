@@ -47,10 +47,14 @@ class DashboardController extends Controller
             'todaySessions' => $todaySessions,
             'todayViewers' => (int) $todaySessions->sum('viewer_count'),
             'waitingBookings' => Booking::query()->where('status', 'menunggu_konfirmasi')->count(),
+            'awaitingPaymentCount' => Booking::query()->where('status', 'menunggu_pembayaran')->count(),
+            'needProofVerificationCount' => Booking::query()->where('status', 'menunggu_konfirmasi')->whereNotNull('payment_proof_path')->count(),
             'lowAttendanceSessions' => $upcomingSessions
                 ->filter(fn (Session $session): bool => (int) $session->viewer_count < $minimumViewers)
                 ->values(),
             'minimumViewers' => $minimumViewers,
+            'qrisWarning' => in_array('qris', $settings->rawPaymentMethods(), true) && ! $settings->hasValidQrisImage(),
+            'transferWarning' => in_array('transfer', $settings->rawPaymentMethods(), true) && ! $settings->hasValidTransferAccounts(),
         ]);
     }
 }
