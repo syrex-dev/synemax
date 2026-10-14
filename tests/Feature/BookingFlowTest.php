@@ -273,6 +273,38 @@ class BookingFlowTest extends TestCase
         );
     }
 
+    public function test_per_person_booking_exceeding_remaining_seats_is_rejected(): void
+    {
+        $session = $this->createSession($this->firstFilm);
+        $this->createBooking($session, $this->firstFilm, pax: 4);
+
+        $response = $this->from(route('booking.create', $session))
+            ->post(route('booking.store', $session), $this->bookingData($this->firstFilm, pax: 3));
+
+        $response->assertSessionHasErrors('pax');
+        $this->assertSame(2, $session->fresh()->remainingSeats());
+    }
+
+    public function test_wizard_page_renders_with_unselected_booking_type_and_all_steps(): void
+    {
+        $session = $this->createSession();
+
+        $response = $this->get(route('booking.create', $session));
+
+        $response->assertOk()
+            ->assertSee('Langkah')
+            ->assertSee('dari 5')
+            ->assertSee('Jadwal')
+            ->assertSee('Film')
+            ->assertSee('Tipe')
+            ->assertSee('Jajan')
+            ->assertSee('Ringkasan')
+            ->assertSee('Per orang')
+            ->assertSee('Sewa Private')
+            ->assertSee('Pilih film')
+            ->assertSee('Film yang cocok belum ada');
+    }
+
     private function createFilm(string $title): Film
     {
         return Film::query()->create([

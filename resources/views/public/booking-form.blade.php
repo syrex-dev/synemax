@@ -133,9 +133,15 @@
                       if (!this.storageAvailable) return;
                       try {
                           sessionStorage.setItem('synemax:booking-wizard', JSON.stringify({
-                              schema: 2, sessionId: this.sessionId, step: this.step, filmId: this.filmId,
-                              type: this.type, pax: this.pax, paymentMethod: this.paymentMethod,
-                              cart: this.cart, activeCategory: this.activeCategory
+                              schema: 3,
+                              sessionId: this.sessionId,
+                              step: this.step,
+                              filmId: this.filmId,
+                              type: this.type,
+                              pax: this.pax,
+                              paymentMethod: this.paymentMethod,
+                              cart: this.cart,
+                              activeCategory: this.activeCategory
                           }));
                       } catch {
                           this.storageAvailable = false;
@@ -144,14 +150,16 @@
                   init() {
                       try {
                           const saved = JSON.parse(sessionStorage.getItem('synemax:booking-wizard') || 'null');
-                          if (saved && saved.sessionId === this.sessionId) {
+                          if (saved && String(saved.sessionId) === String(this.sessionId)) {
                               this.step = [2, 3, 4, 5].includes(Number(saved.step)) ? Number(saved.step) : 2;
                               if (@js(! $errors->any())) {
                                   this.filmId = saved.filmId || this.filmId;
-                                  if (saved.schema === 2 && ['per_orang', 'private'].includes(saved.type)) {
+                                  if (saved.schema === 3 && ['per_orang', 'private'].includes(saved.type)) {
                                       this.type = saved.type;
+                                  } else {
+                                      this.type = @js(old('booking_type', ''));
                                   }
-                                  this.pax = Math.min(this.remaining, Math.max(1, Number(saved.pax || this.pax)));
+                                  this.pax = Math.min(this.remaining, Math.max(1, Number(saved.pax || 1)));
                                   this.paymentMethod = saved.paymentMethod || this.paymentMethod;
                                   this.cart = saved.cart || this.cart;
                                   this.activeCategory = saved.activeCategory || this.activeCategory;
@@ -171,9 +179,11 @@
                   },
                   centerActiveStep() {
                       const progress = this.$el.querySelector('ol[x-ref=progress]');
+                      if (!progress) return;
                       requestAnimationFrame(() => {
+                          if (progress.scrollWidth <= progress.clientWidth) return;
                           const active = progress.querySelector('[aria-current=step]');
-                          if (!active || progress.scrollWidth <= progress.clientWidth) return;
+                          if (!active) return;
 
                           const activeBounds = active.getBoundingClientRect();
                           const progressBounds = progress.getBoundingClientRect();
@@ -192,11 +202,18 @@
             <input type="hidden" name="payment_method" :value="paymentMethod">
 
             <p class="mt-5 text-sm font-bold uppercase tracking-[0.16em] text-accent">Langkah <span x-text="step">2</span> dari 5</p>
-            <ol x-ref="progress" aria-label="Progres booking" class="mt-3 flex min-w-0 scroll-smooth gap-2 overflow-x-auto pb-2 text-center text-xs sm:grid sm:grid-cols-5">
+            <ol x-ref="progress" aria-label="Progres booking" class="mt-3 flex min-w-0 scroll-smooth gap-2 overflow-x-auto pb-2 text-center text-xs sm:grid sm:grid-cols-5 sm:overflow-visible sm:pb-0">
                 @foreach (['Jadwal', 'Film', 'Tipe', 'Jajan', 'Ringkasan'] as $index => $label)
                     @php($stepNumber = $index + 1)
-                    <li class="min-w-24 flex-1 rounded-xl border border-border bg-surface px-2 py-2 text-text-muted" :class="step === {{ $stepNumber }} ? 'border-accent bg-accent text-accent-contrast' : (step > {{ $stepNumber }} ? 'border-success text-success' : '')" x-bind:aria-current="step === {{ $stepNumber }} ? 'step' : null">
-                        <span class="block font-bold" x-text="step > {{ $stepNumber }} ? '✓' : '{{ $stepNumber }}'">{{ $stepNumber }}</span>{{ $label }}
+                    <li class="min-w-24 flex-1 rounded-xl border px-2 py-2 text-center transition-all sm:min-w-0"
+                        :class="step === {{ $stepNumber }}
+                            ? 'border-accent bg-accent text-accent-contrast shadow-xs'
+                            : (step > {{ $stepNumber }}
+                                ? 'border-success/60 bg-success-surface/50 text-success'
+                                : 'border-border/60 bg-surface/60 text-text-muted/60')"
+                        x-bind:aria-current="step === {{ $stepNumber }} ? 'step' : null">
+                        <span class="block text-sm font-bold" x-text="step > {{ $stepNumber }} ? '✓' : '{{ $stepNumber }}'">{{ $stepNumber }}</span>
+                        <span class="block truncate font-medium">{{ $label }}</span>
                     </li>
                 @endforeach
             </ol>
@@ -218,40 +235,42 @@
                         <div class="mt-3 flex gap-2 overflow-x-auto pb-2" aria-label="Filter genre film">
                             @php($genres = $films->pluck('genre')->unique()->values())
                             @foreach (['Semua', ...$genres->all()] as $genre)
-                                <button type="button" @click="genreFilter = @js($genre)" :aria-pressed="genreFilter === @js($genre)" class="min-h-11 shrink-0 rounded-full border border-border px-4 text-sm font-semibold text-text" :class="genreFilter === @js($genre) ? 'border-accent bg-accent/10 text-accent' : 'bg-surface'">{{ $genre }}</button>
+                                <button type="button" @click="genreFilter = @js($genre)" :aria-pressed="genreFilter === @js($genre)" class="min-h-11 shrink-0 rounded-full border border-border px-4 text-sm font-semibold text-text transition-colors" :class="genreFilter === @js($genre) ? 'border-accent bg-accent/10 font-bold text-accent' : 'bg-surface hover:bg-surface-2'">{{ $genre }}</button>
                             @endforeach
                         </div>
-                        <div class="mt-3 grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3">
+                        <div class="mt-4 grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3">
                             @foreach ($films as $film)
-                                <article x-show="matchesFilm(@js($film->title), @js($film->genre))" class="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface">
+                                <article x-show="matchesFilm(@js($film->title), @js($film->genre))" class="flex h-full min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-xs transition-shadow hover:shadow-sm">
                                     <button type="button" @click="filmDetail = @js(['id' => $film->id, 'title' => $film->title, 'genre' => $film->genre, 'duration' => $film->duration_minutes, 'rating' => $film->age_rating, 'synopsis' => $film->synopsis, 'trailer' => $film->trailer_url])" class="flex w-full flex-1 flex-col text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" aria-label="Lihat detail film {{ $film->title }}">
-                                        <div class="relative aspect-[2/3] bg-surface-2" @if ($film->poster_path) x-data="{ posterLoaded: false }" x-init="$nextTick(() => posterLoaded = $refs.poster.complete)" @endif>
+                                        <div class="relative aspect-[2/3] w-full shrink-0 overflow-hidden bg-surface-2" @if ($film->poster_path) x-data="{ posterLoaded: false }" x-init="$nextTick(() => posterLoaded = $refs.poster.complete)" @endif>
                                             @if ($film->poster_path)
                                                 <x-skeleton x-show="!posterLoaded" class="absolute inset-0 rounded-none" />
                                                 <img x-ref="poster" x-on:load="posterLoaded = true" x-on:error="posterLoaded = true" src="{{ Storage::url($film->poster_path) }}" alt="Poster {{ $film->title }}" width="500" height="750" loading="lazy" decoding="async" class="relative size-full object-cover">
                                             @else
-                                                <div class="flex size-full flex-col items-center justify-center gap-3 bg-surface-2 p-3 text-center text-lg font-black text-text">
-                                                    <svg aria-hidden="true" class="size-9 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                                                <div class="flex size-full flex-col items-center justify-center gap-2 bg-surface-2 p-3 text-center text-text">
+                                                    <svg aria-hidden="true" class="size-8 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                                                         <rect x="3" y="5" width="18" height="14" rx="2"></rect>
                                                         <path d="m10 9 5 3-5 3z"></path>
                                                     </svg>
-                                                    <span class="line-clamp-3">{{ $film->title }}</span>
+                                                    <span class="line-clamp-2 text-xs font-bold text-text sm:text-sm">{{ $film->title }}</span>
                                                 </div>
                                             @endif
                                         </div>
                                         <span class="flex flex-1 flex-col p-3">
-                                            <span class="line-clamp-2 min-h-12 font-bold text-text">{{ $film->title }}</span>
-                                            <span class="mt-2 block truncate whitespace-nowrap text-sm text-text-muted">{{ $film->genre }} · {{ $film->duration_minutes }} menit</span>
-                                            <span class="mt-auto inline-flex w-fit rounded-full bg-surface-2 px-2 py-1 text-xs font-bold text-text">Usia {{ $film->age_rating }}</span>
+                                            <span class="line-clamp-2 min-h-10 text-sm font-bold text-text sm:min-h-12 sm:text-base">{{ $film->title }}</span>
+                                            <span class="mt-1 block truncate whitespace-nowrap text-xs text-text-muted sm:text-sm" title="{{ $film->genre }} · {{ $film->duration_minutes }} menit">{{ $film->genre }} · {{ $film->duration_minutes }} menit</span>
+                                            <span class="mt-2 inline-flex w-fit rounded-full bg-surface-2 px-2 py-0.5 text-xs font-bold text-text">Usia {{ $film->age_rating }}</span>
                                         </span>
                                     </button>
-                                    <button type="button" @click="chooseFilm({{ $film->id }})" class="mx-2 mb-2 mt-auto inline-flex min-h-11 w-[calc(100%-1rem)] items-center justify-center rounded-lg border border-accent px-3 text-sm font-bold text-accent" :class="filmId === '{{ $film->id }}' ? 'bg-accent text-accent-contrast' : 'bg-transparent'">
-                                        <span x-text="filmId === '{{ $film->id }}' ? '✓ Dipilih' : 'Pilih film'"></span>
-                                    </button>
+                                    <div class="mt-auto p-2 pt-0">
+                                        <button type="button" @click="chooseFilm({{ $film->id }})" class="inline-flex h-11 min-h-11 w-full items-center justify-center rounded-lg border border-accent px-3 text-sm font-bold text-accent transition-colors" :class="filmId === '{{ $film->id }}' ? 'bg-accent text-accent-contrast' : 'bg-transparent hover:bg-accent/10'">
+                                            <span x-text="filmId === '{{ $film->id }}' ? '✓ Dipilih' : 'Pilih film'"></span>
+                                        </button>
+                                    </div>
                                 </article>
                             @endforeach
                         </div>
-                        <p x-cloak x-show="filteredFilmCount === 0" class="mt-4 rounded-xl border border-border bg-surface p-4 text-base text-text-muted">Film yang cocok belum ada. Coba kata kunci lain, ya.</p>
+                        <p x-cloak x-show="filmOptions.length > 0 && filteredFilmCount === 0 && (filmSearch.trim() !== '' || genreFilter !== 'Semua')" class="mt-4 rounded-xl border border-border bg-surface p-4 text-base text-text-muted">Film yang cocok belum ada. Coba kata kunci lain, ya.</p>
                     @endif
                     @error('film_id')<p role="alert" class="mt-3 text-sm font-semibold text-danger">{{ $message }}</p>@enderror
                 </div>
@@ -262,52 +281,60 @@
                     <legend class="px-1 text-xl font-bold text-text">Pilih tipe booking</legend>
                     <p class="mt-2 text-base text-text-muted">Pilih cara booking yang paling cocok buat rombonganmu.</p>
                     <div class="mt-4 grid items-stretch gap-3 sm:grid-cols-2">
-                        <label class="flex min-h-48 cursor-pointer items-start gap-3 rounded-xl border border-border bg-bg p-4 transition-colors duration-200 has-checked:border-accent has-checked:bg-accent/5 motion-reduce:transition-none">
-                            <input type="radio" name="booking_type_choice" value="per_orang" x-model="type" class="peer sr-only">
-                            <span aria-hidden="true" class="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border-2 border-border bg-surface text-accent-contrast peer-checked:border-accent peer-checked:bg-accent peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2">
-                                <svg class="size-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" x-show="type === 'per_orang'"><path d="m4 10 4 4 8-8"></path></svg>
-                            </span>
-                            <span class="flex flex-1 flex-col">
-                                <span class="font-bold text-text">Per orang</span>
-                                <span class="mt-1 text-sm text-text-muted">Rp {{ number_format($unitPrice, 0, ',', '.') }} tiap kursi. Berbagi studio dengan pelanggan lain yang menonton film sama.</span>
-                            </span>
+                        @php($perPersonAvailable = $session->remainingSeats() > 0)
+                        <label class="group relative flex min-h-40 flex-col justify-between rounded-xl border border-border bg-bg p-4 transition-all duration-200 has-checked:border-accent has-checked:bg-accent/5 motion-reduce:transition-none {{ $perPersonAvailable ? 'cursor-pointer hover:border-accent/60' : 'cursor-not-allowed opacity-60' }} focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2">
+                            <div class="flex items-start gap-3">
+                                <input type="radio" name="booking_type_choice" value="per_orang" x-model="type" @disabled(! $perPersonAvailable) class="peer sr-only">
+                                <span aria-hidden="true" class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2 border-border bg-surface transition-colors peer-checked:border-accent peer-checked:bg-accent">
+                                    <span class="size-2 rounded-full bg-accent-contrast" x-show="type === 'per_orang'"></span>
+                                </span>
+                                <div class="flex flex-1 flex-col">
+                                    <span class="text-base font-bold text-text">Per orang</span>
+                                    <span class="mt-1 text-sm text-text-muted">Rp {{ number_format($unitPrice, 0, ',', '.') }} tiap kursi. Berbagi studio dengan pelanggan lain pada film yang sama.</span>
+                                    @unless ($perPersonAvailable)
+                                        <span class="mt-2 text-sm font-semibold text-danger">Kursi pada sesi ini sudah penuh.</span>
+                                    @endunless
+                                </div>
+                            </div>
                         </label>
-                        <label class="flex min-h-48 items-start gap-3 rounded-xl border border-border bg-bg p-4 transition-colors duration-200 has-checked:border-accent has-checked:bg-accent/5 motion-reduce:transition-none {{ $privateAvailable ? 'cursor-pointer' : 'cursor-not-allowed opacity-60' }}">
-                            <input type="radio" name="booking_type_choice" value="private" x-model="type" @disabled(! $privateAvailable) class="peer sr-only">
-                            <span aria-hidden="true" class="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border-2 border-border bg-surface text-accent-contrast peer-checked:border-accent peer-checked:bg-accent peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2">
-                                <svg class="size-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" x-show="type === 'private'"><path d="m4 10 4 4 8-8"></path></svg>
-                            </span>
-                            <span class="flex flex-1 flex-col">
-                                <span class="font-bold text-text">Sewa Private</span>
-                                <span class="mt-1 text-sm text-text-muted">Studio khusus untuk rombongan, enam kursi penuh, tanpa pelanggan lain.</span>
-                                <span class="mt-auto pt-3 text-sm font-bold text-accent">Rp {{ number_format($privatePrice, 0, ',', '.') }} · harga flat</span>
-                                @unless ($privateAvailable)
-                                    <span class="mt-2 text-sm font-semibold text-danger">{{ $occupiedSeats > 0 ? 'Sudah ada pemesan lain di sesi ini.' : 'Kapasitas sesi tidak tersedia untuk private.' }}</span>
-                                @endunless
-                            </span>
+                        <label class="group relative flex min-h-40 flex-col justify-between rounded-xl border border-border bg-bg p-4 transition-all duration-200 has-checked:border-accent has-checked:bg-accent/5 motion-reduce:transition-none {{ $privateAvailable ? 'cursor-pointer hover:border-accent/60' : 'cursor-not-allowed opacity-60' }} focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2">
+                            <div class="flex items-start gap-3">
+                                <input type="radio" name="booking_type_choice" value="private" x-model="type" @disabled(! $privateAvailable) class="peer sr-only">
+                                <span aria-hidden="true" class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2 border-border bg-surface transition-colors peer-checked:border-accent peer-checked:bg-accent">
+                                    <span class="size-2 rounded-full bg-accent-contrast" x-show="type === 'private'"></span>
+                                </span>
+                                <div class="flex flex-1 flex-col">
+                                    <span class="text-base font-bold text-text">Sewa Private</span>
+                                    <span class="mt-1 text-sm text-text-muted">Studio khusus untuk rombongan, 6 kursi penuh, tanpa pelanggan lain.</span>
+                                    <span class="mt-auto pt-3 text-sm font-bold text-accent">Rp {{ number_format($privatePrice, 0, ',', '.') }} · harga flat</span>
+                                    @unless ($privateAvailable)
+                                        <span class="mt-2 text-sm font-semibold text-danger">{{ $occupiedSeats > 0 ? 'Sudah ada pemesan lain di sesi ini.' : 'Kapasitas sesi tidak tersedia untuk private.' }}</span>
+                                    @endunless
+                                </div>
+                            </div>
                         </label>
                     </div>
                     @error('booking_type')<p role="alert" class="mt-3 text-sm font-semibold text-danger">{{ $message }}</p>@enderror
                 </fieldset>
 
-                <template x-if="type === 'per_orang'">
-                    <section class="wizard-choice-panel rounded-2xl border border-border bg-surface p-4 sm:p-6">
-                        <h2 class="text-xl font-bold text-text">Berapa orang yang ikut?</h2>
-                        <p class="mt-2 text-base text-text-muted">Masih ada {{ $session->remainingSeats() }} dari 6 kursi.</p>
-                        <div class="mt-5 flex items-center justify-between gap-4 rounded-xl bg-surface-2 p-4">
-                            <button type="button" @click="pax = Math.max(1, Number(pax) - 1)" :disabled="Number(pax) <= 1" aria-label="Kurangi jumlah orang" class="grid size-12 place-items-center rounded-full border border-border bg-surface text-2xl text-text disabled:opacity-40">−</button>
-                            <p class="text-center"><span class="block text-4xl font-black text-text" x-text="pax"></span><span class="mt-1 block text-sm text-text-muted">orang</span></p>
-                            <button type="button" @click="pax = Math.min(remaining, 6, Number(pax) + 1)" :disabled="Number(pax) >= remaining || Number(pax) >= 6" aria-label="Tambah jumlah orang" class="grid size-12 place-items-center rounded-full bg-accent text-2xl font-bold text-accent-contrast disabled:opacity-40">+</button>
-                        </div>
-                        @error('pax')<p role="alert" class="mt-3 text-sm font-semibold text-danger">{{ $message }}</p>@enderror
-                    </section>
-                </template>
-                <template x-if="type === 'private'">
-                    <section class="wizard-choice-panel rounded-2xl border border-accent/30 bg-accent/5 p-4 sm:p-6">
-                        <p class="font-bold text-text">Studio khusus untukmu, 6 kursi dipesan penuh.</p>
-                        <p class="mt-2 text-sm text-text-muted">Harga paket: Rp {{ number_format($privatePrice, 0, ',', '.') }}.</p>
-                    </section>
-                </template>
+                <div x-show="type === 'per_orang'" x-cloak class="wizard-choice-panel rounded-2xl border border-border bg-surface p-4 sm:p-6">
+                    <h2 class="text-xl font-bold text-text">Berapa orang yang ikut?</h2>
+                    <p class="mt-1 text-base text-text-muted">Masih ada <span class="font-bold text-accent" x-text="remaining"></span> dari 6 kursi.</p>
+                    <div class="mt-5 flex items-center justify-between gap-4 rounded-xl bg-surface-2 p-4">
+                        <button type="button" @click="pax = Math.max(1, Number(pax) - 1)" :disabled="Number(pax) <= 1" aria-label="Kurangi jumlah orang" class="grid size-12 place-items-center rounded-full border border-border bg-surface text-2xl text-text transition hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40">−</button>
+                        <p class="text-center">
+                            <span class="block text-4xl font-black text-text" x-text="pax"></span>
+                            <span class="mt-1 block text-sm text-text-muted">orang</span>
+                        </p>
+                        <button type="button" @click="pax = Math.min(remaining, 6, Number(pax) + 1)" :disabled="Number(pax) >= remaining || Number(pax) >= 6" aria-label="Tambah jumlah orang" class="grid size-12 place-items-center rounded-full bg-accent text-2xl font-bold text-accent-contrast transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40">+</button>
+                    </div>
+                    @error('pax')<p role="alert" class="mt-3 text-sm font-semibold text-danger">{{ $message }}</p>@enderror
+                </div>
+
+                <div x-show="type === 'private'" x-cloak class="wizard-choice-panel rounded-2xl border border-accent/30 bg-accent/5 p-4 sm:p-6">
+                    <p class="text-lg font-bold text-text">Studio khusus untukmu, 6 kursi dipesan penuh.</p>
+                    <p class="mt-1 text-sm text-text-muted">Harga flat: <span class="font-bold text-accent">Rp {{ number_format($privatePrice, 0, ',', '.') }}</span>.</p>
+                </div>
             </section>
 
             @if ($snacksEnabled)
@@ -318,11 +345,11 @@
                             <h2 class="mt-1 text-xl font-bold text-text">Mau pesan jajan?</h2>
                             <p class="mt-1 text-sm text-text-muted">Bisa dilewati. Dibayar bareng tiket.</p>
                         </div>
-                        <button type="button" @click="skipSnacks()" class="min-h-11 shrink-0 rounded-lg border border-border px-3 text-sm font-bold text-text">Lewati</button>
+                        <button type="button" @click="skipSnacks()" class="min-h-11 shrink-0 rounded-lg border border-border px-3 text-sm font-bold text-text transition-colors hover:bg-surface-2">Lewati</button>
                     </div>
                     <div class="sticky top-16 z-10 -mx-4 mt-4 flex gap-2 overflow-x-auto border-b border-border bg-bg/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6" role="tablist" aria-label="Kategori jajanan">
                         @foreach ($snackCategories as $category)
-                            <button id="snack-tab-{{ $category['id'] }}" type="button" role="tab" aria-controls="snack-panel-{{ $category['id'] }}" @click="activeCategory = {{ $category['id'] }}" :aria-selected="activeCategory === {{ $category['id'] }}" class="min-h-11 shrink-0 rounded-full border border-border px-4 text-sm font-semibold text-text" :class="activeCategory === {{ $category['id'] }} ? 'border-accent bg-accent/10 text-accent' : 'bg-surface'">{{ $category['name'] }}</button>
+                            <button id="snack-tab-{{ $category['id'] }}" type="button" role="tab" aria-controls="snack-panel-{{ $category['id'] }}" @click="activeCategory = {{ $category['id'] }}" :aria-selected="activeCategory === {{ $category['id'] }}" class="min-h-11 shrink-0 rounded-full border border-border px-4 text-sm font-semibold text-text transition-colors" :class="activeCategory === {{ $category['id'] }} ? 'border-accent bg-accent/10 font-bold text-accent' : 'bg-surface hover:bg-surface-2'">{{ $category['name'] }}</button>
                         @endforeach
                     </div>
                     @foreach ($snackCategories as $category)
@@ -347,9 +374,9 @@
                                         </button>
                                     </div>
                                     <div class="flex shrink-0 items-center gap-2">
-                                        <button type="button" @click="changeQty({{ $item['id'] }}, -1)" :disabled="qty({{ $item['id'] }}) === 0" aria-label="Kurangi {{ $item['name'] }}" class="grid size-11 place-items-center rounded-full border border-border text-xl text-text disabled:opacity-40">−</button>
+                                        <button type="button" @click="changeQty({{ $item['id'] }}, -1)" :disabled="qty({{ $item['id'] }}) === 0" aria-label="Kurangi {{ $item['name'] }}" class="grid size-11 place-items-center rounded-full border border-border text-xl text-text transition hover:bg-surface-2 disabled:opacity-40">−</button>
                                         <span class="min-w-5 text-center text-base font-bold text-text" x-text="qty({{ $item['id'] }})"></span>
-                                        <button type="button" @click="changeQty({{ $item['id'] }}, 1)" :disabled="{{ $item['available'] ? 'false' : 'true' }} || qty({{ $item['id'] }}) >= snackMaxQty" aria-label="Tambah {{ $item['name'] }}" class="grid size-11 place-items-center rounded-full bg-accent text-xl font-bold text-accent-contrast disabled:opacity-40">+</button>
+                                        <button type="button" @click="changeQty({{ $item['id'] }}, 1)" :disabled="{{ $item['available'] ? 'false' : 'true' }} || qty({{ $item['id'] }}) >= snackMaxQty" aria-label="Tambah {{ $item['name'] }}" class="grid size-11 place-items-center rounded-full bg-accent text-xl font-bold text-accent-contrast transition hover:opacity-90 disabled:opacity-40">+</button>
                                     </div>
                                 </article>
                             @endforeach
@@ -394,8 +421,11 @@
                     <div class="mt-3 grid gap-2 sm:grid-cols-3">
                         @foreach ($paymentMethods as $method)
                             @php($paymentLabel = ['di_tempat' => 'Bayar di tempat', 'qris' => 'QRIS', 'transfer' => 'Transfer'][$method])
-                            <label class="flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border border-border px-3 text-text has-checked:border-accent has-checked:bg-accent/5">
-                                <input type="radio" value="{{ $method }}" x-model="paymentMethod" class="size-5 accent-accent">
+                            <label class="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-text transition-all hover:border-accent/60 has-checked:border-accent has-checked:bg-accent/5 focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2">
+                                <input type="radio" value="{{ $method }}" x-model="paymentMethod" class="peer sr-only">
+                                <span aria-hidden="true" class="grid size-5 shrink-0 place-items-center rounded-full border-2 border-border bg-bg transition-colors peer-checked:border-accent peer-checked:bg-accent">
+                                    <span class="size-2 rounded-full bg-accent-contrast" x-show="paymentMethod === '{{ $method }}'"></span>
+                                </span>
                                 <span class="text-base font-medium">{{ $paymentLabel }}</span>
                             </label>
                         @endforeach
@@ -418,12 +448,12 @@
                 <section role="dialog" aria-modal="true" aria-labelledby="film-detail-title" class="max-h-[85dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-border bg-surface p-5 shadow-token sm:rounded-3xl">
                     <div class="flex items-start justify-between gap-3">
                         <div><h2 id="film-detail-title" class="text-2xl font-black text-text" x-text="filmDetail?.title"></h2><p class="mt-1 text-sm text-text-muted"><span x-text="filmDetail?.genre"></span> · <span x-text="filmDetail?.duration"></span> menit · Usia <span x-text="filmDetail?.rating"></span></p></div>
-                        <button type="button" @click="filmDetail = null" aria-label="Tutup detail film" class="grid size-11 place-items-center rounded-full border border-border text-xl text-text">×</button>
+                        <button type="button" @click="filmDetail = null" aria-label="Tutup detail film" class="grid size-11 place-items-center rounded-full border border-border text-xl text-text hover:bg-surface-2">×</button>
                     </div>
                     <p class="mt-4 text-base leading-7 text-text-muted" x-text="filmDetail?.synopsis"></p>
                     <div class="mt-5 flex flex-col gap-3 sm:flex-row">
-                        <button type="button" @click="chooseFilm(filmDetail.id)" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-bold text-accent-contrast">Pilih film ini</button>
-                        <a x-show="filmDetail?.trailer" :href="filmDetail?.trailer" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-12 items-center justify-center rounded-xl border border-border px-4 font-bold text-text">▶ Lihat trailer</a>
+                        <button type="button" @click="chooseFilm(filmDetail.id)" class="min-h-12 flex-1 rounded-xl bg-accent px-4 font-bold text-accent-contrast hover:opacity-90">Pilih film ini</button>
+                        <a x-show="filmDetail?.trailer" :href="filmDetail?.trailer" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-12 items-center justify-center rounded-xl border border-border px-4 font-bold text-text hover:bg-surface-2">▶ Lihat trailer</a>
                     </div>
                 </section>
             </div>
@@ -434,12 +464,12 @@
                     <p class="mt-1 text-sm text-text-muted">Contoh: mie rebus pedas atau minuman tanpa es.</p>
                     <label for="snack-note" class="sr-only">Catatan untuk jajanan</label>
                     <textarea id="snack-note" x-model="noteValue" maxlength="250" rows="3" class="mt-4 w-full rounded-xl border border-border bg-bg p-3 text-base text-text focus:border-accent focus:ring-accent"></textarea>
-                    <button type="button" @click="saveNote()" class="mt-4 min-h-12 w-full rounded-xl bg-accent font-bold text-accent-contrast">Simpan catatan</button>
+                    <button type="button" @click="saveNote()" class="mt-4 min-h-12 w-full rounded-xl bg-accent font-bold text-accent-contrast hover:opacity-90">Simpan catatan</button>
                 </section>
             </div>
 
             <div class="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pt-3 shadow-token backdrop-blur" style="padding-bottom: max(env(safe-area-inset-bottom), .75rem)">
-                <div class="mx-auto max-w-3xl px-4 sm:px-6">
+                <div class="mx-auto w-full max-w-3xl px-4 sm:px-6">
                     <div x-show="step === 4 && snackCount > 0" class="mb-3">
                         <button type="button" @click="basketOpen = !basketOpen" class="flex min-h-11 w-full items-center justify-between rounded-xl bg-surface-2 px-3 text-sm font-bold text-text" :aria-expanded="basketOpen">
                             <span x-text="`${snackCount} item jajan · ${basketOpen ? 'Tutup keranjang' : 'Lihat keranjang'}`"></span>
@@ -458,14 +488,16 @@
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button type="button" x-show="step > 2" @click="previousStep()" class="min-h-12 flex-1 rounded-xl border border-border px-3 text-sm font-bold text-text">Kembali</button>
-                        <button type="button" x-show="step < 5" @click="nextStep()" :disabled="(step === 2 && !filmId) || (step === 3 && (!type || (type === 'private' && !privateAvailable) || (type === 'per_orang' && !paxIsValid)))" class="min-h-12 flex-1 rounded-xl bg-accent px-3 text-sm font-bold text-accent-contrast disabled:cursor-not-allowed disabled:opacity-45">Lanjut</button>
-                        <button type="button" x-bind:type="step === 5 ? 'submit' : 'button'" x-show="step === 5" :disabled="isSubmitting" class="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-accent px-3 text-sm font-bold text-accent-contrast disabled:cursor-wait disabled:opacity-60">
+                        <button type="button" x-show="step > 2" @click="previousStep()" class="min-h-12 flex-1 rounded-xl border border-border px-3 text-sm font-bold text-text transition-colors hover:bg-surface-2">Kembali</button>
+                        <button type="button" x-show="step < 5" @click="nextStep()" :disabled="(step === 2 && !filmId) || (step === 3 && (!type || (type === 'private' && !privateAvailable) || (type === 'per_orang' && !paxIsValid)))" class="min-h-12 flex-1 rounded-xl bg-accent px-3 text-sm font-bold text-accent-contrast transition-opacity disabled:cursor-not-allowed disabled:opacity-45">Lanjut</button>
+                        <button type="button" x-bind:type="step === 5 ? 'submit' : 'button'" x-show="step === 5" :disabled="isSubmitting" class="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-accent px-3 text-sm font-bold text-accent-contrast transition-opacity disabled:cursor-wait disabled:opacity-60">
                             <span x-show="!isSubmitting">Kirim Booking</span>
                             <span x-show="isSubmitting" x-cloak role="status">Mengirim…</span>
                         </button>
                     </div>
                     <p class="mt-1 text-right text-xs text-text-muted" x-show="step === 3 && !type">Pilih tipe booking dulu.</p>
+                    <p class="mt-1 text-right text-xs text-text-muted" x-show="step === 3 && type === 'private' && !privateAvailable">Sewa Private tidak tersedia untuk sesi ini.</p>
+                    <p class="mt-1 text-right text-xs text-text-muted" x-show="step === 3 && type === 'per_orang' && !paxIsValid">Pilih jumlah orang yang valid.</p>
                     <p class="mt-1 text-right text-xs text-text-muted" x-show="step === 2 && !filmId">Pilih film dulu untuk melanjutkan.</p>
                     <p class="mt-1 text-right text-xs text-text-muted" x-show="step === 5">Pastikan nama dan nomor WhatsApp sudah benar.</p>
                 </div>

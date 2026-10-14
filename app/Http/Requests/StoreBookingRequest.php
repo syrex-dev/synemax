@@ -40,6 +40,7 @@ class StoreBookingRequest extends FormRequest
             'whatsapp.regex' => 'Masukkan nomor WhatsApp Indonesia yang valid, misalnya 081234567890 atau +6281234567890.',
             'pax.required' => 'Pilih jumlah orang.',
             'pax.between' => 'Jumlah orang harus antara 1 sampai 6.',
+            'booking_type.required' => 'Pilih tipe booking yang tersedia.',
             'booking_type.in' => 'Pilih tipe booking yang tersedia.',
             'film_id.exists' => 'Film yang dipilih sudah tidak tersedia.',
             'payment_method.in' => 'Pilih metode pembayaran yang tersedia.',
