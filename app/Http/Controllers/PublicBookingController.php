@@ -160,13 +160,16 @@ class PublicBookingController extends Controller
         string $code,
         CinemaSettings $settings,
         BookingService $bookingService,
-    ): View|RedirectResponse {
+    ): Response|RedirectResponse {
         $booking = Booking::query()
             ->where('code', strtoupper(trim($code)))
             ->with(['session', 'film', 'items' => fn ($query) => $query->where('status', '!=', 'dibatalkan')])
             ->firstOrFail();
 
-        $this->authorizeBookingAccess($request, $booking);
+        if ($redirect = $this->authorizeBookingAccess($request, $booking, redirectIfQueried: true)) {
+            return $redirect;
+        }
+
         $booking = $bookingService->expireIfOverdue($booking);
 
         if ($booking->payment_method === 'di_tempat') {
@@ -177,17 +180,19 @@ class PublicBookingController extends Controller
             return redirect()->route('booking.ticket', ['code' => $booking->code]);
         }
 
-        return view('public.payment', [
-            'booking' => $booking,
-            'whatsAppUrl' => $this->paymentWhatsAppUrl($booking, $settings),
-            'hasQrisImage' => $settings->hasValidQrisImage(),
-            'qrisMerchantName' => $settings->qrisMerchantName(),
-            'qrisPaymentNotes' => $settings->qrisPaymentNotes(),
-            'qrisVersion' => $settings->qrisImageVersion(),
-            'transferAccounts' => $settings->transferAccounts(),
-            'transferPaymentNotes' => $settings->transferPaymentNotes(),
-            'maxPaymentProofKb' => $settings->maxPaymentProofKb(),
-        ]);
+        return response()
+            ->view('public.payment', [
+                'booking' => $booking,
+                'whatsAppUrl' => $this->paymentWhatsAppUrl($booking, $settings),
+                'hasQrisImage' => $settings->hasValidQrisImage(),
+                'qrisMerchantName' => $settings->qrisMerchantName(),
+                'qrisPaymentNotes' => $settings->qrisPaymentNotes(),
+                'qrisVersion' => $settings->qrisImageVersion(),
+                'transferAccounts' => $settings->transferAccounts(),
+                'transferPaymentNotes' => $settings->transferPaymentNotes(),
+                'maxPaymentProofKb' => $settings->maxPaymentProofKb(),
+            ])
+            ->header('Referrer-Policy', 'same-origin');
     }
 
     public function ticketView(
@@ -195,7 +200,7 @@ class PublicBookingController extends Controller
         string $code,
         CinemaSettings $settings,
         BookingService $bookingService,
-    ): View|RedirectResponse {
+    ): Response|RedirectResponse {
         $booking = Booking::query()
             ->where('code', strtoupper(trim($code)))
             ->with([
@@ -205,7 +210,10 @@ class PublicBookingController extends Controller
             ])
             ->firstOrFail();
 
-        $this->authorizeBookingAccess($request, $booking);
+        if ($redirect = $this->authorizeBookingAccess($request, $booking, redirectIfQueried: true)) {
+            return $redirect;
+        }
+
         $booking = $bookingService->expireIfOverdue($booking);
 
         if ($booking->isOnlinePayment() && $booking->status === 'menunggu_pembayaran' && ! $booking->isExpired()) {
@@ -230,14 +238,16 @@ class PublicBookingController extends Controller
         $canCancel = ! in_array($booking->status, ['dibatalkan', 'kedaluwarsa', 'hadir', 'tidak_hadir'], true)
             && now()->lessThanOrEqualTo($booking->session->startsAt()->subHours($cancellationCutoff));
 
-        return view('public.ticket', [
-            'booking' => $booking,
-            'whatsAppUrl' => $this->ticketWhatsAppUrl($booking, $settings),
-            'snackWhatsAppUrl' => $this->snackWhatsAppUrl($booking, $settings),
-            'snackLocked' => $snackLocked,
-            'canCancel' => $canCancel,
-            'cancellationCutoffHours' => $cancellationCutoff,
-        ]);
+        return response()
+            ->view('public.ticket', [
+                'booking' => $booking,
+                'whatsAppUrl' => $this->ticketWhatsAppUrl($booking, $settings),
+                'snackWhatsAppUrl' => $this->snackWhatsAppUrl($booking, $settings),
+                'snackLocked' => $snackLocked,
+                'canCancel' => $canCancel,
+                'cancellationCutoffHours' => $cancellationCutoff,
+            ])
+            ->header('Referrer-Policy', 'same-origin');
     }
 
     public function statusJson(
@@ -473,21 +483,35 @@ class PublicBookingController extends Controller
         return response($content, 200, $headers);
     }
 
-    private function authorizeBookingAccess(Request $request, Booking $booking): void
+    private function authorizeBookingAccess(Request $request, Booking $booking, bool $redirectIfQueried = false): ?RedirectResponse
     {
-        $waParam = $request->query('whatsapp') ?? $request->query('wa');
-        $normalizedWa = $waParam ? WhatsAppNumber::normalize((string) $waParam) : null;
-        $isVerifiedCustomer = ($normalizedWa !== null && $normalizedWa === $booking->whatsapp)
-            || $request->session()->get('verified_booking_'.$booking->code) === true;
+        $hasWaQuery = $request->query->has('whatsapp') || $request->query->has('wa');
+
+        if ($hasWaQuery) {
+            $waParam = $request->query('whatsapp') ?? $request->query('wa');
+            $normalizedWa = $waParam ? WhatsAppNumber::normalize((string) $waParam) : null;
+
+            if ($normalizedWa !== null && $normalizedWa === $booking->whatsapp) {
+                $request->session()->put('verified_booking_'.$booking->code, true);
+
+                if ($redirectIfQueried) {
+                    return redirect()->to($request->url());
+                }
+
+                return null;
+            }
+
+            abort(403, 'Akses ditolak. Silakan cek booking dengan nomor WhatsApp pemesan.');
+        }
+
+        $isVerifiedCustomer = $request->session()->get('verified_booking_'.$booking->code) === true;
         $isAdmin = (bool) $request->user()?->is_admin;
 
         if (! $isAdmin && ! $isVerifiedCustomer) {
             abort(403, 'Akses ditolak. Silakan cek booking dengan nomor WhatsApp pemesan.');
         }
 
-        if ($normalizedWa !== null && $normalizedWa === $booking->whatsapp) {
-            $request->session()->put('verified_booking_'.$booking->code, true);
-        }
+        return null;
     }
 
     private function paymentWhatsAppUrl(Booking $booking, CinemaSettings $settings): ?string

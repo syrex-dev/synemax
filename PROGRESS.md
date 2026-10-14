@@ -5,8 +5,9 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
 ## Status Ringkas
 - **Tahap Audit & Checkpoint**: SELESAI (`commit: 35fda5d` - Checkpoint: alur pembayaran dan tiket)
 - **Tahap 1 (C1: Private vs Per Orang)**: SELESAI (`commit: ce83a03`)
-- **Tahap 2 (C2: Halaman Pembayaran & Perbaikan QRIS)**: SELESAI
-- **Tahap 3 (Checklist 3: Fitur Info & Nobar)**: MENUNGGU PERSETUJUAN MANUAL SETELAH TAHAP 1-2
+- **Tahap 2 (C2: Halaman Pembayaran & Perbaikan QRIS)**: SELESAI (`commit: e7fa6b1`)
+- **Tahap 2b (Keamanan URL Bersih & Referrer-Policy)**: SELESAI
+- **Tahap 3 (Checklist 3: Fitur Info & Nobar)**: SEDANG DIKERJAKAN
 - **Tahap 4 (Testing & Verifikasi Visual)**: MENUNGGU
 
 ---
@@ -38,6 +39,15 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
   - Jika rasio gambar jauh dari persegi (`< 0.8` atau `> 1.25`), sistem menampilkan pesan: *"QRIS sebaiknya persegi dan rapi; pangkas bagian lain."*
   - Berfungsi di backend (flash session toast saat upload tanpa memotong otomatis) dan di frontend (Alpine.js live check saat admin memilih file sebelum upload, serta badge peringatan jika gambar aktif yang tersimpan non-persegi).
 - [x] Update test di `BookingPaymentFlowTest.php` (stepper assertion dihapus dan diganti dengan assertion `assertDontSee`) dan test baru di `QrisPaymentFlowTest.php` (`test_admin_upload_non_square_qris_warns_ratio_without_auto_crop`).
+
+### Tahap 2b: Keamanan URL Bersih & Header Referrer-Policy
+- [x] Nomor WhatsApp TIDAK pernah tampil di URL halaman pembayaran atau tiket.
+- [x] Jika akses menyertakan query parameter `?wa=` atau `?whatsapp=`:
+  - Jika nomor cocok, otorisasi dicatat di session, lalu otomatis di-redirect (302) ke URL bersih (`/pembayaran/{kode}` atau `/tiket/{kode}`).
+  - Jika nomor tidak cocok, langsung ditolak dengan `403 Forbidden`.
+- [x] Ditambahkan header `Referrer-Policy: same-origin` pada respons halaman pembayaran dan tiket agar URL dan kode booking tidak bocor ke pihak ketiga (misalnya WhatsApp Web).
+- [x] Alur pembuatan booking baru dan alur cek booking via form tetap berjalan bersih tanpa parameter query.
+- [x] Pengujian otomatis pada `BookingPaymentFlowTest.php` lulus hijau.
 
 ### Tahap 3: Fitur Info & Nobar (Menunggu Persetujuan Setelah Tahap 1 & 2)
 - [ ] Migrasi & Model `NobarEvent` (skema lengkap: `kickoff_at`, `tim_a`, `tim_b`, status Berlangsung/Selesai/Akan datang, dll.) & `NewsArticle`.

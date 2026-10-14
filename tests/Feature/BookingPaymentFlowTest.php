@@ -534,13 +534,45 @@ class BookingPaymentFlowTest extends TestCase
         $this->get(route('booking.status.json', ['code' => $booking->code]))
             ->assertForbidden();
 
-        // Customer providing matching WhatsApp query gets 200 and establishes session
-        $this->get(route('booking.ticket', ['code' => $booking->code, 'wa' => '081234567000']))
-            ->assertOk();
+        // Guest with wrong WhatsApp query gets 403
+        $this->get(route('booking.ticket', ['code' => $booking->code, 'wa' => '08999999999']))
+            ->assertForbidden();
 
-        // Subsequent request using session succeeds
-        $this->get(route('booking.ticket', ['code' => $booking->code]))
-            ->assertOk();
+        // Customer providing matching WhatsApp query gets redirected to clean URL (no WA in URL)
+        $verifyResponse = $this->get(route('booking.ticket', ['code' => $booking->code, 'wa' => '081234567000']));
+        $verifyResponse->assertRedirect(route('booking.ticket', ['code' => $booking->code]));
+
+        // Subsequent request using established session succeeds on clean URL with same-origin referrer policy
+        $ticketResponse = $this->get(route('booking.ticket', ['code' => $booking->code]));
+        $ticketResponse->assertOk();
+        $this->assertSame('same-origin', $ticketResponse->headers->get('Referrer-Policy'));
+
+        // Online payment page also redirects WA query to clean URL and attaches Referrer-Policy
+        $onlineBooking = Booking::query()->create([
+            'code' => 'HC-ONLINE-CLEAN',
+            'session_id' => $this->session->id,
+            'film_id' => $this->film->id,
+            'customer_name' => 'Online Clean URL',
+            'whatsapp' => '6281234567888',
+            'booking_type' => 'per_orang',
+            'pax' => 1,
+            'seat_numbers' => [2],
+            'total_price' => 10000,
+            'payment_method' => 'qris',
+            'status' => 'menunggu_pembayaran',
+            'payment_due_at' => now()->addMinutes(30),
+        ]);
+
+        $this->flushSession();
+        $this->get(route('booking.payment', ['code' => $onlineBooking->code]))
+            ->assertForbidden();
+
+        $payRedirect = $this->get(route('booking.payment', ['code' => $onlineBooking->code, 'wa' => '081234567888']));
+        $payRedirect->assertRedirect(route('booking.payment', ['code' => $onlineBooking->code]));
+
+        $paymentPage = $this->get(route('booking.payment', ['code' => $onlineBooking->code]));
+        $paymentPage->assertOk();
+        $this->assertSame('same-origin', $paymentPage->headers->get('Referrer-Policy'));
     }
 
     public function test_status_json_endpoint_returns_clean_payload_for_polling(): void
