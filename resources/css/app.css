@@ -1,0 +1,173 @@
+@import 'tailwindcss';
+
+@source '../../app';
+@source '../../resources/views';
+@source '../../storage/framework/views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views';
+
+@plugin '@tailwindcss/forms';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+    --font-sans: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+}
+
+@theme inline {
+    --color-bg: var(--surface-canvas);
+    --color-surface: var(--surface-default);
+    --color-surface-2: var(--surface-raised);
+    --color-surface-sunken: var(--surface-sunken);
+    --color-border: var(--border-default);
+    --color-text: var(--text-primary);
+    --color-text-muted: var(--text-muted);
+    --color-subtle: var(--text-subtle);
+    --color-accent: var(--accent-primary);
+    --color-accent-hover: var(--accent-hover);
+    --color-accent-contrast: var(--accent-contrast);
+    --color-gold: var(--accent-gold);
+    --color-gold-surface: var(--accent-gold-surface);
+    --color-success: var(--status-success);
+    --color-success-contrast: var(--status-success-contrast);
+    --color-success-surface: var(--status-success-surface);
+    --color-warning: var(--status-warning);
+    --color-warning-contrast: var(--status-warning-contrast);
+    --color-warning-surface: var(--status-warning-surface);
+    --color-danger: var(--status-danger);
+    --color-danger-contrast: var(--status-danger-contrast);
+    --color-danger-surface: var(--status-danger-surface);
+    --color-info: var(--status-info);
+    --color-info-contrast: var(--status-info-contrast);
+    --color-info-surface: var(--status-info-surface);
+    --color-overlay: var(--overlay);
+    --color-focus: var(--focus-ring);
+    --shadow-token: var(--shadow-panel-token);
+}
+
+:root {
+    color-scheme: light;
+    --surface-canvas: #fbf6ea;
+    --surface-default: #fffdf8;
+    --surface-raised: #fff1d6;
+    --surface-sunken: #eee5d4;
+    --text-primary: #101826;
+    --text-muted: #505767;
+    --text-subtle: #626a78;
+    --border-default: #d9d0bf;
+    --accent-primary: #7a1f2b;
+    --accent-hover: #611722;
+    --accent-contrast: #ffffff;
+    --accent-gold: #805700;
+    --accent-gold-surface: #fff1d6;
+    --status-success: #1d5e42;
+    --status-success-contrast: #ffffff;
+    --status-success-surface: #e1f1e7;
+    --status-warning: #704600;
+    --status-warning-contrast: #ffffff;
+    --status-warning-surface: #f6e8c5;
+    --status-danger: #a32635;
+    --status-danger-contrast: #ffffff;
+    --status-danger-surface: #f7e4e7;
+    --status-info: #174f73;
+    --status-info-contrast: #ffffff;
+    --status-info-surface: #e2f0f8;
+    --focus-ring: #7a1f2b;
+    --overlay: rgb(16 14 18 / 72%);
+    --shadow-panel-token: 0 12px 32px rgb(42 29 22 / 10%);
+}
+
+:root.dark {
+    color-scheme: dark;
+    --surface-canvas: #0b1220;
+    --surface-default: #101826;
+    --surface-raised: #172235;
+    --surface-sunken: #080d16;
+    --text-primary: #fbf6ea;
+    --text-muted: #c7ced8;
+    --text-subtle: #aeb7c5;
+    --border-default: #344054;
+    --accent-primary: #f4b63f;
+    --accent-hover: #e3a520;
+    --accent-contrast: #101826;
+    --accent-gold: #f4b63f;
+    --accent-gold-surface: #2b261c;
+    --status-success: #8fd7ae;
+    --status-success-contrast: #102419;
+    --status-success-surface: #173225;
+    --status-warning: #f0cc73;
+    --status-warning-contrast: #29200b;
+    --status-warning-surface: #342b18;
+    --status-danger: #ffabb4;
+    --status-danger-contrast: #2c1116;
+    --status-danger-surface: #3a2025;
+    --status-info: #8fcff0;
+    --status-info-contrast: #101d25;
+    --status-info-surface: #182e3b;
+    --focus-ring: #f4b63f;
+    --overlay: rgb(0 0 0 / 78%);
+    --shadow-panel-token: 0 16px 40px rgb(0 0 0 / 40%);
+}
+
+html {
+    background-color: var(--surface-canvas);
+}
+
+body {
+    background-color: var(--surface-canvas);
+    color: var(--text-primary);
+}
+
+.wizard-choice-panel {
+    animation: wizard-choice-in 180ms ease-out both;
+}
+
+@keyframes wizard-choice-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.5rem);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 3px;
+}
+
+input[type='number'] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+}
+
+:root.dark [data-theme-toggle] [data-theme-thumb] {
+    transform: translateX(2rem);
+}
+
+:root:not(.dark) [data-theme-toggle] [data-theme-thumb] {
+    transform: translateX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+[x-cloak] {
+    display: none !important;
+}
