@@ -6,7 +6,21 @@
 @endsection
 
 @section('content')
-    @php($privateAvailable = $occupiedSeats === 0 && $session->seatCapacity() === \App\Models\Session::MAX_CAPACITY)
+    @php
+        $canPerPerson = ! $session->isPrivateActive() && $session->remainingSeats() > 0;
+        $canPrivate = ! $session->isPrivateActive()
+            && ! $session->hasActivePerPersonBookings()
+            && $session->remainingSeats() === \App\Models\Session::MAX_CAPACITY
+            && $session->seatCapacity() === \App\Models\Session::MAX_CAPACITY;
+        $privateDisabledReason = $session->isPrivateActive()
+            ? 'Sesi ini sudah disewa private.'
+            : ($session->hasActivePerPersonBookings() || $occupiedSeats > 0
+                ? 'Sudah ada pemesan per orang di sesi ini, jadi Sewa Private tidak tersedia.'
+                : 'Kapasitas sesi tidak mencukupi untuk private.');
+        $perPersonDisabledReason = $session->isPrivateActive()
+            ? 'Sesi ini sudah disewa private.'
+            : 'Kursi pada sesi ini sudah penuh.';
+    @endphp
     <section class="mx-auto max-w-3xl px-4 pb-80 pt-6 sm:px-6 sm:pb-80 sm:pt-9">
         <a href="{{ route('schedule.date', ['date' => $session->session_date]) }}" class="inline-flex min-h-11 items-center text-sm font-semibold text-accent hover:underline">← Ganti jadwal</a>
         <div class="mt-3">
@@ -35,7 +49,12 @@
                   filmId: @js((string) old('film_id', $session->film_id ?? '')),
                   filmOptions: @js($films->map(fn ($film) => ['title' => $film->title, 'genre' => $film->genre])->values()),
                   remaining: {{ $session->remainingSeats() }},
-                  privateAvailable: @js($privateAvailable),
+                  canPrivate: @js($canPrivate),
+                  canPerPerson: @js($canPerPerson),
+                  privateReason: @js($privateDisabledReason),
+                  perPersonReason: @js($perPersonDisabledReason),
+                  availabilityEndpoint: @js(route('booking.availability', ['session' => $session->id])),
+                  isCheckingAvailability: false,
                   unitPrice: {{ $unitPrice }},
                   privatePrice: {{ $privatePrice }},
                   hasSnacks: @js($snacksEnabled),
@@ -52,6 +71,49 @@
                   wizardError: '',
                   isSubmitting: false,
                   storageAvailable: true,
+                  async refreshAvailability() {
+                      if (this.isCheckingAvailability) return;
+                      this.isCheckingAvailability = true;
+                      try {
+                          const res = await fetch(this.availabilityEndpoint, {
+                              headers: { 'Accept': 'application/json' },
+                              cache: 'no-store'
+                          });
+                          if (res.ok) {
+                              const data = await res.json();
+                              this.remaining = Number(data.remaining_seats);
+                              this.canPrivate = Boolean(data.can_private);
+                              this.canPerPerson = Boolean(data.can_per_orang);
+                              this.privateReason = data.private_disabled_reason || 'Sewa Private tidak tersedia.';
+                              this.perPersonReason = data.per_orang_disabled_reason || 'Kursi pada sesi ini sudah penuh.';
+
+                              if (this.type === 'private' && !this.canPrivate) {
+                                  this.type = '';
+                                  this.wizardError = this.privateReason;
+                                  this.persist();
+                                  if (this.step > 3) {
+                                      this.step = 3;
+                                  }
+                              }
+
+                              if (this.type === 'per_orang' && !this.canPerPerson) {
+                                  this.type = '';
+                                  this.wizardError = this.perPersonReason;
+                                  this.persist();
+                                  if (this.step > 3) {
+                                      this.step = 3;
+                                  }
+                              } else if (this.type === 'per_orang' && Number(this.pax) > this.remaining) {
+                                  this.pax = Math.max(1, this.remaining);
+                                  this.persist();
+                              }
+                          }
+                      } catch (err) {
+                          // Jika fetch gagal karena koneksi / offline, jangan blokir wizard (server tetap sumber kebenaran)
+                      } finally {
+                          this.isCheckingAvailability = false;
+                      }
+                  },
                   get ticketTotal() {
                       if (!this.type) return 0;
                       return this.type === 'private' ? this.privatePrice : this.unitPrice * Number(this.pax);
@@ -102,12 +164,19 @@
                           this.wizardError = 'Pilih film dulu sebelum lanjut.';
                           return;
                       }
+                      if (this.step === 2) {
+                          this.refreshAvailability();
+                      }
                       if (this.step === 3 && !this.type) {
                           this.wizardError = 'Pilih tipe booking dulu.';
                           return;
                       }
-                      if (this.step === 3 && this.type === 'private' && !this.privateAvailable) {
-                          this.wizardError = 'Sewa Private hanya tersedia jika sesi masih kosong.';
+                      if (this.step === 3 && this.type === 'private' && !this.canPrivate) {
+                          this.wizardError = this.privateReason || 'Sudah ada pemesan per orang di sesi ini, jadi Sewa Private tidak tersedia.';
+                          return;
+                      }
+                      if (this.step === 3 && this.type === 'per_orang' && !this.canPerPerson) {
+                          this.wizardError = this.perPersonReason || 'Kursi pada sesi ini sudah penuh.';
                           return;
                       }
                       if (this.step === 3 && this.type === 'per_orang' && !this.paxIsValid) {
@@ -174,7 +243,11 @@
                       this.$watch('paymentMethod', () => this.persist());
                       this.$watch('cart', () => this.persist());
                       this.$watch('activeCategory', () => this.persist());
-                      this.$watch('step', () => this.centerActiveStep());
+                      this.$watch('step', (val) => {
+                          this.centerActiveStep();
+                          if (val === 3) this.refreshAvailability();
+                      });
+                      this.refreshAvailability();
                       this.centerActiveStep();
                   },
                   centerActiveStep() {
@@ -281,25 +354,43 @@
                     <legend class="px-1 text-xl font-bold text-text">Pilih tipe booking</legend>
                     <p class="mt-2 text-base text-text-muted">Pilih cara booking yang paling cocok buat rombonganmu.</p>
                     <div class="mt-4 grid items-stretch gap-3 sm:grid-cols-2">
-                        @php($perPersonAvailable = $session->remainingSeats() > 0)
-                        <label class="group relative flex min-h-40 flex-col justify-between rounded-xl border border-border bg-bg p-4 transition-all duration-200 has-checked:border-accent has-checked:bg-accent/5 motion-reduce:transition-none {{ $perPersonAvailable ? 'cursor-pointer hover:border-accent/60' : 'cursor-not-allowed opacity-60' }} focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2">
+                        <label class="group relative flex min-h-40 flex-col justify-between rounded-xl border border-border bg-bg p-4 transition-all duration-200 has-checked:border-accent has-checked:bg-accent/5 motion-reduce:transition-none focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2"
+                               :class="!canPerPerson ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-accent/60'">
                             <div class="flex items-start gap-3">
-                                <input type="radio" name="booking_type_choice" value="per_orang" x-model="type" @disabled(! $perPersonAvailable) class="peer sr-only">
+                                <input type="radio"
+                                       name="booking_type_choice"
+                                       value="per_orang"
+                                       x-model="type"
+                                       :disabled="!canPerPerson"
+                                       :aria-disabled="!canPerPerson ? 'true' : 'false'"
+                                       aria-describedby="per-orang-desc"
+                                       class="peer sr-only">
                                 <span aria-hidden="true" class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2 border-border bg-surface transition-colors peer-checked:border-accent peer-checked:bg-accent">
                                     <span class="size-2 rounded-full bg-accent-contrast" x-show="type === 'per_orang'"></span>
                                 </span>
                                 <div class="flex flex-1 flex-col">
                                     <span class="text-base font-bold text-text">Per orang</span>
                                     <span class="mt-1 text-sm text-text-muted">Rp {{ number_format($unitPrice, 0, ',', '.') }} tiap kursi. Berbagi studio dengan pelanggan lain pada film yang sama.</span>
-                                    @unless ($perPersonAvailable)
-                                        <span class="mt-2 text-sm font-semibold text-danger">Kursi pada sesi ini sudah penuh.</span>
-                                    @endunless
+                                    <span id="per-orang-desc"
+                                          x-show="!canPerPerson"
+                                          class="mt-2 text-sm font-semibold text-danger"
+                                          x-text="perPersonReason">
+                                        {{ $perPersonDisabledReason }}
+                                    </span>
                                 </div>
                             </div>
                         </label>
-                        <label class="group relative flex min-h-40 flex-col justify-between rounded-xl border border-border bg-bg p-4 transition-all duration-200 has-checked:border-accent has-checked:bg-accent/5 motion-reduce:transition-none {{ $privateAvailable ? 'cursor-pointer hover:border-accent/60' : 'cursor-not-allowed opacity-60' }} focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2">
+                        <label class="group relative flex min-h-40 flex-col justify-between rounded-xl border border-border bg-bg p-4 transition-all duration-200 has-checked:border-accent has-checked:bg-accent/5 motion-reduce:transition-none focus-within:ring-2 focus-within:ring-accent focus-within:ring-offset-2"
+                               :class="!canPrivate ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:border-accent/60'">
                             <div class="flex items-start gap-3">
-                                <input type="radio" name="booking_type_choice" value="private" x-model="type" @disabled(! $privateAvailable) class="peer sr-only">
+                                <input type="radio"
+                                       name="booking_type_choice"
+                                       value="private"
+                                       x-model="type"
+                                       :disabled="!canPrivate"
+                                       :aria-disabled="!canPrivate ? 'true' : 'false'"
+                                       aria-describedby="private-desc"
+                                       class="peer sr-only">
                                 <span aria-hidden="true" class="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-2 border-border bg-surface transition-colors peer-checked:border-accent peer-checked:bg-accent">
                                     <span class="size-2 rounded-full bg-accent-contrast" x-show="type === 'private'"></span>
                                 </span>
@@ -307,9 +398,12 @@
                                     <span class="text-base font-bold text-text">Sewa Private</span>
                                     <span class="mt-1 text-sm text-text-muted">Studio khusus untuk rombongan, 6 kursi penuh, tanpa pelanggan lain.</span>
                                     <span class="mt-auto pt-3 text-sm font-bold text-accent">Rp {{ number_format($privatePrice, 0, ',', '.') }} · harga flat</span>
-                                    @unless ($privateAvailable)
-                                        <span class="mt-2 text-sm font-semibold text-danger">{{ $occupiedSeats > 0 ? 'Sudah ada pemesan lain di sesi ini.' : 'Kapasitas sesi tidak tersedia untuk private.' }}</span>
-                                    @endunless
+                                    <span id="private-desc"
+                                          x-show="!canPrivate"
+                                          class="mt-2 text-sm font-semibold text-danger"
+                                          x-text="privateReason">
+                                        {{ $privateDisabledReason }}
+                                    </span>
                                 </div>
                             </div>
                         </label>
@@ -489,15 +583,16 @@
                     </div>
                     <div class="flex gap-2">
                         <button type="button" x-show="step > 2" @click="previousStep()" class="min-h-12 flex-1 rounded-xl border border-border px-3 text-sm font-bold text-text transition-colors hover:bg-surface-2">Kembali</button>
-                        <button type="button" x-show="step < 5" @click="nextStep()" :disabled="(step === 2 && !filmId) || (step === 3 && (!type || (type === 'private' && !privateAvailable) || (type === 'per_orang' && !paxIsValid)))" class="min-h-12 flex-1 rounded-xl bg-accent px-3 text-sm font-bold text-accent-contrast transition-opacity disabled:cursor-not-allowed disabled:opacity-45">Lanjut</button>
+                        <button type="button" x-show="step < 5" @click="nextStep()" :disabled="(step === 2 && !filmId) || (step === 3 && (!type || (type === 'private' && !canPrivate) || (type === 'per_orang' && (!canPerPerson || !paxIsValid))))" class="min-h-12 flex-1 rounded-xl bg-accent px-3 text-sm font-bold text-accent-contrast transition-opacity disabled:cursor-not-allowed disabled:opacity-45">Lanjut</button>
                         <button type="button" x-bind:type="step === 5 ? 'submit' : 'button'" x-show="step === 5" :disabled="isSubmitting" class="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-accent px-3 text-sm font-bold text-accent-contrast transition-opacity disabled:cursor-wait disabled:opacity-60">
                             <span x-show="!isSubmitting" x-text="paymentMethod === 'di_tempat' ? 'Kirim Booking' : 'Booking & Lanjut Bayar'"></span>
                             <span x-show="isSubmitting" x-cloak role="status">Mengirim…</span>
                         </button>
                     </div>
                     <p class="mt-1 text-right text-xs text-text-muted" x-show="step === 3 && !type">Pilih tipe booking dulu.</p>
-                    <p class="mt-1 text-right text-xs text-text-muted" x-show="step === 3 && type === 'private' && !privateAvailable">Sewa Private tidak tersedia untuk sesi ini.</p>
-                    <p class="mt-1 text-right text-xs text-text-muted" x-show="step === 3 && type === 'per_orang' && !paxIsValid">Pilih jumlah orang yang valid.</p>
+                    <p class="mt-1 text-right text-xs text-text-muted" x-show="step === 3 && type === 'private' && !canPrivate" x-text="privateReason"></p>
+                    <p class="mt-1 text-right text-xs text-text-muted" x-show="step === 3 && type === 'per_orang' && !canPerPerson" x-text="perPersonReason"></p>
+                    <p class="mt-1 text-right text-xs text-text-muted" x-show="step === 3 && type === 'per_orang' && canPerPerson && !paxIsValid">Pilih jumlah orang yang valid.</p>
                     <p class="mt-1 text-right text-xs text-text-muted" x-show="step === 2 && !filmId">Pilih film dulu untuk melanjutkan.</p>
                     <p class="mt-1 text-right text-xs text-text-muted" x-show="step === 5">Pastikan nama dan nomor WhatsApp sudah benar.</p>
                 </div>

@@ -234,12 +234,7 @@ class BookingController extends Controller
         $booking->update(['status' => 'dibatalkan', 'cancelled_at' => now()]);
         $snackOrders->cancelItems($booking);
 
-        if (
-            $session->is_private
-            && (int) $session->occupiedBookings()->sum('seats_reserved') === 0
-        ) {
-            $session->update(['is_private' => false]);
-        }
+        $session->syncPrivateStatus();
     }
 
     private function markAttended(Booking $booking): void

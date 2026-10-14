@@ -35,7 +35,7 @@ class PublicBookingController extends Controller
 
         if (
             $session->status !== 'tersedia'
-            || $session->is_private
+            || $session->isPrivateActive()
             || $session->remainingSeats() === 0
             || now()->greaterThanOrEqualTo($deadline)
         ) {
@@ -65,6 +65,74 @@ class PublicBookingController extends Controller
             'snackCategories' => $this->snackMenu($snackOrders, $session),
             'snacksEnabled' => $snackOrders->enabled(),
             'snackMaxQty' => $settings->integer('snack_max_qty_per_item', 10),
+        ]);
+    }
+
+    public function availabilityJson(
+        Session $session,
+        CinemaSettings $settings,
+    ): JsonResponse {
+        $startsAt = $session->startsAt();
+        $cutoffMinutes = $settings->integer('booking_cutoff_minutes', 30);
+        $deadline = $startsAt->subMinutes($cutoffMinutes);
+
+        $isPast = $startsAt->lessThanOrEqualTo(now());
+        $isClosed = $session->status !== 'tersedia'
+            || now()->greaterThanOrEqualTo($deadline);
+
+        $occupiedSeats = (int) $session->occupiedBookings()->sum('seats_reserved');
+        $seatCapacity = $session->seatCapacity();
+        $remainingSeats = $session->remainingSeats();
+
+        $isPrivateActive = $session->isPrivateActive();
+        $hasActivePerPerson = $session->hasActivePerPersonBookings();
+
+        $canPrivate = ! $isPast
+            && ! $isClosed
+            && ! $isPrivateActive
+            && ! $hasActivePerPerson
+            && $occupiedSeats === 0
+            && $seatCapacity === Session::MAX_CAPACITY;
+
+        $canPerPerson = ! $isPast
+            && ! $isClosed
+            && ! $isPrivateActive
+            && $remainingSeats > 0;
+
+        $privateDisabledReason = match (true) {
+            $isPast => 'Sesi sudah lewat.',
+            $isClosed => 'Booking untuk sesi ini sudah ditutup.',
+            $isPrivateActive => 'Sesi ini sudah disewa private.',
+            $hasActivePerPerson || $occupiedSeats > 0 => 'Sudah ada pemesan per orang di sesi ini, jadi Sewa Private tidak tersedia.',
+            $seatCapacity < Session::MAX_CAPACITY => 'Kapasitas sesi tidak mencukupi untuk private.',
+            default => null,
+        };
+
+        $perPersonDisabledReason = match (true) {
+            $isPast => 'Sesi sudah lewat.',
+            $isClosed => 'Booking untuk sesi ini sudah ditutup.',
+            $isPrivateActive => 'Sesi ini sudah disewa private.',
+            $remainingSeats === 0 => 'Kursi pada sesi ini sudah penuh.',
+            default => null,
+        };
+
+        return response()->json([
+            'session_id' => $session->id,
+            'status' => $session->status,
+            'is_available' => ! $isPast && ! $isClosed && ($canPrivate || $canPerPerson),
+            'seat_capacity' => $seatCapacity,
+            'occupied_seats' => $occupiedSeats,
+            'remaining_seats' => $remainingSeats,
+            'is_private_active' => $isPrivateActive,
+            'has_active_per_person' => $hasActivePerPerson,
+            'can_private' => $canPrivate,
+            'can_per_orang' => $canPerPerson,
+            'private_disabled_reason' => $privateDisabledReason,
+            'per_orang_disabled_reason' => $perPersonDisabledReason,
+        ])->withHeaders([
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
         ]);
     }
 

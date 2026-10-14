@@ -9,7 +9,7 @@
     <section class="mx-auto max-w-5xl px-4 pb-28 pt-7 sm:px-6 sm:pb-28 sm:pt-10">
         <a href="{{ route('home') }}#jadwal" class="inline-flex min-h-11 items-center text-sm font-semibold text-accent hover:underline">← Kembali ke beranda</a>
         <ol aria-label="Langkah booking" class="mt-5 grid grid-cols-5 gap-2 text-center text-xs">
-            @foreach (['Jadwal', 'Film', 'Penonton', 'Jajan', 'Ringkasan'] as $stepLabel)
+            @foreach (['Jadwal', 'Film', 'Tipe', 'Jajan', 'Ringkasan'] as $stepLabel)
                 <li class="rounded-xl border px-1 py-2 font-semibold {{ $loop->first ? 'border-accent bg-accent text-accent-contrast' : 'border-border bg-surface text-text-muted' }}" @if ($loop->first) aria-current="step" @endif>
                     <span class="block font-bold">{{ $loop->iteration }}</span><span class="hidden min-[380px]:inline">{{ $stepLabel }}</span><span class="min-[380px]:hidden">{{ mb_substr($stepLabel, 0, 1) }}</span>
                 </li>

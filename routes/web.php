@@ -18,6 +18,9 @@ Route::get('/jadwal/{date}', [PublicCinemaController::class, 'schedule'])
     ->where('date', '\d{4}-\d{2}-\d{2}')
     ->name('schedule.date');
 Route::get('/booking/{session}', [PublicBookingController::class, 'create'])->name('booking.create');
+Route::get('/booking/{session}/ketersediaan', [PublicBookingController::class, 'availabilityJson'])
+    ->middleware('throttle:60,1')
+    ->name('booking.availability');
 Route::post('/booking/{session}', [PublicBookingController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('booking.store');

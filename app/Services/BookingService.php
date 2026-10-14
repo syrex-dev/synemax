@@ -68,13 +68,13 @@ class BookingService
             $occupiedSeats = (int) $session->occupiedBookings()->sum('seats_reserved');
             $seatCapacity = $session->seatCapacity();
 
-            if ($session->is_private) {
-                $this->reject('booking_type', 'Sesi ini sudah disewa secara private.');
+            if ($session->isPrivateActive()) {
+                $this->reject('booking_type', 'Sesi ini sudah disewa private.');
             }
 
             if ($isPrivate) {
-                if ($occupiedSeats > 0 || $seatCapacity < Session::MAX_CAPACITY) {
-                    $this->reject('booking_type', 'Sewa private hanya bisa untuk sesi yang masih kosong.');
+                if ($session->hasActivePerPersonBookings() || $occupiedSeats > 0 || $seatCapacity < Session::MAX_CAPACITY) {
+                    $this->reject('booking_type', 'Sudah ada pemesan per orang di sesi ini, jadi Sewa Private tidak tersedia.');
                 }
             } else {
                 if ($pax < 1 || $pax > Session::MAX_CAPACITY) {
@@ -174,13 +174,7 @@ class BookingService
                 $session = Session::query()->lockForUpdate()->findOrFail($lockedBooking->session_id);
                 $lockedBooking->update(['status' => 'kedaluwarsa']);
                 $this->snackOrders->cancelItems($lockedBooking);
-
-                if (
-                    $session->is_private
-                    && (int) $session->occupiedBookings()->sum('seats_reserved') === 0
-                ) {
-                    $session->update(['is_private' => false]);
-                }
+                $session->syncPrivateStatus();
             }, attempts: 3);
             $count++;
         }
@@ -204,13 +198,7 @@ class BookingService
                 $session = Session::query()->lockForUpdate()->findOrFail($lockedBooking->session_id);
                 $lockedBooking->update(['status' => 'kedaluwarsa']);
                 $this->snackOrders->cancelItems($lockedBooking);
-
-                if (
-                    $session->is_private
-                    && (int) $session->occupiedBookings()->sum('seats_reserved') === 0
-                ) {
-                    $session->update(['is_private' => false]);
-                }
+                $session->syncPrivateStatus();
             }, attempts: 3);
 
             return $booking->fresh();
@@ -246,12 +234,18 @@ class BookingService
             $occupiedSeats = (int) $session->occupiedBookings()->sum('seats_reserved');
 
             if ($isPrivate) {
-                if ($session->is_private || $occupiedSeats > 0) {
-                    $this->reject('capacity', 'Tidak dapat memulihkan: sesi ini sudah terisi oleh pemesan lain.');
+                if ($session->hasActivePerPersonBookings() || $occupiedSeats > 0) {
+                    $this->reject('capacity', 'Sudah ada pemesan per orang di sesi ini, jadi Sewa Private tidak tersedia.');
+                }
+                if ($session->isPrivateActive()) {
+                    $this->reject('capacity', 'Sesi ini sudah disewa private.');
                 }
                 $session->update(['is_private' => true]);
             } else {
-                if ($session->is_private || ($occupiedSeats + $lockedBooking->pax > $seatCapacity)) {
+                if ($session->isPrivateActive()) {
+                    $this->reject('capacity', 'Sesi ini sudah disewa private.');
+                }
+                if ($occupiedSeats + $lockedBooking->pax > $seatCapacity) {
                     $this->reject('capacity', 'Tidak dapat memulihkan: kursi pada sesi ini sudah tidak mencukupi.');
                 }
             }
@@ -265,6 +259,8 @@ class BookingService
                 'payment_expires_at' => $expiresAt,
                 'proof_rejection_note' => null,
             ]);
+
+            $session->syncPrivateStatus();
 
             return $lockedBooking->fresh(['session', 'film']);
         }, attempts: 3);
@@ -289,11 +285,14 @@ class BookingService
             $isPrivate = $lockedBooking->booking_type === 'private';
 
             if ($isPrivate) {
-                if ($occupiedSeats > 0) {
-                    $this->reject('capacity', 'Sesi ini sudah terisi oleh pemesan lain.');
+                if ($session->hasActivePerPersonBookings() || $occupiedSeats > 0) {
+                    $this->reject('capacity', 'Sudah ada pemesan per orang di sesi ini, jadi Sewa Private tidak tersedia.');
                 }
             } else {
-                if ($session->is_private || ($occupiedSeats + $lockedBooking->pax > $seatCapacity)) {
+                if ($session->isPrivateActive()) {
+                    $this->reject('capacity', 'Sesi ini sudah disewa private.');
+                }
+                if ($occupiedSeats + $lockedBooking->pax > $seatCapacity) {
                     $this->reject('capacity', 'Kursi pada sesi ini sudah tidak mencukupi.');
                 }
             }
@@ -312,6 +311,8 @@ class BookingService
                 'payment_proof_path' => null,
                 'proof_rejection_note' => $reason,
             ]);
+
+            $session->syncPrivateStatus();
 
             return $lockedBooking->fresh(['session', 'film']);
         }, attempts: 3);
@@ -355,12 +356,7 @@ class BookingService
             ]);
             $this->snackOrders->cancelItems($booking);
 
-            if (
-                $session->is_private
-                && (int) $session->occupiedBookings()->sum('seats_reserved') === 0
-            ) {
-                $session->update(['is_private' => false]);
-            }
+            $session->syncPrivateStatus();
 
             return $booking->fresh(['session', 'film']);
         }, attempts: 3);

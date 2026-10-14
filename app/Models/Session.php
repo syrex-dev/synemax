@@ -58,6 +58,36 @@ class Session extends Model
             });
     }
 
+    public function hasActivePrivateBooking(): bool
+    {
+        return $this->occupiedBookings()
+            ->where('booking_type', 'private')
+            ->exists();
+    }
+
+    public function hasActivePerPersonBookings(): bool
+    {
+        return $this->occupiedBookings()
+            ->where('booking_type', 'per_orang')
+            ->exists();
+    }
+
+    public function isPrivateActive(): bool
+    {
+        return (bool) $this->is_private || $this->hasActivePrivateBooking();
+    }
+
+    public function syncPrivateStatus(): bool
+    {
+        $hasPrivate = $this->hasActivePrivateBooking();
+        if ((bool) $this->is_private !== $hasPrivate) {
+            $this->is_private = $hasPrivate;
+            $this->save();
+        }
+
+        return $hasPrivate;
+    }
+
     public function blockedDates(): HasMany
     {
         return $this->hasMany(BlockedDate::class);
@@ -73,6 +103,10 @@ class Session extends Model
 
     public function remainingSeats(): int
     {
+        if ($this->isPrivateActive()) {
+            return 0;
+        }
+
         $occupiedSeats = array_key_exists('occupied_seats', $this->attributes)
             ? (int) $this->occupied_seats
             : (int) $this->occupiedBookings()->sum('seats_reserved');
