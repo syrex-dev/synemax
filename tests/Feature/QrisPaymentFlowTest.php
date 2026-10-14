@@ -88,6 +88,45 @@ class QrisPaymentFlowTest extends TestCase
         $this->assertContains('qris', $settings->enabledPaymentMethods());
     }
 
+    public function test_admin_upload_non_square_qris_warns_ratio_without_auto_crop(): void
+    {
+        $this->actingAs($this->admin);
+
+        // Upload landscape QRIS (e.g. 768x432)
+        $response = $this->put(route('admin.settings.update'), [
+            'weekday_price' => 5000,
+            'weekend_price' => 6000,
+            'holiday_price' => 6000,
+            'private_price' => 36000,
+            'minimum_public_viewers' => 3,
+            'booking_cutoff_minutes' => 30,
+            'cancellation_cutoff_hours' => 6,
+            'admin_whatsapp' => '081234567890',
+            'electricity_cost_per_session' => 0,
+            'snacks_enabled' => 1,
+            'snack_prep_buffer_minutes' => 15,
+            'snack_max_qty_per_item' => 10,
+            'payment_methods' => ['di_tempat', 'qris'],
+            'qris_image' => UploadedFile::fake()->image('qris_landscape.png', 768, 432),
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('warning', 'QRIS sebaiknya persegi dan rapi; pangkas bagian lain.');
+
+        $settings = app(CinemaSettings::class);
+        $this->assertTrue($settings->hasValidQrisImage());
+
+        // Check image was stored without auto-cropping (aspect ratio preserved)
+        $fullPath = Storage::disk('local')->path($settings->string('qris_image_path'));
+        [$width, $height] = getimagesize($fullPath);
+        $this->assertEqualsWithDelta(768 / 432, $width / $height, 0.05);
+
+        // Accessing settings edit view displays the aspect ratio warning for existing non-square image
+        $editResponse = $this->get(route('admin.settings.edit'));
+        $editResponse->assertOk()
+            ->assertSee('QRIS sebaiknya persegi dan rapi; pangkas bagian lain.');
+    }
+
     public function test_admin_cannot_activate_qris_without_valid_image(): void
     {
         $this->actingAs($this->admin);

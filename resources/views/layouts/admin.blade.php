@@ -85,9 +85,9 @@
             </aside>
 
             <div class="min-w-0 lg:col-start-2">
-                @if (session('status') || session('error'))
-                    <div x-data="{ visible: true }" x-show="visible" x-init="setTimeout(() => visible = false, 4500)" role="{{ session()->has('error') ? 'alert' : 'status' }}" aria-live="{{ session()->has('error') ? 'assertive' : 'polite' }}" class="fixed right-4 top-20 z-50 flex w-[min(24rem,calc(100vw-2rem))] items-start justify-between gap-4 rounded-lg border {{ session()->has('error') ? 'border-danger/30 bg-danger-surface' : 'border-success/30 bg-success-surface' }} px-4 py-3 text-sm text-text shadow-token">
-                        <span>{{ session('status') ?? session('error') }}</span>
+                @if (session('status') || session('error') || session('warning'))
+                    <div x-data="{ visible: true }" x-show="visible" x-init="setTimeout(() => visible = false, 6000)" role="{{ session()->has('error') ? 'alert' : (session()->has('warning') ? 'alert' : 'status') }}" aria-live="{{ session()->has('error') ? 'assertive' : 'polite' }}" class="fixed right-4 top-20 z-50 flex w-[min(26rem,calc(100vw-2rem))] items-start justify-between gap-4 rounded-lg border {{ session()->has('error') ? 'border-danger/30 bg-danger-surface text-danger' : (session()->has('warning') ? 'border-warning/40 bg-warning/10 text-warning' : 'border-success/30 bg-success-surface text-success') }} px-4 py-3 text-sm shadow-token">
+                        <span>{{ session('status') ?? session('warning') ?? session('error') }}</span>
                         <button type="button" @click="visible = false" aria-label="Tutup pemberitahuan" class="grid size-8 shrink-0 place-items-center rounded-md text-text-muted hover:bg-surface-2">×</button>
                     </div>
                 @endif

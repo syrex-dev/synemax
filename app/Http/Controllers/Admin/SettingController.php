@@ -18,6 +18,21 @@ class SettingController extends Controller
 {
     public function edit(CinemaSettings $settings): View
     {
+        $qrisRatioWarning = false;
+        if ($settings->hasValidQrisImage()) {
+            $path = $settings->string('qris_image_path');
+            if ($path !== '' && Storage::disk('local')->exists($path)) {
+                $fullPath = Storage::disk('local')->path($path);
+                $size = @getimagesize($fullPath);
+                if ($size && $size[1] > 0) {
+                    $ratio = $size[0] / $size[1];
+                    if ($ratio < 0.8 || $ratio > 1.25) {
+                        $qrisRatioWarning = true;
+                    }
+                }
+            }
+        }
+
         return view('admin.settings.edit', [
             'settings' => [
                 'weekday_price' => $settings->integer('weekday_price', 5000),
@@ -38,6 +53,7 @@ class SettingController extends Controller
                 'qris_merchant_name' => $settings->qrisMerchantName(),
                 'qris_payment_notes' => $settings->qrisPaymentNotes(),
                 'qris_image_version' => $settings->qrisImageVersion(),
+                'qris_ratio_warning' => $qrisRatioWarning,
                 'transfer_accounts' => $settings->transferAccounts(),
                 'has_transfer_accounts' => $settings->hasValidTransferAccounts(),
                 'transfer_payment_notes' => $settings->transferPaymentNotes(),
@@ -154,6 +170,7 @@ class SettingController extends Controller
             ['value' => json_encode($cleanTransferAccounts, JSON_THROW_ON_ERROR)],
         );
 
+        $ratioWarning = false;
         if ($deleteQris) {
             $oldPath = $settings->string('qris_image_path');
             if ($oldPath !== '' && Storage::disk('local')->exists($oldPath)) {
@@ -163,7 +180,15 @@ class SettingController extends Controller
             Setting::query()->updateOrCreate(['key' => 'qris_image_updated_at'], ['value' => (string) now()->timestamp]);
             $paymentMethods = array_values(array_diff($paymentMethods, ['qris']));
         } elseif ($hasNewQris) {
-            $qrisPath = $this->processAndStoreQrisImage($request->file('qris_image'), $settings);
+            $uploaded = $request->file('qris_image');
+            $size = @getimagesize($uploaded->getPathname());
+            if ($size && $size[1] > 0) {
+                $ratio = $size[0] / $size[1];
+                if ($ratio < 0.8 || $ratio > 1.25) {
+                    $ratioWarning = true;
+                }
+            }
+            $qrisPath = $this->processAndStoreQrisImage($uploaded, $settings);
             Setting::query()->updateOrCreate(['key' => 'qris_image_path'], ['value' => $qrisPath]);
             Setting::query()->updateOrCreate(['key' => 'qris_image_updated_at'], ['value' => (string) now()->timestamp]);
         }
@@ -180,7 +205,12 @@ class SettingController extends Controller
             ['value' => json_encode($paymentMethods, JSON_THROW_ON_ERROR)],
         );
 
-        return back()->with('status', 'Pengaturan Home Cinema berhasil disimpan.');
+        $response = back()->with('status', 'Pengaturan Home Cinema berhasil disimpan.');
+        if ($ratioWarning) {
+            $response->with('warning', 'QRIS sebaiknya persegi dan rapi; pangkas bagian lain.');
+        }
+
+        return $response;
     }
 
     public function destroyQris(CinemaSettings $settings): RedirectResponse

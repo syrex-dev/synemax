@@ -311,16 +311,16 @@ class PrivateBookingRulesTest extends TestCase
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
         $this->assertStringContainsString('no-cache', (string) $response->headers->get('Pragma'));
         $response->assertJson([
-                'session_id' => $this->session->id,
-                'status' => 'tersedia',
-                'is_available' => true,
-                'seat_capacity' => 6,
-                'occupied_seats' => 0,
-                'remaining_seats' => 6,
-                'can_private' => true,
-                'can_per_orang' => true,
-                'private_disabled_reason' => null,
-            ])
+            'session_id' => $this->session->id,
+            'status' => 'tersedia',
+            'is_available' => true,
+            'seat_capacity' => 6,
+            'occupied_seats' => 0,
+            'remaining_seats' => 6,
+            'can_private' => true,
+            'can_per_orang' => true,
+            'private_disabled_reason' => null,
+        ])
             ->assertJsonMissing(['whatsapp', 'customer_name', 'code']);
 
         // Case 2: Session with per_orang booking

@@ -4,8 +4,8 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
 
 ## Status Ringkas
 - **Tahap Audit & Checkpoint**: SELESAI (`commit: 35fda5d` - Checkpoint: alur pembayaran dan tiket)
-- **Tahap 1 (C1: Private vs Per Orang)**: SELESAI
-- **Tahap 2 (C2: Halaman Pembayaran & Perbaikan QRIS)**: SEDANG DIKERJAKAN
+- **Tahap 1 (C1: Private vs Per Orang)**: SELESAI (`commit: ce83a03`)
+- **Tahap 2 (C2: Halaman Pembayaran & Perbaikan QRIS)**: SELESAI
 - **Tahap 3 (Checklist 3: Fitur Info & Nobar)**: MENUNGGU PERSETUJUAN MANUAL SETELAH TAHAP 1-2
 - **Tahap 4 (Testing & Verifikasi Visual)**: MENUNGGU
 
@@ -27,11 +27,17 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
 - [x] Test komprehensif C1: `PrivateBookingRulesTest.php` (9 tests, 45 assertions lulus hijau).
 
 ### Tahap 2: C2 — Pembersihan Halaman Pembayaran & Perbaikan QRIS
-- [ ] Hapus indikator tahap (stepper) di `/pembayaran/{kode}` dan rapikan margin/layout.
-- [ ] Hapus tag duplikat `</form>` di `resources/views/admin/settings/edit.blade.php`.
-- [ ] Investigasi akar masalah kotak putih gambar QRIS: rasio 768x432 vs kontainer `aspect-square`, rendering di tema terang/gelap, padding latar putih, dan modal perbesar.
-- [ ] Peringatan di admin settings jika rasio gambar QRIS yang diunggah jauh dari persegi tanpa memotong otomatis.
-- [ ] Update test `BookingPaymentFlowTest.php` agar tidak menguji stepper yang telah dihapus.
+- [x] Hapus indikator tahap (stepper 3-tahap) di `/pembayaran/{kode}` dan rapikan layout langsung mulai dari hitung mundur batas waktu.
+- [x] Hapus tag duplikat `</form>` di `resources/views/admin/settings/edit.blade.php`.
+- [x] Temukan & atasi akar masalah kotak putih QRIS:
+  - Request gambar `/pembayaran/qris` mengembalikan HTTP 200 dengan `Content-Type: image/jpeg` (78,5 KB).
+  - Gambar tersimpan berformat landscape 768×432 (16:9).
+  - CSS sebelumnya memaksakan `aspect-square w-full object-contain` di dalam kartu ber-padding putih sehingga gambar menyusut drastis menjadi tinggi 123px dengan ruang kosong putih besar atas-bawah (tampak seperti kotak putih kosong).
+  - Diperbaiki: kontainer fleksibel mengikuti rasio asli gambar, `max-h-72 sm:max-h-80 w-auto max-w-full mx-auto object-contain`, latar putih + padding, dan modal perbesar tetap utuh tanpa dipotong.
+- [x] Peringatan rasio gambar QRIS di admin settings:
+  - Jika rasio gambar jauh dari persegi (`< 0.8` atau `> 1.25`), sistem menampilkan pesan: *"QRIS sebaiknya persegi dan rapi; pangkas bagian lain."*
+  - Berfungsi di backend (flash session toast saat upload tanpa memotong otomatis) dan di frontend (Alpine.js live check saat admin memilih file sebelum upload, serta badge peringatan jika gambar aktif yang tersimpan non-persegi).
+- [x] Update test di `BookingPaymentFlowTest.php` (stepper assertion dihapus dan diganti dengan assertion `assertDontSee`) dan test baru di `QrisPaymentFlowTest.php` (`test_admin_upload_non_square_qris_warns_ratio_without_auto_crop`).
 
 ### Tahap 3: Fitur Info & Nobar (Menunggu Persetujuan Setelah Tahap 1 & 2)
 - [ ] Migrasi & Model `NobarEvent` (skema lengkap: `kickoff_at`, `tim_a`, `tim_b`, status Berlangsung/Selesai/Akan datang, dll.) & `NewsArticle`.

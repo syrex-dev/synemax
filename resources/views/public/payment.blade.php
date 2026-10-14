@@ -74,25 +74,6 @@
                  }
              }">
 
-        {{-- Stepper 3 Tahap: Booking -> Bayar -> Selesai --}}
-        <nav aria-label="Tahapan Pesanan" class="mb-6">
-            <ol class="grid grid-cols-3 gap-2 text-center text-xs">
-                <li class="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-surface-2 p-2.5 font-medium text-text-muted">
-                    <svg class="size-4 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>1. Booking</span>
-                </li>
-                <li class="flex items-center justify-center gap-1.5 rounded-xl border border-accent bg-accent/10 p-2.5 font-bold text-accent ring-1 ring-accent">
-                    <span class="grid size-4 place-items-center rounded-full bg-accent text-[10px] text-accent-contrast">2</span>
-                    <span>2. Bayar</span>
-                </li>
-                <li class="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-surface-2 p-2.5 font-medium text-text-muted">
-                    <span class="grid size-4 place-items-center rounded-full bg-border text-[10px] text-text-muted">3</span>
-                    <span>3. Selesai</span>
-                </li>
-            </ol>
-        </nav>
 
         {{-- Flash status or alert --}}
         @if (session('status'))
@@ -201,14 +182,14 @@
 
                         @if ($hasQrisImage)
                             <div class="mt-4 text-center">
-                                {{-- Quiet zone putih bersih --}}
-                                <div class="mx-auto max-w-[260px] rounded-2xl bg-white p-5 shadow-sm">
+                                {{-- Quiet zone putih bersih: wadah fleksibel mengikuti rasio QRIS tanpa terpotong --}}
+                                <div class="mx-auto inline-block max-w-sm rounded-2xl bg-white p-4 sm:p-5 shadow-sm text-center">
                                     <img src="{{ route('payment.qris', ['v' => $qrisVersion]) }}"
                                          alt="QRIS {{ $qrisMerchantName }}"
-                                         class="aspect-square w-full cursor-zoom-in object-contain"
+                                         class="max-h-72 sm:max-h-80 w-auto max-w-full mx-auto cursor-zoom-in object-contain rounded-lg"
                                          @click="enlargeModal = true"
                                          title="Ketuk untuk memperbesar">
-                                    <p class="mt-2 font-mono text-[10px] font-bold tracking-wide text-neutral-800">NMID / QRIS STANDAR PEMBAYARAN</p>
+                                    <p class="mt-3 font-mono text-[10px] font-bold tracking-wide text-neutral-800">NMID / QRIS STANDAR PEMBAYARAN</p>
                                     <p class="mt-1 text-[10px] font-medium text-neutral-500">BCA · Mandiri · BRI · BNI · GoPay · OVO · Dana · ShopeePay</p>
                                 </div>
                                 <p class="mt-2 text-xs text-text-muted">Ketuk gambar QRIS untuk memperbesar tampilan.</p>
@@ -377,7 +358,7 @@
         {{-- Modal Perbesar QRIS --}}
         @if ($booking->payment_method === 'qris' && $hasQrisImage)
             <div x-show="enlargeModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4" @click.self="enlargeModal = false">
-                <div class="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+                <div class="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
                     <button type="button" @click="enlargeModal = false" class="absolute right-4 top-4 grid size-8 place-items-center rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200" title="Tutup">
                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -386,11 +367,11 @@
                     <div class="text-center">
                         <p class="text-xs font-bold uppercase tracking-wider text-neutral-500">QRIS SynemaX</p>
                         <p class="mt-0.5 text-base font-black text-neutral-900">{{ $qrisMerchantName ?: 'SynemaX' }}</p>
-                        <div class="mx-auto mt-4 max-w-[320px] rounded-2xl border border-neutral-200 bg-white p-4">
+                        <div class="mx-auto mt-4 max-w-md rounded-2xl border border-neutral-200 bg-white p-4">
                             <img src="{{ route('payment.qris', ['v' => $qrisVersion]) }}"
                                  alt="QRIS {{ $qrisMerchantName }}"
-                                 class="aspect-square w-full object-contain">
-                            <p class="mt-2 font-mono text-xs font-bold text-neutral-800">Total: Rp {{ number_format($booking->total_price, 0, ',', '.') }}</p>
+                                 class="max-h-[70vh] w-auto max-w-full mx-auto object-contain rounded-lg">
+                            <p class="mt-3 font-mono text-xs font-bold text-neutral-800">Total: Rp {{ number_format($booking->total_price, 0, ',', '.') }}</p>
                         </div>
                     </div>
                 </div>

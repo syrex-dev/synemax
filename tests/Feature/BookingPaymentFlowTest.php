@@ -475,12 +475,11 @@ class BookingPaymentFlowTest extends TestCase
         $booking = Booking::query()->where('customer_name', 'Siti Online')->firstOrFail();
         $response->assertRedirect(route('booking.payment', ['code' => $booking->code]));
 
-        // Step 2: Payment Page displays 3-step stepper, countdown, total, QRIS, and disabled submit button until file chosen
+        // Step 2: Payment Page displays countdown, total, QRIS, and disabled submit button until file chosen (stepper removed per C2)
         $paymentResponse = $this->get(route('booking.payment', ['code' => $booking->code]));
         $paymentResponse->assertOk()
-            ->assertSee('1. Booking')
-            ->assertSee('2. Bayar')
-            ->assertSee('3. Selesai')
+            ->assertDontSee('Tahapan Pesanan')
+            ->assertDontSee('1. Booking')
             ->assertSee('Sisa Waktu Pembayaran')
             ->assertSee('Salin nominal')
             ->assertSee('Pindai Kode QRIS')

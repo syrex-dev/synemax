@@ -5,6 +5,22 @@
 @section('content')
     <div x-data="{
         previewOpen: false,
+        qrisRatioWarningClient: false,
+        checkQrisRatio(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) {
+                this.qrisRatioWarningClient = false;
+                return;
+            }
+            const img = new Image();
+            img.onload = () => {
+                if (img.height > 0) {
+                    const ratio = img.width / img.height;
+                    this.qrisRatioWarningClient = (ratio < 0.8 || ratio > 1.25);
+                }
+            };
+            img.src = URL.createObjectURL(file);
+        },
         accounts: @js(old('transfer_accounts', !empty($settings['transfer_accounts']) ? $settings['transfer_accounts'] : [['bank_name' => '', 'account_number' => '', 'account_holder' => '']])),
         addAccount() {
             this.accounts.push({ bank_name: '', account_number: '', account_holder: '' });
@@ -127,9 +143,31 @@
                                     </div>
                                 </div>
                             </div>
+
+                            @if (!empty($settings['qris_ratio_warning']))
+                                <div class="flex items-start gap-3 rounded-xl border border-warning/40 bg-warning/10 p-3.5 text-xs text-warning">
+                                    <svg class="mt-0.5 size-4 shrink-0 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    <div>
+                                        <p class="font-bold">Perhatian Rasio Gambar QRIS</p>
+                                        <p class="mt-0.5 text-text">QRIS sebaiknya persegi dan rapi; pangkas bagian lain.</p>
+                                    </div>
+                                </div>
+                            @endif
+
                             <div>
                                 <label for="qris_image" class="block text-sm font-semibold">Ganti gambar QRIS (PNG, JPG, WEBP maks. 2 MB, min. 300 × 300 px)</label>
-                                <input id="qris_image" name="qris_image" type="file" accept="image/png,image/jpeg,image/webp" class="mt-2 block w-full text-sm text-text file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-surface-2 file:px-4 file:font-semibold file:text-text">
+                                <input id="qris_image" name="qris_image" type="file" accept="image/png,image/jpeg,image/webp" @change="checkQrisRatio($event)" class="mt-2 block w-full text-sm text-text file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-surface-2 file:px-4 file:font-semibold file:text-text">
+                                <div x-show="qrisRatioWarningClient" x-cloak class="mt-2 flex items-start gap-3 rounded-xl border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
+                                    <svg class="mt-0.5 size-4 shrink-0 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    <div>
+                                        <p class="font-bold">Perhatian Rasio Gambar</p>
+                                        <p class="mt-0.5 text-text">QRIS sebaiknya persegi dan rapi; pangkas bagian lain.</p>
+                                    </div>
+                                </div>
                             </div>
                         @else
                             <div class="rounded-xl border border-dashed border-border bg-surface-2 p-5 text-sm">
@@ -137,7 +175,16 @@
                                 <p class="mt-1 text-xs text-text-muted">Unggah kode QRIS studio Anda (PNG/JPG/WEBP, min. 300 × 300 px, maks. 2 MB). Metode QRIS tidak dapat diaktifkan jika belum ada gambar.</p>
                                 <div class="mt-3">
                                     <label for="qris_image" class="block text-sm font-semibold">Unggah gambar QRIS</label>
-                                    <input id="qris_image" name="qris_image" type="file" accept="image/png,image/jpeg,image/webp" class="mt-2 block w-full text-sm text-text file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-surface file:px-4 file:font-semibold file:text-text">
+                                    <input id="qris_image" name="qris_image" type="file" accept="image/png,image/jpeg,image/webp" @change="checkQrisRatio($event)" class="mt-2 block w-full text-sm text-text file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-surface file:px-4 file:font-semibold file:text-text">
+                                    <div x-show="qrisRatioWarningClient" x-cloak class="mt-2 flex items-start gap-3 rounded-xl border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
+                                        <svg class="mt-0.5 size-4 shrink-0 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                        <div>
+                                            <p class="font-bold">Perhatian Rasio Gambar</p>
+                                            <p class="mt-0.5 text-text">QRIS sebaiknya persegi dan rapi; pangkas bagian lain.</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         @endif
@@ -222,7 +269,6 @@
 
             <button class="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-accent px-5 font-bold text-accent-contrast hover:opacity-90 sm:w-auto">Simpan pengaturan</button>
         </form>
-        </form>
 
         {{-- Modal Pratinjau Tampilan Pelanggan --}}
         @if ($settings['has_qris_image'])
@@ -239,8 +285,8 @@
                             <p class="mt-1 text-sm font-semibold text-text">{{ $settings['qris_merchant_name'] ?: 'SynemaX Home Cinema' }}</p>
                         </div>
 
-                        <div class="mx-auto mt-4 max-w-[240px] rounded-2xl bg-white p-4 shadow-sm dark:bg-white">
-                            <img src="{{ route('payment.qris', ['v' => $settings['qris_image_version']]) }}" alt="QRIS SynemaX" class="aspect-square w-full object-contain">
+                        <div class="mx-auto mt-4 max-w-xs rounded-2xl bg-white p-4 shadow-sm dark:bg-white">
+                            <img src="{{ route('payment.qris', ['v' => $settings['qris_image_version']]) }}" alt="QRIS SynemaX" class="max-h-64 w-auto max-w-full mx-auto object-contain">
                             <p class="mt-2 text-center font-mono text-[11px] font-bold text-gray-700">NMID / QRIS STANDAR</p>
                         </div>
 
