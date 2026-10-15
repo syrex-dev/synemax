@@ -20,7 +20,10 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
   - Langkah 3 (Penerapan Bertahap):
     - 3(a) Shell Publik, Komponen `<x-brand.logo>`, Penyelarasan Tema Admin: SELESAI (`commit: 25c52c7`)
     - 3(b) Beranda (Hero Layar Menyala & Dinding Poster) dan Jadwal 7 Hari: SELESAI (`commit: df4365b`)
-    - 3(c) s.d. 3(f): MENUNGGU (Berhenti untuk pemeriksaan pengguna di HP)
+    - Perbaikan Catatan A s.d. E (Audit CSS, Baseline Ukuran, Font Stretch, Test Baru): SELESAI (`commit: b4abb24`)
+    - 3(c) Wizard Booking Semua Langkah (Slot Sobekan Kuning, Radio Pilihan Biru Sablon, 1 Kolom): SELESAI (`commit: fccf956`)
+    - 3(d) Pembayaran, Tiket Kertas #ECEFEA, Cek Booking & Booking Saya: SELESAI
+    - 3(e) s.d. 3(f): MENUNGGU (Berhenti untuk pemeriksaan pengguna di HP)
   - Langkah 4 (Kritik Diri & Pembersihan CSS): MENUNGGU
 
 ---
@@ -156,14 +159,15 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
   - Tabel kontras kombinasi nyata WCAG 2.1 terhitung lengkap.
   - Test otomatis `PublicPagesTest` untuk akses lokal & proteksi 404 produksi.
   - Seluruh test (142 tests: 139 passed, 3 skipped) dan Pint 100% passed.
-- [x] **Langkah 3 (Penerapan Bertahap a–b)**:
+- [x] **Langkah 3 (Penerapan Bertahap a–d)**:
   - [x] (a) Token, font, shell (`layouts/public.blade.php`), komponen logo tunggal `<x-brand.logo>`, dan penyelarasan tema admin (`layouts/admin.blade.php`).
   - [x] (b) Beranda (`home.blade.php`, hero layar menyala fade-in 600ms, dinding poster 2:3 rapat, tanpa pengulangan harga/tombol) dan jadwal (`schedule.blade.php`, tata letak 1 kolom tenang, jam tabular).
-- [ ] **Langkah 3 (Penerapan Bertahap c–f)**:
-  - (c) Wizard booking (seluruh langkah).
-  - (d) Pembayaran, tiket, cek booking, Booking Saya.
+  - [x] Catatan A s.d. E: Audit CSS lama 28 token/kelas terbukti dan terpelihara, baseline git worktree terukur, @font-face stretch 75% 100% lengkap, test public pages lulus.
+  - [x] (c) Wizard booking semua langkah: satu kolom tenang (`max-w-xl`), slot jam terpilih dengan sobekan karcis dan Kuning Karcis, pilihan tipe nonton radio border 2px Biru Sablon tanpa sobekan/kuning, nomor langkah "Langkah X dari 5", hook Alpine.js dan input utuh 100%.
+  - [x] (d) Pembayaran, tiket digital fisik kertas `#ECEFEA` di kedua tema dengan sobekan karcis tengah & pita kode Kuning Karcis Arang tabular, aksi tiket utuh & cetak rapi, Cek Booking & Booking Saya tenang dengan penjelasan cara memperbaiki.
+- [ ] **Langkah 3 (Penerapan Bertahap e–f)**:
   - (e) Nobar (katalog & detail) dan Kabar/Promo.
-  - (f) Halaman error, footer, dan penyelarasan lanjutan.
+  - (f) Halaman error, footer, dan pembersihan token lama.
 - [ ] **Langkah 4: Kritik Diri & Pembersihan CSS**.
 
 ---
