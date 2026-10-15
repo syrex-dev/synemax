@@ -23,7 +23,7 @@
                     document.documentElement.classList.toggle('dark', dark);
                     document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
                     document.documentElement.dataset.themeMode = mode;
-                    document.querySelector('meta[name="theme-color"]').content = dark ? '#0b1220' : '#fbf6ea';
+                    document.querySelector('meta[name="theme-color"]').content = dark ? '#0F2A2F' : '#F2F5F3';
                 };
                 window.synemaXTheme = {
                     storageKey,
@@ -49,9 +49,9 @@
     <body class="min-h-screen bg-bg font-sans text-text antialiased">
         <header class="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
             <div class="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-                <a href="{{ route('admin.dashboard') }}" class="flex min-h-11 items-center gap-2 font-black tracking-wide">
-                    <span class="grid size-9 place-items-center rounded-lg bg-accent text-xs text-accent-contrast">HC</span>
-                    <span>HOME CINEMA <span class="font-normal text-text-muted">/ Admin</span></span>
+                <a href="{{ route('admin.dashboard') }}" class="flex min-h-11 items-center gap-2 font-bold">
+                    <x-brand.logo size="sm" />
+                    <span class="text-sm font-normal text-text-muted">/ Pengelola</span>
                 </a>
                 <div class="flex items-center gap-2">
                     <button type="button" data-theme-toggle role="switch" aria-label="Mode gelap" aria-checked="false" class="group relative inline-flex min-h-11 min-w-[76px] items-center justify-between rounded-full border border-border bg-surface px-2 text-text transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus" title="Ganti tema terang atau gelap">
