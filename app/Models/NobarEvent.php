@@ -125,13 +125,44 @@ class NobarEvent extends Model
         return url(asset('social-banner.png'));
     }
 
-    public function aspectRatioStyle(): ?string
+    public function ensurePosterDimensions(): void
     {
+        if ($this->hasPoster() && (! $this->poster_width || ! $this->poster_height)) {
+            $fullPath = storage_path('app/nobar/'.basename($this->poster_path));
+            if (file_exists($fullPath)) {
+                $info = @getimagesize($fullPath);
+                if ($info && $info[0] > 0 && $info[1] > 0) {
+                    $this->poster_width = (int) $info[0];
+                    $this->poster_height = (int) $info[1];
+                    try {
+                        $this->saveQuietly();
+                    } catch (\Throwable) {
+                        // Safe fallback if database is read-only or in testing
+                    }
+                }
+            }
+        }
+    }
+
+    public function aspectRatioStyle(): string
+    {
+        if (! $this->poster_width || ! $this->poster_height) {
+            $this->ensurePosterDimensions();
+        }
+
         if ($this->poster_width && $this->poster_height) {
             return "aspect-ratio: {$this->poster_width} / {$this->poster_height};";
         }
 
-        return null;
+        return 'aspect-ratio: 4 / 5;';
+    }
+
+    public function posterDownloadFilename(): string
+    {
+        $ext = pathinfo($this->poster_path ?? '', PATHINFO_EXTENSION);
+        $ext = $ext ? strtolower($ext) : 'webp';
+
+        return "poster-{$this->slug}.{$ext}";
     }
 
     public function catatanHtml(): HtmlString

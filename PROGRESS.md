@@ -10,9 +10,9 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
 - **Tahap 3 (Checklist 3: Fitur Info & Nobar)**: SELESAI
 - **Tahap 4 (Testing & Validasi Style Linting)**: SELESAI (125 tests lulus, Pint lulus 100%)
 - **Tahap 5 (Ruang Poster Nobar & Pengelolaan Media)**:
-  - Sub-tahap A (Admin, Layanan Media, Migrasi & Duplikasi): SELESAI
-  - Sub-tahap B (Halaman Detail /nobar/{slug}, Modal Zoom & Tombol Aksi): SEDANG DIKERJAKAN
-  - Sub-tahap C (Thumbnail 4:5 Listing & Beranda, Open Graph 1200x630): MENUNGGU
+  - Sub-tahap A (Admin, Layanan Media, Migrasi & Duplikasi): SELESAI (`commit: 43d77ad`)
+  - Sub-tahap B (Halaman Detail /nobar/{slug}, Modal Zoom & Tombol Aksi): SELESAI
+  - Sub-tahap C (Thumbnail 4:5 Listing & Beranda, Open Graph 1200x630): SEDANG DIKERJAKAN
   - Sub-tahap D (Testing Otomatis, Pint & Verifikasi Visual): MENUNGGU
 
 ---
@@ -108,10 +108,11 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
     - Pembersihan seluruh emoji dekoratif dari tabel dan modal admin.
   - `MediaController`:
     - Validasi regex nama file yang ketat (hanya alfanumerik, dash, underscore, dan ekstensi gambar aman), tolak path traversal (`..`), 404 jika tidak ditemukan, dan header cache HTTP `public, max-age=86400`.
-- [ ] **Sub-tahap B: Ruang Poster Publik, Modal Zoom & Perapian Tombol Aksi**:
-  - Tata letak 2 kolom di desktop (poster sticky 4:5 di kiri, detail di kanan), tumpukan di mobile.
-  - Modal perbesar poster dengan scroll lock, focus trap, tombol simpan poster (`poster-{slug}.{ext}`).
-  - Hapus seluruh emoji dekoratif pada halaman detail nobar, standardisasi tombol aksi (min-h-12, ikon SVG, teks utuh).
+- [x] **Sub-tahap B: Ruang Poster Publik, Modal Zoom & Perapian Tombol Aksi**:
+  - Tata letak 2 kolom adaptif di desktop (`lg:grid lg:grid-cols-[380px,1fr]`) dengan kolom poster sticky di kiri (`lg:sticky lg:top-24 max-h-[calc(100vh-7rem)] overflow-y-auto`), dan tumpukan vertikal alami di mobile.
+  - Latar netral untuk poster berlatar putih (`bg-surface-2/60 border border-border rounded-3xl p-3 sm:p-4`), tampilan single-column bersih tanpa celah kosong jika acara tanpa poster.
+  - Modal perbesar poster Alpine.js dengan penguncian scroll body (`overflow-hidden`), focus trap keyboard, pengembalian fokus ke elemen pemanggil saat ditutup, backdrop click, dan tombol simpan poster (`poster-{slug}.{ext}`).
+  - Tombol aksi standar (tinggi minimal 44px / `min-h-12`, ikon SVG tajam, teks non-breaking), serta penghapusan seluruh emoji dekoratif (`📅`, `📍`, `🎟️`, `⚽`, `⚠️`).
 - [ ] **Sub-tahap C: Thumbnail 4:5 Listing & Beranda, Open Graph 1200x630**:
   - Tampilkan thumbnail 4:5 pada kartu nobar di `/nobar` dan teaser beranda `/`.
   - Pasang meta `og:image` absolut dengan varian OG 1200x630, fallback ke `social-banner.png`.
