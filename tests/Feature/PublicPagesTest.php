@@ -112,4 +112,22 @@ class PublicPagesTest extends TestCase
             ->assertSee('wa.me/6280000000000', false)
             ->assertSee('Malam di Bukit Bintang');
     }
+
+    public function test_styleguide_is_accessible_in_local_environment(): void
+    {
+        $this->app['env'] = 'local';
+
+        $this->get(route('styleguide'))
+            ->assertOk()
+            ->assertSee('Panduan Gaya: Layar Tancap')
+            ->assertSee('Biru Sablon');
+    }
+
+    public function test_styleguide_returns_404_in_production_environment(): void
+    {
+        $this->app['env'] = 'production';
+
+        $this->get(route('styleguide'))
+            ->assertNotFound();
+    }
 }

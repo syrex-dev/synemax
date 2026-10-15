@@ -56,6 +56,12 @@ Route::post('/cek-booking', [PublicBookingController::class, 'lookup'])
 Route::post('/cek-booking/{code}/batal', [PublicBookingController::class, 'cancel'])
     ->middleware('throttle:5,1')
     ->name('booking.cancel');
+Route::get('/styleguide', function () {
+    abort_unless(app()->isLocal(), 404);
+
+    return view('styleguide');
+})->name('styleguide');
+
 Route::get('/dashboard', function () {
     return redirect()->route('admin.dashboard');
 })->middleware(['auth', 'admin'])->name('dashboard');

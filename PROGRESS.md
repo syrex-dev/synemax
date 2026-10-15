@@ -15,8 +15,8 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
   - Sub-tahap C (Thumbnail 4:5 Listing & Beranda, Open Graph 1200x630): SELESAI (`commit: c4265dc`)
   - Sub-tahap D (Testing Otomatis, Pint & Verifikasi Visual): SELESAI (`commit: 3229c5a`)
 - **Tahap 6 (Redesain Visual Publik — Arah: "Layar Tancap")**:
-  - Langkah 1 (Rencana Desain, Token, Sketsa ASCII & Perbandingan Kritis): SEDANG DIAJUKAN (Menunggu Persetujuan Pengguna)
-  - Langkah 2 (Halaman `/styleguide` Lingkungan Lokal): MENUNGGU
+  - Langkah 1 (Rencana Desain, Token, Sketsa ASCII & Perbandingan Kritis): SELESAI & DISETUJUI
+  - Langkah 2 (Halaman `/styleguide` Lingkungan Lokal): SELESAI (Token Layar Tancap terpasang, font Bricolage terpasang, tabel kontras kombinasi lengkap, 142 tests lolos, Pint 100%)
   - Langkah 3 (Penerapan Bertahap a–f): MENUNGGU
   - Langkah 4 (Kritik Diri & Pembersihan CSS): MENUNGGU
 
@@ -141,14 +141,18 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
   - Formatting & Linting (`vendor/bin/pint --test`): **100% passed** tanpa pelanggaran.
 
 ### Tahap 6: Redesain Visual Publik (Arah: "Layar Tancap")
-- [ ] **Langkah 1: Rencana Desain & Perbandingan Kritis**:
+- [x] **Langkah 1: Rencana Desain & Perbandingan Kritis**: SELESAI & DISETUJUI
   - Perancangan token terpusat (`resources/css/app.css`): palet Layar, Malam, Arang, Biru Sablon, Kuning Karcis, Merah Cabe, Hijau Daun.
   - Tipografi tunggal Bricolage Grotesque (variabel self-hosted npm, angka tabular).
-  - Sistem bentuk: radius tombol/input 4-6px, lekukan sobekan karcis pada tiket & slot terpilih, rasio poster 2:3 rapat tanpa bingkai.
-  - Konsep layout & sketsa ASCII untuk Beranda, Detail Nobar, Langkah Wizard, dan Tiket.
+  - Sistem bentuk: radius kontrol 5px (`--radius-control`), lekukan sobekan karcis pada tiket & slot terpilih, rasio poster 2:3 rapat tanpa bingkai.
+  - Konsep layout & sketsa ASCII untuk Beranda (desktop & mobile 360px), Detail Nobar, Langkah Wizard (Langkah 3 Tipe Nonton), dan Tiket.
   - Perbandingan kritis terhadap pola generik AI bioskop dan daftar DILARANG.
-- [ ] **Langkah 2: Halaman `/styleguide` Lokal**:
-  - Halaman katalog token dan komponen di `routes/web.php` aktif hanya saat `app()->isLocal()`.
+- [x] **Langkah 2: Halaman `/styleguide` Lokal**: SELESAI
+  - Halaman katalog token dan komponen di `routes/web.php` aktif hanya saat `app()->isLocal()` (404 di produksi).
+  - Paket font `@fontsource-variable/bricolage-grotesque` terpasang (WOFF2 latin 76,88 KB, metrik fallback terukur).
+  - Tabel kontras kombinasi nyata WCAG 2.1 terhitung lengkap.
+  - Test otomatis `PublicPagesTest` untuk akses lokal & proteksi 404 produksi.
+  - Seluruh test (142 tests: 139 passed, 3 skipped) dan Pint 100% passed.
 - [ ] **Langkah 3: Penerapan Bertahap (a–f)**:
   - (a) Token, font, shell, dan komponen logo tunggal `<x-brand.logo>`.
   - (b) Beranda & jadwal film.

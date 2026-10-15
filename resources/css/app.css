@@ -1,3 +1,4 @@
+@import '@fontsource-variable/bricolage-grotesque/opsz.css';
 @import 'tailwindcss';
 
 @source '../../app';
@@ -9,36 +10,63 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Fallback metric-matched font to eliminate CLS (Cumulative Layout Shift) */
+@font-face {
+    font-family: 'Bricolage Grotesque Fallback';
+    src: local('Segoe UI'), local('Arial'), local('Helvetica Neue'), sans-serif;
+    size-adjust: 102%;
+    ascent-override: 92%;
+    descent-override: 27%;
+    line-gap-override: 0%;
+}
+
 @theme {
-    --font-sans: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+    --font-sans: 'Bricolage Grotesque Variable', 'Bricolage Grotesque Fallback', system-ui, -apple-system, sans-serif;
+    --font-fallback-demo: 'Bricolage Grotesque Fallback', system-ui, -apple-system, sans-serif;
+    --radius-control: 5px;
 }
 
 @theme inline {
     --color-bg: var(--surface-canvas);
+    --color-canvas: var(--surface-canvas);
     --color-surface: var(--surface-default);
     --color-surface-2: var(--surface-raised);
     --color-surface-sunken: var(--surface-sunken);
     --color-border: var(--border-default);
+    --color-border-subtle: var(--border-default);
+    --color-border-input: var(--border-input);
     --color-text: var(--text-primary);
+    --color-ink: var(--text-primary);
     --color-text-muted: var(--text-muted);
+    --color-ink-muted: var(--text-muted);
     --color-subtle: var(--text-subtle);
     --color-accent: var(--accent-primary);
     --color-accent-hover: var(--accent-hover);
     --color-accent-contrast: var(--accent-contrast);
+    --color-accent-ink: var(--accent-contrast);
+    --color-primary: var(--primary-color);
+    --color-primary-text: var(--primary-text-color);
+    --color-link: var(--link-color);
     --color-gold: var(--accent-gold);
     --color-gold-surface: var(--accent-gold-surface);
     --color-success: var(--status-success);
     --color-success-contrast: var(--status-success-contrast);
     --color-success-surface: var(--status-success-surface);
+    --color-success-border: var(--status-success-border);
+    --color-success-text: var(--status-success-text);
     --color-warning: var(--status-warning);
     --color-warning-contrast: var(--status-warning-contrast);
     --color-warning-surface: var(--status-warning-surface);
     --color-danger: var(--status-danger);
     --color-danger-contrast: var(--status-danger-contrast);
     --color-danger-surface: var(--status-danger-surface);
+    --color-danger-border: var(--status-danger-border);
+    --color-danger-text: var(--status-danger-text);
     --color-info: var(--status-info);
     --color-info-contrast: var(--status-info-contrast);
     --color-info-surface: var(--status-info-surface);
+    --color-hero-screen: var(--hero-screen-color);
+    --color-ticket-paper: var(--ticket-paper-color);
     --color-overlay: var(--overlay);
     --color-focus: var(--focus-ring);
     --shadow-token: var(--shadow-panel-token);
@@ -46,66 +74,122 @@
 
 :root {
     color-scheme: light;
-    --surface-canvas: #fbf6ea;
-    --surface-default: #fffdf8;
-    --surface-raised: #fff1d6;
-    --surface-sunken: #eee5d4;
-    --text-primary: #101826;
-    --text-muted: #505767;
-    --text-subtle: #626a78;
-    --border-default: #d9d0bf;
-    --accent-primary: #7a1f2b;
-    --accent-hover: #611722;
-    --accent-contrast: #ffffff;
-    --accent-gold: #805700;
-    --accent-gold-surface: #fff1d6;
-    --status-success: #1d5e42;
-    --status-success-contrast: #ffffff;
-    --status-success-surface: #e1f1e7;
-    --status-warning: #704600;
-    --status-warning-contrast: #ffffff;
-    --status-warning-surface: #f6e8c5;
-    --status-danger: #a32635;
-    --status-danger-contrast: #ffffff;
-    --status-danger-surface: #f7e4e7;
-    --status-info: #174f73;
-    --status-info-contrast: #ffffff;
-    --status-info-surface: #e2f0f8;
-    --focus-ring: #7a1f2b;
-    --overlay: rgb(16 14 18 / 72%);
-    --shadow-panel-token: 0 12px 32px rgb(42 29 22 / 10%);
+    /* Kanvas & Permukaan Layar Tancap (Terang) */
+    --surface-canvas: #F2F5F3;        /* Layar: Putih dingin kehijauan */
+    --surface-default: #FFFFFF;       /* Panel permukaan terang */
+    --surface-raised: #E5EBE8;        /* Panel sekunder */
+    --surface-sunken: #DBE3E0;        /* Bidang cekung */
+
+    /* Teks / Tinta (Terang) */
+    --text-primary: #16201F;          /* Arang: Hitam arang */
+    --text-muted: #4A605E;            /* Keterangan redup (6,12:1 WCAG AA) */
+    --text-subtle: #687E7B;
+
+    /* Garis & Batas Input (Terang) */
+    --border-default: #D3DDD9;        /* Garis pemisah dekoratif 1.5px */
+    --border-input: #758A86;          /* Batas input kontrol form (3,34:1 WCAG UI >= 3:1) */
+
+    /* Aksi Utama Biru Sablon & Tautan (Terang) */
+    --primary-color: #2845D6;         /* Tombol utama Biru Sablon */
+    --primary-text-color: #FFFFFF;    /* Teks tombol utama (7,21:1 WCAG AAA) */
+    --link-color: #2845D6;            /* Tautan inline (6,57:1 WCAG AA) */
+
+    /* Penanda Fisik Kuning Karcis (Isian) */
+    --accent-primary: #FFC62E;        /* Kuning Karcis */
+    --accent-hover: #EBB220;
+    --accent-contrast: #16201F;       /* Teks di atas Kuning Karcis (10,61:1 WCAG AAA) */
+    --accent-gold: #FFC62E;
+    --accent-gold-surface: #FFF5D6;
+
+    /* Status Terkonfirmasi Hijau Daun (Terang) */
+    --status-success: #2A9461;        /* Isian badge/ikon */
+    --status-success-contrast: #FFFFFF;
+    --status-success-surface: #EAF6F0;/* Latar banner sukses */
+    --status-success-border: #90CDAC; /* Batas banner sukses (3,05:1) */
+    --status-success-text: #146B41;   /* Teks sukses di atas banner (5,90:1 WCAG AA) */
+
+    /* Status Batal/Peringatan Merah Cabe (Terang) */
+    --status-danger: #D93B2B;         /* Isian badge/ikon */
+    --status-danger-contrast: #FFFFFF;
+    --status-danger-surface: #FDECEB; /* Latar banner bahaya */
+    --status-danger-border: #E8A29A;  /* Batas banner bahaya (3,12:1) */
+    --status-danger-text: #B72617;    /* Teks bahaya di atas banner (5,56:1 WCAG AA) */
+
+    /* Status Informasi & Peringatan */
+    --status-warning: #A16207;
+    --status-warning-contrast: #FFFFFF;
+    --status-warning-surface: #FEF9C3;
+    --status-info: #2845D6;
+    --status-info-contrast: #FFFFFF;
+    --status-info-surface: #EFF3FF;
+
+    /* Entitas Fisik Layar & Tiket */
+    --hero-screen-color: #FFFFFF;     /* Layar proyektor murni */
+    --ticket-paper-color: #ECEFEA;    /* Kertas karcis fisik tetap */
+
+    --focus-ring: #2845D6;
+    --overlay: rgb(15 42 47 / 72%);
+    --shadow-panel-token: 0 4px 20px -2px rgba(15, 42, 47, 0.08), 0 12px 36px -4px rgba(15, 42, 47, 0.12);
 }
 
 :root.dark {
     color-scheme: dark;
-    --surface-canvas: #0b1220;
-    --surface-default: #101826;
-    --surface-raised: #172235;
-    --surface-sunken: #080d16;
-    --text-primary: #fbf6ea;
-    --text-muted: #c7ced8;
-    --text-subtle: #aeb7c5;
-    --border-default: #344054;
-    --accent-primary: #f4b63f;
-    --accent-hover: #e3a520;
-    --accent-contrast: #101826;
-    --accent-gold: #f4b63f;
-    --accent-gold-surface: #2b261c;
-    --status-success: #8fd7ae;
-    --status-success-contrast: #102419;
-    --status-success-surface: #173225;
-    --status-warning: #f0cc73;
-    --status-warning-contrast: #29200b;
-    --status-warning-surface: #342b18;
-    --status-danger: #ffabb4;
-    --status-danger-contrast: #2c1116;
-    --status-danger-surface: #3a2025;
-    --status-info: #8fcff0;
-    --status-info-contrast: #101d25;
-    --status-info-surface: #182e3b;
-    --focus-ring: #f4b63f;
+    /* Kanvas & Permukaan Layar Tancap (Gelap) */
+    --surface-canvas: #0F2A2F;        /* Malam: Hijau-teal tua hutan tropis */
+    --surface-default: #16393F;       /* Permukaan panel sekunder */
+    --surface-raised: #1C444B;        /* Panel sedikit terangkat */
+    --surface-sunken: #091D21;        /* Bidang cekung malam */
+
+    /* Teks / Tinta (Gelap) */
+    --text-primary: #F2F5F3;          /* Layar: Putih dingin kehijauan (13,74:1) */
+    --text-muted: #8FA8A4;            /* Keterangan redup (5,96:1 WCAG AA) */
+    --text-subtle: #738C88;
+
+    /* Garis & Batas Input (Gelap) */
+    --border-default: #1D444B;        /* Garis pemisah dekoratif 1.5px */
+    --border-input: #537F86;          /* Batas input kontrol form (3,41:1 WCAG UI >= 3:1) */
+
+    /* Aksi Utama Biru Sablon & Tautan (Gelap) */
+    --primary-color: #4D68F5;         /* Tombol utama Biru Sablon di gelap (3,31:1 terhadap Malam) */
+    --primary-text-color: #FFFFFF;    /* Teks tombol utama (4,55:1 WCAG AA) */
+    --link-color: #8096FF;            /* Tautan inline terang di gelap (5,55:1 WCAG AA) */
+
+    /* Penanda Fisik Kuning Karcis (Isian) */
+    --accent-primary: #FFC62E;        /* Kuning Karcis */
+    --accent-hover: #FFD154;
+    --accent-contrast: #16201F;       /* Teks di atas Kuning Karcis (10,61:1 WCAG AAA) */
+    --accent-gold: #FFC62E;
+    --accent-gold-surface: #262011;
+
+    /* Status Terkonfirmasi Hijau Daun (Gelap) */
+    --status-success: #2A9461;
+    --status-success-contrast: #FFFFFF;
+    --status-success-surface: #10261C;/* Latar banner sukses gelap */
+    --status-success-border: #21543A; /* Batas banner sukses gelap (3,15:1) */
+    --status-success-text: #4ED08F;   /* Teks sukses di atas banner (8,16:1 WCAG AAA) */
+
+    /* Status Batal/Peringatan Merah Cabe (Gelap) */
+    --status-danger: #D93B2B;
+    --status-danger-contrast: #FFFFFF;
+    --status-danger-surface: #281414; /* Latar banner bahaya gelap */
+    --status-danger-border: #632722;  /* Batas banner bahaya gelap (3,08:1) */
+    --status-danger-text: #FF8073;    /* Teks bahaya di atas banner (7,15:1 WCAG AAA) */
+
+    /* Status Informasi & Peringatan */
+    --status-warning: #FBBF24;
+    --status-warning-contrast: #16201F;
+    --status-warning-surface: #2A200B;
+    --status-info: #8096FF;
+    --status-info-contrast: #16201F;
+    --status-info-surface: #141A30;
+
+    /* Entitas Fisik Layar & Tiket */
+    --hero-screen-color: #FFFFFF;     /* Layar proyektor tetap putih */
+    --ticket-paper-color: #ECEFEA;    /* Kertas karcis fisik tetap */
+
+    --focus-ring: #8096FF;
     --overlay: rgb(0 0 0 / 78%);
-    --shadow-panel-token: 0 16px 40px rgb(0 0 0 / 40%);
+    --shadow-panel-token: 0 0 40px -10px rgba(242, 245, 243, 0.22), 0 20px 30px -15px rgba(0, 0, 0, 0.6);
 }
 
 html {
@@ -115,6 +199,72 @@ html {
 body {
     background-color: var(--surface-canvas);
     color: var(--text-primary);
+    font-family: var(--font-sans);
+}
+
+/* Panel Layar Hero yang Menyala */
+.hero-screen-panel {
+    background-color: var(--hero-screen-color);
+    color: #16201F;
+    border-radius: var(--radius-control);
+    transition: box-shadow 600ms ease-out, border-color 600ms ease-out;
+}
+
+:root .hero-screen-panel {
+    border: 1.5px solid #C2CECA;
+    box-shadow: 0 4px 20px -2px rgba(15, 42, 47, 0.08), 0 12px 36px -4px rgba(15, 42, 47, 0.12);
+}
+
+:root.dark .hero-screen-panel {
+    border: 1.5px solid rgba(242, 245, 243, 0.15);
+    box-shadow: 0 0 40px -10px rgba(242, 245, 243, 0.22), 0 20px 30px -15px rgba(0, 0, 0, 0.6);
+}
+
+/* Lekukan Sobekan Karcis Fisik (Ticket Notches) */
+.ticket-paper-card {
+    background-color: var(--ticket-paper-color);
+    color: #16201F;
+    border-radius: var(--radius-control);
+    position: relative;
+}
+
+/* Slot Jam Bioskop Karcis */
+.slot-ticket-btn {
+    position: relative;
+    border-radius: var(--radius-control);
+    min-height: 44px;
+    font-variant-numeric: tabular-nums;
+    transition: all 150ms ease-out;
+}
+
+.slot-ticket-btn.is-selected {
+    background-color: var(--accent-primary);
+    color: var(--accent-contrast);
+    border: 1.5px solid #EBB220;
+    font-weight: 700;
+}
+
+.slot-ticket-btn:not(.is-selected) {
+    background-color: var(--surface-default);
+    color: var(--text-primary);
+    border: 1.5px solid var(--border-input);
+}
+
+/* Radio Tipe Nonton (Wizard Langkah 3): Garis 2px Biru Sablon, Sudut 4-6px, Tanpa Sobekan, Tanpa Kuning */
+.radio-choice-card {
+    border-radius: var(--radius-control);
+    border: 1.5px solid var(--border-input);
+    transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.radio-choice-card.is-selected {
+    border: 2px solid var(--primary-color);
+    background-color: var(--surface-default);
+}
+
+/* Angka Tabular untuk Jam & Kode */
+.font-tabular {
+    font-variant-numeric: tabular-nums;
 }
 
 .wizard-choice-panel {
@@ -126,7 +276,6 @@ body {
         opacity: 0;
         transform: translateY(0.5rem);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -165,6 +314,9 @@ input[type='number']::-webkit-outer-spin-button {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+    }
+    .hero-screen-panel {
+        transition: none !important;
     }
 }
 
