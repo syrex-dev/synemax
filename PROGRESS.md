@@ -13,7 +13,12 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
   - Sub-tahap A (Admin, Layanan Media, Migrasi & Duplikasi): SELESAI (`commit: 43d77ad`)
   - Sub-tahap B (Halaman Detail /nobar/{slug}, Modal Zoom & Tombol Aksi): SELESAI (`commit: 5ad59d0`)
   - Sub-tahap C (Thumbnail 4:5 Listing & Beranda, Open Graph 1200x630): SELESAI (`commit: c4265dc`)
-  - Sub-tahap D (Testing Otomatis, Pint & Verifikasi Visual): SELESAI (140 tests: 137 passed, 3 skipped; Pint 100% passed)
+  - Sub-tahap D (Testing Otomatis, Pint & Verifikasi Visual): SELESAI (`commit: 3229c5a`)
+- **Tahap 6 (Redesain Visual Publik — Arah: "Layar Tancap")**:
+  - Langkah 1 (Rencana Desain, Token, Sketsa ASCII & Perbandingan Kritis): SEDANG DIAJUKAN (Menunggu Persetujuan Pengguna)
+  - Langkah 2 (Halaman `/styleguide` Lingkungan Lokal): MENUNGGU
+  - Langkah 3 (Penerapan Bertahap a–f): MENUNGGU
+  - Langkah 4 (Kritik Diri & Pembersihan CSS): MENUNGGU
 
 ---
 
@@ -134,6 +139,24 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
     - Salinan berkas fisik terisolasi pada duplikasi.
   - Seluruh test suite (`php artisan test`): **140 tests (137 passed, 3 skipped)**, 761 assertions lulus hijau.
   - Formatting & Linting (`vendor/bin/pint --test`): **100% passed** tanpa pelanggaran.
+
+### Tahap 6: Redesain Visual Publik (Arah: "Layar Tancap")
+- [ ] **Langkah 1: Rencana Desain & Perbandingan Kritis**:
+  - Perancangan token terpusat (`resources/css/app.css`): palet Layar, Malam, Arang, Biru Sablon, Kuning Karcis, Merah Cabe, Hijau Daun.
+  - Tipografi tunggal Bricolage Grotesque (variabel self-hosted npm, angka tabular).
+  - Sistem bentuk: radius tombol/input 4-6px, lekukan sobekan karcis pada tiket & slot terpilih, rasio poster 2:3 rapat tanpa bingkai.
+  - Konsep layout & sketsa ASCII untuk Beranda, Detail Nobar, Langkah Wizard, dan Tiket.
+  - Perbandingan kritis terhadap pola generik AI bioskop dan daftar DILARANG.
+- [ ] **Langkah 2: Halaman `/styleguide` Lokal**:
+  - Halaman katalog token dan komponen di `routes/web.php` aktif hanya saat `app()->isLocal()`.
+- [ ] **Langkah 3: Penerapan Bertahap (a–f)**:
+  - (a) Token, font, shell, dan komponen logo tunggal `<x-brand.logo>`.
+  - (b) Beranda & jadwal film.
+  - (c) Wizard booking (seluruh langkah).
+  - (d) Pembayaran, tiket, cek booking, Booking Saya.
+  - (e) Nobar (katalog & detail) dan Kabar/Promo.
+  - (f) Halaman error, footer, dan penyelarasan admin.
+- [ ] **Langkah 4: Kritik Diri & Pembersihan CSS**.
 
 ---
 
