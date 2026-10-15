@@ -317,7 +317,7 @@
                             <div>
                                 @if ($article->cover_path)
                                     <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" class="block aspect-video w-full overflow-hidden rounded-[var(--radius-control)] bg-surface-2 mb-3">
-                                        <img src="{{ $article->coverUrl() }}" alt="{{ $article->judul }}" loading="lazy" class="size-full object-cover transition duration-200 hover:scale-[1.02]">
+                                        <img src="{{ $article->coverUrl() }}" alt="{{ $article->judul }}" loading="lazy" class="size-full object-cover">
                                     </a>
                                 @endif
                                 <div class="flex items-center justify-between gap-2">

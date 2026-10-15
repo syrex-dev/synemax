@@ -321,20 +321,7 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
-.wizard-choice-panel {
-    animation: wizard-choice-in 180ms ease-out both;
-}
 
-@keyframes wizard-choice-in {
-    from {
-        opacity: 0;
-        transform: translateY(0.5rem);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
 
 :focus-visible {
     outline: 2px solid var(--focus-ring);
@@ -378,6 +365,4 @@ input[type='number']::-webkit-outer-spin-button {
     display: none !important;
 }
 
-body {
-    font-optical-sizing: auto;
-}
+
