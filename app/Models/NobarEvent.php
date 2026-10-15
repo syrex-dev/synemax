@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
 
 class NobarEvent extends Model
@@ -128,8 +129,10 @@ class NobarEvent extends Model
     public function ensurePosterDimensions(): void
     {
         if ($this->hasPoster() && (! $this->poster_width || ! $this->poster_height)) {
-            $fullPath = storage_path('app/nobar/'.basename($this->poster_path));
-            if (file_exists($fullPath)) {
+            $disk = Storage::disk('local');
+            $relPath = 'nobar/'.basename($this->poster_path);
+            if ($disk->exists($relPath)) {
+                $fullPath = $disk->path($relPath);
                 $info = @getimagesize($fullPath);
                 if ($info && $info[0] > 0 && $info[1] > 0) {
                     $this->poster_width = (int) $info[0];
@@ -208,13 +211,13 @@ class NobarEvent extends Model
             ."METHOD:PUBLISH\r\n"
             ."BEGIN:VEVENT\r\n"
             ."UID:{$uid}\r\n"
-            ."DTSTAMP:".now()->utc()->format('Ymd\THis\Z')."\r\n"
+            .'DTSTAMP:'.now()->utc()->format('Ymd\THis\Z')."\r\n"
             ."DTSTART:{$dtStart}\r\n"
             ."DTEND:{$dtEnd}\r\n"
             ."SUMMARY:{$summary}\r\n"
             ."LOCATION:{$location}\r\n"
             ."DESCRIPTION:{$description}\r\n"
-            ."URL:".route('nobar.show', ['slug' => $this->slug])."\r\n"
+            .'URL:'.route('nobar.show', ['slug' => $this->slug])."\r\n"
             ."STATUS:CONFIRMED\r\n"
             ."END:VEVENT\r\n"
             ."END:VCALENDAR\r\n";

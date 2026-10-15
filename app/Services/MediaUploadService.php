@@ -148,9 +148,11 @@ class MediaUploadService
 
         return [
             'path' => $targetPath,
+            'poster_path' => $targetPath,
             'width' => $finalWidth,
             'height' => $finalHeight,
             'og_path' => $ogPath,
+            'poster_og_path' => $ogPath,
         ];
     }
 

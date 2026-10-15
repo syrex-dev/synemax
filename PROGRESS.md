@@ -12,8 +12,8 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
 - **Tahap 5 (Ruang Poster Nobar & Pengelolaan Media)**:
   - Sub-tahap A (Admin, Layanan Media, Migrasi & Duplikasi): SELESAI (`commit: 43d77ad`)
   - Sub-tahap B (Halaman Detail /nobar/{slug}, Modal Zoom & Tombol Aksi): SELESAI (`commit: 5ad59d0`)
-  - Sub-tahap C (Thumbnail 4:5 Listing & Beranda, Open Graph 1200x630): SELESAI
-  - Sub-tahap D (Testing Otomatis, Pint & Verifikasi Visual): SEDANG DIKERJAKAN
+  - Sub-tahap C (Thumbnail 4:5 Listing & Beranda, Open Graph 1200x630): SELESAI (`commit: c4265dc`)
+  - Sub-tahap D (Testing Otomatis, Pint & Verifikasi Visual): SELESAI (140 tests: 137 passed, 3 skipped; Pint 100% passed)
 
 ---
 
@@ -120,30 +120,48 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
   - Pembersihan menyeluruh 100% seluruh emoji dekoratif dari teks WhatsApp share, .ics kalender, halaman artikel/nobar/beranda, tabel/form admin, dan seeder.
   - Penanganan batas unggahan `php.ini` (`upload_max_filesize` / `post_max_size`) pada poster, QRIS, dan bukti transfer dengan pesan bahasa Indonesia yang jelas.
   - Dokumentasi konfigurasi `php.ini` (`upload_max_filesize >= 4M`, `post_max_size >= 8M`) serta ketentuan HTTPS domain publik untuk pratinjau WhatsApp di `README.md`.
-- [ ] **Sub-tahap D: Pengujian Komprehensif, Linting & Verifikasi Visual**:
-  - Automated tests untuk seluruh fitur poster dan media, verifikasi visual desktop/mobile/dark-mode.
+- [x] **Sub-tahap D: Pengujian Komprehensif, Linting & Verifikasi Visual**:
+  - `MediaServingTest`: penolakan path traversal (`..`, `..%2F`, karakter aneh) dan ekstensi tidak sah (`.php`, `.svg`, `.exe`).
+  - `NobarPosterFeatureTest`:
+    - Dimensi null pada `poster_width`/`poster_height` tidak menimbulkan error atau layout shift.
+    - Acara tanpa poster menampilkan tata letak satu kolom bersih.
+    - Duplikasi acara menyalin berkas poster & OG independen; penghapusan poster hasil duplikat tidak memengaruhi acara asal.
+    - Validasi dimensi minimum (sisi terpendek < 600px ditolak) dan penolakan format SVG.
+    - Tag meta Open Graph mengarah ke URL absolut dan fallback ke `social-banner.png`.
+  - `MediaUploadServiceTest`:
+    - Pemrosesan poster potret sukses membuat poster dan varian OG 1200x630.
+    - Pembatasan resolusi memori maks 40 MP.
+    - Salinan berkas fisik terisolasi pada duplikasi.
+  - Seluruh test suite (`php artisan test`): **140 tests (137 passed, 3 skipped)**, 761 assertions lulus hijau.
+  - Formatting & Linting (`vendor/bin/pint --test`): **100% passed** tanpa pelanggaran.
 
 ---
 
 ## Keputusan Penting
-1. **Aturan Migrasi**: Migrasi `2026_10_14_000004_update_bookings_for_payment_flow` sudah tercatat `Ran` (Batch 4), sehingga tidak diubah langsung. Migrasi baru dibuat untuk tabel tambahan (`nobar_events` dan `news_articles`).
+1. **Aturan Migrasi**: Migrasi `2026_10_14_000004_update_bookings_for_payment_flow` sudah tercatat `Ran` (Batch 4), sehingga tidak diubah langsung. Migrasi baru dibuat untuk tabel tambahan (`nobar_events`, `news_articles`, dan penambahan kolom poster).
 2. **Derivasi Flag `is_private`**: Flag `is_private` pada sesi disinkronkan secara konsisten setiap kali siklus hidup booking berubah (create, cancel, expire, reject, restore).
 3. **Endpoint Ketersediaan**: Dibuat sebagai endpoint publik ringan khusus angka dan boolean status tanpa mengekspos identitas pelanggan, dengan proteksi cache `no-store` dan throttling.
 4. **Isolasi Fitur Nobar & Berita**: Fitur nobar dan kabar dipisahkan sepenuhnya dari engine reservasi kursi, pembayaran, dan pesanan jajan untuk menjaga integritas transaksi bisnis inti.
 5. **Media Serving Tanpa Storage Link**: Serving media poster & cover menggunakan controller internal dengan HTTP caching (`max-age=86400`) agar kompatibel di lingkungan deployment apa pun tanpa memerlukan `storage:link`.
+6. **Varian Open Graph 1200x630**: Setiap poster potret nobar otomatis dibuatkan varian landscape 1200x630 dengan poster utuh di tengah latar belakang blur gelap, sehingga tidak terpotong saat dibagikan ke WhatsApp dan media sosial.
 
 ---
 
 ## Perintah Yang Perlu Dijalankan Pengguna
-1. **Jalankan Migrasi Database Baru (Jika belum dijalankan di environment hosting / produksi)**:
+1. **Jalankan Migrasi Database Baru (Menambahkan kolom poster_width, poster_height, poster_alt, poster_og_path)**:
    ```bash
    php artisan migrate
    ```
-   *(Di database lokal sesi ini, kedua migrasi `nobar_events` dan `news_articles` telah dijalankan dan diverifikasi).*
+   *(Migrasi `2026_10_15_000003_add_poster_details_to_nobar_events_table.php` akan menambahkan kolom poster secara aman dan mengisi dimensi poster yang sudah ada).*
 
-2. **Jalankan Seeder Contoh (Opsional)**:
+2. **Jalankan Test Suite (Opsional untuk memastikan seluruh fitur hijau di terminal pengguna)**:
+   ```bash
+   php artisan test
+   ```
+
+3. **Jalankan Seeder Contoh (Opsional)**:
    ```bash
    php artisan db:seed --class=NobarAndNewsSeeder
    ```
-   *(Data contoh nobar bola dan artikel generik bertanda `[Contoh]` sudah siap diuji).*
+
 

@@ -47,4 +47,18 @@ class MediaServingTest extends TestCase
         $this->get(route('media.nobar', ['filename' => 'not-found.jpg']))->assertNotFound();
         $this->get(route('media.article', ['filename' => 'not-found.jpg']))->assertNotFound();
     }
+
+    public function test_media_endpoints_reject_path_traversal_and_invalid_extensions(): void
+    {
+        $this->get('/media/nobar/..%2F..%2F.env')->assertNotFound();
+        $this->get('/media/nobar/../nobar/test.png')->assertNotFound();
+        $this->get('/media/nobar/malicious.php')->assertNotFound();
+        $this->get('/media/nobar/test.svg')->assertNotFound();
+        $this->get('/media/nobar/test.exe')->assertNotFound();
+        $this->get('/media/nobar/invalid*name.png')->assertNotFound();
+
+        $this->get('/media/berita/..%2F..%2F.env')->assertNotFound();
+        $this->get('/media/berita/../news/test.webp')->assertNotFound();
+        $this->get('/media/berita/malicious.php')->assertNotFound();
+    }
 }

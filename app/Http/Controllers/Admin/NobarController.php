@@ -7,7 +7,9 @@ use App\Models\NobarEvent;
 use App\Services\MediaUploadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class NobarController extends Controller
@@ -190,7 +192,7 @@ class NobarController extends Controller
         if ($request->hasFile('poster')) {
             $file = $request->file('poster');
             if (! $file->isValid()) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'poster' => 'Ukuran file melebihi batas unggahan server (upload_max_filesize / post_max_size). Silakan unggah file di bawah 3 MB.',
                 ]);
             }
@@ -238,7 +240,7 @@ class NobarController extends Controller
                 'file',
                 'max:3072',
                 function ($attribute, $value, $fail) {
-                    if (! $value instanceof \Illuminate\Http\UploadedFile) {
+                    if (! $value instanceof UploadedFile) {
                         return;
                     }
 
