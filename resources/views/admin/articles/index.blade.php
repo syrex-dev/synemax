@@ -51,7 +51,9 @@
         <div class="mt-6 overflow-hidden rounded-2xl border border-border bg-surface shadow-token">
             @if ($articles->isEmpty())
                 <div class="p-12 text-center text-text-muted">
-                    <span class="text-4xl">📰</span>
+                    <svg class="mx-auto size-12 text-text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                    </svg>
                     <p class="mt-3 text-base font-bold text-text">Belum ada artikel publikasi</p>
                     <p class="mt-1 text-xs">Tulis berita seputar bioskop, pengumuman fasilitas, atau promo diskon tiket.</p>
                 </div>
@@ -83,7 +85,7 @@
                                                 <div class="flex items-center gap-2">
                                                     @if ($article->is_pinned)
                                                         <span class="inline-flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-500">
-                                                            📌 Disematkan
+                                                            Disematkan
                                                         </span>
                                                     @endif
                                                     <a href="{{ route('admin.articles.edit', $article) }}" class="font-bold text-text hover:text-accent">
@@ -120,17 +122,17 @@
                                     </td>
                                     <td class="whitespace-nowrap px-5 py-4 text-right">
                                         <div class="inline-flex items-center gap-1.5">
-                                            <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" target="_blank" title="Pratinjau Publik" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:border-accent hover:text-accent">
-                                                👁
+                                            <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" target="_blank" title="Pratinjau Publik" class="inline-flex px-2.5 py-1.5 text-xs font-semibold items-center justify-center rounded-lg border border-border bg-surface text-text hover:border-accent hover:text-accent">
+                                                Lihat
                                             </a>
-                                            <a href="{{ route('admin.articles.edit', $article) }}" title="Ubah Artikel" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:border-accent hover:text-accent">
-                                                ✏️
+                                            <a href="{{ route('admin.articles.edit', $article) }}" title="Ubah Artikel" class="inline-flex px-2.5 py-1.5 text-xs font-semibold items-center justify-center rounded-lg border border-border bg-surface text-text hover:border-accent hover:text-accent">
+                                                Edit
                                             </a>
                                             <form method="POST" action="{{ route('admin.articles.destroy', $article) }}" onsubmit="return confirm('Apakah Anda yakin ingin menghapus artikel \'{{ addslashes($article->judul) }}\'?');" class="inline">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" title="Hapus Artikel" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-surface text-danger hover:border-danger hover:bg-danger/10">
-                                                    🗑
+                                                <button type="submit" title="Hapus Artikel" class="inline-flex px-2.5 py-1.5 text-xs font-semibold items-center justify-center rounded-lg border border-border bg-surface text-danger hover:border-danger hover:bg-danger/10">
+                                                    Hapus
                                                 </button>
                                             </form>
                                         </div>

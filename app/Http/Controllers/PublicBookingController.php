@@ -400,6 +400,15 @@ class PublicBookingController extends Controller
         $maxKb = $settings->maxPaymentProofKb();
         $maxLabel = $maxKb >= 1024 ? round($maxKb / 1024, 1).' MB' : $maxKb.' KB';
 
+        if ($request->hasFile('payment_proof')) {
+            $file = $request->file('payment_proof');
+            if (! $file->isValid()) {
+                throw ValidationException::withMessages([
+                    'payment_proof' => 'Ukuran file bukti pembayaran melebihi batas unggahan server (upload_max_filesize / post_max_size). Silakan unggah file dengan ukuran lebih kecil.',
+                ]);
+            }
+        }
+
         $data = $request->validate([
             'whatsapp' => ['required', 'string', 'max:24'],
             'payment_proof' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:'.$maxKb],

@@ -17,7 +17,7 @@
         {{-- Hero Header --}}
         <div class="rounded-3xl border border-border bg-surface p-6 sm:p-10 shadow-token">
             <span class="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-xs font-bold text-accent">
-                <span>📰</span> Warta Studio
+                Warta Studio
             </span>
             <h1 class="mt-3 text-3xl font-black text-text sm:text-4xl">Kabar & Promo Terbaru</h1>
             <p class="mt-2 max-w-xl text-sm text-text-muted leading-relaxed">
@@ -41,7 +41,9 @@
         <div class="mt-8">
             @if ($articles->isEmpty())
                 <div class="rounded-3xl border border-dashed border-border bg-surface p-12 text-center">
-                    <span class="text-4xl">📰</span>
+                    <svg class="mx-auto size-12 text-text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                    </svg>
                     <h2 class="mt-3 text-lg font-black text-text">Belum Ada Artikel</h2>
                     <p class="mt-1 text-xs text-text-muted">Kabar atau promo untuk kategori ini belum tersedia. Silakan cek kembali nanti.</p>
                 </div>
@@ -56,7 +58,9 @@
                                         <img src="{{ $item->coverUrl() }}" alt="Cover {{ $item->judul }}" class="size-full object-cover transition duration-300 group-hover:scale-105" loading="lazy">
                                     @else
                                         <div class="flex size-full flex-col items-center justify-center bg-gradient-to-br from-surface to-surface-2 p-4 text-center">
-                                            <span class="text-3xl">📰</span>
+                                            <svg class="size-8 text-text-muted/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                            </svg>
                                             <span class="mt-1 text-xs font-bold text-text-muted">SynemaX News</span>
                                         </div>
                                     @endif
@@ -67,15 +71,18 @@
                                         </span>
                                         @if ($item->is_pinned)
                                             <span class="rounded-full bg-accent px-2.5 py-1 text-[11px] font-bold text-accent-contrast shadow-xs">
-                                                ★ Pilihan
+                                                Pilihan
                                             </span>
                                         @endif
                                     </div>
                                 </div>
 
                                 <div class="p-5">
-                                    <div class="flex items-center gap-2 text-[11px] text-text-muted">
-                                        <span>📅 {{ ($item->tanggal_terbit ?: $item->created_at)->translatedFormat('d M Y') }}</span>
+                                    <div class="flex items-center gap-1.5 text-[11px] text-text-muted">
+                                        <svg class="size-3.5 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span>{{ ($item->tanggal_terbit ?: $item->created_at)->translatedFormat('d M Y') }}</span>
                                     </div>
 
                                     <h2 class="mt-2 text-lg font-black text-text leading-snug group-hover:text-accent">

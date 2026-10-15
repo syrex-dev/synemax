@@ -159,6 +159,11 @@
                     @foreach ($upcomingNobar as $event)
                         <article class="flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-surface p-5 shadow-token transition hover:border-accent">
                             <div>
+                                @if ($event->hasPoster())
+                                    <a href="{{ route('nobar.show', ['slug' => $event->slug]) }}" class="block aspect-[4/5] w-full overflow-hidden bg-surface-2 rounded-xl mb-4">
+                                        <img src="{{ $event->posterUrl() }}" alt="{{ $event->posterAltText() }}" class="size-full object-cover object-top transition duration-300 hover:scale-105" loading="lazy">
+                                    </a>
+                                @endif
                                 <div class="flex items-center justify-between gap-2">
                                     <span class="rounded-full px-2.5 py-0.5 text-xs font-bold {{ $event->badgeClasses() }}">
                                         {{ $event->display_status }}
@@ -177,12 +182,17 @@
                                     <span class="mx-2 text-xs font-black uppercase text-accent">VS</span>
                                     <span class="font-bold text-text">{{ $event->tim_b ?: 'TBA' }}</span>
                                 </div>
-                                <p class="mt-3 text-xs text-text-muted flex items-center gap-1.5">
-                                    <span>🗓</span>
+                                <p class="mt-3 text-xs text-text-muted flex items-center gap-2">
+                                    <svg class="size-4 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
                                     <span>{{ $event->kickoff_at->locale('id')->translatedFormat('l, d F Y · H:i') }} WIB</span>
                                 </p>
-                                <p class="mt-1 text-xs text-text-muted flex items-center gap-1.5">
-                                    <span>📍</span>
+                                <p class="mt-1.5 text-xs text-text-muted flex items-center gap-2">
+                                    <svg class="size-4 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
                                     <span class="truncate">{{ $event->lokasi_nama }}</span>
                                 </p>
                             </div>

@@ -5,6 +5,10 @@ Aplikasi booking studio home cinema skala kecil. Pelanggan memilih film dan sesi
 ## Kebutuhan
 
 - PHP 8.3 atau lebih baru dengan ekstensi `bcmath`, `ctype`, `curl`, `fileinfo`, `gd` (dukungan WebP), `mbstring`, `openssl`, `pdo_mysql`, `tokenizer`, dan `xml`.
+- Konfigurasi `php.ini` untuk unggahan media:
+  - `upload_max_filesize >= 4M` (disarankan 8M).
+  - `post_max_size >= 8M` (harus lebih besar dari `upload_max_filesize`).
+  Nilai ini diperlukan agar unggahan poster acara nobar (maks 3 MB), gambar QRIS (maks 2 MB), dan berkas bukti pembayaran tidak ditolak oleh server PHP sebelum validasi aplikasi.
 - MySQL 8+ atau MariaDB yang mendukung transaksi InnoDB dan `SELECT ... FOR UPDATE`.
 - Composer 2.
 - Node.js 20.19+ hanya untuk build aset di komputer pengembang. Node tidak dibutuhkan di server.
@@ -73,9 +77,13 @@ Prioritas jadwal: tanggal yang ditutup tidak menghasilkan sesi; jika tidak ditut
 
 Semua aset publik dibuat dengan Vite di `public/build`. Build dapat dilakukan di komputer pengembang dan direktori `public/build` ikut diunggah ke server; Node.js tidak perlu dipasang di server.
 
-Poster menerima JPG, PNG, atau WebP sampai 4 MB dan dimensi sumber sampai 3000 × 4500 piksel. Poster dikonversi menjadi WebP, lebar maksimal 500 piksel, lalu ditayangkan dengan lazy loading. Bukti pembayaran disimpan pada disk lokal privat dan hanya bisa dibuka admin.
-
-Jika server tidak memiliki GD dengan dukungan WebP, unggahan poster akan gagal dengan pesan konfigurasi yang jelas. Aktifkan ekstensi tersebut di PHP server.
+- **Poster Film Bioskop**: Menerima JPG, PNG, atau WebP sampai 4 MB dan dimensi sumber sampai 3000 × 4500 piksel. Poster dikonversi menjadi WebP, lebar maksimal 500 piksel, lalu ditayangkan dengan lazy loading.
+- **Poster Acara Nobar**: Menerima JPG, PNG, atau WebP maksimal 3 MB dengan resolusi hingga 40 megapiksel (sisi terpendek minimal 600 piksel). Format SVG ditolak. Poster diperkecil secara proporsional hanya jika sisi terpanjang > 1600 piksel tanpa pemotongan guna menjaga rasio asli dan ketajaman teks. Orientasi EXIF pada foto JPEG dinormalisasi otomatis dan metadata dibersihkan demi privasi. Jika ekstensi WebP GD tidak tersedia, sistem menggunakan fallback format asli dengan pencatatan log peringatan. Sistem juga otomatis membuat varian Open Graph 1200 × 630 piksel untuk pratinjau media sosial.
+- **Pratinjau Media Sosial & WhatsApp**:
+  - Tautan acara nobar menyertakan metadata Open Graph `og:image` berbasis URL absolut (`APP_URL` / `url()`) yang mengarah ke varian 1200 × 630 piksel dan dapat diakses publik tanpa login.
+  - Jika acara tidak memiliki poster khusus, tautan otomatis menggunakan berkas cadangan `public/social-banner.png`.
+  - **Catatan Penting Pratinjau WhatsApp**: Kartu pratinjau tautan WhatsApp hanya akan muncul jika aplikasi diakses melalui domain publik dengan sertifikat HTTPS yang valid (misalnya `https://synemax.example.com`). Bot perayap WhatsApp tidak dapat mengakses tautan lokal `localhost` atau alamat IP privat.
+- **Bukti Pembayaran & QRIS**: Bukti transfer disimpan pada disk lokal privat dan hanya dapat diakses oleh admin berwenang. Berkas gambar QRIS disimpan dengan nama unik berversi untuk mencegah pembacaan cache browser lama.
 
 ## Modul jajanan
 

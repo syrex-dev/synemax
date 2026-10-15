@@ -24,7 +24,11 @@
             </div>
             @if ($isEdit)
                 <a href="{{ route('nobar.show', ['slug' => $event->slug]) }}" target="_blank" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-accent bg-accent/10 px-4 text-xs font-bold text-accent hover:bg-accent/20">
-                    <span>👁 Pratinjau Tampilan Publik</span>
+                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <span>Pratinjau Tampilan Publik</span>
                 </a>
             @endif
         </div>

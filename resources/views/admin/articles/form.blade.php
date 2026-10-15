@@ -21,7 +21,11 @@
             </div>
             @if ($isEdit)
                 <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" target="_blank" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-accent bg-accent/10 px-4 text-xs font-bold text-accent hover:bg-accent/20">
-                    <span>👁 Pratinjau Tampilan Publik</span>
+                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                    <span>Pratinjau Tampilan Publik</span>
                 </a>
             @endif
         </div>
@@ -185,7 +189,9 @@
                     Batal
                 </a>
                 <button type="submit" class="inline-flex min-h-12 items-center gap-2 rounded-xl bg-accent px-8 text-sm font-bold text-accent-contrast shadow-sm hover:opacity-90">
-                    <span>💾</span>
+                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    </svg>
                     <span>{{ $isEdit ? 'Perbarui Artikel' : 'Simpan Artikel' }}</span>
                 </button>
             </div>

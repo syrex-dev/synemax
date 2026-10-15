@@ -120,7 +120,14 @@ class SettingController extends Controller
         ]);
 
         if ($request->hasFile('qris_image')) {
-            $mime = $request->file('qris_image')->getMimeType();
+            $file = $request->file('qris_image');
+            if (! $file->isValid()) {
+                throw ValidationException::withMessages([
+                    'qris_image' => 'Ukuran file gambar QRIS melebihi batas unggahan server (upload_max_filesize / post_max_size). Silakan unggah file di bawah 2 MB.',
+                ]);
+            }
+
+            $mime = $file->getMimeType();
             if (! in_array($mime, ['image/png', 'image/jpeg', 'image/webp'], true)) {
                 throw ValidationException::withMessages([
                     'qris_image' => 'Format gambar QRIS harus PNG, JPG, JPEG, atau WEBP (SVG tidak diizinkan).',

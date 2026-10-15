@@ -11,9 +11,9 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
 - **Tahap 4 (Testing & Validasi Style Linting)**: SELESAI (125 tests lulus, Pint lulus 100%)
 - **Tahap 5 (Ruang Poster Nobar & Pengelolaan Media)**:
   - Sub-tahap A (Admin, Layanan Media, Migrasi & Duplikasi): SELESAI (`commit: 43d77ad`)
-  - Sub-tahap B (Halaman Detail /nobar/{slug}, Modal Zoom & Tombol Aksi): SELESAI
-  - Sub-tahap C (Thumbnail 4:5 Listing & Beranda, Open Graph 1200x630): SEDANG DIKERJAKAN
-  - Sub-tahap D (Testing Otomatis, Pint & Verifikasi Visual): MENUNGGU
+  - Sub-tahap B (Halaman Detail /nobar/{slug}, Modal Zoom & Tombol Aksi): SELESAI (`commit: 5ad59d0`)
+  - Sub-tahap C (Thumbnail 4:5 Listing & Beranda, Open Graph 1200x630): SELESAI
+  - Sub-tahap D (Testing Otomatis, Pint & Verifikasi Visual): SEDANG DIKERJAKAN
 
 ---
 
@@ -113,10 +113,13 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
   - Latar netral untuk poster berlatar putih (`bg-surface-2/60 border border-border rounded-3xl p-3 sm:p-4`), tampilan single-column bersih tanpa celah kosong jika acara tanpa poster.
   - Modal perbesar poster Alpine.js dengan penguncian scroll body (`overflow-hidden`), focus trap keyboard, pengembalian fokus ke elemen pemanggil saat ditutup, backdrop click, dan tombol simpan poster (`poster-{slug}.{ext}`).
   - Tombol aksi standar (tinggi minimal 44px / `min-h-12`, ikon SVG tajam, teks non-breaking), serta penghapusan seluruh emoji dekoratif (`📅`, `📍`, `🎟️`, `⚽`, `⚠️`).
-- [ ] **Sub-tahap C: Thumbnail 4:5 Listing & Beranda, Open Graph 1200x630**:
-  - Tampilkan thumbnail 4:5 pada kartu nobar di `/nobar` dan teaser beranda `/`.
-  - Pasang meta `og:image` absolut dengan varian OG 1200x630, fallback ke `social-banner.png`.
-  - Hapus emoji di share WhatsApp, kalender .ics, seeder, dan dokumentasi README.
+- [x] **Sub-tahap C: Thumbnail 4:5 Listing & Beranda, Open Graph 1200x630**:
+  - Tampilkan thumbnail potret 4:5 (`aspect-[4/5] object-cover object-top`) pada kartu nobar di `/nobar` dan teaser beranda `/`.
+  - Tampilan elegan tanpa bingkai kosong pada kartu nobar tanpa poster.
+  - Pasang meta `og:image` absolut (1200x630) publik tanpa login, dengan fallback otomatis ke `public/social-banner.png`.
+  - Pembersihan menyeluruh 100% seluruh emoji dekoratif dari teks WhatsApp share, .ics kalender, halaman artikel/nobar/beranda, tabel/form admin, dan seeder.
+  - Penanganan batas unggahan `php.ini` (`upload_max_filesize` / `post_max_size`) pada poster, QRIS, dan bukti transfer dengan pesan bahasa Indonesia yang jelas.
+  - Dokumentasi konfigurasi `php.ini` (`upload_max_filesize >= 4M`, `post_max_size >= 8M`) serta ketentuan HTTPS domain publik untuk pratinjau WhatsApp di `README.md`.
 - [ ] **Sub-tahap D: Pengujian Komprehensif, Linting & Verifikasi Visual**:
   - Automated tests untuk seluruh fitur poster dan media, verifikasi visual desktop/mobile/dark-mode.
 
