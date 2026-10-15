@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', $event->judul . ' - Nobar SynemaX')
+@section('title', $event->judul . ': Nobar SynemaX')
 
 @section('meta')
     <meta property="og:type" content="event">

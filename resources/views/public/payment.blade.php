@@ -1,10 +1,10 @@
 @extends('layouts.public')
 
-@section('title', 'Pembayaran Booking ' . $booking->code . ' — SynemaX')
+@section('title', 'Pembayaran Booking ' . $booking->code . ': SynemaX')
 @section('meta')
     <meta name="description" content="Selesaikan pembayaran untuk booking {{ $booking->code }} di SynemaX.">
-    <meta property="og:title" content="Pembayaran booking {{ $booking->code }} — SynemaX">
-    <meta property="og:description" content="Total: Rp {{ number_format($booking->total_price, 0, ',', '.') }} — {{ $booking->film?->title ?? 'Film Sesi' }}">
+    <meta property="og:title" content="Pembayaran booking {{ $booking->code }}: SynemaX">
+    <meta property="og:description" content="Total: Rp {{ number_format($booking->total_price, 0, ',', '.') }}, {{ $booking->film?->title ?? 'Film Sesi' }}">
 @endsection
 
 @section('content')
@@ -261,7 +261,7 @@
 
                 {{-- Formulir Unggah Bukti Bayar --}}
                 <div class="mt-6 border-t border-border pt-6">
-                    <h3 class="text-sm font-bold text-text">Kirim bukti pembayaran</h3>
+                    <h3 class="text-sm font-bold text-text">Kirim bukti bayar</h3>
                     <p class="mt-0.5 text-xs text-text-muted">
                         Unggah foto atau tangkapan layar bukti transfer (JPG, PNG, atau WebP maks. {{ round($maxPaymentProofKb / 1024) }} MB).
                     </p>

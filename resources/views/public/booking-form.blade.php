@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Pesan Tiket Studio — SynemaX')
+@section('title', 'Pesan Tiket Studio: SynemaX')
 @section('meta')
     <meta name="description" content="Pilih film, jumlah penonton, dan jajan untuk sesi studio mini SynemaX.">
 @endsection
@@ -468,7 +468,7 @@
                                     <span class="size-2.5 rounded-full bg-primary" x-show="type === 'private'"></span>
                                 </span>
                                 <div class="flex-1">
-                                    <span class="block text-sm font-bold text-text">Sewa private</span>
+                                    <span class="block text-sm font-bold text-text">Sewa studio privat</span>
                                     <span class="mt-1 block text-xs text-text-muted leading-relaxed">Studio khusus rombongan Anda, 6 kursi penuh tanpa penonton lain.</span>
                                     <span class="mt-3 block font-tabular text-sm font-extrabold text-text">
                                         Rp {{ number_format($privatePrice, 0, ',', '.') }} <span class="text-xs font-normal text-text-muted">/ paket</span>
@@ -762,6 +762,7 @@
                          class="w-full max-w-md rounded-[var(--radius-control)] border border-border bg-surface p-5 shadow-token">
                     <h2 id="note-title" class="text-base font-bold text-text">Catatan pesanan jajan</h2>
                     <p class="mt-0.5 text-xs text-text-muted">Contoh: tidak pakai es, atau tanpa gula.</p>
+                    <label for="snack-note" class="sr-only">Catatan untuk jajanan</label>
                     <textarea id="snack-note"
                               x-model="noteValue"
                               maxlength="250"

@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Sesi kedaluwarsa - SynemaX')
+@section('title', 'Sesi kedaluwarsa: SynemaX')
 
 @section('content')
     <main class="mx-auto max-w-lg px-4 py-16 text-center sm:py-24">

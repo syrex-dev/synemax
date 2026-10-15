@@ -344,7 +344,7 @@ class QrisPaymentFlowTest extends TestCase
             ->assertOk()
             ->assertSee('Studio SynemaX')
             ->assertSee('Pindai kode QRIS')
-            ->assertSee('Kirim bukti pembayaran');
+            ->assertSee('Kirim bukti bayar');
     }
 
     public function test_customer_cash_booking_does_not_display_qris_card(): void

@@ -73,7 +73,7 @@ class PublicPagesTest extends TestCase
             ->assertOk()
             ->assertSee('Amankan kursimu')
             ->assertSee('Misi Terakhir Pak Pos')
-            ->assertSee('Sewa private');
+            ->assertSee('Sewa studio privat');
     }
 
     public function test_booking_success_page_renders_the_wa_confirmation_link(): void

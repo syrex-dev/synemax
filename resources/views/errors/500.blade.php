@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Gangguan server - SynemaX')
+@section('title', 'Gangguan server: SynemaX')
 
 @section('content')
     <main class="mx-auto max-w-lg px-4 py-16 text-center sm:py-24">

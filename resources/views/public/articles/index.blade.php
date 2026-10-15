@@ -1,14 +1,14 @@
 @extends('layouts.public')
 
-@section('title', 'Kabar dan promo - SynemaX')
+@section('title', 'Kabar dan promo: SynemaX')
 
 @section('meta')
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Kabar dan promo - SynemaX">
+    <meta property="og:title" content="Kabar dan promo: SynemaX">
     <meta property="og:description" content="Kumpulan berita, promo tiket, informasi jajanan studio, dan pengumuman terbaru dari SynemaX.">
     <meta property="og:url" content="{{ route('articles.index') }}">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Kabar dan promo - SynemaX">
+    <meta name="twitter:title" content="Kabar dan promo: SynemaX">
     <meta name="twitter:description" content="Kumpulan berita, promo tiket, dan info terbaru SynemaX.">
 @endsection
 

@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', $article->judul . ' - SynemaX')
+@section('title', $article->judul . ': SynemaX')
 
 @section('meta')
     <meta property="og:type" content="article">

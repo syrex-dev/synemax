@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Cek booking — SynemaX')
+@section('title', 'Cek booking: SynemaX')
 @section('meta')
     <meta name="description" content="Cek status tiket dan pembayaran SynemaX dengan kode booking dan nomor WhatsApp.">
 @endsection

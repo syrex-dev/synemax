@@ -21,30 +21,30 @@
 }
 
 /* Fallback untuk HP Android (Font sistem: Roboto) */
-/* Rumus: size-adjust dihitung dari rasio lebar rata-rata karakter (OS/2 xAvgCharWidth) */
-/* Bricolage (498/1000 = 0.498), Roboto (1158/2048 = 0.56543) -> size-adjust = 0.498 / 0.56543 = 88.07% ≈ 88% */
-/* ascent-override = Bricolage sTypoAscender (93%) / size-adjust = 93% / 0.8807 = 105.59% ≈ 106% */
-/* descent-override = Bricolage sTypoDescender (27%) / size-adjust = 27% / 0.8807 = 30.66% ≈ 31% */
+/* Rumus: size-adjust dihitung dari rasio total advance width sampel teks bahasa Indonesia (hmtx) */
+/* Sampel 295 karakter: Bricolage (132.833), Roboto (132.875) -> size-adjust = 132.833 / 132.875 = 99.97% ≈ 100% */
+/* ascent-override = Bricolage sTypoAscender (93%) / size-adjust = 93% / 1.00 = 93% */
+/* descent-override = Bricolage sTypoDescender (27%) / size-adjust = 27% / 1.00 = 27% */
 @font-face {
     font-family: 'Bricolage Fallback Roboto';
     src: local('Roboto');
-    size-adjust: 88%;
-    ascent-override: 106%;
-    descent-override: 31%;
+    size-adjust: 100%;
+    ascent-override: 93%;
+    descent-override: 27%;
     line-gap-override: 0%;
 }
 
 /* Fallback untuk Windows/Apple Desktop (Font sistem: Arial) */
-/* Rumus: size-adjust dihitung dari rasio lebar rata-rata karakter (OS/2 xAvgCharWidth) */
-/* Bricolage (498/1000 = 0.498), Arial (904/2048 = 0.44141) -> size-adjust = 0.498 / 0.44141 = 112.82% ≈ 113% */
-/* ascent-override = Bricolage sTypoAscender (93%) / size-adjust = 93% / 1.1282 = 82.43% ≈ 82% */
-/* descent-override = Bricolage sTypoDescender (27%) / size-adjust = 27% / 1.1282 = 23.93% ≈ 24% */
+/* Rumus: size-adjust dihitung dari rasio total advance width sampel teks bahasa Indonesia (hmtx) */
+/* Sampel 295 karakter: Bricolage (132.833), Arial (133.580) -> size-adjust = 132.833 / 133.580 = 99.44% ≈ 99% */
+/* ascent-override = Bricolage sTypoAscender (93%) / size-adjust = 93% / 0.9944 = 93.52% ≈ 94% */
+/* descent-override = Bricolage sTypoDescender (27%) / size-adjust = 27% / 0.9944 = 27.15% ≈ 27% */
 @font-face {
     font-family: 'Bricolage Fallback Arial';
     src: local('Arial');
-    size-adjust: 113%;
-    ascent-override: 82%;
-    descent-override: 24%;
+    size-adjust: 99%;
+    ascent-override: 94%;
+    descent-override: 27%;
     line-gap-override: 0%;
 }
 
@@ -69,10 +69,12 @@
     --color-text-muted: var(--text-muted);
     --color-ink-muted: var(--text-muted);
     --color-subtle: var(--text-subtle);
-    --color-accent: var(--accent-primary);
-    --color-accent-hover: var(--accent-hover);
-    --color-accent-contrast: var(--accent-contrast);
-    --color-accent-ink: var(--accent-contrast);
+    --color-accent: var(--primary-color);
+    --color-accent-hover: var(--link-color);
+    --color-accent-contrast: var(--primary-text-color);
+    --color-accent-ink: var(--primary-text-color);
+    --color-kuning: var(--accent-kuning);
+    --color-kuning-contrast: var(--accent-kuning-contrast);
     --color-primary: var(--primary-color);
     --color-primary-text: var(--primary-text-color);
     --color-link: var(--link-color);
@@ -123,12 +125,22 @@
     --primary-text-color: #FFFFFF;    /* Teks tombol utama (7,21:1 WCAG AAA) */
     --link-color: #2845D6;            /* Tautan inline (6,57:1 WCAG AA) */
 
-    /* Penanda Fisik Kuning Karcis (Isian) & Kompatibilitas Teks Lama */
-    --accent-primary: #FFC62E;        /* Kuning Karcis */
-    --accent-hover: #EBB220;
-    --accent-contrast: #16201F;       /* Teks di atas Kuning Karcis (10,61:1 WCAG AAA) */
-    --accent-gold: #805700;           /* Token lama kompatibilitas: emas tua lolos WCAG (6,41:1) untuk teks/garis di latar terang */
+    /* Penanda Fisik Kuning Karcis & Alias Legacy Aksentuasi Interaktif */
+    --accent-kuning: #FFC62E;         /* Kuning Karcis (hanya slot terpilih, gratis, pita karcis) */
+    --accent-kuning-contrast: #16201F;
+    --accent-primary: var(--primary-color);   /* Tombol & aksen interaktif lama dipetakan ke Biru Sablon */
+    --accent-hover: var(--link-color);
+    --accent-contrast: var(--primary-text-color);
+    --accent-gold: #805700;           /* Emas tua WCAG untuk teks/garis di latar terang */
     --accent-gold-surface: #FFF5D6;
+
+    /* Token Legacy Murni var(...) */
+    --text: var(--text-primary);
+    --border: var(--border-default);
+    --primary: var(--primary-color);
+    --accent: var(--primary-color);
+    --bg: var(--surface-canvas);
+    --surface: var(--surface-default);
 
     /* Status Terkonfirmasi Hijau Daun (Terang) */
     --status-success: #2A9461;        /* Isian badge/ikon */
@@ -176,19 +188,29 @@
 
     /* Garis & Batas Input (Gelap) */
     --border-default: #1D444B;        /* Garis pemisah dekoratif 1.5px */
-    --border-input: #537F86;          /* Batas input kontrol form (3,41:1 WCAG UI >= 3:1) */
+    --border-input: #5C8E96;          /* Batas input kontrol form (3,41:1 di atas panel, 4,14:1 di atas kanvas) */
 
     /* Aksi Utama Biru Sablon & Tautan (Gelap) */
     --primary-color: #4D68F5;         /* Tombol utama Biru Sablon di gelap (3,31:1 terhadap Malam) */
     --primary-text-color: #FFFFFF;    /* Teks tombol utama (4,55:1 WCAG AA) */
     --link-color: #8096FF;            /* Tautan inline terang di gelap (5,55:1 WCAG AA) */
 
-    /* Penanda Fisik Kuning Karcis (Isian) */
-    --accent-primary: #FFC62E;        /* Kuning Karcis */
-    --accent-hover: #FFD154;
-    --accent-contrast: #16201F;       /* Teks di atas Kuning Karcis (10,61:1 WCAG AAA) */
+    /* Penanda Fisik Kuning Karcis & Alias Legacy Aksentuasi Interaktif */
+    --accent-kuning: #FFC62E;
+    --accent-kuning-contrast: #16201F;
+    --accent-primary: var(--primary-color);   /* Tombol & aksen interaktif lama dipetakan ke Biru Sablon */
+    --accent-hover: var(--link-color);
+    --accent-contrast: var(--primary-text-color);
     --accent-gold: #FFC62E;
     --accent-gold-surface: #262011;
+
+    /* Token Legacy Murni var(...) */
+    --text: var(--text-primary);
+    --border: var(--border-default);
+    --primary: var(--primary-color);
+    --accent: var(--primary-color);
+    --bg: var(--surface-canvas);
+    --surface: var(--surface-default);
 
     /* Status Terkonfirmasi Hijau Daun (Gelap) */
     --status-success: #2A9461;
@@ -270,8 +292,8 @@ body {
 }
 
 .slot-ticket-btn.is-selected {
-    background-color: var(--accent-primary);
-    color: var(--accent-contrast);
+    background-color: var(--accent-kuning);
+    color: var(--accent-kuning-contrast);
     border: 1.5px solid #EBB220;
     font-weight: 700;
 }

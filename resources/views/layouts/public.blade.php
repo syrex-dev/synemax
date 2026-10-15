@@ -103,7 +103,8 @@
 
         <footer class="border-t border-border px-4 py-8 text-center text-xs text-text-muted">
             <p class="font-medium text-text">SynemaX Studio & Lounge</p>
-            <p class="mt-1">Jl. Melati No. 12 - Bioskop mini desa. Nonton dekat, seru bareng.</p>
+            <p class="mt-1">Jl. Melati No. 12</p>
+            <p class="mt-1">Bioskop mini desa. Nonton dekat, seru bareng.</p>
         </footer>
     </body>
 </html>

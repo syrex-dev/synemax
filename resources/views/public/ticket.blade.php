@@ -1,9 +1,9 @@
 @extends('layouts.public')
 
-@section('title', 'Tiket ' . $booking->code . ' — SynemaX')
+@section('title', 'Tiket ' . $booking->code . ': SynemaX')
 @section('meta')
     <meta name="description" content="Tiket digital SynemaX untuk booking {{ $booking->code }}.">
-    <meta property="og:title" content="Tiket SynemaX — {{ $booking->code }}">
+    <meta property="og:title" content="Tiket SynemaX: {{ $booking->code }}">
     <meta property="og:description" content="{{ $booking->film?->title ?? 'Film Sesi' }}, {{ $booking->session->startsAt()->locale('id')->translatedFormat('D, d M Y') }}, {{ substr((string) $booking->session->start_time, 0, 5) }} WIB">
 @endsection
 

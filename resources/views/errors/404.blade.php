@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Halaman tidak ditemukan - SynemaX')
+@section('title', 'Halaman tidak ditemukan: SynemaX')
 
 @section('content')
     <main class="mx-auto max-w-lg px-4 py-16 text-center sm:py-24">

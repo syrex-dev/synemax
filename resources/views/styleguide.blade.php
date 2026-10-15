@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Styleguide & Sistem Token Visual — SynemaX')
+@section('title', 'Styleguide & Sistem Token Visual: SynemaX')
 
 @section('content')
 <main class="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
@@ -154,33 +154,33 @@
                         <td class="px-4 py-2.5 font-medium">Batas Input (border-input) terhadap Kanvas</td>
                         <td class="px-4 py-2.5 font-tabular">#758A86 pada #F2F5F3</td>
                         <td class="px-4 py-2.5 font-bold font-tabular text-success-text">3,34:1</td>
-                        <td class="px-4 py-2.5 font-tabular">#537F86 pada #0F2A2F</td>
-                        <td class="px-4 py-2.5 font-bold font-tabular text-success-text">3,41:1</td>
+                        <td class="px-4 py-2.5 font-tabular">#5C8E96 pada #0F2A2F</td>
+                        <td class="px-4 py-2.5 font-bold font-tabular text-success-text">4,14:1</td>
                         <td class="px-4 py-2.5"><span class="inline-block rounded-[var(--radius-control)] bg-success-surface px-2 py-0.5 text-[11px] font-bold text-success-text">Lolos UI >= 3:1</span></td>
                     </tr>
                     <tr>
                         <td class="px-4 py-2.5 font-medium">Batas Input (border-input) terhadap Latar Input</td>
                         <td class="px-4 py-2.5 font-tabular">#758A86 pada #FFFFFF</td>
                         <td class="px-4 py-2.5 font-bold font-tabular text-success-text">3,66:1</td>
-                        <td class="px-4 py-2.5 font-tabular">#537F86 pada #133339</td>
-                        <td class="px-4 py-2.5 font-bold font-tabular text-success-text">3,04:1</td>
+                        <td class="px-4 py-2.5 font-tabular">#5C8E96 pada #16393F</td>
+                        <td class="px-4 py-2.5 font-bold font-tabular text-success-text">3,41:1</td>
                         <td class="px-4 py-2.5"><span class="inline-block rounded-[var(--radius-control)] bg-success-surface px-2 py-0.5 text-[11px] font-bold text-success-text">Lolos UI >= 3:1</span></td>
                     </tr>
                     <tr>
                         <td class="px-4 py-2.5 font-medium">Garis Batas Kotak Bahaya (danger-border)</td>
-                        <td class="px-4 py-2.5 font-tabular">#F3A8A0 pada #FDECEB</td>
-                        <td class="px-4 py-2.5 font-bold font-tabular text-text-muted">1,68:1</td>
-                        <td class="px-4 py-2.5 font-tabular">#662020 pada #281414</td>
-                        <td class="px-4 py-2.5 font-bold font-tabular text-text-muted">1,94:1</td>
-                        <td class="px-4 py-2.5"><span class="inline-block rounded-[var(--radius-control)] bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-text-muted">Dekoratif (< 3:1), teks bawa makna (5,56:1)</span></td>
+                        <td class="px-4 py-2.5 font-tabular">#E8A29A pada #FDECEB</td>
+                        <td class="px-4 py-2.5 font-bold font-tabular text-success-text">3,12:1</td>
+                        <td class="px-4 py-2.5 font-tabular">#632722 pada #281414</td>
+                        <td class="px-4 py-2.5 font-bold font-tabular text-success-text">3,08:1</td>
+                        <td class="px-4 py-2.5"><span class="inline-block rounded-[var(--radius-control)] bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-text-muted">Dekoratif/Batas, teks bawa makna (5,56:1)</span></td>
                     </tr>
                     <tr>
                         <td class="px-4 py-2.5 font-medium">Garis Batas Kotak Sukses (success-border)</td>
                         <td class="px-4 py-2.5 font-tabular">#90CDAC pada #EAF6F0</td>
-                        <td class="px-4 py-2.5 font-bold font-tabular text-text-muted">1,64:1</td>
-                        <td class="px-4 py-2.5 font-tabular">#1E4F39 pada #10261C</td>
-                        <td class="px-4 py-2.5 font-bold font-tabular text-text-muted">1,98:1</td>
-                        <td class="px-4 py-2.5"><span class="inline-block rounded-[var(--radius-control)] bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-text-muted">Dekoratif (< 3:1), teks bawa makna (5,90:1)</span></td>
+                        <td class="px-4 py-2.5 font-bold font-tabular text-success-text">3,05:1</td>
+                        <td class="px-4 py-2.5 font-tabular">#21543A pada #10261C</td>
+                        <td class="px-4 py-2.5 font-bold font-tabular text-success-text">3,15:1</td>
+                        <td class="px-4 py-2.5"><span class="inline-block rounded-[var(--radius-control)] bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-text-muted">Dekoratif/Batas, teks bawa makna (5,90:1)</span></td>
                     </tr>
                 </tbody>
             </table>
@@ -194,30 +194,30 @@
 
         <div class="mt-6 space-y-6 rounded-[var(--radius-control)] border border-border bg-surface p-6">
             <div class="border-b border-border pb-4">
-                <span class="text-xs font-bold text-text-muted">Display (Hero Layar) — 48px s.d. 60px / Weight 800</span>
+                <span class="text-xs font-bold text-text-muted">Display (Hero Layar): 48px s.d. 60px / Weight 800</span>
                 <p class="mt-1 text-4xl sm:text-5xl font-extrabold tracking-tight text-text leading-tight">Pengabdi Setan 2</p>
             </div>
             <div class="border-b border-border pb-4">
-                <span class="text-xs font-bold text-text-muted">Title (Judul Seksi / Halaman) — 28px s.d. 32px / Weight 700</span>
+                <span class="text-xs font-bold text-text-muted">Title (Judul Seksi / Halaman): 28px s.d. 32px / Weight 700</span>
                 <p class="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-text">Film lain minggu ini</p>
             </div>
             <div class="border-b border-border pb-4">
-                <span class="text-xs font-bold text-text-muted">Headline (Nama Tim / Pilihan) — 20px s.d. 22px / Weight 700</span>
+                <span class="text-xs font-bold text-text-muted">Headline (Nama Tim / Pilihan): 20px s.d. 22px / Weight 700</span>
                 <p class="mt-1 text-xl font-bold text-text">Indonesia lawan Vietnam</p>
             </div>
             <div class="border-b border-border pb-4">
-                <span class="text-xs font-bold text-text-muted">Body Text (Teks Isi) — 16px / Weight 400 / Leading 1.6</span>
+                <span class="text-xs font-bold text-text-muted">Body Text (Teks Isi): 16px / Weight 400 / Leading 1.6</span>
                 <p class="mt-1 max-w-prose text-base font-normal leading-relaxed text-text">
                     Studio mini berpendingin ruangan dengan tata suara sinematik yang hangat untuk keluarga dan rombongan warga desa. Kapasitas enam kursi tiap sesi.
                 </p>
             </div>
             <div class="border-b border-border pb-4">
-                <span class="text-xs font-bold text-text-muted">Meta Text (Keterangan Jadwal) — 14px / Weight 400</span>
+                <span class="text-xs font-bold text-text-muted">Meta Text (Keterangan Jadwal): 14px / Weight 400</span>
                 <p class="mt-1 text-sm text-text-muted">Kamis, 15 Oktober 2026 di Halaman Depan SynemaX</p>
             </div>
             <div>
-                <span class="text-xs font-bold text-text-muted">Angka Tabular (Jam Indonesia & Kode Booking) — Tabular Nums</span>
-                <p class="mt-1 font-tabular text-lg font-bold text-text">Mulai 19.30 WIB dan 21.15 WIB — Kode: SNX-7829-K4</p>
+                <span class="text-xs font-bold text-text-muted">Angka Tabular (Jam Indonesia & Kode Booking): Tabular Nums</span>
+                <p class="mt-1 font-tabular text-lg font-bold text-text">Mulai 19.30 WIB dan 21.15 WIB, Kode: SNX-7829-K4</p>
             </div>
         </div>
     </section>
@@ -225,7 +225,7 @@
     {{-- Seksi 4: Komparasi Fallback Font (Android Roboto & Desktop Arial) --}}
     <section class="mt-12">
         <h2 class="text-xl font-bold tracking-tight text-text">4. Komparasi Fallback Font Terukur</h2>
-        <p class="mt-1 text-sm text-text-muted">Bricolage Grotesque memiliki flag USE_TYPO_METRICS aktif (bit 7 = true). Terhadap Roboto (Android, x-height 0,5283), rasio x-height Bricolage (0,528) bernilai 99.9% sehingga size-adjust disetel 100%. Terhadap Arial/Segoe UI (Windows/Apple, x-height 0,5185), size-adjust disetel 102%.</p>
+        <p class="mt-1 text-sm text-text-muted">Rasio fallback dihitung langsung dari total advance width sampel teks bahasa Indonesia (295 karakter) pada tabel hmtx biner font aktual. Bricolage (132.833) vs Roboto (132.875) menghasilkan rasio 99.97% (size-adjust: 100%). Bricolage vs Arial (133.580) menghasilkan rasio 99.44% (size-adjust: 99%). Sebagai pembanding, rasio tabel OS/2 xAvgCharWidth adalah 88.07% (Roboto) dan 112.82% (Arial) akibat perbedaan metode bobot rata-rata karakter lintas versi OS/2.</p>
 
         <div class="mt-6 grid gap-4 md:grid-cols-3">
             <div class="rounded-[var(--radius-control)] border border-border bg-surface p-4">
@@ -234,27 +234,27 @@
                 <div class="mt-3 space-y-2" style="font-family: 'Bricolage Grotesque Variable', sans-serif;">
                     <p class="text-lg font-extrabold text-text">Pengabdi Setan 2</p>
                     <p class="text-xs text-text leading-relaxed">Nonton dekat, seru bareng di studio mini enam kursi.</p>
-                    <p class="font-tabular text-xs font-bold text-text">19.30 WIB — SNX-7829-K4</p>
+                    <p class="font-tabular text-xs font-bold text-text">19.30 WIB, SNX-7829-K4</p>
                 </div>
             </div>
 
             <div class="rounded-[var(--radius-control)] border border-border bg-surface p-4">
                 <span class="block text-xs font-bold text-text-muted">Fallback Android: Roboto</span>
-                <span class="block font-tabular text-[11px] text-text-muted">size-adjust: 88%, ascent: 106%, descent: 31% (Rasio xAvgCharWidth OS/2: 0.498 / 0.5654)</span>
+                <span class="block font-tabular text-[11px] text-text-muted">size-adjust: 100%, ascent: 93%, descent: 27% (Advance width teks sampel hmtx: 132.833 / 132.875; pembanding xAvgCharWidth: 88%)</span>
                 <div class="mt-3 space-y-2" style="font-family: 'Bricolage Fallback Roboto', sans-serif;">
                     <p class="text-lg font-extrabold text-text">Pengabdi Setan 2</p>
                     <p class="text-xs text-text leading-relaxed">Nonton dekat, seru bareng di studio mini enam kursi.</p>
-                    <p class="font-tabular text-xs font-bold text-text">19.30 WIB — SNX-7829-K4</p>
+                    <p class="font-tabular text-xs font-bold text-text">19.30 WIB, SNX-7829-K4</p>
                 </div>
             </div>
 
             <div class="rounded-[var(--radius-control)] border border-border bg-surface p-4">
                 <span class="block text-xs font-bold text-text-muted">Fallback Desktop: Arial</span>
-                <span class="block font-tabular text-[11px] text-text-muted">size-adjust: 113%, ascent: 82%, descent: 24% (Rasio xAvgCharWidth OS/2: 0.498 / 0.4414)</span>
+                <span class="block font-tabular text-[11px] text-text-muted">size-adjust: 99%, ascent: 94%, descent: 27% (Advance width teks sampel hmtx: 132.833 / 133.580; pembanding xAvgCharWidth: 113%)</span>
                 <div class="mt-3 space-y-2" style="font-family: 'Bricolage Fallback Arial', sans-serif;">
                     <p class="text-lg font-extrabold text-text">Pengabdi Setan 2</p>
                     <p class="text-xs text-text leading-relaxed">Nonton dekat, seru bareng di studio mini enam kursi.</p>
-                    <p class="font-tabular text-xs font-bold text-text">19.30 WIB — SNX-7829-K4</p>
+                    <p class="font-tabular text-xs font-bold text-text">19.30 WIB, SNX-7829-K4</p>
                 </div>
             </div>
         </div>

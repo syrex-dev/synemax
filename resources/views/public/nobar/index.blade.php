@@ -1,15 +1,17 @@
 @extends('layouts.public')
 
-@section('title', 'Jadwal nobar sepak bola - SynemaX')
+@section('title', 'Jadwal nobar sepak bola: SynemaX')
 
 @section('meta')
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Jadwal nobar sepak bola - SynemaX">
+    <meta property="og:title" content="Jadwal nobar sepak bola: SynemaX">
     <meta property="og:description" content="Nonton bareng pertandingan sepak bola seru di SynemaX. Layar lebar proyektor, tata suara jernih, suasana hangat komunitas warga.">
     <meta property="og:url" content="{{ route('nobar.index') }}">
+    <meta property="og:image" content="{{ url(asset('social-banner.png')) }}">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Jadwal nobar sepak bola - SynemaX">
+    <meta name="twitter:title" content="Jadwal nobar sepak bola: SynemaX">
     <meta name="twitter:description" content="Nonton bareng pertandingan sepak bola seru di SynemaX.">
+    <meta name="twitter:image" content="{{ url(asset('social-banner.png')) }}">
 @endsection
 
 @section('content')

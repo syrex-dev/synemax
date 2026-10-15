@@ -1,16 +1,16 @@
 @extends('layouts.public')
 
-@section('title', 'SynemaX — Bioskop Mini Desa')
+@section('title', 'SynemaX: Bioskop Mini Desa')
 @section('meta')
     <meta name="description" content="Nonton dekat, seru bareng di studio mini SynemaX. Pilih film dan amankan kursi tanpa harus membuat akun. Kapasitas enam kursi per sesi.">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="SynemaX — Bioskop Mini Desa">
+    <meta property="og:title" content="SynemaX: Bioskop Mini Desa">
     <meta property="og:description" content="Film pilihanmu, suasana rumah. Pilih jadwal dan amankan kursimu dengan cepat.">
     <meta property="og:image" content="{{ asset('social-banner.png') }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="SynemaX — Bioskop Mini Desa">
+    <meta name="twitter:title" content="SynemaX: Bioskop Mini Desa">
     <meta name="twitter:description" content="Film pilihanmu, suasana rumah. Pilih jadwal dan amankan kursimu dengan cepat.">
     <meta name="twitter:image" content="{{ asset('social-banner.png') }}">
 @endsection
@@ -355,11 +355,11 @@
                 <p class="mt-1 text-sm text-text-muted">Tarif resmi per orang untuk setiap sesi penayangan.</p>
                 <dl class="mt-4 divide-y divide-border rounded-[var(--radius-control)] border border-border bg-surface px-4">
                     <div class="flex justify-between py-3 text-sm">
-                        <dt class="text-text-muted">Hari biasa (Senin - Kamis)</dt>
+                        <dt class="text-text-muted">Hari biasa (Senin sampai Kamis)</dt>
                         <dd class="font-tabular font-bold text-text">Rp {{ number_format($weekdayPrice, 0, ',', '.') }}</dd>
                     </div>
                     <div class="flex justify-between py-3 text-sm">
-                        <dt class="text-text-muted">Akhir pekan (Jumat - Minggu)</dt>
+                        <dt class="text-text-muted">Akhir pekan (Jumat sampai Minggu)</dt>
                         <dd class="font-tabular font-bold text-text">Rp {{ number_format($weekendPrice, 0, ',', '.') }}</dd>
                     </div>
                     <div class="flex justify-between py-3 text-sm">
