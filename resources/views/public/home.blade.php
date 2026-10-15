@@ -78,7 +78,7 @@
                     </p>
                     <div class="mt-6">
                         <a href="#jadwal" class="inline-flex min-h-12 items-center justify-center rounded-[var(--radius-control)] bg-primary px-6 text-sm font-bold text-white shadow-xs hover:opacity-95">
-                            Lihat jadwal
+                            Pesan tiket
                         </a>
                     </div>
                     <p class="mt-3 text-xs text-[#4A605E]">

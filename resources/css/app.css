@@ -15,11 +15,12 @@
     font-style: normal;
     font-display: swap;
     font-weight: 200 800;
+    font-stretch: 75% 100%;
     src: url('@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-opsz-normal.woff2') format('woff2-variations');
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* Fallback untuk HP Android (Font sistem: Roboto, metrik binary: x-height 0,528) */
+/* Fallback untuk HP Android (Font sistem: Roboto, referensi spesifikasi metrik Google Fonts: x-height 0,528) */
 @font-face {
     font-family: 'Bricolage Fallback Roboto';
     src: local('Roboto');
@@ -29,10 +30,10 @@
     line-gap-override: 0%;
 }
 
-/* Fallback untuk Windows/Apple Desktop (Font sistem: Segoe UI / Arial, metrik: x-height 0,518) */
+/* Fallback untuk Windows/Apple Desktop (Font sistem: Arial, metrik dihitung khusus Arial: x-height 0,518) */
 @font-face {
     font-family: 'Bricolage Fallback Arial';
-    src: local('Segoe UI'), local('Arial'), local('Helvetica Neue'), sans-serif;
+    src: local('Arial'), local('Helvetica Neue'), sans-serif;
     size-adjust: 102%;
     ascent-override: 91%;
     descent-override: 27%;
@@ -40,7 +41,7 @@
 }
 
 @theme {
-    --font-sans: 'Bricolage Grotesque Variable', 'Bricolage Fallback Roboto', 'Bricolage Fallback Arial', system-ui, -apple-system, sans-serif;
+    --font-sans: 'Bricolage Grotesque Variable', 'Bricolage Fallback Roboto', 'Bricolage Fallback Arial', system-ui, sans-serif;
     --font-fallback-roboto: 'Bricolage Fallback Roboto', system-ui, sans-serif;
     --font-fallback-arial: 'Bricolage Fallback Arial', system-ui, sans-serif;
     --radius-control: 5px;

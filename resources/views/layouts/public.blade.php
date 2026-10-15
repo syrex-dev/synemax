@@ -52,6 +52,7 @@
                 applyMode(getMode());
             })();
         </script>
+        <link rel="preload" href="{{ Vite::asset('node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-opsz-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @stack('styles')
     </head>

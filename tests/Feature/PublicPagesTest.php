@@ -130,4 +130,27 @@ class PublicPagesTest extends TestCase
         $this->get(route('styleguide'))
             ->assertNotFound();
     }
+
+    public function test_home_and_schedule_render_key_elements_and_no_banned_characters(): void
+    {
+        $home = $this->get(route('home'))->assertOk();
+        $home->assertSee('Pesan tiket');
+        $home->assertSee('Ganti tema tampilan');
+        $home->assertDontSee('·');
+        $home->assertDontSee('->');
+
+        Session::query()->create([
+            'session_date' => '2026-10-14',
+            'start_time' => '16:00',
+            'end_time' => '18:00',
+            'capacity' => 6,
+            'status' => 'tersedia',
+        ]);
+
+        $schedule = $this->get(route('schedule.date', ['date' => '2026-10-14']))->assertOk();
+        $schedule->assertSee('Pesan tiket');
+        $schedule->assertSee('Ganti tema tampilan');
+        $schedule->assertDontSee('·');
+        $schedule->assertDontSee('->');
+    }
 }

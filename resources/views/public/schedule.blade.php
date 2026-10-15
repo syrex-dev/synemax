@@ -104,7 +104,7 @@
                                     <a href="{{ route('booking.create', ['session' => $session->id]) }}"
                                        @click="sessionStorage.setItem('synemax:booking-wizard', JSON.stringify({ sessionId: {{ $session->id }}, date: @js($date->toDateString()), step: 2 }))"
                                        class="inline-flex min-h-11 min-w-28 items-center justify-center rounded-[var(--radius-control)] bg-primary px-4 text-xs font-bold text-white shadow-xs transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
-                                        Pilih jam ini
+                                        Pesan tiket
                                     </a>
                                 @else
                                     <span class="inline-flex min-h-11 min-w-28 items-center justify-center rounded-[var(--radius-control)] border border-border px-3 text-center text-xs font-semibold text-text-muted">
