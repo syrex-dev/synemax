@@ -93,7 +93,7 @@
         <div x-show="!isExpired"
              class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] border border-border-input bg-surface p-4 shadow-xs">
             <div>
-                <p class="text-xs font-bold text-text-muted">Sisa Waktu Pembayaran</p>
+                <p class="text-xs font-bold text-text-muted">Sisa waktu pembayaran</p>
                 <p class="mt-0.5 font-tabular text-2xl font-black text-primary sm:text-3xl" x-text="formatTime(timeLeft)">--:--</p>
             </div>
             <p class="max-w-xs text-xs text-text-muted leading-relaxed">
@@ -156,7 +156,7 @@
                 @if ($booking->payment_method === 'qris')
                     <div class="mt-5 border-t border-border pt-5">
                         <div class="flex items-center justify-between gap-2">
-                            <h2 class="text-sm font-bold text-text">Pindai Kode QRIS</h2>
+                            <h2 class="text-sm font-bold text-text">Pindai kode QRIS</h2>
                             <span class="rounded-[var(--radius-control)] bg-surface-2 px-2 py-0.5 text-xs font-bold text-text">
                                 {{ $qrisMerchantName ?: 'SynemaX' }}
                             </span>
@@ -167,7 +167,9 @@
                                 <div class="mx-auto inline-block max-w-sm rounded-[var(--radius-control)] border border-border bg-white p-4 shadow-xs text-center">
                                     <img src="{{ route('payment.qris', ['v' => $qrisVersion]) }}"
                                          alt="QRIS {{ $qrisMerchantName }}"
-                                         class="max-h-64 sm:max-h-72 w-auto max-w-full mx-auto cursor-zoom-in object-contain rounded-[var(--radius-control)]"
+                                         width="280"
+                                         height="280"
+                                         class="aspect-square max-h-64 sm:max-h-72 w-auto max-w-full mx-auto cursor-zoom-in object-contain rounded-[var(--radius-control)]"
                                          @click="enlargeModal = true"
                                          title="Klik untuk memperbesar">
                                     <p class="mt-2.5 font-tabular text-[10px] font-bold text-neutral-800">QRIS STANDAR PEMBAYARAN</p>
@@ -259,7 +261,7 @@
 
                 {{-- Formulir Unggah Bukti Bayar --}}
                 <div class="mt-6 border-t border-border pt-6">
-                    <h3 class="text-sm font-bold text-text">Kirim Bukti Pembayaran</h3>
+                    <h3 class="text-sm font-bold text-text">Kirim bukti pembayaran</h3>
                     <p class="mt-0.5 text-xs text-text-muted">
                         Unggah foto atau tangkapan layar bukti transfer (JPG, PNG, atau WebP maks. {{ round($maxPaymentProofKb / 1024) }} MB).
                     </p>
@@ -347,7 +349,9 @@
                     <button type="button" @click="enlargeModal = false"
                             class="absolute right-3 top-3 flex size-9 items-center justify-center rounded-[var(--radius-control)] border border-neutral-300 bg-neutral-100 text-neutral-800 hover:bg-neutral-200"
                             title="Tutup">
-                        ✕
+                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                     </button>
                     <div class="text-center pt-2">
                         <p class="text-xs font-bold text-neutral-500">QRIS SynemaX</p>

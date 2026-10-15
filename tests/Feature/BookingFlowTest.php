@@ -302,7 +302,7 @@ class BookingFlowTest extends TestCase
             ->assertSee('Jajan')
             ->assertSee('Ringkasan')
             ->assertSee('Per orang')
-            ->assertSee('Sewa Private')
+            ->assertSee('Sewa private')
             ->assertSee('Pilih film')
             ->assertSee('Film yang cocok belum ada');
     }

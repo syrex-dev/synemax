@@ -146,7 +146,7 @@
                 <div class="rounded-[var(--radius-control)] border border-border-input bg-surface p-3.5 text-xs text-text shadow-xs">
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <p class="font-bold text-primary">Menunggu Konfirmasi Admin</p>
+                            <p class="font-bold text-primary">Menunggu konfirmasi admin</p>
                             <p class="mt-0.5 text-text-muted leading-relaxed">
                                 @if ($booking->payment_method === 'di_tempat')
                                     Booking diterima. Bayar tunai di lokasi sebelum film mulai. Admin akan mengonfirmasi lewat WhatsApp.
@@ -160,7 +160,9 @@
                                 :disabled="polling"
                                 class="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-[var(--radius-control)] border border-border-input bg-surface px-2.5 py-1 text-xs font-bold text-text hover:border-primary disabled:opacity-50"
                                 title="Periksa status terbaru">
-                            <span :class="{ 'animate-spin': polling }">↻</span>
+                            <svg class="size-3.5" :class="{ 'animate-spin': polling }" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                            </svg>
                             <span x-text="polling ? 'Memeriksa...' : 'Perbarui'">Perbarui</span>
                         </button>
                     </div>
@@ -223,7 +225,7 @@
                 <div class="flex items-center justify-between gap-3">
                     <div class="flex items-center gap-2">
                         <x-brand.logo />
-                        <span class="text-[11px] font-semibold text-[#16201F]/70">Tiket Masuk Studio</span>
+                        <span class="text-[11px] font-semibold text-[#16201F]/70">Tiket masuk studio</span>
                     </div>
                     <div>
                         @php
@@ -311,8 +313,8 @@
                                 <button type="button"
                                         @click="snacksOpen = !snacksOpen"
                                         class="font-bold text-primary hover:underline no-print">
-                                    <span x-text="snacksOpen ? 'Tutup rincian ↑' : '{{ $booking->items->count() }} item ↓'">
-                                        {{ $booking->items->count() }} item ↓
+                                    <span x-text="snacksOpen ? 'Tutup rincian' : 'Lihat {{ $booking->items->count() }} item'">
+                                        Lihat {{ $booking->items->count() }} item
                                     </span>
                                 </button>
                                 <span class="font-tabular font-bold text-[#16201F] hidden print:inline">

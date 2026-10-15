@@ -27,9 +27,8 @@
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
             <div>
                 <a href="{{ route('schedule.date', ['date' => $session->session_date]) }}"
-                   class="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold text-primary hover:underline"
-                   aria-label="Kembali ke jadwal pemutaran">
-                    ← Ganti jadwal
+                   class="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold text-primary hover:underline">
+                    Ganti jadwal
                 </a>
                 <h1 class="mt-1 text-2xl font-extrabold tracking-tight text-text sm:text-3xl">Amankan kursimu</h1>
                 <p class="mt-0.5 text-xs text-text-muted">{{ $session->startsAt()->locale('id')->translatedFormat('l, d F Y') }}</p>
@@ -299,7 +298,7 @@
                                 ? 'border-primary bg-primary text-white font-bold'
                                 : (step > {{ $stepNumber }}
                                     ? 'border-border-input bg-surface-2 text-text font-medium'
-                                    : 'border-border bg-surface text-text-muted/60')"
+                                    : 'border-border bg-surface text-text-muted')"
                             x-bind:aria-current="step === {{ $stepNumber }} ? 'step' : null">
                             <span class="block text-[11px] font-extrabold">{{ $stepNumber }}</span>
                             <span class="block truncate text-[10px]">{{ $label }}</span>
@@ -359,8 +358,7 @@
                                              class="flex flex-col justify-between rounded-[var(--radius-control)] border border-border bg-surface p-2.5 transition hover:border-primary">
                                         <button type="button"
                                                 @click="filmDetail = @js(['id' => $film->id, 'title' => $film->title, 'genre' => $film->genre, 'duration' => $film->duration_minutes, 'rating' => $film->age_rating, 'synopsis' => $film->synopsis, 'trailer' => $film->trailer_url])"
-                                                class="flex w-full flex-col text-left focus:outline-none"
-                                                aria-label="Lihat sinopsis film {{ $film->title }}">
+                                                class="flex w-full flex-col text-left focus:outline-none">
                                             <div class="aspect-[2/3] w-full overflow-hidden rounded-[var(--radius-control)] bg-surface-2"
                                                  @if ($film->poster_path) x-data="{ posterLoaded: false }" x-init="$nextTick(() => posterLoaded = $refs.poster.complete)" @endif>
                                                 @if ($film->poster_path)
@@ -470,7 +468,7 @@
                                     <span class="size-2.5 rounded-full bg-primary" x-show="type === 'private'"></span>
                                 </span>
                                 <div class="flex-1">
-                                    <span class="block text-sm font-bold text-text">Sewa Private</span>
+                                    <span class="block text-sm font-bold text-text">Sewa private</span>
                                     <span class="mt-1 block text-xs text-text-muted leading-relaxed">Studio khusus rombongan Anda, 6 kursi penuh tanpa penonton lain.</span>
                                     <span class="mt-3 block font-tabular text-sm font-extrabold text-text">
                                         Rp {{ number_format($privatePrice, 0, ',', '.') }} <span class="text-xs font-normal text-text-muted">/ paket</span>
@@ -513,6 +511,7 @@
                             </button>
                         </div>
                     </div>
+                    <p class="mt-2 text-xs font-semibold text-danger-text" x-show="type === 'per_orang' && canPerPerson && !paxIsValid">Pilih jumlah orang yang valid.</p>
                     @error('pax')<p role="alert" class="mt-2 text-xs font-semibold text-danger-text">{{ $message }}</p>@enderror
                 </div>
 
@@ -713,6 +712,7 @@
                     </div>
 
                     <div x-show="paymentMethod === 'qris' || paymentMethod === 'transfer'" class="mt-3 rounded-[var(--radius-control)] bg-surface-2 p-3 text-xs text-text-muted leading-relaxed">
+                        <p class="font-bold text-text mb-1" x-text="paymentMethod === 'qris' ? 'Pembayaran QRIS' : 'Pembayaran Transfer Bank / E-Wallet'"></p>
                         Setelah menekan tombol booking di bawah, Anda akan diarahkan ke halaman pembayaran dengan batas waktu {{ $paymentTimeLimit }} menit.
                     </div>
                 </div>
@@ -734,7 +734,9 @@
                         </div>
                         <button type="button" @click="filmDetail = null" aria-label="Tutup detail film"
                                 class="flex size-11 items-center justify-center rounded-[var(--radius-control)] border border-border-input text-base text-text hover:border-primary">
-                            ✕
+                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
                         </button>
                     </div>
                     <p class="mt-4 text-xs leading-relaxed text-text" x-text="filmDetail?.synopsis"></p>
@@ -823,14 +825,16 @@
                             Lanjut ke tipe nonton
                         </button>
 
-                        <button type="button"
-                                x-show="step === 3"
-                                @click="nextStep()"
-                                :disabled="!type || (type === 'private' && !canPrivate) || (type === 'per_orang' && (!canPerPerson || !paxIsValid))"
-                                class="inline-flex min-h-11 flex-1 items-center justify-center rounded-[var(--radius-control)] bg-primary px-5 text-xs font-bold text-white shadow-xs transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45"
-                                x-text="hasSnacks ? 'Lanjut ke pilihan jajan' : 'Lanjut ke ringkasan'">
-                            Lanjut ke pilihan jajan
-                        </button>
+                        <div class="flex-1" x-show="step === 3">
+                            <button type="button"
+                                    @click="nextStep()"
+                                    :disabled="!type || (type === 'private' && !canPrivate) || (type === 'per_orang' && (!canPerPerson || !paxIsValid))"
+                                    class="inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-control)] bg-primary px-5 text-xs font-bold text-white shadow-xs transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45"
+                                    x-text="hasSnacks ? 'Lanjut ke pilihan jajan' : 'Lanjut ke ringkasan'">
+                                Lanjut ke pilihan jajan
+                            </button>
+                            <p class="mt-1 text-right text-xs text-text-muted" x-show="step === 3 && type === 'per_orang' && canPerPerson && !paxIsValid">Pilih jumlah orang yang valid.</p>
+                        </div>
 
                         <button type="button"
                                 x-show="step === 4"

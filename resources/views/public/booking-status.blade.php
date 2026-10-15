@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Cek Booking — SynemaX')
+@section('title', 'Cek booking — SynemaX')
 @section('meta')
     <meta name="description" content="Cek status tiket dan pembayaran SynemaX dengan kode booking dan nomor WhatsApp.">
 @endsection
@@ -95,7 +95,7 @@
             <div class="pt-2">
                 <button type="submit"
                         class="inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-control)] bg-primary px-5 text-xs font-bold text-white shadow-xs transition hover:opacity-95">
-                    Buka tiket atau pembayaran
+                    Cek booking
                 </button>
             </div>
         </form>

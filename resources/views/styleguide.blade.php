@@ -145,9 +145,9 @@
                     <tr>
                         <td class="px-4 py-2.5 font-medium">Teks / Garis Emas Lama (accent-gold) pada Kanvas</td>
                         <td class="px-4 py-2.5 font-tabular">#805700 pada #F2F5F3</td>
-                        <td class="px-4 py-2.5 font-bold font-tabular text-success-text">6,41:1</td>
+                        <td class="px-4 py-2.5 font-bold font-tabular text-success-text">5,83:1</td>
                         <td class="px-4 py-2.5 font-tabular">#FFC62E pada #0F2A2F</td>
-                        <td class="px-4 py-2.5 font-bold font-tabular text-success-text">9,82:1</td>
+                        <td class="px-4 py-2.5 font-bold font-tabular text-success-text">9,60:1</td>
                         <td class="px-4 py-2.5"><span class="inline-block rounded-[var(--radius-control)] bg-success-surface px-2 py-0.5 text-[11px] font-bold text-success-text">Lolos AA / AAA</span></td>
                     </tr>
                     <tr>
@@ -165,6 +165,22 @@
                         <td class="px-4 py-2.5 font-tabular">#537F86 pada #133339</td>
                         <td class="px-4 py-2.5 font-bold font-tabular text-success-text">3,04:1</td>
                         <td class="px-4 py-2.5"><span class="inline-block rounded-[var(--radius-control)] bg-success-surface px-2 py-0.5 text-[11px] font-bold text-success-text">Lolos UI >= 3:1</span></td>
+                    </tr>
+                    <tr>
+                        <td class="px-4 py-2.5 font-medium">Garis Batas Kotak Bahaya (danger-border)</td>
+                        <td class="px-4 py-2.5 font-tabular">#F3A8A0 pada #FDECEB</td>
+                        <td class="px-4 py-2.5 font-bold font-tabular text-text-muted">1,68:1</td>
+                        <td class="px-4 py-2.5 font-tabular">#662020 pada #281414</td>
+                        <td class="px-4 py-2.5 font-bold font-tabular text-text-muted">1,94:1</td>
+                        <td class="px-4 py-2.5"><span class="inline-block rounded-[var(--radius-control)] bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-text-muted">Dekoratif (< 3:1), teks bawa makna (5,56:1)</span></td>
+                    </tr>
+                    <tr>
+                        <td class="px-4 py-2.5 font-medium">Garis Batas Kotak Sukses (success-border)</td>
+                        <td class="px-4 py-2.5 font-tabular">#90CDAC pada #EAF6F0</td>
+                        <td class="px-4 py-2.5 font-bold font-tabular text-text-muted">1,64:1</td>
+                        <td class="px-4 py-2.5 font-tabular">#1E4F39 pada #10261C</td>
+                        <td class="px-4 py-2.5 font-bold font-tabular text-text-muted">1,98:1</td>
+                        <td class="px-4 py-2.5"><span class="inline-block rounded-[var(--radius-control)] bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-text-muted">Dekoratif (< 3:1), teks bawa makna (5,90:1)</span></td>
                     </tr>
                 </tbody>
             </table>
@@ -224,7 +240,7 @@
 
             <div class="rounded-[var(--radius-control)] border border-border bg-surface p-4">
                 <span class="block text-xs font-bold text-text-muted">Fallback Android: Roboto</span>
-                <span class="block font-tabular text-[11px] text-text-muted">size-adjust: 100%, ascent: 93%</span>
+                <span class="block font-tabular text-[11px] text-text-muted">size-adjust: 88%, ascent: 106%, descent: 31% (Rasio xAvgCharWidth OS/2: 0.498 / 0.5654)</span>
                 <div class="mt-3 space-y-2" style="font-family: 'Bricolage Fallback Roboto', sans-serif;">
                     <p class="text-lg font-extrabold text-text">Pengabdi Setan 2</p>
                     <p class="text-xs text-text leading-relaxed">Nonton dekat, seru bareng di studio mini enam kursi.</p>
@@ -234,7 +250,7 @@
 
             <div class="rounded-[var(--radius-control)] border border-border bg-surface p-4">
                 <span class="block text-xs font-bold text-text-muted">Fallback Desktop: Arial</span>
-                <span class="block font-tabular text-[11px] text-text-muted">size-adjust: 102%, ascent: 91%</span>
+                <span class="block font-tabular text-[11px] text-text-muted">size-adjust: 113%, ascent: 82%, descent: 24% (Rasio xAvgCharWidth OS/2: 0.498 / 0.4414)</span>
                 <div class="mt-3 space-y-2" style="font-family: 'Bricolage Fallback Arial', sans-serif;">
                     <p class="text-lg font-extrabold text-text">Pengabdi Setan 2</p>
                     <p class="text-xs text-text leading-relaxed">Nonton dekat, seru bareng di studio mini enam kursi.</p>

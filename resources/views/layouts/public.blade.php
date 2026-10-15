@@ -84,7 +84,7 @@
                         <a href="{{ route('nobar.index') }}" class="inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-control)] px-3 py-2 transition {{ request()->routeIs('nobar.*') ? 'font-bold text-primary' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}">Nobar</a>
                         <a href="{{ route('articles.index') }}" class="inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-control)] px-3 py-2 transition {{ request()->routeIs('articles.*') ? 'font-bold text-primary' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}">Kabar</a>
                     @endif
-                    <a href="{{ route('booking.lookup.form') }}" class="inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-control)] border border-border-input px-3.5 py-2 font-bold text-text transition hover:border-primary">Cek Booking</a>
+                    <a href="{{ route('booking.lookup.form') }}" class="inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-control)] border border-border-input px-3.5 py-2 font-bold text-text transition hover:border-primary">Cek booking</a>
                 </nav>
             </div>
         </header>

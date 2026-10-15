@@ -21,28 +21,30 @@
 }
 
 /* Fallback untuk HP Android (Font sistem: Roboto) */
-/* Rumus: size-adjust = (x-height Bricolage / x-height Roboto) = 0.528 / 0.5283 = 99.94% ≈ 100% */
-/* ascent-override = Bricolage Ascent / size-adjust = 93% / 1.0 = 93% */
-/* descent-override = Bricolage Descent / size-adjust = 27% / 1.0 = 27% */
+/* Rumus: size-adjust dihitung dari rasio lebar rata-rata karakter (OS/2 xAvgCharWidth) */
+/* Bricolage (498/1000 = 0.498), Roboto (1158/2048 = 0.56543) -> size-adjust = 0.498 / 0.56543 = 88.07% ≈ 88% */
+/* ascent-override = Bricolage sTypoAscender (93%) / size-adjust = 93% / 0.8807 = 105.59% ≈ 106% */
+/* descent-override = Bricolage sTypoDescender (27%) / size-adjust = 27% / 0.8807 = 30.66% ≈ 31% */
 @font-face {
     font-family: 'Bricolage Fallback Roboto';
     src: local('Roboto');
-    size-adjust: 100%;
-    ascent-override: 93%;
-    descent-override: 27%;
+    size-adjust: 88%;
+    ascent-override: 106%;
+    descent-override: 31%;
     line-gap-override: 0%;
 }
 
 /* Fallback untuk Windows/Apple Desktop (Font sistem: Arial) */
-/* Rumus: size-adjust = (x-height Bricolage / x-height Arial) = 0.528 / 0.5185 = 101.82% ≈ 102% */
-/* ascent-override = Bricolage Ascent / size-adjust = 93% / 1.0182 = 91.34% ≈ 91% */
-/* descent-override = Bricolage Descent / size-adjust = 27% / 1.0182 = 26.52% ≈ 26.5% */
+/* Rumus: size-adjust dihitung dari rasio lebar rata-rata karakter (OS/2 xAvgCharWidth) */
+/* Bricolage (498/1000 = 0.498), Arial (904/2048 = 0.44141) -> size-adjust = 0.498 / 0.44141 = 112.82% ≈ 113% */
+/* ascent-override = Bricolage sTypoAscender (93%) / size-adjust = 93% / 1.1282 = 82.43% ≈ 82% */
+/* descent-override = Bricolage sTypoDescender (27%) / size-adjust = 27% / 1.1282 = 23.93% ≈ 24% */
 @font-face {
     font-family: 'Bricolage Fallback Arial';
     src: local('Arial');
-    size-adjust: 102%;
-    ascent-override: 91%;
-    descent-override: 26.5%;
+    size-adjust: 113%;
+    ascent-override: 82%;
+    descent-override: 24%;
     line-gap-override: 0%;
 }
 
