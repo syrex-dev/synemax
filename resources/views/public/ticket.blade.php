@@ -215,7 +215,7 @@
         </div>
 
         {{-- KARTU TIKET DIGITAL FISIK (Kertas #ECEFEA di kedua tema, Sobekan di Tengah, Pita Kuning Karcis) --}}
-        <article class="print-ticket ticket-paper-card relative overflow-hidden rounded-[var(--radius-control)] border border-[#C2CECA] shadow-sm {{ in_array($booking->status, ['dibatalkan', 'kedaluwarsa']) ? 'opacity-60 grayscale-[40%]' : '' }}"
+        <article class="print-ticket ticket-paper-card relative overflow-hidden rounded-[var(--radius-control)] border border-[#C2CECA] {{ in_array($booking->status, ['dibatalkan', 'kedaluwarsa']) ? 'opacity-60 grayscale-[40%]' : '' }}"
                  style="background-color: var(--ticket-paper-color); color: #16201F;">
 
             {{-- Header Tiket: Sebutan Brand + Status --}}
@@ -266,8 +266,8 @@
 
             {{-- PITA KUNING KARCIS: KODE TIKET ANGKA TABULAR DENGAN TEKS ARANG --}}
             <div class="bg-[#FFC62E] text-[#16201F] px-4 py-4 text-center border-y border-dashed border-[#C2CECA] relative">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-[#16201F]/70">Kode Booking</span>
-                <p class="mt-0.5 font-tabular text-3xl font-black tracking-wider text-[#16201F] sm:text-4xl">
+                <span class="text-[10px] font-bold text-[#16201F]/70">Kode booking</span>
+                <p class="mt-0.5 font-tabular text-3xl font-black text-[#16201F] sm:text-4xl">
                     {{ $booking->code }}
                 </p>
 

@@ -93,7 +93,7 @@
         <div x-show="!isExpired"
              class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] border border-border-input bg-surface p-4 shadow-xs">
             <div>
-                <p class="text-xs font-bold uppercase tracking-wider text-text-muted">Sisa Waktu Pembayaran</p>
+                <p class="text-xs font-bold text-text-muted">Sisa Waktu Pembayaran</p>
                 <p class="mt-0.5 font-tabular text-2xl font-black text-primary sm:text-3xl" x-text="formatTime(timeLeft)">--:--</p>
             </div>
             <p class="max-w-xs text-xs text-text-muted leading-relaxed">
@@ -170,7 +170,7 @@
                                          class="max-h-64 sm:max-h-72 w-auto max-w-full mx-auto cursor-zoom-in object-contain rounded-[var(--radius-control)]"
                                          @click="enlargeModal = true"
                                          title="Klik untuk memperbesar">
-                                    <p class="mt-2.5 font-tabular text-[10px] font-bold tracking-wider text-neutral-800">QRIS STANDAR PEMBAYARAN</p>
+                                    <p class="mt-2.5 font-tabular text-[10px] font-bold text-neutral-800">QRIS STANDAR PEMBAYARAN</p>
                                     <p class="mt-0.5 text-[10px] text-neutral-500">M-Banking & E-Wallet (BCA, Mandiri, BRI, GoPay, OVO, Dana, ShopeePay)</p>
                                 </div>
                                 <p class="mt-2 text-xs text-text-muted">Ketuk gambar QRIS untuk memperbesar.</p>
@@ -343,14 +343,14 @@
             <div x-show="enlargeModal" x-cloak
                  class="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
                  @click.self="enlargeModal = false">
-                <div class="relative w-full max-w-lg rounded-[var(--radius-control)] border border-border bg-white p-5 shadow-2xl">
+                <div class="relative w-full max-w-lg rounded-[var(--radius-control)] border border-border bg-white p-5 shadow-token">
                     <button type="button" @click="enlargeModal = false"
-                            class="absolute right-3 top-3 flex size-9 items-center justify-center rounded-full border border-neutral-300 bg-neutral-100 text-neutral-800 hover:bg-neutral-200"
+                            class="absolute right-3 top-3 flex size-9 items-center justify-center rounded-[var(--radius-control)] border border-neutral-300 bg-neutral-100 text-neutral-800 hover:bg-neutral-200"
                             title="Tutup">
                         ✕
                     </button>
                     <div class="text-center pt-2">
-                        <p class="text-xs font-bold uppercase tracking-wider text-neutral-500">QRIS SynemaX</p>
+                        <p class="text-xs font-bold text-neutral-500">QRIS SynemaX</p>
                         <p class="mt-0.5 text-base font-black text-neutral-900">{{ $qrisMerchantName ?: 'SynemaX' }}</p>
                         <div class="mx-auto mt-3 max-w-md rounded-[var(--radius-control)] border border-neutral-200 bg-white p-3">
                             <img src="{{ route('payment.qris', ['v' => $qrisVersion]) }}"

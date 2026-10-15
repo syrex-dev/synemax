@@ -27,7 +27,7 @@
                 @endphp
                 <div class="flex flex-col gap-6 sm:flex-row sm:items-center lg:gap-10">
                     <div class="w-32 shrink-0 sm:w-44 lg:w-52">
-                        <div class="aspect-[2/3] w-full overflow-hidden rounded-[var(--radius-control)] bg-[#16201F] shadow-sm">
+                        <div class="aspect-[2/3] w-full overflow-hidden rounded-[var(--radius-control)] bg-[#16201F]">
                             @if ($heroFilm->poster_path)
                                 <img src="{{ Storage::url($heroFilm->poster_path) }}"
                                      alt="Poster {{ $heroFilm->title }}"
@@ -42,7 +42,7 @@
                         </div>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-xs font-bold uppercase tracking-wider text-[#4A605E]">Tayangan terdekat di Studio 1</p>
+                        <p class="text-xs font-bold text-[#4A605E]">Tayangan terdekat di Studio 1</p>
                         <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-[#16201F] sm:text-4xl lg:text-5xl leading-tight">
                             {{ $heroFilm->title }}
                         </h1>
@@ -69,7 +69,7 @@
                 </div>
             @else
                 <div class="max-w-2xl py-4 sm:py-6">
-                    <p class="text-xs font-bold uppercase tracking-wider text-[#4A605E]">Studio mini desa</p>
+                    <p class="text-xs font-bold text-[#4A605E]">Studio mini desa</p>
                     <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-[#16201F] sm:text-5xl">
                         Film pilihanmu, suasana rumah.
                     </h1>

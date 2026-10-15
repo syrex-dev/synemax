@@ -27,7 +27,7 @@
              }">
 
         <header class="mb-6">
-            <span class="text-xs font-bold uppercase tracking-wider text-text-muted">Pencarian tiket</span>
+            <span class="text-xs font-bold text-text-muted">Pencarian tiket</span>
             <h1 class="mt-1 text-2xl font-black text-text sm:text-3xl">Cek booking</h1>
             <p class="mt-2 text-xs sm:text-sm text-text-muted leading-relaxed">
                 Masukkan kode booking dan nomor WhatsApp yang digunakan saat memesan untuk membuka tiket digital atau menyelesaikan pembayaran.
@@ -67,7 +67,7 @@
                        autocomplete="off"
                        aria-describedby="code-help @if ($errors->has('code')) code-error @endif"
                        placeholder="Contoh: HC-261014-A7K2"
-                       class="mt-1.5 min-h-11 w-full rounded-[var(--radius-control)] border border-border-input bg-bg px-3.5 font-tabular text-sm font-bold uppercase tracking-wider text-text focus:border-primary focus:outline-none">
+                       class="mt-1.5 min-h-11 w-full rounded-[var(--radius-control)] border border-border-input bg-bg px-3.5 font-tabular text-sm font-bold text-text focus:border-primary focus:outline-none">
                 <p id="code-help" class="mt-1 text-[11px] text-text-muted">Kode unik yang tertera saat pemesanan dibuat.</p>
                 @if ($errors->has('code'))
                     <p id="code-error" class="mt-1 text-xs font-semibold text-danger-text">{{ $errors->first('code') }}</p>
@@ -102,7 +102,7 @@
 
         {{-- Riwayat Booking di Perangkat Ini (Booking Saya) --}}
         <section x-show="savedCodes.length > 0" x-cloak class="mt-6 rounded-[var(--radius-control)] border border-border bg-surface-2 p-4 sm:p-5">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-text-muted">Booking saya di perangkat ini</h2>
+            <h2 class="text-xs font-bold text-text-muted">Booking saya di perangkat ini</h2>
             <p class="mt-1 text-xs text-text-muted">Sentuh salah satu kode untuk mengisi form di atas:</p>
             <div class="mt-3 flex flex-wrap gap-2">
                 <template x-for="c in savedCodes" :key="c">

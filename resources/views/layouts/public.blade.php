@@ -32,6 +32,10 @@
                     if (metaTheme) {
                         metaTheme.content = dark ? '#0F2A2F' : '#F2F5F3';
                     }
+                    const themeBtn = document.getElementById('theme-toggle-btn');
+                    if (themeBtn) {
+                        themeBtn.setAttribute('aria-label', dark ? 'Pakai tema terang' : 'Pakai tema gelap');
+                    }
                 };
                 window.synemaXTheme = {
                     storageKey,
@@ -52,7 +56,7 @@
                 applyMode(getMode());
             })();
         </script>
-        <link rel="preload" href="{{ Vite::asset('node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-opsz-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
+        <link rel="preload" href="{{ Vite::asset('resources/fonts/bricolage-grotesque-latin-opsz-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @stack('styles')
     </head>
@@ -65,11 +69,12 @@
 
                 <div class="flex items-center gap-2 sm:order-last">
                     <button type="button"
+                            id="theme-toggle-btn"
                             onclick="window.synemaXTheme.setMode(document.documentElement.classList.contains('dark') ? 'light' : 'dark')"
                             class="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-control)] border border-border-input bg-surface px-3 py-2 text-xs font-bold text-text transition hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                            aria-label="Ganti tema tampilan">
-                        <span class="dark:hidden">Tema malam</span>
-                        <span class="hidden dark:inline">Tema layar</span>
+                            aria-label="Pakai tema gelap">
+                        <span class="dark:hidden">Pakai tema gelap</span>
+                        <span class="hidden dark:inline">Pakai tema terang</span>
                     </button>
                 </div>
 

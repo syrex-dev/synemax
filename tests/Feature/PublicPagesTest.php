@@ -135,7 +135,7 @@ class PublicPagesTest extends TestCase
     {
         $home = $this->get(route('home'))->assertOk();
         $home->assertSee('Pesan tiket');
-        $home->assertSee('Ganti tema tampilan');
+        $home->assertSee('Pakai tema gelap');
         $home->assertDontSee('·');
         $home->assertDontSee('->');
 
@@ -149,7 +149,7 @@ class PublicPagesTest extends TestCase
 
         $schedule = $this->get(route('schedule.date', ['date' => '2026-10-14']))->assertOk();
         $schedule->assertSee('Pesan tiket');
-        $schedule->assertSee('Ganti tema tampilan');
+        $schedule->assertSee('Pakai tema gelap');
         $schedule->assertDontSee('·');
         $schedule->assertDontSee('->');
     }

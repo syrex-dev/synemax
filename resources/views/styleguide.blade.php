@@ -143,6 +143,14 @@
                         <td class="px-4 py-2.5"><span class="inline-block rounded-[var(--radius-control)] bg-success-surface px-2 py-0.5 text-[11px] font-bold text-success-text">Lolos AAA</span></td>
                     </tr>
                     <tr>
+                        <td class="px-4 py-2.5 font-medium">Teks / Garis Emas Lama (accent-gold) pada Kanvas</td>
+                        <td class="px-4 py-2.5 font-tabular">#805700 pada #F2F5F3</td>
+                        <td class="px-4 py-2.5 font-bold font-tabular text-success-text">6,41:1</td>
+                        <td class="px-4 py-2.5 font-tabular">#FFC62E pada #0F2A2F</td>
+                        <td class="px-4 py-2.5 font-bold font-tabular text-success-text">9,82:1</td>
+                        <td class="px-4 py-2.5"><span class="inline-block rounded-[var(--radius-control)] bg-success-surface px-2 py-0.5 text-[11px] font-bold text-success-text">Lolos AA / AAA</span></td>
+                    </tr>
+                    <tr>
                         <td class="px-4 py-2.5 font-medium">Batas Input (border-input) terhadap Kanvas</td>
                         <td class="px-4 py-2.5 font-tabular">#758A86 pada #F2F5F3</td>
                         <td class="px-4 py-2.5 font-bold font-tabular text-success-text">3,34:1</td>

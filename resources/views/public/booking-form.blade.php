@@ -286,8 +286,8 @@
 
             {{-- Penunjuk Langkah Konsisten: Urutan Nyata 1 s.d. 5 --}}
             <div class="mt-5">
-                <p class="text-xs font-bold uppercase tracking-wider text-text-muted"
-                   x-text="'Langkah ' + step + ' dari 5: ' + (step === 2 ? 'Pilih film' : (step === 3 ? 'Pilih tipe nonton' : (step === 4 ? 'Pilih jajan' : 'Ringkasan dan data pemesan')))">
+                <p class="text-xs font-bold text-text-muted"
+                   x-text="'Langkah ' + step + ' dari 5: ' + (step === 2 ? 'Pilih film' : (step === 3 ? 'Pilih tipe nonton' : (step === 4 ? 'Pilih jajan' : 'Ringkasan')))">
                     Langkah 2 dari 5: Pilih film
                 </p>
 
@@ -324,7 +324,7 @@
 
                     @if ($session->film_id)
                         <div class="mt-4 rounded-[var(--radius-control)] border border-primary/40 bg-surface-2 p-4">
-                            <p class="text-xs font-bold uppercase tracking-wider text-primary">Film sudah ditetapkan</p>
+                            <p class="text-xs font-bold text-primary">Film sudah ditetapkan</p>
                             <p class="mt-1 text-base font-extrabold text-text">{{ $session->film?->title ?? 'Film terpilih' }}</p>
                             <p class="mt-1 text-xs text-text-muted">
                                 Sesi ini sudah memiliki film pilihan dari pemesan sebelumnya. Booking Anda akan bergabung menonton film ini.
@@ -729,7 +729,7 @@
                         <div>
                             <h2 id="film-detail-title" class="text-xl font-extrabold text-text" x-text="filmDetail?.title"></h2>
                             <p class="mt-0.5 text-xs text-text-muted">
-                                <span x-text="filmDetail?.genre"></span> · <span x-text="filmDetail?.duration"></span> menit · Usia <span x-text="filmDetail?.rating"></span>
+                                <span x-text="filmDetail?.genre"></span>, <span x-text="filmDetail?.duration"></span> menit, usia <span x-text="filmDetail?.rating"></span>
                             </p>
                         </div>
                         <button type="button" @click="filmDetail = null" aria-label="Tutup detail film"
@@ -788,7 +788,7 @@
                                 @click="basketOpen = !basketOpen"
                                 class="flex min-h-9 w-full items-center justify-between rounded-[var(--radius-control)] border border-border-input bg-surface-2 px-3 text-xs font-bold text-text"
                                 :aria-expanded="basketOpen">
-                            <span x-text="`${snackCount} item jajan · ${basketOpen ? 'Tutup rincian' : 'Lihat rincian'}`"></span>
+                            <span x-text="`${snackCount} item jajan, ${basketOpen ? 'tutup rincian' : 'lihat rincian'}`"></span>
                             <span class="font-tabular" x-text="`Rp ${new Intl.NumberFormat('id-ID').format(snackTotal)}`"></span>
                         </button>
                         <div x-show="basketOpen" x-cloak class="mt-1.5 max-h-36 overflow-y-auto rounded-[var(--radius-control)] border border-border bg-surface p-2 text-xs">
@@ -828,7 +828,7 @@
                                 @click="nextStep()"
                                 :disabled="!type || (type === 'private' && !canPrivate) || (type === 'per_orang' && (!canPerPerson || !paxIsValid))"
                                 class="inline-flex min-h-11 flex-1 items-center justify-center rounded-[var(--radius-control)] bg-primary px-5 text-xs font-bold text-white shadow-xs transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-45"
-                                x-text="hasSnacks ? 'Lanjut ke pilihan jajan' : 'Lanjut ke data pemesan'">
+                                x-text="hasSnacks ? 'Lanjut ke pilihan jajan' : 'Lanjut ke ringkasan'">
                             Lanjut ke pilihan jajan
                         </button>
 
@@ -836,7 +836,7 @@
                                 x-show="step === 4"
                                 @click="nextStep()"
                                 class="inline-flex min-h-11 flex-1 items-center justify-center rounded-[var(--radius-control)] bg-primary px-5 text-xs font-bold text-white shadow-xs transition hover:opacity-95">
-                            Lanjut ke data pemesan
+                            Lanjut ke ringkasan
                         </button>
 
                         <button type="button"

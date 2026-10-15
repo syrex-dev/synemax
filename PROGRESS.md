@@ -179,6 +179,17 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
 4. **Isolasi Fitur Nobar & Berita**: Fitur nobar dan kabar dipisahkan sepenuhnya dari engine reservasi kursi, pembayaran, dan pesanan jajan untuk menjaga integritas transaksi bisnis inti.
 5. **Media Serving Tanpa Storage Link**: Serving media poster & cover menggunakan controller internal dengan HTTP caching (`max-age=86400`) agar kompatibel di lingkungan deployment apa pun tanpa memerlukan `storage:link`.
 6. **Varian Open Graph 1200x630**: Setiap poster potret nobar otomatis dibuatkan varian landscape 1200x630 dengan poster utuh di tengah latar belakang blur gelap, sehingga tidak terpotong saat dibagikan ke WhatsApp dan media sosial.
+7. **Tabel Nama Langkah dan Nama Aksi Wizard & Alur Transaksi**:
+   | Tahap / Halaman | File & Baris | Nama Langkah / Layar | Tombol Aksi Utama | Tombol Aksi Sekunder |
+   | :--- | :--- | :--- | :--- | :--- |
+   | Wizard Langkah 1 | `schedule.blade.php:80` | Jadwal & Sesi | Pilih jam sesi | Ganti tanggal 7 hari |
+   | Wizard Langkah 2 | `booking-form.blade.php:320` | Pilih film | Lanjut ke tipe nonton | Kembali ke jadwal |
+   | Wizard Langkah 3 | `booking-form.blade.php:420` | Tipe nonton | Lanjut ke pilihan jajan / Lanjut ke ringkasan | Kembali |
+   | Wizard Langkah 4 | `booking-form.blade.php:570` | Pilihan jajan | Lanjut ke ringkasan | Kembali |
+   | Wizard Langkah 5 | `booking-form.blade.php:670` | Ringkasan | Kirim booking (atau Booking & bayar) | Kembali |
+   | Pembayaran | `payment.blade.php:96` | Sisa Waktu Pembayaran | Kirim bukti bayar | Kirim bukti lewat WhatsApp, Batalkan booking |
+   | Tiket Digital | `ticket.blade.php:226` | Tiket Masuk Studio | Simpan tiket | Hubungi admin, Ubah jajan via WhatsApp, Booking lagi |
+   | Cek Booking | `booking-status.blade.php:31` | Cek booking | Buka tiket atau pembayaran | Sentuh kode di "Booking saya di perangkat ini" |
 
 ---
 
