@@ -16,8 +16,11 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
   - Sub-tahap D (Testing Otomatis, Pint & Verifikasi Visual): SELESAI (`commit: 3229c5a`)
 - **Tahap 6 (Redesain Visual Publik — Arah: "Layar Tancap")**:
   - Langkah 1 (Rencana Desain, Token, Sketsa ASCII & Perbandingan Kritis): SELESAI & DISETUJUI
-  - Langkah 2 (Halaman `/styleguide` Lingkungan Lokal): SELESAI (Token Layar Tancap terpasang, font Bricolage terpasang, tabel kontras kombinasi lengkap, 142 tests lolos, Pint 100%)
-  - Langkah 3 (Penerapan Bertahap a–f): MENUNGGU
+  - Langkah 2 (Halaman `/styleguide` Lingkungan Lokal & Catatan A–F): SELESAI (`commit: 70c30c6`, `commit: 583b5ae`)
+  - Langkah 3 (Penerapan Bertahap):
+    - 3(a) Shell Publik, Komponen `<x-brand.logo>`, Penyelarasan Tema Admin: SELESAI (`commit: 25c52c7`)
+    - 3(b) Beranda (Hero Layar Menyala & Dinding Poster) dan Jadwal 7 Hari: SELESAI (`commit: df4365b`)
+    - 3(c) s.d. 3(f): MENUNGGU (Berhenti untuk pemeriksaan pengguna di HP)
   - Langkah 4 (Kritik Diri & Pembersihan CSS): MENUNGGU
 
 ---
@@ -153,13 +156,14 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
   - Tabel kontras kombinasi nyata WCAG 2.1 terhitung lengkap.
   - Test otomatis `PublicPagesTest` untuk akses lokal & proteksi 404 produksi.
   - Seluruh test (142 tests: 139 passed, 3 skipped) dan Pint 100% passed.
-- [ ] **Langkah 3: Penerapan Bertahap (a–f)**:
-  - (a) Token, font, shell, dan komponen logo tunggal `<x-brand.logo>`.
-  - (b) Beranda & jadwal film.
+- [x] **Langkah 3 (Penerapan Bertahap a–b)**:
+  - [x] (a) Token, font, shell (`layouts/public.blade.php`), komponen logo tunggal `<x-brand.logo>`, dan penyelarasan tema admin (`layouts/admin.blade.php`).
+  - [x] (b) Beranda (`home.blade.php`, hero layar menyala fade-in 600ms, dinding poster 2:3 rapat, tanpa pengulangan harga/tombol) dan jadwal (`schedule.blade.php`, tata letak 1 kolom tenang, jam tabular).
+- [ ] **Langkah 3 (Penerapan Bertahap c–f)**:
   - (c) Wizard booking (seluruh langkah).
   - (d) Pembayaran, tiket, cek booking, Booking Saya.
   - (e) Nobar (katalog & detail) dan Kabar/Promo.
-  - (f) Halaman error, footer, dan penyelarasan admin.
+  - (f) Halaman error, footer, dan penyelarasan lanjutan.
 - [ ] **Langkah 4: Kritik Diri & Pembersihan CSS**.
 
 ---
