@@ -5,6 +5,9 @@
     <meta name="description" content="Selesaikan pembayaran untuk booking {{ $booking->code }} di SynemaX.">
     <meta property="og:title" content="Pembayaran booking {{ $booking->code }}: SynemaX">
     <meta property="og:description" content="Total: Rp {{ number_format($booking->total_price, 0, ',', '.') }}, {{ $booking->film?->title ?? 'Film Sesi' }}">
+    @if ($booking->payment_method === 'qris' && $hasQrisImage)
+        <link rel="preload" as="image" href="{{ route('payment.qris', ['v' => $qrisVersion]) }}" fetchpriority="high">
+    @endif
 @endsection
 
 @section('content')
@@ -169,6 +172,7 @@
                                          alt="QRIS {{ $qrisMerchantName }}"
                                          width="280"
                                          height="280"
+                                         fetchpriority="high"
                                          class="aspect-square max-h-64 sm:max-h-72 w-auto max-w-full mx-auto cursor-zoom-in object-contain rounded-[var(--radius-control)]"
                                          @click="enlargeModal = true"
                                          title="Klik untuk memperbesar">

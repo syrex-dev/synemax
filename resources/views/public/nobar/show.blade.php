@@ -125,7 +125,7 @@
                                 </span>
                             @endif
                             @if ($event->is_free)
-                                <span class="rounded-[var(--radius-control)] bg-success px-2.5 py-0.5 text-xs font-bold text-white">
+                                <span class="rounded-[var(--radius-control)] bg-[var(--accent-kuning)] px-2.5 py-0.5 text-xs font-bold text-[var(--accent-kuning-contrast)]">
                                     Tiket masuk gratis
                                 </span>
                             @elseif ($event->harga_info)
@@ -194,7 +194,7 @@
                     {{-- Catatan / Tata Tertib Acara --}}
                     @if ($event->catatan)
                         <div class="border-t border-border pt-4 text-xs text-text-muted leading-relaxed">
-                            <h3 class="font-bold text-text mb-1.5">Catatan dan tata tertib nobar</h3>
+                            <h2 class="text-sm font-bold text-text mb-1.5">Catatan dan tata tertib nobar</h2>
                             <div class="whitespace-pre-line space-y-1">{{ $event->catatan }}</div>
                         </div>
                     @endif
@@ -213,7 +213,7 @@
                             </span>
                         @endif
                         @if ($event->is_free)
-                            <span class="rounded-[var(--radius-control)] bg-success px-2.5 py-0.5 text-xs font-bold text-white">
+                            <span class="rounded-[var(--radius-control)] bg-[var(--accent-kuning)] px-2.5 py-0.5 text-xs font-bold text-[var(--accent-kuning-contrast)]">
                                 Tiket masuk gratis
                             </span>
                         @elseif ($event->harga_info)
@@ -282,7 +282,7 @@
                 {{-- Catatan / Tata Tertib Acara --}}
                 @if ($event->catatan)
                     <div class="border-t border-border pt-4 text-xs text-text-muted leading-relaxed">
-                        <h3 class="font-bold text-text mb-1.5">Catatan dan tata tertib nobar</h3>
+                        <h2 class="text-sm font-bold text-text mb-1.5">Catatan dan tata tertib nobar</h2>
                         <div class="whitespace-pre-line space-y-1">{{ $event->catatan }}</div>
                     </div>
                 @endif

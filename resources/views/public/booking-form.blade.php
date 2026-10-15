@@ -359,12 +359,9 @@
                                         <button type="button"
                                                 @click="filmDetail = @js(['id' => $film->id, 'title' => $film->title, 'genre' => $film->genre, 'duration' => $film->duration_minutes, 'rating' => $film->age_rating, 'synopsis' => $film->synopsis, 'trailer' => $film->trailer_url])"
                                                 class="flex w-full flex-col text-left focus:outline-none">
-                                            <div class="aspect-[2/3] w-full overflow-hidden rounded-[var(--radius-control)] bg-surface-2"
-                                                 @if ($film->poster_path) x-data="{ posterLoaded: false }" x-init="$nextTick(() => posterLoaded = $refs.poster.complete)" @endif>
+                                            <div class="aspect-[2/3] w-full overflow-hidden rounded-[var(--radius-control)] bg-surface-2">
                                                 @if ($film->poster_path)
-                                                    <img x-ref="poster"
-                                                         x-on:load="posterLoaded = true"
-                                                         x-on:error="posterLoaded = true"
+                                                    <img
                                                          src="{{ Storage::url($film->poster_path) }}"
                                                          alt="Poster {{ $film->title }}"
                                                          loading="lazy"
