@@ -146,4 +146,9 @@ class CinemaSettings
 
         return $methods;
     }
+
+    public function infoNobarEnabled(): bool
+    {
+        return $this->integer('info_nobar_enabled', 1) === 1;
+    }
 }

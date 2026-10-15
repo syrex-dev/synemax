@@ -142,6 +142,112 @@
             </div>
         </section>
 
+        {{-- Section Nobar Komunitas --}}
+        @if ($infoNobarEnabled && $upcomingNobar->isNotEmpty())
+            <section class="pt-12 sm:pt-16">
+                <div class="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-bold uppercase tracking-[0.16em] text-accent">Nonton Bareng Sepak Bola</p>
+                        <h2 class="mt-2 text-2xl font-black text-text sm:text-3xl">Nobar Komunitas</h2>
+                    </div>
+                    <a href="{{ route('nobar.index') }}" class="inline-flex items-center gap-1 text-sm font-bold text-accent hover:underline">
+                        <span>Semua Acara Nobar</span>
+                        <span>→</span>
+                    </a>
+                </div>
+                <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach ($upcomingNobar as $event)
+                        <article class="flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-surface p-5 shadow-token transition hover:border-accent">
+                            <div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="rounded-full px-2.5 py-0.5 text-xs font-bold {{ $event->badgeClasses() }}">
+                                        {{ $event->display_status }}
+                                    </span>
+                                    <span class="text-xs font-semibold text-text-muted">
+                                        {{ $event->is_free ? 'Gratis' : ($event->harga_info ?: 'Berbayar') }}
+                                    </span>
+                                </div>
+                                <h3 class="mt-3 text-lg font-bold text-text line-clamp-2">
+                                    <a href="{{ route('nobar.show', ['slug' => $event->slug]) }}" class="hover:text-accent">
+                                        {{ $event->judul }}
+                                    </a>
+                                </h3>
+                                <div class="mt-4 flex items-center justify-center rounded-xl bg-surface-2 p-3 text-center">
+                                    <span class="font-bold text-text">{{ $event->tim_a }}</span>
+                                    <span class="mx-2 text-xs font-black uppercase text-accent">VS</span>
+                                    <span class="font-bold text-text">{{ $event->tim_b ?: 'TBA' }}</span>
+                                </div>
+                                <p class="mt-3 text-xs text-text-muted flex items-center gap-1.5">
+                                    <span>🗓</span>
+                                    <span>{{ $event->kickoff_at->locale('id')->translatedFormat('l, d F Y · H:i') }} WIB</span>
+                                </p>
+                                <p class="mt-1 text-xs text-text-muted flex items-center gap-1.5">
+                                    <span>📍</span>
+                                    <span class="truncate">{{ $event->lokasi_nama }}</span>
+                                </p>
+                            </div>
+                            <div class="mt-5 pt-4 border-t border-border">
+                                <a href="{{ route('nobar.show', ['slug' => $event->slug]) }}" class="inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-border bg-surface-2 px-4 text-xs font-bold text-text transition hover:border-accent hover:text-accent">
+                                    Lihat Detail & Lokasi
+                                </a>
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        {{-- Section Kabar & Promo --}}
+        @if ($infoNobarEnabled && $latestArticles->isNotEmpty())
+            <section class="pt-12 sm:pt-16">
+                <div class="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-bold uppercase tracking-[0.16em] text-accent">Informasi & Penawaran</p>
+                        <h2 class="mt-2 text-2xl font-black text-text sm:text-3xl">Kabar & Promo</h2>
+                    </div>
+                    <a href="{{ route('articles.index') }}" class="inline-flex items-center gap-1 text-sm font-bold text-accent hover:underline">
+                        <span>Semua Kabar</span>
+                        <span>→</span>
+                    </a>
+                </div>
+                <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach ($latestArticles as $article)
+                        <article class="flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-surface shadow-token transition hover:border-accent">
+                            @if ($article->cover_path)
+                                <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" class="block aspect-video overflow-hidden bg-surface-2">
+                                    <img src="{{ $article->coverUrl() }}" alt="{{ $article->judul }}" loading="lazy" class="h-full w-full object-cover transition duration-300 hover:scale-105">
+                                </a>
+                            @endif
+                            <div class="flex-1 p-5">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="rounded-full px-2 py-0.5 text-[11px] font-bold {{ $article->kategori === 'Berita' ? 'bg-blue-500/15 text-blue-500' : ($article->kategori === 'Promo' ? 'bg-emerald-500/15 text-emerald-500' : 'bg-amber-500/15 text-amber-500') }}">
+                                        {{ $article->kategori }}
+                                    </span>
+                                    <span class="text-[11px] text-text-muted">
+                                        {{ $article->tanggal_terbit ? $article->tanggal_terbit->locale('id')->diffForHumans() : '' }}
+                                    </span>
+                                </div>
+                                <h3 class="mt-2.5 text-base font-bold text-text line-clamp-2">
+                                    <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" class="hover:text-accent">
+                                        {{ $article->judul }}
+                                    </a>
+                                </h3>
+                                <p class="mt-2 text-xs leading-relaxed text-text-muted line-clamp-3">
+                                    {{ $article->ringkasan }}
+                                </p>
+                            </div>
+                            <div class="p-5 pt-0">
+                                <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" class="inline-flex items-center gap-1 text-xs font-bold text-accent hover:underline">
+                                    <span>Baca selengkapnya</span>
+                                    <span>→</span>
+                                </a>
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         <section class="grid gap-8 py-12 sm:grid-cols-2 sm:py-16">
             <div>
                 <p class="text-sm font-bold uppercase tracking-[0.16em] text-accent">Gampang kok</p>

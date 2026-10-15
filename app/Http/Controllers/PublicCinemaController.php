@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\BlockedDate;
 use App\Models\Film;
 use App\Models\Holiday;
+use App\Models\NewsArticle;
+use App\Models\NobarEvent;
 use App\Models\Session;
 use App\Services\CinemaSettings;
 use App\Services\ScheduleResolver;
@@ -36,6 +38,26 @@ class PublicCinemaController extends Controller
         );
         $adminWhatsApp = preg_replace('/\D+/', '', $settings->string('admin_whatsapp'));
 
+        $infoNobarEnabled = $settings->infoNobarEnabled();
+        $upcomingNobar = $infoNobarEnabled
+            ? NobarEvent::query()
+                ->where('is_published', true)
+                ->where('status_acara', '!=', 'dibatalkan')
+                ->where('kickoff_at', '>=', now()->subHours(4))
+                ->orderBy('kickoff_at')
+                ->limit(3)
+                ->get()
+            : collect();
+
+        $latestArticles = $infoNobarEnabled
+            ? NewsArticle::query()
+                ->published()
+                ->orderByDesc('is_pinned')
+                ->orderByRaw('COALESCE(tanggal_terbit, created_at) DESC')
+                ->limit(3)
+                ->get()
+            : collect();
+
         return view('public.home', [
             'films' => Film::query()->where('is_active', true)->orderBy('title')->get(),
             'dates' => $dates,
@@ -46,6 +68,9 @@ class PublicCinemaController extends Controller
             'weekdayPrice' => $settings->integer('weekday_price', 5000),
             'weekendPrice' => $settings->integer('weekend_price', 6000),
             'holidayPrice' => $settings->integer('holiday_price', 6000),
+            'infoNobarEnabled' => $infoNobarEnabled,
+            'upcomingNobar' => $upcomingNobar,
+            'latestArticles' => $latestArticles,
         ]);
     }
 

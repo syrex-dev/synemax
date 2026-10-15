@@ -60,6 +60,7 @@ class SettingController extends Controller
                 'payment_time_limit_minutes' => $settings->paymentTimeLimitMinutes(),
                 'online_payment_cutoff_minutes' => $settings->onlinePaymentCutoffMinutes(),
                 'max_payment_proof_kb' => $settings->maxPaymentProofKb(),
+                'info_nobar_enabled' => $settings->infoNobarEnabled(),
             ],
             'enabledMethods' => $settings->rawPaymentMethods(),
             'qrisWarning' => in_array('qris', $settings->rawPaymentMethods(), true) && ! $settings->hasValidQrisImage(),
@@ -72,6 +73,7 @@ class SettingController extends Controller
         $request->merge([
             'admin_whatsapp' => WhatsAppNumber::normalize((string) $request->input('admin_whatsapp')),
             'snacks_enabled' => $request->boolean('snacks_enabled') ? 1 : 0,
+            'info_nobar_enabled' => $request->boolean('info_nobar_enabled') ? 1 : 0,
         ]);
 
         $data = $request->validate([
@@ -88,6 +90,7 @@ class SettingController extends Controller
             'snacks_enabled' => ['required', 'boolean'],
             'snack_prep_buffer_minutes' => ['required', 'integer', 'between:0,360'],
             'snack_max_qty_per_item' => ['required', 'integer', 'between:1,100'],
+            'info_nobar_enabled' => ['required', 'boolean'],
             'payment_methods' => ['nullable', 'array'],
             'payment_methods.*' => ['required', 'in:di_tempat,qris,transfer'],
             'qris_image' => ['nullable', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048', 'dimensions:min_width=300,min_height=300'],

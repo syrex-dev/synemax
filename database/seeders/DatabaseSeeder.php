@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
         $this->seedSnackMenu();
         $this->seedAdmin();
         $this->seedSampleBooking();
+        $this->call(NobarAndNewsSeeder::class);
     }
 
     private function seedScheduleTemplates(): void

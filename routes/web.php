@@ -3,20 +3,36 @@
 use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FilmController;
+use App\Http\Controllers\Admin\NewsController;
+use App\Http\Controllers\Admin\NobarController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SnackMenuController;
 use App\Http\Controllers\Admin\SnackPreparationController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PublicCinemaController;
+use App\Http\Controllers\PublicInfoController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicCinemaController::class, 'index'])->name('home');
 Route::get('/jadwal/{date}', [PublicCinemaController::class, 'schedule'])
     ->where('date', '\d{4}-\d{2}-\d{2}')
     ->name('schedule.date');
+
+// Media Routes (independent of storage symlink)
+Route::get('/media/nobar/{filename}', [MediaController::class, 'nobarPoster'])->name('media.nobar');
+Route::get('/media/berita/{filename}', [MediaController::class, 'articleCover'])->name('media.article');
+
+// Public Nobar & News Routes
+Route::get('/nobar', [PublicInfoController::class, 'nobarIndex'])->name('nobar.index');
+Route::get('/nobar/{slug}', [PublicInfoController::class, 'nobarShow'])->name('nobar.show');
+Route::get('/nobar/{slug}/kalender', [PublicInfoController::class, 'nobarCalendar'])->name('nobar.calendar');
+
+Route::get('/kabar', [PublicInfoController::class, 'articleIndex'])->name('articles.index');
+Route::get('/kabar/{slug}', [PublicInfoController::class, 'articleShow'])->name('articles.show');
 Route::get('/booking/{session}', [PublicBookingController::class, 'create'])->name('booking.create');
 Route::get('/booking/{session}/ketersediaan', [PublicBookingController::class, 'availabilityJson'])
     ->middleware('throttle:60,1')
@@ -89,6 +105,24 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::patch('/jajanan/sesi/{session}/status', [SnackPreparationController::class, 'updateSessionStatuses'])->name('snacks.preparation.status');
     Route::patch('/jajanan/pesanan/{bookingItem}/status', [SnackPreparationController::class, 'updateItemStatus'])->name('snacks.items.status');
     Route::patch('/pelanggan/{profile}/blokir', [BookingController::class, 'toggleCustomerBlock'])->name('customers.toggle-block');
+
+    // Admin Nobar
+    Route::get('/nobar', [NobarController::class, 'index'])->name('nobar.index');
+    Route::get('/nobar/buat', [NobarController::class, 'create'])->name('nobar.create');
+    Route::post('/nobar', [NobarController::class, 'store'])->name('nobar.store');
+    Route::get('/nobar/{nobar}/ubah', [NobarController::class, 'edit'])->name('nobar.edit');
+    Route::put('/nobar/{nobar}', [NobarController::class, 'update'])->name('nobar.update');
+    Route::delete('/nobar/{nobar}', [NobarController::class, 'destroy'])->name('nobar.destroy');
+    Route::patch('/nobar/{nobar}/status', [NobarController::class, 'updateStatus'])->name('nobar.status');
+
+    // Admin Kabar / Berita
+    Route::get('/berita', [NewsController::class, 'index'])->name('articles.index');
+    Route::get('/berita/buat', [NewsController::class, 'create'])->name('articles.create');
+    Route::post('/berita', [NewsController::class, 'store'])->name('articles.store');
+    Route::get('/berita/{article}/ubah', [NewsController::class, 'edit'])->name('articles.edit');
+    Route::put('/berita/{article}', [NewsController::class, 'update'])->name('articles.update');
+    Route::delete('/berita/{article}', [NewsController::class, 'destroy'])->name('articles.destroy');
+
     Route::get('/pengaturan', [SettingController::class, 'edit'])->name('settings.edit');
     Route::put('/pengaturan', [SettingController::class, 'update'])->name('settings.update');
     Route::delete('/pengaturan/qris', [SettingController::class, 'destroyQris'])->name('settings.qris.destroy');

@@ -68,7 +68,11 @@
                     <span data-theme-thumb class="pointer-events-none absolute left-1 top-1 size-9 rounded-full bg-accent shadow-sm transition-transform duration-150"></span>
                 </button>
                 <nav class="order-3 flex w-full items-center gap-1 overflow-x-auto pb-1 text-sm sm:gap-2 md:order-none md:w-auto md:overflow-visible md:pb-0">
-                    <a href="{{ route('home') }}#jadwal" class="shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-text-muted hover:bg-surface-2 hover:text-text">Jadwal</a>
+                    <a href="{{ route('home') }}#jadwal" class="shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-text-muted hover:bg-surface-2 hover:text-text">Jadwal Film</a>
+                    @if (app(\App\Services\CinemaSettings::class)->infoNobarEnabled())
+                        <a href="{{ route('nobar.index') }}" class="shrink-0 whitespace-nowrap rounded-lg px-3 py-2 {{ request()->routeIs('nobar.*') ? 'bg-accent/10 font-bold text-accent' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}">Nobar Bola</a>
+                        <a href="{{ route('articles.index') }}" class="shrink-0 whitespace-nowrap rounded-lg px-3 py-2 {{ request()->routeIs('articles.*') ? 'bg-accent/10 font-bold text-accent' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}">Kabar & Promo</a>
+                    @endif
                     <a href="{{ route('home') }}#booking-saya" class="shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-text-muted hover:bg-surface-2 hover:text-text">Booking Saya</a>
                     <a href="{{ route('booking.lookup.form') }}" class="shrink-0 whitespace-nowrap rounded-lg border border-gold px-3 py-2 font-semibold text-gold hover:bg-gold-surface">Cek booking</a>
                 </nav>

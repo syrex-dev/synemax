@@ -267,6 +267,20 @@
                 </div>
             </details>
 
+            <details open class="rounded-2xl border border-border bg-surface p-5 sm:p-6">
+                <summary class="cursor-pointer text-lg font-bold">Fitur Info & Nobar</summary>
+                <p class="mt-1 text-xs text-text-muted">Aktifkan atau nonaktifkan bagian Nobar Komunitas dan Kabar Berita pada situs publik.</p>
+                <div class="mt-4">
+                    <label class="inline-flex w-full items-center gap-3 rounded-xl border border-border bg-surface-2 p-4 text-sm font-semibold cursor-pointer hover:border-accent">
+                        <input type="checkbox" name="info_nobar_enabled" value="1" class="size-5 rounded border-border bg-bg text-accent" @checked(old('info_nobar_enabled', $settings['info_nobar_enabled']))>
+                        <div>
+                            <p class="font-bold text-text">Tampilkan Info & Nobar di Situs Publik</p>
+                            <p class="mt-0.5 text-xs font-normal text-text-muted">Jika dicentang, jadwal nobar sepak bola dan kabar/promo akan muncul di beranda dan navigasi situs.</p>
+                        </div>
+                    </label>
+                </div>
+            </details>
+
             <button class="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-accent px-5 font-bold text-accent-contrast hover:opacity-90 sm:w-auto">Simpan pengaturan</button>
         </form>
 
