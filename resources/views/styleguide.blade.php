@@ -14,7 +14,7 @@
         <div class="flex items-center gap-3">
             <button type="button"
                     onclick="window.synemaXTheme.setMode(document.documentElement.classList.contains('dark') ? 'light' : 'dark')"
-                    class="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-border-input bg-surface px-4 text-xs font-bold text-text transition hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary">
+                    class="inline-flex min-h-11 items-center gap-2 rounded-[var(--radius-control)] border border-border-input bg-surface px-4 text-xs font-bold text-text transition hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
                 <span class="dark:hidden">Ganti ke tema malam (gelap)</span>
                 <span class="hidden dark:inline">Ganti ke tema layar (terang)</span>
             </button>
@@ -163,54 +163,135 @@
         </div>
     </section>
 
-    {{-- Seksi 3: Tipografi & Perbandingan Fallback Font --}}
+    {{-- Seksi 3: Skala Huruf Lengkap & Tipografi --}}
     <section class="mt-12">
-        <h2 class="text-xl font-bold tracking-tight text-text">3. Tipografi: Bricolage Grotesque vs Fallback Terukur</h2>
-        <p class="mt-1 text-sm text-text-muted">Metrik font diukur dari tabel binary OS/2: unitsPerEm 1000, xHeight 528 (52.8%), capHeight 660, typoAscender 930, typoDescender -270. Fallback disesuaikan dengan size-adjust 102%, ascent-override 92%, descent-override 27% untuk mencegah Cumulative Layout Shift (CLS).</p>
+        <h2 class="text-xl font-bold tracking-tight text-text">3. Skala Huruf Lengkap & Tipografi</h2>
+        <p class="mt-1 text-sm text-text-muted">Satu keluarga huruf Bricolage Grotesque (variabel) untuk semua kebutuhan hirarki teks, dengan angka tabular untuk waktu dan kode tiket.</p>
 
-        <div class="mt-6 grid gap-6 md:grid-cols-2">
-            <div class="rounded-[var(--radius-control)] border border-border bg-surface p-5">
-                <div class="flex items-center justify-between border-b border-border pb-2">
-                    <span class="text-xs font-bold text-primary">Bricolage Grotesque (Font Utama)</span>
-                    <span class="font-tabular text-[11px] text-text-muted">WOFF2 Latin: 76,88 KB</span>
-                </div>
-                <div class="mt-4 space-y-3" style="font-family: 'Bricolage Grotesque Variable', sans-serif;">
-                    <p class="text-2xl font-extrabold leading-tight tracking-tight text-text">Pengabdi Setan 2: Communion</p>
-                    <p class="text-sm font-normal leading-relaxed text-text">Malam ini di studio mini desa SynemaX. Menonton film pilihan bersama keluarga dan tetangga dengan tata suara sinematik yang hangat. Tiket masuk mulai Rp 25.000 per orang.</p>
-                    <p class="font-tabular text-sm font-bold text-text">Jadwal: 19.30 WIB dan 21.15 WIB (Kode: SNX-7829-K4)</p>
+        <div class="mt-6 space-y-6 rounded-[var(--radius-control)] border border-border bg-surface p-6">
+            <div class="border-b border-border pb-4">
+                <span class="text-xs font-bold text-text-muted">Display (Hero Layar) — 48px s.d. 60px / Weight 800</span>
+                <p class="mt-1 text-4xl sm:text-5xl font-extrabold tracking-tight text-text leading-tight">Pengabdi Setan 2</p>
+            </div>
+            <div class="border-b border-border pb-4">
+                <span class="text-xs font-bold text-text-muted">Title (Judul Seksi / Halaman) — 28px s.d. 32px / Weight 700</span>
+                <p class="mt-1 text-2xl sm:text-3xl font-bold tracking-tight text-text">Film lain minggu ini</p>
+            </div>
+            <div class="border-b border-border pb-4">
+                <span class="text-xs font-bold text-text-muted">Headline (Nama Tim / Pilihan) — 20px s.d. 22px / Weight 700</span>
+                <p class="mt-1 text-xl font-bold text-text">Indonesia lawan Vietnam</p>
+            </div>
+            <div class="border-b border-border pb-4">
+                <span class="text-xs font-bold text-text-muted">Body Text (Teks Isi) — 16px / Weight 400 / Leading 1.6</span>
+                <p class="mt-1 max-w-prose text-base font-normal leading-relaxed text-text">
+                    Studio mini berpendingin ruangan dengan tata suara sinematik yang hangat untuk keluarga dan rombongan warga desa. Kapasitas enam kursi tiap sesi.
+                </p>
+            </div>
+            <div class="border-b border-border pb-4">
+                <span class="text-xs font-bold text-text-muted">Meta Text (Keterangan Jadwal) — 14px / Weight 400</span>
+                <p class="mt-1 text-sm text-text-muted">Kamis, 15 Oktober 2026 di Halaman Depan SynemaX</p>
+            </div>
+            <div>
+                <span class="text-xs font-bold text-text-muted">Angka Tabular (Jam Indonesia & Kode Booking) — Tabular Nums</span>
+                <p class="mt-1 font-tabular text-lg font-bold text-text">Mulai 19.30 WIB dan 21.15 WIB — Kode: SNX-7829-K4</p>
+            </div>
+        </div>
+    </section>
+
+    {{-- Seksi 4: Komparasi Fallback Font (Android Roboto & Desktop Arial) --}}
+    <section class="mt-12">
+        <h2 class="text-xl font-bold tracking-tight text-text">4. Komparasi Fallback Font Terukur</h2>
+        <p class="mt-1 text-sm text-text-muted">Bricolage Grotesque memiliki flag USE_TYPO_METRICS aktif (bit 7 = true). Terhadap Roboto (Android, x-height 0,5283), rasio x-height Bricolage (0,528) bernilai 99.9% sehingga size-adjust disetel 100%. Terhadap Arial/Segoe UI (Windows/Apple, x-height 0,5185), size-adjust disetel 102%.</p>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+            <div class="rounded-[var(--radius-control)] border border-border bg-surface p-4">
+                <span class="block text-xs font-bold text-primary">Font Utama: Bricolage</span>
+                <span class="block font-tabular text-[11px] text-text-muted">WOFF2 Latin: 76,88 KB</span>
+                <div class="mt-3 space-y-2" style="font-family: 'Bricolage Grotesque Variable', sans-serif;">
+                    <p class="text-lg font-extrabold text-text">Pengabdi Setan 2</p>
+                    <p class="text-xs text-text leading-relaxed">Nonton dekat, seru bareng di studio mini enam kursi.</p>
+                    <p class="font-tabular text-xs font-bold text-text">19.30 WIB — SNX-7829-K4</p>
                 </div>
             </div>
 
-            <div class="rounded-[var(--radius-control)] border border-border bg-surface p-5">
-                <div class="flex items-center justify-between border-b border-border pb-2">
-                    <span class="text-xs font-bold text-text-muted">Bricolage Grotesque Fallback (Metrik Terukur)</span>
-                    <span class="font-tabular text-[11px] text-text-muted">size-adjust: 102%</span>
+            <div class="rounded-[var(--radius-control)] border border-border bg-surface p-4">
+                <span class="block text-xs font-bold text-text-muted">Fallback Android: Roboto</span>
+                <span class="block font-tabular text-[11px] text-text-muted">size-adjust: 100%, ascent: 93%</span>
+                <div class="mt-3 space-y-2" style="font-family: 'Bricolage Fallback Roboto', sans-serif;">
+                    <p class="text-lg font-extrabold text-text">Pengabdi Setan 2</p>
+                    <p class="text-xs text-text leading-relaxed">Nonton dekat, seru bareng di studio mini enam kursi.</p>
+                    <p class="font-tabular text-xs font-bold text-text">19.30 WIB — SNX-7829-K4</p>
                 </div>
-                <div class="mt-4 space-y-3" style="font-family: 'Bricolage Grotesque Fallback', system-ui, sans-serif;">
-                    <p class="text-2xl font-extrabold leading-tight tracking-tight text-text">Pengabdi Setan 2: Communion</p>
-                    <p class="text-sm font-normal leading-relaxed text-text">Malam ini di studio mini desa SynemaX. Menonton film pilihan bersama keluarga dan tetangga dengan tata suara sinematik yang hangat. Tiket masuk mulai Rp 25.000 per orang.</p>
-                    <p class="font-tabular text-sm font-bold text-text">Jadwal: 19.30 WIB dan 21.15 WIB (Kode: SNX-7829-K4)</p>
+            </div>
+
+            <div class="rounded-[var(--radius-control)] border border-border bg-surface p-4">
+                <span class="block text-xs font-bold text-text-muted">Fallback Desktop: Arial</span>
+                <span class="block font-tabular text-[11px] text-text-muted">size-adjust: 102%, ascent: 91%</span>
+                <div class="mt-3 space-y-2" style="font-family: 'Bricolage Fallback Arial', sans-serif;">
+                    <p class="text-lg font-extrabold text-text">Pengabdi Setan 2</p>
+                    <p class="text-xs text-text leading-relaxed">Nonton dekat, seru bareng di studio mini enam kursi.</p>
+                    <p class="font-tabular text-xs font-bold text-text">19.30 WIB — SNX-7829-K4</p>
                 </div>
             </div>
         </div>
     </section>
 
-    {{-- Seksi 4: Sistem Bentuk & Komponen Interaktif --}}
+    {{-- Seksi 5: Input Formulir & State (Normal, Fokus, Error) --}}
     <section class="mt-12">
-        <h2 class="text-xl font-bold tracking-tight text-text">4. Sistem Bentuk & Komponen Interaktif</h2>
+        <h2 class="text-xl font-bold tracking-tight text-text">5. Input Formulir & Status Validasi</h2>
+        <p class="mt-1 text-sm text-text-muted">Batas input memenuhi kontras 3,0:1 (token `--color-border-input`), fokus terlihat jelas dengan ring primary 2px, dan status error memiliki pesan yang menjelaskan cara memperbaiki.</p>
+
+        <div class="mt-6 grid gap-6 rounded-[var(--radius-control)] border border-border bg-surface p-6 sm:grid-cols-3">
+            {{-- Input Normal --}}
+            <div>
+                <label for="demo-input-normal" class="block text-xs font-bold text-text">Nama Pemesan (Normal)</label>
+                <input type="text"
+                       id="demo-input-normal"
+                       placeholder="Contoh: Budi Santoso"
+                       class="mt-2 block w-full rounded-[var(--radius-control)] border border-border-input bg-surface px-3 py-2.5 text-sm text-text placeholder:text-text-muted/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary">
+                <p class="mt-1 text-[11px] text-text-muted">Nama yang dicatat pada tiket masuk.</p>
+            </div>
+
+            {{-- Input Fokus Aktif --}}
+            <div>
+                <label for="demo-input-focus" class="block text-xs font-bold text-text">Nomor WhatsApp (Fokus Terlihat)</label>
+                <input type="tel"
+                       id="demo-input-focus"
+                       value="081234567890"
+                       class="mt-2 block w-full rounded-[var(--radius-control)] border-2 border-primary bg-surface px-3 py-2.5 text-sm text-text ring-2 ring-primary focus:outline-none">
+                <p class="mt-1 text-[11px] text-text-muted">Batas fokus tebal dan terlihat jelas.</p>
+            </div>
+
+            {{-- Input Error --}}
+            <div>
+                <label for="demo-input-error" class="block text-xs font-bold text-danger-text">Nomor WhatsApp (Error)</label>
+                <input type="tel"
+                       id="demo-input-error"
+                       value="12345"
+                       aria-invalid="true"
+                       aria-describedby="demo-error-desc"
+                       class="mt-2 block w-full rounded-[var(--radius-control)] border-2 border-danger-border bg-danger-surface/20 px-3 py-2.5 text-sm text-danger-text focus:outline-none focus:ring-2 focus:ring-danger-border">
+                <p id="demo-error-desc" class="mt-1 text-[11px] font-semibold text-danger-text">Masukkan nomor WhatsApp aktif dengan format 08... (minimal 10 angka).</p>
+            </div>
+        </div>
+    </section>
+
+    {{-- Seksi 6: Sistem Bentuk & Komponen Interaktif --}}
+    <section class="mt-12">
+        <h2 class="text-xl font-bold tracking-tight text-text">6. Komponen Interaktif: Tombol, Radio, Slot Karcis, & Tiket</h2>
         <p class="mt-1 text-sm text-text-muted">Radius kontrol 5px (`--radius-control`), garis 1.5px untuk sekunder, solid Biru Sablon untuk aksi utama, lekukan karcis khusus slot jam dan tiket.</p>
 
         {{-- Tombol --}}
         <div class="mt-6 rounded-[var(--radius-control)] border border-border bg-surface p-5">
-            <h3 class="text-sm font-bold text-text">Tombol Aksi</h3>
+            <h3 class="text-sm font-bold text-text">Tombol Aksi (Fokus Terlihat)</h3>
             <div class="mt-4 flex flex-wrap items-center gap-3">
-                <button type="button" class="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-control)] bg-primary px-5 text-sm font-bold text-primary-text shadow-xs transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-primary">
+                <button type="button" class="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-control)] bg-primary px-5 text-sm font-bold text-primary-text shadow-xs transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
                     Pesan tiket
                 </button>
-                <button type="button" class="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-control)] border border-border-input bg-transparent px-5 text-sm font-bold text-text transition hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary">
+                <button type="button" class="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-control)] border border-border-input bg-transparent px-5 text-sm font-bold text-text transition hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
                     Kembali
                 </button>
-                <button type="button" class="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-control)] bg-accent px-5 text-sm font-bold text-accent-contrast shadow-xs transition hover:opacity-95">
+                <button type="button" class="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-control)] bg-accent px-5 text-sm font-bold text-accent-contrast shadow-xs transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2">
                     Pita Karcis (Isian)
                 </button>
             </div>
@@ -219,7 +300,7 @@
         {{-- Radio Pilihan Tipe Nonton (Wizard Langkah 3) --}}
         <div class="mt-6 rounded-[var(--radius-control)] border border-border bg-surface p-5">
             <h3 class="text-sm font-bold text-text">Pilihan Tipe Nonton (Wizard Langkah 3)</h3>
-            <p class="mt-1 text-xs text-text-muted">Sesuai catatan: Garis 2px solid Biru Sablon saat terpilih, sudut 5px, radio dot, tanpa Kuning Karcis, tanpa sobekan.</p>
+            <p class="mt-1 text-xs text-text-muted">Garis 2px solid Biru Sablon saat terpilih, sudut 5px, radio dot, tanpa Kuning Karcis, tanpa sobekan.</p>
 
             <div class="mt-4 grid gap-3 sm:grid-cols-2">
                 <div class="radio-choice-card is-selected p-4">
@@ -252,11 +333,11 @@
             <p class="mt-1 text-xs text-text-muted">Target sentuh minimal 44px, angka tabular. Slot terpilih memakai isian Kuning Karcis dengan teks Arang gelap.</p>
 
             <div class="mt-4 flex flex-wrap gap-3">
-                <button type="button" class="slot-ticket-btn is-selected inline-flex items-center justify-between gap-3 px-4 py-2.5">
+                <button type="button" class="slot-ticket-btn is-selected inline-flex items-center justify-between gap-3 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
                     <span class="font-tabular text-sm">19.30 WIB</span>
                     <span class="rounded-[var(--radius-control)] bg-[#16201F]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#16201F]">Terpilih</span>
                 </button>
-                <button type="button" class="slot-ticket-btn inline-flex items-center justify-between gap-3 px-4 py-2.5">
+                <button type="button" class="slot-ticket-btn inline-flex items-center justify-between gap-3 px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
                     <span class="font-tabular text-sm">21.15 WIB</span>
                     <span class="text-[10px] text-text-muted">Sisa 4 kursi</span>
                 </button>
@@ -265,7 +346,7 @@
 
         {{-- Penanda Gratis & Status Banner --}}
         <div class="mt-6 rounded-[var(--radius-control)] border border-border bg-surface p-5">
-            <h3 class="text-sm font-bold text-text">Penanda Fisik & Banner Status</h3>
+            <h3 class="text-sm font-bold text-text">Penanda Fisik & Banner Status (Kedua Tema)</h3>
             <div class="mt-4 flex flex-wrap items-center gap-3">
                 <span class="inline-block rounded-[var(--radius-control)] bg-accent px-2.5 py-1 text-xs font-bold text-accent-contrast">
                     Gratis
@@ -292,7 +373,7 @@
         <div class="mt-6">
             <h3 class="text-sm font-bold text-text">Panel Hero "Layar" (Menyala di Tengah Lapangan)</h3>
             <div class="hero-screen-panel mt-3 p-6 sm:p-8">
-                <p class="text-xs font-bold uppercase tracking-wider text-[#4A605E]">Malam Ini di Studio 1</p>
+                <p class="text-xs font-bold uppercase tracking-wider text-[#4A605E]">Malam ini di Studio 1</p>
                 <div class="mt-3 flex flex-col gap-5 sm:flex-row sm:items-center">
                     <div class="h-28 w-20 shrink-0 rounded-[var(--radius-control)] bg-[#16201F] text-center text-[10px] text-white/70 flex items-center justify-center">
                         Poster 2:3

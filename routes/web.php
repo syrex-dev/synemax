@@ -15,6 +15,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PublicCinemaController;
 use App\Http\Controllers\PublicInfoController;
+use App\Http\Controllers\StyleguideController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicCinemaController::class, 'index'])->name('home');
@@ -56,11 +57,7 @@ Route::post('/cek-booking', [PublicBookingController::class, 'lookup'])
 Route::post('/cek-booking/{code}/batal', [PublicBookingController::class, 'cancel'])
     ->middleware('throttle:5,1')
     ->name('booking.cancel');
-Route::get('/styleguide', function () {
-    abort_unless(app()->isLocal(), 404);
-
-    return view('styleguide');
-})->name('styleguide');
+Route::get('/styleguide', StyleguideController::class)->name('styleguide');
 
 Route::get('/dashboard', function () {
     return redirect()->route('admin.dashboard');
