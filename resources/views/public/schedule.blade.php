@@ -1,62 +1,67 @@
 @extends('layouts.public')
 
-@section('title', 'Jadwal '. $date->locale('id')->translatedFormat('l, d F'))
+@section('title', 'Jadwal ' . $date->locale('id')->translatedFormat('l, d F'))
 @section('meta')
-    <meta name="description" content="Pilih jadwal nonton Home Cinema. Kapasitas tiap sesi maksimal enam kursi.">
+    <meta name="description" content="Pilih jadwal nonton di studio mini SynemaX. Kapasitas tiap sesi maksimal enam kursi.">
 @endsection
 
 @section('content')
-    <section class="mx-auto max-w-5xl px-4 pb-28 pt-7 sm:px-6 sm:pb-28 sm:pt-10">
-        <a href="{{ route('home') }}#jadwal" class="inline-flex min-h-11 items-center text-sm font-semibold text-accent hover:underline">← Kembali ke beranda</a>
-        <ol aria-label="Langkah booking" class="mt-5 grid grid-cols-5 gap-2 text-center text-xs">
-            @foreach (['Jadwal', 'Film', 'Tipe', 'Jajan', 'Ringkasan'] as $stepLabel)
-                <li class="rounded-xl border px-1 py-2 font-semibold {{ $loop->first ? 'border-accent bg-accent text-accent-contrast' : 'border-border bg-surface text-text-muted' }}" @if ($loop->first) aria-current="step" @endif>
-                    <span class="block font-bold">{{ $loop->iteration }}</span><span class="hidden min-[380px]:inline">{{ $stepLabel }}</span><span class="min-[380px]:hidden">{{ mb_substr($stepLabel, 0, 1) }}</span>
-                </li>
-            @endforeach
-        </ol>
-        <div class="mt-7">
-            <p class="text-sm font-bold uppercase tracking-[0.16em] text-accent">Langkah 1 dari 5</p>
-            <h1 class="mt-2 text-3xl font-black tracking-tight text-text sm:text-4xl">Pilih hari dan jam nonton</h1>
-            <p class="mt-2 text-base text-text-muted">Tiap sesi muat maksimal 6 kursi. Status kursi bisa berubah saat ada booking baru.</p>
+    <main class="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
+        {{-- Navigasi Kembali --}}
+        <div>
+            <a href="{{ route('home') }}#jadwal" class="inline-flex min-h-11 items-center text-xs font-bold text-text-muted hover:text-primary">
+                Kembali ke beranda
+            </a>
         </div>
 
-        <nav class="mt-6 flex snap-x gap-2 overflow-x-auto pb-3" aria-label="Pilih tanggal">
+        {{-- Indikator Langkah Riil --}}
+        <div class="mt-4 border-b border-border pb-4">
+            <p class="text-xs font-bold text-primary">Langkah 1 dari 5: Jadwal</p>
+            <h1 class="mt-1 text-2xl font-extrabold tracking-tight text-text sm:text-3xl">Pilih hari dan jam nonton</h1>
+            <p class="mt-1 text-xs text-text-muted">Kapasitas maksimal 6 kursi per sesi. Status kursi diperbarui otomatis saat ada pemesanan baru.</p>
+        </div>
+
+        {{-- Pemilih Tanggal --}}
+        <nav class="mt-6 flex snap-x gap-2 overflow-x-auto pb-3" aria-label="Pilih tanggal nonton">
             @foreach ($dates as $availableDate)
                 @php
                     $dateKey = $availableDate->toDateString();
                     $isSelected = $dateKey === $date->toDateString();
                 @endphp
-                <a href="{{ route('schedule.date', ['date' => $dateKey]) }}" @if ($isSelected) aria-current="date" @endif
-                   class="min-w-24 snap-start rounded-xl border px-3 py-3 text-center transition {{ $isSelected ? 'border-accent bg-accent text-accent-contrast' : 'border-border bg-surface text-text hover:border-accent' }}">
-                    <span class="block text-xs font-bold">{{ $dateKey === $today ? 'Hari ini' : $availableDate->locale('id')->translatedFormat('D') }}</span>
-                    <span class="mt-1 block text-base font-black">{{ $availableDate->format('d M') }}</span>
+                <a href="{{ route('schedule.date', ['date' => $dateKey]) }}"
+                   @if ($isSelected) aria-current="date" @endif
+                   class="min-w-28 snap-start rounded-[var(--radius-control)] border p-3 text-center transition {{ $isSelected ? 'border-2 border-primary bg-surface shadow-xs font-bold text-text' : 'border-border-input bg-surface text-text-muted hover:border-primary hover:text-text' }}">
+                    <span class="block text-xs font-bold">{{ $dateKey === $today ? 'Hari ini' : $availableDate->locale('id')->translatedFormat('l') }}</span>
+                    <span class="mt-1 block font-tabular text-base font-extrabold text-text">{{ $availableDate->format('d M') }}</span>
                     @if ($holidayDates->has($dateKey))
-                        <span class="mt-1 block text-[11px] font-semibold {{ $isSelected ? 'text-accent-contrast' : 'text-warning' }}">Libur</span>
+                        <span class="mt-1 inline-block rounded-[var(--radius-control)] bg-[#FFC62E] px-1.5 py-0.2 text-[10px] font-bold text-[#16201F]">Libur</span>
                     @endif
                 </a>
             @endforeach
         </nav>
 
-        <div id="sessions" class="scroll-mt-24 mt-5 flex items-end justify-between gap-3">
+        {{-- Judul Tanggal Terpilih --}}
+        <div id="sessions" class="scroll-mt-8 mt-6 flex items-baseline justify-between gap-3 border-b border-border pb-2">
             <div>
-                <p class="text-sm font-bold uppercase tracking-[0.12em] text-accent">Jadwal sesi</p>
-                <h2 class="mt-1 text-2xl font-bold text-text">{{ $date->locale('id')->translatedFormat('l, d F Y') }}</h2>
+                <h2 class="text-lg font-bold text-text">{{ $date->locale('id')->translatedFormat('l, d F Y') }}</h2>
             </div>
             @if ($holidayDates->has($date->toDateString()))
-                <span class="rounded-full bg-warning/15 px-3 py-2 text-sm font-bold text-warning">Hari libur</span>
+                <span class="rounded-[var(--radius-control)] bg-[#FFC62E] px-2 py-0.5 text-xs font-bold text-[#16201F]">Hari libur</span>
             @endif
         </div>
 
+        {{-- Daftar Sesi Tayang --}}
         @if ($closedReason)
-            <div role="status" class="mt-5 rounded-2xl border border-danger/30 bg-danger/10 p-5">
-                <p class="font-bold text-danger">Studio tutup hari ini</p>
-                <p class="mt-1 text-base text-text-muted">{{ $closedReason }}</p>
+            <div role="status" class="mt-6 rounded-[var(--radius-control)] border border-danger-border bg-danger-surface p-5 text-sm text-danger-text">
+                <p class="font-bold">Studio tutup pada tanggal ini</p>
+                <p class="mt-1 text-xs text-danger-text/90">{{ $closedReason }}</p>
             </div>
         @elseif ($sessions->isEmpty())
-            <div class="mt-5 rounded-2xl border border-border bg-surface p-5 text-base text-text-muted">Belum ada sesi untuk tanggal ini. Coba pilih hari lain, ya.</div>
+            <div class="mt-6 rounded-[var(--radius-control)] border border-border bg-surface p-5 text-sm text-text-muted">
+                Belum ada sesi penayangan untuk tanggal ini. Silakan pilih tanggal lain di atas.
+            </div>
         @else
-            <div class="mt-5 space-y-3 scroll-mt-24 pb-24">
+            <div class="mt-6 space-y-3 pb-24">
                 @foreach ($sessions as $session)
                     @php
                         $label = $session->is_private ? 'Sewa Private' : $session->availabilityLabel($bookingCutoffMinutes);
@@ -65,51 +70,46 @@
                         $occupied = $session->is_private
                             ? $session->seatCapacity()
                             : $session->seatCapacity() - $session->remainingSeats();
-                        $stateDot = match (true) {
-                            $session->is_private => 'bg-text-muted',
-                            $label === 'Tersedia' => 'bg-success',
-                            str_starts_with($label, 'Sisa') => 'bg-accent',
-                            $label === 'Penuh' => 'bg-danger',
-                            default => 'bg-text-muted',
-                        };
+                        $startTime = substr((string) $session->start_time, 0, 5);
+                        $endTime = substr((string) $session->end_time, 0, 5);
                     @endphp
-                    <article class="rounded-2xl border border-border bg-surface p-4 shadow-token sm:p-5">
+                    <article class="rounded-[var(--radius-control)] border border-border bg-surface p-4 sm:p-5">
                         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div class="flex min-w-0 gap-4">
-                                <div class="w-24 shrink-0 rounded-xl bg-surface-2 px-2 py-3 text-center">
-                                    <p class="text-2xl font-black text-accent">{{ substr((string) $session->start_time, 0, 5) }}</p>
-                                    <p class="mt-1 text-xs text-text-muted">{{ substr((string) $session->end_time, 0, 5) }} selesai</p>
+                            <div class="flex min-w-0 items-start gap-4">
+                                {{-- Kotak Waktu Sesi --}}
+                                <div class="w-24 shrink-0 rounded-[var(--radius-control)] border border-border-input bg-surface-2 px-2 py-2.5 text-center">
+                                    <p class="font-tabular text-xl font-extrabold text-text">{{ $startTime }}</p>
+                                    <p class="mt-0.5 font-tabular text-[11px] text-text-muted">{{ $endTime }} WIB</p>
                                 </div>
                                 <div class="min-w-0">
-                                    <p class="font-bold text-text">{{ $session->film?->title ?? 'Film bebas dipilih' }}</p>
-                                    <p class="mt-1 text-sm text-text-muted">
+                                    <h3 class="text-base font-bold text-text">{{ $session->film?->title ?? 'Film bebas dipilih oleh pemesan pertama' }}</h3>
+                                    <p class="mt-0.5 text-xs text-text-muted">
                                         @if ($session->film)
-                                            {{ $session->film->genre }} · {{ $session->film->duration_minutes }} menit
+                                            {{ $session->film->genre }}, {{ $session->film->duration_minutes }} menit, batas usia {{ $session->film->age_rating }}
                                         @else
-                                            Pemesan pertama memilih film
+                                            Pemesan pertama bebas menentukan film yang akan diputar
                                         @endif
                                     </p>
-                                    <p class="mt-2 inline-flex items-center gap-2 text-sm font-bold {{ $canBook ? 'text-success' : 'text-text-muted' }}">
-                                        <span class="size-2 rounded-full {{ $stateDot }}" aria-hidden="true"></span>
-                                        <span>{{ $label }}</span>
+                                    <p class="mt-2 text-xs font-bold {{ $canBook ? 'text-success-text' : 'text-text-muted' }}">
+                                        {{ $session->is_private ? 'Sudah disewa private' : $label }}
                                     </p>
                                 </div>
                             </div>
+
                             <div class="flex items-center justify-between gap-4 sm:justify-end">
-                                <div>
-                                    <div class="flex gap-1.5" aria-label="{{ $occupied }} kursi terisi dari {{ $session->seatCapacity() }}">
-                                        @for ($seat = 1; $seat <= $session->seatCapacity(); $seat++)
-                                            <span class="inline-flex size-7 items-center justify-center rounded-md {{ $seat <= $occupied ? 'bg-danger/15 text-danger' : 'bg-surface-2 text-text-muted' }}" role="img" aria-label="{{ $seat <= $occupied ? 'Terisi' : 'Kosong' }}">▰</span>
-                                        @endfor
-                                    </div>
-                                    <p class="mt-1 text-xs text-text-muted">{{ $occupied }} dari {{ $session->seatCapacity() }} kursi terisi</p>
+                                <div class="text-right">
+                                    <p class="font-tabular text-xs font-bold text-text">{{ $occupied }} dari {{ $session->seatCapacity() }} kursi terisi</p>
                                 </div>
                                 @if ($canBook)
                                     <a href="{{ route('booking.create', ['session' => $session->id]) }}"
                                        @click="sessionStorage.setItem('synemax:booking-wizard', JSON.stringify({ sessionId: {{ $session->id }}, date: @js($date->toDateString()), step: 2 }))"
-                                       class="inline-flex min-h-12 min-w-0 items-center justify-center rounded-xl bg-accent px-2 text-sm font-bold text-accent-contrast hover:opacity-90 sm:min-w-28 sm:px-4">Pilih sesi</a>
+                                       class="inline-flex min-h-11 min-w-28 items-center justify-center rounded-[var(--radius-control)] bg-primary px-4 text-xs font-bold text-white shadow-xs transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                                        Pilih jam ini
+                                    </a>
                                 @else
-                                    <span class="inline-flex min-h-12 min-w-28 items-center justify-center rounded-xl border border-border px-3 text-center text-sm font-semibold text-text-muted">{{ $session->is_private ? 'Sudah disewa' : $label }}</span>
+                                    <span class="inline-flex min-h-11 min-w-28 items-center justify-center rounded-[var(--radius-control)] border border-border px-3 text-center text-xs font-semibold text-text-muted">
+                                        {{ $session->is_private ? 'Sudah disewa' : $label }}
+                                    </span>
                                 @endif
                             </div>
                         </div>
@@ -117,11 +117,16 @@
                 @endforeach
             </div>
         @endif
-    </section>
-    <div class="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 px-4 pt-3 shadow-token backdrop-blur lg:hidden" style="padding-bottom: max(env(safe-area-inset-bottom), .75rem)">
-        <a href="#sessions" class="mx-auto flex min-h-12 max-w-5xl items-center justify-between gap-4 rounded-xl bg-accent px-4 text-accent-contrast">
-            <span><span class="block text-xs font-semibold opacity-90">Tiket mulai</span><span class="block text-base font-black">Rp {{ number_format($sessionPrice, 0, ',', '.') }} / orang</span></span>
-            <span class="text-sm font-bold">Pilih sesi ↑</span>
+    </main>
+
+    {{-- Bottom Bar Mobile untuk Aksi Cepat --}}
+    <div class="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 px-4 pt-3 backdrop-blur lg:hidden" style="padding-bottom: max(env(safe-area-inset-bottom), .75rem)">
+        <a href="#sessions" class="mx-auto flex min-h-12 max-w-4xl items-center justify-between gap-4 rounded-[var(--radius-control)] bg-primary px-4 text-white shadow-xs">
+            <div>
+                <span class="block text-[11px] font-semibold opacity-90">Tiket studio mulai</span>
+                <span class="block font-tabular text-sm font-extrabold">Rp {{ number_format($sessionPrice, 0, ',', '.') }} per orang</span>
+            </div>
+            <span class="text-xs font-bold">Pilih jam tayang</span>
         </a>
     </div>
 @endsection
