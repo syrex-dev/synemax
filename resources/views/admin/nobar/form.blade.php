@@ -139,30 +139,69 @@
             {{-- 4. Poster Acara --}}
             <details open class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-token">
                 <summary class="cursor-pointer text-lg font-bold text-text">4. Poster Acara</summary>
-                <p class="mt-1 text-xs text-text-muted">Format PNG, JPG, atau WEBP maks. 3 MB. Disimpan aman dan dioptimalkan secara otomatis.</p>
+                <p class="mt-1 text-xs text-text-muted">Poster akan ditampilkan pada halaman detail dan daftar acara.</p>
 
                 <div class="mt-5 space-y-4">
-                    @if ($isEdit && $event->poster_path)
-                        <div class="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-surface-2 p-4">
-                            <img src="{{ $event->posterUrl() }}" alt="Poster" class="size-24 rounded-lg object-cover">
-                            <div class="flex-1">
-                                <p class="text-xs font-bold text-success">Poster aktif tersimpan</p>
-                                <label class="mt-2 inline-flex items-center gap-2 text-xs text-danger cursor-pointer">
-                                    <input type="checkbox" name="delete_poster" value="1" class="rounded border-border text-danger">
-                                    <span>Hapus poster saat ini</span>
-                                </label>
+                    {{-- Status Poster Saat Ini --}}
+                    @if ($isEdit && $event->hasPoster())
+                        <div class="rounded-xl border border-border bg-surface-2 p-4">
+                            <div class="flex flex-col sm:flex-row items-start gap-4">
+                                <div class="overflow-hidden rounded-xl border border-border bg-bg/60 p-1">
+                                    <img src="{{ $event->posterUrl() }}" alt="{{ $event->posterAltText() }}" class="max-h-56 max-w-full rounded-lg object-contain" @if($event->aspectRatioStyle()) style="{{ $event->aspectRatioStyle() }}" @endif>
+                                </div>
+                                <div class="flex-1 space-y-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-flex items-center rounded-md bg-success/15 px-2 py-0.5 text-xs font-bold text-success">
+                                            Poster Aktif
+                                        </span>
+                                        @if ($event->poster_width && $event->poster_height)
+                                            <span class="font-mono text-xs text-text-muted">
+                                                {{ $event->poster_width }} x {{ $event->poster_height }} px
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <p class="text-xs text-text-muted">
+                                        Poster ini sedang ditampilkan kepada pengunjung. Anda dapat mengganti poster baru di bawah atau menghapusnya.
+                                    </p>
+                                    <div class="pt-2">
+                                        <label class="inline-flex items-center gap-2 text-xs font-bold text-danger cursor-pointer hover:underline">
+                                            <input type="checkbox" name="delete_poster" value="1" class="rounded border-border text-danger focus:ring-danger">
+                                            <span>Hapus poster saat ini</span>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
+                        </div>
+                    @else
+                        <div class="rounded-xl border border-dashed border-border bg-surface-2/50 p-4 text-center text-xs text-text-muted">
+                            Belum ada poster untuk acara ini.
                         </div>
                     @endif
 
+                    {{-- Upload / Ganti Poster --}}
                     <div>
-                        <label for="poster" class="block text-sm font-semibold">{{ $isEdit && $event->poster_path ? 'Ganti Poster Acara' : 'Unggah Poster Acara' }}</label>
-                        <input id="poster" name="poster" type="file" accept="image/png,image/jpeg,image/webp" @change="handlePosterChange($event)" class="mt-2 block w-full text-sm text-text file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-surface-2 file:px-4 file:font-semibold file:text-text">
+                        <label for="poster" class="block text-sm font-semibold">
+                            {{ $isEdit && $event->hasPoster() ? 'Ganti Poster Acara' : 'Unggah Poster Acara' }}
+                        </label>
+                        <input id="poster" name="poster" type="file" accept="image/png,image/jpeg,image/webp" @change="handlePosterChange($event)" class="mt-2 block w-full text-sm text-text file:mr-3 file:min-h-11 file:rounded-lg file:border-0 file:bg-surface-2 file:px-4 file:font-semibold file:text-text hover:file:bg-surface-2/80">
+                        <p class="mt-1.5 text-xs text-text-muted">
+                            Disarankan potret 4:5 (mis. 1080x1350). Poster tidak akan dipotong. Maksimal 3 MB (JPG, PNG, atau WebP). Sisi terpendek minimal 600 piksel.
+                        </p>
                     </div>
 
-                    <div x-show="posterPreview" x-cloak class="mt-3">
-                        <p class="text-xs font-semibold text-text-muted">Pratinjau poster baru:</p>
-                        <img :src="posterPreview" alt="Pratinjau" class="mt-2 max-h-48 rounded-xl object-contain border border-border">
+                    {{-- Pratinjau Poster Baru --}}
+                    <div x-show="posterPreview" x-cloak class="rounded-xl border border-accent/40 bg-accent/5 p-4">
+                        <p class="text-xs font-bold text-accent">Pratinjau poster baru yang dipilih:</p>
+                        <div class="mt-2.5 overflow-hidden rounded-xl border border-border bg-bg/80 p-2 inline-block">
+                            <img :src="posterPreview" alt="Pratinjau Poster Baru" class="max-h-60 rounded-lg object-contain">
+                        </div>
+                    </div>
+
+                    {{-- Teks Alternatif --}}
+                    <div>
+                        <label for="poster_alt" class="block text-sm font-semibold">Teks Alternatif Poster (Opsional)</label>
+                        <input id="poster_alt" name="poster_alt" value="{{ old('poster_alt', $event->poster_alt) }}" placeholder="Deskripsi gambar untuk pembaca layar (kosongkan untuk otomatis judul acara)" class="mt-1.5 min-h-12 w-full rounded-xl border border-border bg-bg px-3.5 text-sm text-text">
+                        <p class="mt-1 text-[11px] text-text-muted">Jika dikosongkan, sistem otomatis menggunakan judul acara sebagai teks alternatif.</p>
                     </div>
                 </div>
             </details>

@@ -29,6 +29,10 @@ class NobarEvent extends Model
         'harga_info',
         'catatan',
         'poster_path',
+        'poster_width',
+        'poster_height',
+        'poster_alt',
+        'poster_og_path',
         'status_publikasi',
         'is_pinned',
         'status_acara',
@@ -38,6 +42,8 @@ class NobarEvent extends Model
     protected $casts = [
         'kickoff_at' => 'datetime',
         'durasi_menit' => 'integer',
+        'poster_width' => 'integer',
+        'poster_height' => 'integer',
         'is_free' => 'boolean',
         'is_pinned' => 'boolean',
     ];
@@ -87,6 +93,11 @@ class NobarEvent extends Model
         };
     }
 
+    public function hasPoster(): bool
+    {
+        return filled($this->poster_path);
+    }
+
     public function posterUrl(): ?string
     {
         if (blank($this->poster_path)) {
@@ -94,6 +105,33 @@ class NobarEvent extends Model
         }
 
         return route('media.nobar', ['filename' => basename($this->poster_path)]);
+    }
+
+    public function posterAltText(): string
+    {
+        return filled($this->poster_alt) ? $this->poster_alt : 'Poster '.$this->judul;
+    }
+
+    public function posterOgUrl(): string
+    {
+        if (filled($this->poster_og_path)) {
+            return url(route('media.nobar', ['filename' => basename($this->poster_og_path)], false));
+        }
+
+        if (filled($this->poster_path)) {
+            return url(route('media.nobar', ['filename' => basename($this->poster_path)], false));
+        }
+
+        return url(asset('social-banner.png'));
+    }
+
+    public function aspectRatioStyle(): ?string
+    {
+        if ($this->poster_width && $this->poster_height) {
+            return "aspect-ratio: {$this->poster_width} / {$this->poster_height};";
+        }
+
+        return null;
     }
 
     public function catatanHtml(): HtmlString
@@ -115,9 +153,9 @@ class NobarEvent extends Model
         $url = route('nobar.show', ['slug' => $this->slug]);
 
         $text = "Ayo nobar {$match} di SynemaX Home Cinema!\n"
-            ."📅 {$dateStr}\n"
-            ."📍 {$this->lokasi_nama} ({$this->alamat_patokan})\n"
-            .($this->is_free ? "🎟️ Tiket Masuk: Gratis\n" : ($this->harga_info ? "🎟️ Info Tiket: {$this->harga_info}\n" : ''))
+            ."Waktu: {$dateStr}\n"
+            ."Lokasi: {$this->lokasi_nama} ({$this->alamat_patokan})\n"
+            .($this->is_free ? "Tiket Masuk: Gratis\n" : ($this->harga_info ? "Info Tiket: {$this->harga_info}\n" : ''))
             ."\nCek info lengkap: {$url}";
 
         return 'https://wa.me/?text='.rawurlencode($text);
@@ -129,7 +167,7 @@ class NobarEvent extends Model
         $dtEnd = $this->endsAt()->copy()->utc()->format('Ymd\THis\Z');
         $summary = 'Nobar: '.$this->judul;
         $location = $this->lokasi_nama.' - '.$this->alamat_patokan;
-        $description = 'Nobar pertandingan '.$this->vsTitle().' di SynemaX. Info: '.route('nobar.show', ['slug' => $this->slug]);
+        $description = 'Nobar pertandingan '.$this->vsTitle().' di SynemaX. Lokasi: '.$this->lokasi_nama.'. Info: '.route('nobar.show', ['slug' => $this->slug]);
         $uid = 'nobar-'.$this->id.'-'.md5($this->slug).'@synemax.local';
 
         return "BEGIN:VCALENDAR\r\n"
@@ -139,13 +177,13 @@ class NobarEvent extends Model
             ."METHOD:PUBLISH\r\n"
             ."BEGIN:VEVENT\r\n"
             ."UID:{$uid}\r\n"
-            .'DTSTAMP:'.now()->utc()->format('Ymd\THis\Z')."\r\n"
+            ."DTSTAMP:".now()->utc()->format('Ymd\THis\Z')."\r\n"
             ."DTSTART:{$dtStart}\r\n"
             ."DTEND:{$dtEnd}\r\n"
             ."SUMMARY:{$summary}\r\n"
             ."LOCATION:{$location}\r\n"
             ."DESCRIPTION:{$description}\r\n"
-            .'URL:'.route('nobar.show', ['slug' => $this->slug])."\r\n"
+            ."URL:".route('nobar.show', ['slug' => $this->slug])."\r\n"
             ."STATUS:CONFIRMED\r\n"
             ."END:VEVENT\r\n"
             ."END:VCALENDAR\r\n";

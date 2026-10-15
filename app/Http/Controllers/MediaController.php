@@ -9,7 +9,10 @@ class MediaController extends Controller
 {
     public function nobarPoster(string $filename): Response
     {
-        // Sanitize filename to prevent directory traversal
+        if (! preg_match('/^[a-zA-Z0-9_\-]+\.(webp|png|jpg|jpeg)$/i', $filename)) {
+            abort(404, 'Nama file poster tidak valid.');
+        }
+
         $safeName = basename($filename);
         $path = 'nobar/'.$safeName;
         $disk = Storage::disk('local');
@@ -18,7 +21,13 @@ class MediaController extends Controller
             abort(404, 'Poster acara tidak ditemukan.');
         }
 
-        $mime = $disk->mimeType($path) ?: 'image/jpeg';
+        $extension = strtolower(pathinfo($safeName, PATHINFO_EXTENSION));
+        $mime = match ($extension) {
+            'webp' => 'image/webp',
+            'png' => 'image/png',
+            default => 'image/jpeg',
+        };
+
         $content = $disk->get($path);
 
         return response($content, 200, [
@@ -29,6 +38,10 @@ class MediaController extends Controller
 
     public function articleCover(string $filename): Response
     {
+        if (! preg_match('/^[a-zA-Z0-9_\-]+\.(webp|png|jpg|jpeg)$/i', $filename)) {
+            abort(404, 'Nama file sampul tidak valid.');
+        }
+
         $safeName = basename($filename);
         $path = 'news/'.$safeName;
         $disk = Storage::disk('local');
@@ -37,7 +50,13 @@ class MediaController extends Controller
             abort(404, 'Gambar sampul artikel tidak ditemukan.');
         }
 
-        $mime = $disk->mimeType($path) ?: 'image/jpeg';
+        $extension = strtolower(pathinfo($safeName, PATHINFO_EXTENSION));
+        $mime = match ($extension) {
+            'webp' => 'image/webp',
+            'png' => 'image/png',
+            default => 'image/jpeg',
+        };
+
         $content = $disk->get($path);
 
         return response($content, 200, [

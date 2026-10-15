@@ -114,6 +114,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::put('/nobar/{nobar}', [NobarController::class, 'update'])->name('nobar.update');
     Route::delete('/nobar/{nobar}', [NobarController::class, 'destroy'])->name('nobar.destroy');
     Route::patch('/nobar/{nobar}/status', [NobarController::class, 'updateStatus'])->name('nobar.status');
+    Route::post('/nobar/{nobar}/duplikat', [NobarController::class, 'duplicate'])->name('nobar.duplicate');
 
     // Admin Kabar / Berita
     Route::get('/berita', [NewsController::class, 'index'])->name('articles.index');

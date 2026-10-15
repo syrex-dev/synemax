@@ -9,6 +9,11 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
 - **Tahap 2b (Keamanan URL Bersih & Referrer-Policy)**: SELESAI (`commit: f55cf0e`)
 - **Tahap 3 (Checklist 3: Fitur Info & Nobar)**: SELESAI
 - **Tahap 4 (Testing & Validasi Style Linting)**: SELESAI (125 tests lulus, Pint lulus 100%)
+- **Tahap 5 (Ruang Poster Nobar & Pengelolaan Media)**:
+  - Sub-tahap A (Admin, Layanan Media, Migrasi & Duplikasi): SELESAI
+  - Sub-tahap B (Halaman Detail /nobar/{slug}, Modal Zoom & Tombol Aksi): SEDANG DIKERJAKAN
+  - Sub-tahap C (Thumbnail 4:5 Listing & Beranda, Open Graph 1200x630): MENUNGGU
+  - Sub-tahap D (Testing Otomatis, Pint & Verifikasi Visual): MENUNGGU
 
 ---
 
@@ -83,6 +88,36 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
 - [x] Test `MediaServingTest`: 3 tests menguji respons media poster/cover, header caching HTTP, proteksi directory traversal, dan 404 file hilang.
 - [x] Seluruh test suite (`php artisan test`): **125 tests passed**, 691 assertions (3 skipped khusus uji race MySQL terisolasi).
 - [x] Formatting & Linting (`vendor/bin/pint --test`): **100% passed** tanpa pelanggaran code style.
+
+### Tahap 5: Ruang Poster Nobar & Pengelolaan Media
+- [x] **Sub-tahap A: Admin, Layanan Media, Migrasi & Duplikasi**:
+  - Migrasi `2026_10_15_000003_add_poster_details_to_nobar_events_table.php` menambahkan kolom `poster_width`, `poster_height`, `poster_alt`, `poster_og_path` (nullable) dan otomatis menghitung dimensi poster lama (`getimagesize`) saat migrasi.
+  - `MediaUploadService`:
+    - Membatasi total piksel maks 40 megapiksel sebelum decode GD guna mencegah OOM.
+    - Validasi MIME sungguhan (JPG/PNG/WebP), tolak SVG, sisi terpendek minimal 600px.
+    - Pengecilan hanya jika sisi terpanjang > 1600px tanpa pemotongan (menjaga rasio asli dan ketajaman teks poster).
+    - Membaca dan menormalisasi orientasi EXIF pada JPEG lalu membuang metadata privasi.
+    - Konversi ke WebP kualitas 85 dengan fallback format asli + catatan log peringatan bila ekstensi WebP GD absen.
+    - Otomatis membuat varian Open Graph 1200x630 (poster utuh terpusat di atas latar blur gelap).
+    - Penanganan salinan fisik independen untuk poster dan OG saat duplikasi acara.
+    - Otomatis menghapus berkas poster dan OG lama saat diperbarui atau dihapus.
+  - `NobarController`:
+    - Validasi batas PHP (`upload_max_filesize` / `post_max_size`) sebelum validasi Laravel dengan pesan bahasa Indonesia yang jelas.
+    - Form admin untuk poster potret 4:5, pratinjau, tombol ganti/hapus, dan field teks alternatif poster.
+    - Aksi `duplicate()` acara nobar sebagai draft baru dengan salinan poster independen.
+    - Pembersihan seluruh emoji dekoratif dari tabel dan modal admin.
+  - `MediaController`:
+    - Validasi regex nama file yang ketat (hanya alfanumerik, dash, underscore, dan ekstensi gambar aman), tolak path traversal (`..`), 404 jika tidak ditemukan, dan header cache HTTP `public, max-age=86400`.
+- [ ] **Sub-tahap B: Ruang Poster Publik, Modal Zoom & Perapian Tombol Aksi**:
+  - Tata letak 2 kolom di desktop (poster sticky 4:5 di kiri, detail di kanan), tumpukan di mobile.
+  - Modal perbesar poster dengan scroll lock, focus trap, tombol simpan poster (`poster-{slug}.{ext}`).
+  - Hapus seluruh emoji dekoratif pada halaman detail nobar, standardisasi tombol aksi (min-h-12, ikon SVG, teks utuh).
+- [ ] **Sub-tahap C: Thumbnail 4:5 Listing & Beranda, Open Graph 1200x630**:
+  - Tampilkan thumbnail 4:5 pada kartu nobar di `/nobar` dan teaser beranda `/`.
+  - Pasang meta `og:image` absolut dengan varian OG 1200x630, fallback ke `social-banner.png`.
+  - Hapus emoji di share WhatsApp, kalender .ics, seeder, dan dokumentasi README.
+- [ ] **Sub-tahap D: Pengujian Komprehensif, Linting & Verifikasi Visual**:
+  - Automated tests untuk seluruh fitur poster dan media, verifikasi visual desktop/mobile/dark-mode.
 
 ---
 
