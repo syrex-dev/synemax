@@ -103,8 +103,8 @@
         <div x-show="!isExpired"
              class="mb-6 overflow-hidden rounded-2xl border p-5 shadow-lg transition-all"
              :class="isUrgent
-                 ? 'border-red-500/60 bg-gradient-to-r from-red-950/40 via-surface to-red-950/20 shadow-[0_0_25px_rgba(239,68,68,0.25)]'
-                 : 'border-amber-400/40 bg-gradient-to-r from-amber-950/30 via-surface to-surface shadow-[0_0_20px_rgba(212,175,55,0.15)]'">
+                 ? 'border-red-500/60 bg-red-500/10 dark:bg-gradient-to-r dark:from-red-950/40 dark:via-surface dark:to-red-950/20 shadow-[0_0_25px_rgba(239,68,68,0.25)]'
+                 : 'border-amber-400/40 bg-amber-500/10 dark:bg-gradient-to-r dark:from-amber-950/30 dark:via-surface dark:to-surface shadow-[0_0_20px_rgba(212,175,55,0.15)]'">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <div class="flex items-center gap-2">

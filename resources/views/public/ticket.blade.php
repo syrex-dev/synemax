@@ -175,11 +175,11 @@
         <article class="print-ticket ticket-stub relative overflow-hidden rounded-3xl border border-amber-400/40 bg-gradient-to-b from-[#111726] via-[#0E131F] to-[#080B13] shadow-2xl text-white">
 
             {{-- Golden Foil Top Header --}}
-            <header class="p-5 border-b border-dashed border-amber-400/30 bg-gradient-to-r from-amber-950/40 via-surface to-amber-950/20">
+            <header class="p-5 border-b border-dashed border-amber-400/30 bg-gradient-to-r from-amber-950/40 via-[#0E131F] to-amber-950/20">
                 <div class="flex items-center justify-between gap-3">
                     <div class="flex items-center gap-2">
                         <x-brand.logo size="sm" />
-                        <span class="text-[11px] font-semibold text-text-muted">Tiket masuk studio</span>
+                        <span class="text-[11px] font-semibold text-slate-400">Tiket masuk studio</span>
                     </div>
                     <span class="rounded-full bg-amber-500/20 px-3 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-300 border border-amber-400/40">
                         STUDIO 1 • PREMIERE
