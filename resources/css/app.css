@@ -105,34 +105,35 @@
 
 :root {
     color-scheme: light;
-    /* Kanvas & Permukaan Layar Tancap (Terang) */
-    --surface-canvas: #F2F5F3;        /* Layar: Putih dingin kehijauan */
-    --surface-default: #FFFFFF;       /* Panel permukaan terang */
-    --surface-raised: #E5EBE8;        /* Panel sekunder */
-    --surface-sunken: #DBE3E0;        /* Bidang cekung */
+    /* Kanvas & Permukaan Bioskop Terang (Luxury Champagne / Warm Slate) */
+    --surface-canvas: #F8FAFC;
+    --surface-default: #FFFFFF;
+    --surface-raised: #F1F5F9;
+    --surface-sunken: #E2E8F0;
 
     /* Teks / Tinta (Terang) */
-    --text-primary: #16201F;          /* Arang: Hitam arang */
-    --text-muted: #4A605E;            /* Keterangan redup (6,12:1 WCAG AA) */
-    --text-subtle: #687E7B;
+    --text-primary: #0F172A;
+    --text-muted: #475569;
+    --text-subtle: #64748B;
 
     /* Garis & Batas Input (Terang) */
-    --border-default: #D3DDD9;        /* Garis pemisah dekoratif 1.5px */
-    --border-input: #758A86;          /* Batas input kontrol form (3,34:1 WCAG UI >= 3:1) */
+    --border-default: #E2E8F0;
+    --border-input: #94A3B8;
 
-    /* Aksi Utama Biru Sablon & Tautan (Terang) */
-    --primary-color: #2845D6;         /* Tombol utama Biru Sablon */
-    --primary-text-color: #FFFFFF;    /* Teks tombol utama (7,21:1 WCAG AAA) */
-    --link-color: #2845D6;            /* Tautan inline (6,57:1 WCAG AA) */
+    /* Aksi Utama Emas XXI / Amber */
+    --primary-color: #D97706;
+    --primary-text-color: #FFFFFF;
+    --link-color: #B45309;
 
-    /* Penanda Fisik Kuning Karcis & Alias Legacy Aksentuasi Interaktif */
-    --accent-kuning: #FFC62E;         /* Kuning Karcis (hanya slot terpilih, gratis, pita karcis) */
-    --accent-kuning-contrast: #16201F;
-    --accent-primary: var(--primary-color);   /* Tombol & aksen interaktif lama dipetakan ke Biru Sablon */
+    /* Penanda Fisik Kuning Karcis & Aksen */
+    --accent-kuning: #F59E0B;
+    --accent-kuning-contrast: #0F172A;
+    --accent-primary: var(--primary-color);
     --accent-hover: var(--link-color);
     --accent-contrast: var(--primary-text-color);
-    --accent-gold: #805700;           /* Emas tua WCAG untuk teks/garis di latar terang */
-    --accent-gold-surface: #FFF5D6;
+    --accent-gold: #B45309;
+    --accent-gold-surface: #FEF3C7;
+    --accent-cyan: #0284C7;
 
     /* Token Legacy Murni var(...) */
     --text: var(--text-primary);
@@ -142,67 +143,66 @@
     --bg: var(--surface-canvas);
     --surface: var(--surface-default);
 
-    /* Status Terkonfirmasi Hijau Daun (Terang) */
-    --status-success: #2A9461;        /* Isian badge/ikon */
+    /* Status */
+    --status-success: #059669;
     --status-success-contrast: #FFFFFF;
-    --status-success-surface: #EAF6F0;/* Latar banner sukses */
-    --status-success-border: #90CDAC; /* Batas banner sukses (3,05:1) */
-    --status-success-text: #146B41;   /* Teks sukses di atas banner (5,90:1 WCAG AA) */
+    --status-success-surface: #ECFDF5;
+    --status-success-border: #A7F3D0;
+    --status-success-text: #065F46;
 
-    /* Status Batal/Peringatan Merah Cabe (Terang) */
-    --status-danger: #D93B2B;         /* Isian badge/ikon */
+    --status-danger: #DC2626;
     --status-danger-contrast: #FFFFFF;
-    --status-danger-surface: #FDECEB; /* Latar banner bahaya */
-    --status-danger-border: #E8A29A;  /* Batas banner bahaya (3,12:1) */
-    --status-danger-text: #B72617;    /* Teks bahaya di atas banner (5,56:1 WCAG AA) */
+    --status-danger-surface: #FEF2F2;
+    --status-danger-border: #FECACA;
+    --status-danger-text: #991B1B;
 
-    /* Status Informasi & Peringatan */
-    --status-warning: #A16207;
+    --status-warning: #D97706;
     --status-warning-contrast: #FFFFFF;
-    --status-warning-surface: #FEF9C3;
-    --status-info: #2845D6;
+    --status-warning-surface: #FFFBEB;
+    --status-info: #0284C7;
     --status-info-contrast: #FFFFFF;
-    --status-info-surface: #EFF3FF;
+    --status-info-surface: #F0F9FF;
 
     /* Entitas Fisik Layar & Tiket */
-    --hero-screen-color: #FFFFFF;     /* Layar proyektor murni */
-    --ticket-paper-color: #ECEFEA;    /* Kertas karcis fisik tetap */
+    --hero-screen-color: #FFFFFF;
+    --ticket-paper-color: #F8FAFC;
 
-    --focus-ring: #2845D6;
-    --overlay: rgb(15 42 47 / 72%);
-    --shadow-panel-token: 0 4px 20px -2px rgba(15, 42, 47, 0.08), 0 12px 36px -4px rgba(15, 42, 47, 0.12);
+    --focus-ring: #D97706;
+    --overlay: rgba(15, 23, 42, 0.75);
+    --shadow-panel-token: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.05);
 }
 
 :root.dark {
     color-scheme: dark;
-    /* Kanvas & Permukaan Layar Tancap (Gelap) */
-    --surface-canvas: #0F2A2F;        /* Malam: Hijau-teal tua hutan tropis */
-    --surface-default: #16393F;       /* Permukaan panel sekunder */
-    --surface-raised: #1C444B;        /* Panel sedikit terangkat */
-    --surface-sunken: #091D21;        /* Bidang cekung malam */
+    /* Kanvas & Permukaan Bioskop Kelas Dunia (Deep Obsidian Cinema Dark #07090E) */
+    --surface-canvas: #07090E;
+    --surface-default: #0E131F;
+    --surface-raised: #151D2E;
+    --surface-sunken: #030407;
 
     /* Teks / Tinta (Gelap) */
-    --text-primary: #F2F5F3;          /* Layar: Putih dingin kehijauan (13,74:1) */
-    --text-muted: #8FA8A4;            /* Keterangan redup (5,96:1 WCAG AA) */
-    --text-subtle: #738C88;
+    --text-primary: #F8FAFC;
+    --text-muted: #94A3B8;
+    --text-subtle: #64748B;
 
     /* Garis & Batas Input (Gelap) */
-    --border-default: #1D444B;        /* Garis pemisah dekoratif 1.5px */
-    --border-input: #5C8E96;          /* Batas input kontrol form (3,41:1 di atas panel, 4,14:1 di atas kanvas) */
+    --border-default: rgba(255, 255, 255, 0.08);
+    --border-input: rgba(255, 255, 255, 0.18);
 
-    /* Aksi Utama Biru Sablon & Tautan (Gelap) */
-    --primary-color: #4D68F5;         /* Tombol utama Biru Sablon di gelap (3,31:1 terhadap Malam) */
-    --primary-text-color: #FFFFFF;    /* Teks tombol utama (4,55:1 WCAG AA) */
-    --link-color: #8096FF;            /* Tautan inline terang di gelap (5,55:1 WCAG AA) */
+    /* Aksi Utama Emas XXI / Amber (#D4AF37 / #F59E0B) */
+    --primary-color: #D4AF37;
+    --primary-text-color: #07090E;
+    --link-color: #FBBF24;
 
-    /* Penanda Fisik Kuning Karcis & Alias Legacy Aksentuasi Interaktif */
-    --accent-kuning: #FFC62E;
-    --accent-kuning-contrast: #16201F;
-    --accent-primary: var(--primary-color);   /* Tombol & aksen interaktif lama dipetakan ke Biru Sablon */
-    --accent-hover: var(--link-color);
+    /* Penanda Fisik Kuning Karcis & Aksen */
+    --accent-kuning: #F59E0B;
+    --accent-kuning-contrast: #07090E;
+    --accent-primary: var(--primary-color);
+    --accent-hover: #FBBF24;
     --accent-contrast: var(--primary-text-color);
-    --accent-gold: #FFC62E;
-    --accent-gold-surface: #262011;
+    --accent-gold: #D4AF37;
+    --accent-gold-surface: #1E1B10;
+    --accent-cyan: #06B6D4;
 
     /* Token Legacy Murni var(...) */
     --text: var(--text-primary);
@@ -212,35 +212,35 @@
     --bg: var(--surface-canvas);
     --surface: var(--surface-default);
 
-    /* Status Terkonfirmasi Hijau Daun (Gelap) */
-    --status-success: #2A9461;
-    --status-success-contrast: #FFFFFF;
-    --status-success-surface: #10261C;/* Latar banner sukses gelap */
-    --status-success-border: #21543A; /* Batas banner sukses gelap (3,15:1) */
-    --status-success-text: #4ED08F;   /* Teks sukses di atas banner (8,16:1 WCAG AAA) */
+    /* Status Terkonfirmasi Emerald */
+    --status-success: #10B981;
+    --status-success-contrast: #07090E;
+    --status-success-surface: #06281E;
+    --status-success-border: #047857;
+    --status-success-text: #34D399;
 
-    /* Status Batal/Peringatan Merah Cabe (Gelap) */
-    --status-danger: #D93B2B;
+    /* Status Batal Merah Crimson */
+    --status-danger: #EF4444;
     --status-danger-contrast: #FFFFFF;
-    --status-danger-surface: #281414; /* Latar banner bahaya gelap */
-    --status-danger-border: #632722;  /* Batas banner bahaya gelap (3,08:1) */
-    --status-danger-text: #FF8073;    /* Teks bahaya di atas banner (7,15:1 WCAG AAA) */
+    --status-danger-surface: #270D0E;
+    --status-danger-border: #991B1B;
+    --status-danger-text: #F87171;
 
     /* Status Informasi & Peringatan */
-    --status-warning: #FBBF24;
-    --status-warning-contrast: #16201F;
-    --status-warning-surface: #2A200B;
-    --status-info: #8096FF;
-    --status-info-contrast: #16201F;
-    --status-info-surface: #141A30;
+    --status-warning: #F59E0B;
+    --status-warning-contrast: #07090E;
+    --status-warning-surface: #241A07;
+    --status-info: #06B6D4;
+    --status-info-contrast: #07090E;
+    --status-info-surface: #08232C;
 
     /* Entitas Fisik Layar & Tiket */
-    --hero-screen-color: #FFFFFF;     /* Layar proyektor tetap putih */
-    --ticket-paper-color: #ECEFEA;    /* Kertas karcis fisik tetap */
+    --hero-screen-color: #0D121D;
+    --ticket-paper-color: #0E131F;
 
-    --focus-ring: #8096FF;
-    --overlay: rgb(0 0 0 / 78%);
-    --shadow-panel-token: 0 0 40px -10px rgba(242, 245, 243, 0.22), 0 20px 30px -15px rgba(0, 0, 0, 0.6);
+    --focus-ring: #D4AF37;
+    --overlay: rgba(3, 4, 7, 0.88);
+    --shadow-panel-token: 0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 35px -5px rgba(212, 175, 55, 0.12);
 }
 
 html {
@@ -360,9 +360,124 @@ input[type='number']::-webkit-outer-spin-button {
         transition: none !important;
     }
 }
-
 [x-cloak] {
     display: none !important;
 }
 
+/* === CINEMA LUXURY DESIGN SYSTEM (XXI & CGV) === */
 
+/* Glassmorphism Styles */
+.glass-panel {
+    background: rgba(14, 19, 31, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-gold {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(14, 19, 31, 0.85) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+.glass-card {
+    background: rgba(21, 29, 46, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Curved Cinema Screen with Projection Light Beam */
+.curved-cinema-screen {
+    position: relative;
+    width: 100%;
+    height: 38px;
+    border-top: 3px solid #D4AF37;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    background: linear-gradient(180deg, rgba(212, 175, 55, 0.28) 0%, rgba(212, 175, 55, 0.04) 60%, transparent 100%);
+    box-shadow: 0 -10px 30px -4px rgba(212, 175, 55, 0.45);
+}
+
+/* Gold Gradient Buttons & Accents */
+.btn-gold-cinema {
+    background: linear-gradient(135deg, #F59E0B 0%, #D4AF37 50%, #B45309 100%);
+    color: #07090E;
+    font-weight: 800;
+    box-shadow: 0 4px 18px -2px rgba(212, 175, 55, 0.35);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-gold-cinema:hover {
+    box-shadow: 0 6px 25px -2px rgba(212, 175, 55, 0.55);
+    transform: translateY(-1px);
+}
+
+/* Neon Cyan Button (CGV Vibe) */
+.btn-cyan-cinema {
+    background: linear-gradient(135deg, #06B6D4 0%, #0284C7 100%);
+    color: #FFFFFF;
+    font-weight: 800;
+    box-shadow: 0 4px 18px -2px rgba(6, 182, 212, 0.35);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-cyan-cinema:hover {
+    box-shadow: 0 6px 25px -2px rgba(6, 182, 212, 0.55);
+    transform: translateY(-1px);
+}
+
+/* Interactive Seat Buttons */
+.seat-item {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.seat-available {
+    background: rgba(21, 29, 46, 0.9);
+    border: 1.5px solid rgba(255, 255, 255, 0.16);
+    color: #94A3B8;
+}
+.seat-available:hover {
+    border-color: #D4AF37;
+    color: #F8FAFC;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(212, 175, 55, 0.3);
+}
+.seat-selected {
+    background: linear-gradient(135deg, #D4AF37 0%, #F59E0B 100%);
+    border: 1.5px solid #FDE68A;
+    color: #07090E;
+    box-shadow: 0 0 18px rgba(212, 175, 55, 0.7);
+    transform: scale(1.05);
+}
+.seat-occupied {
+    background: rgba(14, 19, 31, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #475569;
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+/* Ticket Stub with Cutout Notches */
+.ticket-stub {
+    position: relative;
+    background: linear-gradient(180deg, #111726 0%, #0A0E18 100%);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    border-radius: 18px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 35px rgba(212, 175, 55, 0.12);
+}
+.ticket-notch-left, .ticket-notch-right {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: var(--surface-canvas);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+}
+.ticket-notch-left {
+    left: -13px;
+    border-right: 1px solid rgba(212, 175, 55, 0.35);
+}
+.ticket-notch-right {
+    right: -13px;
+    border-left: 1px solid rgba(212, 175, 55, 0.35);
+}

@@ -60,10 +60,11 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @stack('styles')
     </head>
-    <body class="min-h-screen bg-bg font-sans text-text antialiased">
-        <header class="border-b border-border bg-surface">
-            <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-3 sm:px-6 sm:py-4">
-                <a href="{{ route('home') }}" class="inline-flex min-h-11 items-center gap-2" aria-label="SynemaX, beranda">
+    <body class="min-h-screen bg-bg font-sans text-text antialiased selection:bg-amber-500/30 selection:text-amber-200">
+        {{-- Sticky Glassmorphic Cinema Navbar --}}
+        <header class="sticky top-0 z-40 border-b border-border bg-surface/90 backdrop-blur-xl transition-all">
+            <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-3 sm:px-6 sm:py-3.5">
+                <a href="{{ route('home') }}" class="inline-flex min-h-11 items-center gap-2 group transition-transform hover:scale-102" aria-label="SynemaX, beranda">
                     <x-brand.logo />
                 </a>
 
@@ -71,27 +72,39 @@
                     <button type="button"
                             id="theme-toggle-btn"
                             onclick="window.synemaXTheme.setMode(document.documentElement.classList.contains('dark') ? 'light' : 'dark')"
-                            class="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-control)] border border-border-input bg-surface px-3 py-2 text-xs font-bold text-text transition hover:border-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                            class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-border-input bg-surface-2/60 px-3 py-1.5 text-xs font-bold text-text transition hover:border-primary hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                             aria-label="Pakai tema gelap">
                         <span class="dark:hidden">Pakai tema gelap</span>
                         <span class="hidden dark:inline">Pakai tema terang</span>
                     </button>
                 </div>
 
-                <nav class="flex w-full items-center gap-1 overflow-x-auto pb-1 text-sm sm:w-auto sm:gap-2 sm:overflow-visible sm:pb-0" aria-label="Navigasi utama">
-                    <a href="{{ route('home') }}#jadwal" class="inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-control)] px-3 py-2 text-text-muted transition hover:bg-surface-2 hover:text-text">Jadwal</a>
+                <nav class="flex w-full items-center gap-1.5 overflow-x-auto pb-1 text-sm sm:w-auto sm:gap-2 sm:overflow-visible sm:pb-0" aria-label="Navigasi utama">
+                    <a href="{{ route('home') }}#jadwal"
+                       class="inline-flex min-h-10 shrink-0 items-center rounded-xl px-3.5 py-1.5 font-medium text-text-muted transition hover:bg-surface-2 hover:text-text">
+                        Jadwal
+                    </a>
                     @if (app(\App\Services\CinemaSettings::class)->infoNobarEnabled())
-                        <a href="{{ route('nobar.index') }}" class="inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-control)] px-3 py-2 transition {{ request()->routeIs('nobar.*') ? 'font-bold text-primary' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}">Nobar</a>
-                        <a href="{{ route('articles.index') }}" class="inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-control)] px-3 py-2 transition {{ request()->routeIs('articles.*') ? 'font-bold text-primary' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}">Kabar</a>
+                        <a href="{{ route('nobar.index') }}"
+                           class="inline-flex min-h-10 shrink-0 items-center rounded-xl px-3.5 py-1.5 font-medium transition {{ request()->routeIs('nobar.*') ? 'bg-primary/10 font-bold text-primary border border-primary/20' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}">
+                            Nobar
+                        </a>
+                        <a href="{{ route('articles.index') }}"
+                           class="inline-flex min-h-10 shrink-0 items-center rounded-xl px-3.5 py-1.5 font-medium transition {{ request()->routeIs('articles.*') ? 'bg-primary/10 font-bold text-primary border border-primary/20' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}">
+                            Kabar
+                        </a>
                     @endif
-                    <a href="{{ route('booking.lookup.form') }}" class="inline-flex min-h-11 shrink-0 items-center rounded-[var(--radius-control)] border border-border-input px-3.5 py-2 font-bold text-text transition hover:border-primary">Cek booking</a>
+                    <a href="{{ route('booking.lookup.form') }}"
+                       class="inline-flex min-h-10 shrink-0 items-center rounded-xl border border-primary/40 bg-primary/10 px-4 py-1.5 text-xs font-bold text-primary transition hover:bg-primary hover:text-primary-text shadow-[0_0_15px_rgba(212,175,55,0.15)]">
+                        Cek booking
+                    </a>
                 </nav>
             </div>
         </header>
 
         @if (session('status') || session('error'))
             <div class="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
-                <p role="status" class="rounded-[var(--radius-control)] border border-warning bg-warning-surface px-4 py-3 text-sm text-warning">
+                <p role="status" class="rounded-xl border border-warning/30 bg-warning-surface/80 backdrop-blur-md px-4 py-3 text-sm text-warning font-medium">
                     {{ session('status') ?? session('error') }}
                 </p>
             </div>
@@ -101,10 +114,17 @@
             @yield('content')
         </main>
 
-        <footer class="border-t border-border px-4 py-8 text-center text-xs text-text-muted">
-            <p class="font-medium text-text">SynemaX Studio & Lounge</p>
-            <p class="mt-1">Jl. Melati No. 12</p>
-            <p class="mt-1">Bioskop mini desa. Nonton dekat, seru bareng.</p>
+        <footer class="border-t border-border bg-surface/50 backdrop-blur-md px-4 py-10 text-center text-xs text-text-muted">
+            <div class="mx-auto max-w-4xl space-y-3">
+                <div class="flex items-center justify-center gap-2">
+                    <x-brand.logo size="sm" />
+                </div>
+                <p class="font-medium text-text">Studio Bioskop Mini Eksklusif Berpendingin Udara</p>
+                <p class="text-text-muted">Jl. Melati No. 12, Jawa Tengah | Pengalaman Nonton Sinematik Layar Lebar</p>
+                <div class="pt-2 text-[11px] text-text-subtle">
+                    &copy; {{ date('Y') }} SynemaX Cinema. All rights reserved.
+                </div>
+            </div>
         </footer>
     </body>
 </html>
