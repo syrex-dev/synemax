@@ -13,7 +13,18 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
   - Sub-tahap A (Admin, Layanan Media, Migrasi & Duplikasi): SELESAI (`commit: 43d77ad`)
   - Sub-tahap B (Halaman Detail /nobar/{slug}, Modal Zoom & Tombol Aksi): SELESAI (`commit: 5ad59d0`)
   - Sub-tahap C (Thumbnail 4:5 Listing & Beranda, Open Graph 1200x630): SELESAI (`commit: c4265dc`)
-  - Sub-tahap D (Testing Otomatis, Pint & Verifikasi Visual): SELESAI (140 tests: 137 passed, 3 skipped; Pint 100% passed)
+  - Sub-tahap D (Testing Otomatis, Pint & Verifikasi Visual): SELESAI (`commit: 3229c5a`)
+- **Tahap 6 (Redesain Visual Publik — Arah: "Layar Tancap")**:
+  - Langkah 1 (Rencana Desain, Token, Sketsa ASCII & Perbandingan Kritis): SELESAI & DISETUJUI
+  - Langkah 2 (Halaman `/styleguide` Lingkungan Lokal & Catatan A–F): SELESAI (`commit: 70c30c6`, `commit: 583b5ae`)
+  - Langkah 3 (Penerapan Bertahap):
+    - 3(a) Shell Publik, Komponen `<x-brand.logo>`, Penyelarasan Tema Admin: SELESAI (`commit: 25c52c7`)
+    - 3(b) Beranda (Hero Layar Menyala & Dinding Poster) dan Jadwal 7 Hari: SELESAI (`commit: df4365b`)
+    - Perbaikan Catatan A s.d. E (Audit CSS, Baseline Ukuran, Font Stretch, Test Baru): SELESAI (`commit: b4abb24`)
+    - 3(c) Wizard Booking Semua Langkah (Slot Sobekan Kuning, Radio Pilihan Biru Sablon, 1 Kolom): SELESAI (`commit: fccf956`)
+    - 3(d) Pembayaran, Tiket Kertas #ECEFEA, Cek Booking & Booking Saya: SELESAI
+    - 3(e) s.d. 3(f): MENUNGGU (Berhenti untuk pemeriksaan pengguna di HP)
+  - Langkah 4 (Kritik Diri & Pembersihan CSS): MENUNGGU
 
 ---
 
@@ -135,6 +146,30 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
   - Seluruh test suite (`php artisan test`): **140 tests (137 passed, 3 skipped)**, 761 assertions lulus hijau.
   - Formatting & Linting (`vendor/bin/pint --test`): **100% passed** tanpa pelanggaran.
 
+### Tahap 6: Redesain Visual Publik (Arah: "Layar Tancap")
+- [x] **Langkah 1: Rencana Desain & Perbandingan Kritis**: SELESAI & DISETUJUI
+  - Perancangan token terpusat (`resources/css/app.css`): palet Layar, Malam, Arang, Biru Sablon, Kuning Karcis, Merah Cabe, Hijau Daun.
+  - Tipografi tunggal Bricolage Grotesque (variabel self-hosted npm, angka tabular).
+  - Sistem bentuk: radius kontrol 5px (`--radius-control`), lekukan sobekan karcis pada tiket & slot terpilih, rasio poster 2:3 rapat tanpa bingkai.
+  - Konsep layout & sketsa ASCII untuk Beranda (desktop & mobile 360px), Detail Nobar, Langkah Wizard (Langkah 3 Tipe Nonton), dan Tiket.
+  - Perbandingan kritis terhadap pola generik AI bioskop dan daftar DILARANG.
+- [x] **Langkah 2: Halaman `/styleguide` Lokal**: SELESAI
+  - Halaman katalog token dan komponen di `routes/web.php` aktif hanya saat `app()->isLocal()` (404 di produksi).
+  - Paket font `@fontsource-variable/bricolage-grotesque` terpasang (WOFF2 latin 76,88 KB, metrik fallback terukur).
+  - Tabel kontras kombinasi nyata WCAG 2.1 terhitung lengkap.
+  - Test otomatis `PublicPagesTest` untuk akses lokal & proteksi 404 produksi.
+  - Seluruh test (142 tests: 139 passed, 3 skipped) dan Pint 100% passed.
+- [x] **Langkah 3 (Penerapan Bertahap a–d)**:
+  - [x] (a) Token, font, shell (`layouts/public.blade.php`), komponen logo tunggal `<x-brand.logo>`, dan penyelarasan tema admin (`layouts/admin.blade.php`).
+  - [x] (b) Beranda (`home.blade.php`, hero layar menyala fade-in 600ms, dinding poster 2:3 rapat, tanpa pengulangan harga/tombol) dan jadwal (`schedule.blade.php`, tata letak 1 kolom tenang, jam tabular).
+  - [x] Catatan A s.d. E: Audit CSS lama 28 token/kelas terbukti dan terpelihara, baseline git worktree terukur, @font-face stretch 75% 100% lengkap, test public pages lulus.
+  - [x] (c) Wizard booking semua langkah: satu kolom tenang (`max-w-xl`), slot jam terpilih dengan sobekan karcis dan Kuning Karcis, pilihan tipe nonton radio border 2px Biru Sablon tanpa sobekan/kuning, nomor langkah "Langkah X dari 5", hook Alpine.js dan input utuh 100%.
+  - [x] (d) Pembayaran, tiket digital fisik kertas `#ECEFEA` di kedua tema dengan sobekan karcis tengah & pita kode Kuning Karcis Arang tabular, aksi tiket utuh & cetak rapi, Cek Booking & Booking Saya tenang dengan penjelasan cara memperbaiki.
+- [ ] **Langkah 3 (Penerapan Bertahap e–f)**:
+  - (e) Nobar (katalog & detail) dan Kabar/Promo.
+  - (f) Halaman error, footer, dan pembersihan token lama.
+- [ ] **Langkah 4: Kritik Diri & Pembersihan CSS**.
+
 ---
 
 ## Keputusan Penting
@@ -144,6 +179,17 @@ Dokumen ini mencatat status pengerjaan fitur dan perbaikan agar progres tetap tr
 4. **Isolasi Fitur Nobar & Berita**: Fitur nobar dan kabar dipisahkan sepenuhnya dari engine reservasi kursi, pembayaran, dan pesanan jajan untuk menjaga integritas transaksi bisnis inti.
 5. **Media Serving Tanpa Storage Link**: Serving media poster & cover menggunakan controller internal dengan HTTP caching (`max-age=86400`) agar kompatibel di lingkungan deployment apa pun tanpa memerlukan `storage:link`.
 6. **Varian Open Graph 1200x630**: Setiap poster potret nobar otomatis dibuatkan varian landscape 1200x630 dengan poster utuh di tengah latar belakang blur gelap, sehingga tidak terpotong saat dibagikan ke WhatsApp dan media sosial.
+7. **Tabel Nama Langkah dan Nama Aksi Wizard & Alur Transaksi**:
+   | Tahap / Halaman | File & Baris | Nama Langkah / Layar | Tombol Aksi Utama | Tombol Aksi Sekunder |
+   | :--- | :--- | :--- | :--- | :--- |
+   | Wizard Langkah 1 | `schedule.blade.php:80` | Jadwal & Sesi | Pilih jam sesi | Ganti tanggal 7 hari |
+   | Wizard Langkah 2 | `booking-form.blade.php:320` | Pilih film | Lanjut ke tipe nonton | Kembali ke jadwal |
+   | Wizard Langkah 3 | `booking-form.blade.php:420` | Tipe nonton | Lanjut ke pilihan jajan / Lanjut ke ringkasan | Kembali |
+   | Wizard Langkah 4 | `booking-form.blade.php:570` | Pilihan jajan | Lanjut ke ringkasan | Kembali |
+   | Wizard Langkah 5 | `booking-form.blade.php:670` | Ringkasan | Kirim booking (atau Booking & bayar) | Kembali |
+   | Pembayaran | `payment.blade.php:96` | Sisa Waktu Pembayaran | Kirim bukti bayar | Kirim bukti lewat WhatsApp, Batalkan booking |
+   | Tiket Digital | `ticket.blade.php:226` | Tiket Masuk Studio | Simpan tiket | Hubungi admin, Ubah jajan via WhatsApp, Booking lagi |
+   | Cek Booking | `booking-status.blade.php:31` | Cek booking | Buka tiket atau pembayaran | Sentuh kode di "Booking saya di perangkat ini" |
 
 ---
 

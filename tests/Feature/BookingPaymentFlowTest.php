@@ -445,7 +445,7 @@ class BookingPaymentFlowTest extends TestCase
         // Ticket page displays cash instructions and 2-step stepper
         $ticketResponse = $this->get(route('booking.ticket', ['code' => $booking->code]));
         $ticketResponse->assertOk()
-            ->assertSee('Tiket Masuk Studio')
+            ->assertSee('Tiket masuk studio')
             ->assertSee('Bayar di tempat')
             ->assertSee('Booking diterima. Bayar tunai di lokasi sebelum film mulai.')
             ->assertSee('1. Booking')
@@ -480,9 +480,9 @@ class BookingPaymentFlowTest extends TestCase
         $paymentResponse->assertOk()
             ->assertDontSee('Tahapan Pesanan')
             ->assertDontSee('1. Booking')
-            ->assertSee('Sisa Waktu Pembayaran')
+            ->assertSee('Sisa waktu pembayaran')
             ->assertSee('Salin nominal')
-            ->assertSee('Pindai Kode QRIS')
+            ->assertSee('Pindai kode QRIS')
             ->assertSee('Kirim bukti bayar')
             ->assertDontSee('Konfirmasi via WhatsApp')
             ->assertSee('Kirim bukti lewat WhatsApp');
@@ -501,7 +501,7 @@ class BookingPaymentFlowTest extends TestCase
         // Visiting ticket page now succeeds and shows menunggu_konfirmasi banner
         $ticketResponse = $this->get(route('booking.ticket', ['code' => $booking->code]));
         $ticketResponse->assertOk()
-            ->assertSee('Menunggu Konfirmasi Admin')
+            ->assertSee('Menunggu konfirmasi admin')
             ->assertSee('Bukti bayar diterima. Admin akan memeriksa dan mengonfirmasi tiketmu.')
             ->assertSee('Simpan tiket')
             ->assertSee('Hubungi admin')

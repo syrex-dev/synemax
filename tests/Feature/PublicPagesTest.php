@@ -73,7 +73,7 @@ class PublicPagesTest extends TestCase
             ->assertOk()
             ->assertSee('Amankan kursimu')
             ->assertSee('Misi Terakhir Pak Pos')
-            ->assertSee('Sewa Private');
+            ->assertSee('Sewa studio privat');
     }
 
     public function test_booking_success_page_renders_the_wa_confirmation_link(): void
@@ -111,5 +111,46 @@ class PublicPagesTest extends TestCase
             ->assertSee('Konfirmasi via WhatsApp')
             ->assertSee('wa.me/6280000000000', false)
             ->assertSee('Malam di Bukit Bintang');
+    }
+
+    public function test_styleguide_is_accessible_in_local_environment(): void
+    {
+        $this->app['env'] = 'local';
+
+        $this->get(route('styleguide'))
+            ->assertOk()
+            ->assertSee('Panduan Gaya: Layar Tancap')
+            ->assertSee('Biru Sablon');
+    }
+
+    public function test_styleguide_returns_404_in_production_environment(): void
+    {
+        $this->app['env'] = 'production';
+
+        $this->get(route('styleguide'))
+            ->assertNotFound();
+    }
+
+    public function test_home_and_schedule_render_key_elements_and_no_banned_characters(): void
+    {
+        $home = $this->get(route('home'))->assertOk();
+        $home->assertSee('Pesan tiket');
+        $home->assertSee('Pakai tema gelap');
+        $home->assertDontSee('·');
+        $home->assertDontSee('->');
+
+        Session::query()->create([
+            'session_date' => '2026-10-14',
+            'start_time' => '16:00',
+            'end_time' => '18:00',
+            'capacity' => 6,
+            'status' => 'tersedia',
+        ]);
+
+        $schedule = $this->get(route('schedule.date', ['date' => '2026-10-14']))->assertOk();
+        $schedule->assertSee('Pesan tiket');
+        $schedule->assertSee('Pakai tema gelap');
+        $schedule->assertDontSee('·');
+        $schedule->assertDontSee('->');
     }
 }

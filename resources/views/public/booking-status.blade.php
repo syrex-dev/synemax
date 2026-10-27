@@ -1,12 +1,12 @@
 @extends('layouts.public')
 
-@section('title', 'Cek Booking · SynemaX')
+@section('title', 'Cek booking: SynemaX')
 @section('meta')
-    <meta name="description" content="Cek status tiket dan pembayaran SynemaX Home Cinema dengan kode booking dan nomor WhatsApp.">
+    <meta name="description" content="Cek status tiket dan pembayaran SynemaX dengan kode booking dan nomor WhatsApp.">
 @endsection
 
 @section('content')
-    <section class="mx-auto max-w-lg px-4 py-8 sm:px-6 sm:py-12"
+    <section class="mx-auto max-w-xl px-4 py-6 sm:px-6 sm:py-10"
              x-data="{
                  code: @js(old('code', request('code', ''))),
                  savedCodes: [],
@@ -26,31 +26,38 @@
                  }
              }">
 
-        <div class="text-center">
-            <span class="text-xs font-bold uppercase tracking-[0.2em] text-accent">Pencarian Tiket</span>
-            <h1 class="mt-2 text-3xl font-black text-text sm:text-4xl">Cek Booking</h1>
-            <p class="mt-2 text-sm text-text-muted">Masukkan kode booking dan nomor WhatsApp yang digunakan saat memesan.</p>
-        </div>
+        <header class="mb-6">
+            <span class="text-xs font-bold text-text-muted">Pencarian tiket</span>
+            <h1 class="mt-1 text-2xl font-black text-text sm:text-3xl">Cek booking</h1>
+            <p class="mt-2 text-xs sm:text-sm text-text-muted leading-relaxed">
+                Masukkan kode booking dan nomor WhatsApp yang digunakan saat memesan untuk membuka tiket digital atau menyelesaikan pembayaran.
+            </p>
+        </header>
 
         @if (session('status'))
-            <div role="status" class="mt-6 rounded-2xl border border-success/30 bg-success/10 p-4 text-xs font-semibold text-success">
+            <div role="status" class="mb-5 rounded-[var(--radius-control)] border border-success-border bg-success-surface p-3.5 text-xs font-bold text-success-text">
                 {{ session('status') }}
             </div>
         @endif
 
         @if ($errors->any())
-            <div role="alert" class="mt-6 rounded-2xl border border-danger/30 bg-danger/10 p-4 text-xs font-semibold text-danger">
+            <div role="alert" class="mb-5 rounded-[var(--radius-control)] border border-danger-border bg-danger-surface p-4 text-xs font-semibold text-danger-text space-y-1.5">
                 @foreach ($errors->all() as $error)
-                    <p>{{ $error }}</p>
+                    <p class="font-bold">{{ $error }}</p>
                 @endforeach
+                @if ($errors->has('code'))
+                    <p class="font-normal opacity-90 leading-relaxed pt-1">
+                        Pastikan huruf kode booking sesuai (contoh: HC-261014-A7K2) dan nomor WhatsApp sama dengan yang dimasukkan saat pemesanan. Bila Anda pernah memesan di perangkat ini, pilih kode dari daftar riwayat di bawah.
+                    </p>
+                @endif
             </div>
         @endif
 
-        <form method="POST" action="{{ route('booking.lookup') }}" class="mt-6 space-y-4 rounded-3xl border border-border bg-surface p-6 shadow-token sm:p-7">
+        <form method="POST" action="{{ route('booking.lookup') }}" class="space-y-4 rounded-[var(--radius-control)] border border-border bg-surface p-5 shadow-xs sm:p-6">
             @csrf
 
             <div>
-                <label for="code" class="block text-xs font-bold uppercase tracking-wider text-text">Kode Booking</label>
+                <label for="code" class="block text-xs font-bold text-text">Kode booking</label>
                 <input id="code"
                        name="code"
                        x-ref="codeInput"
@@ -58,12 +65,17 @@
                        required
                        maxlength="20"
                        autocomplete="off"
+                       aria-describedby="code-help @if ($errors->has('code')) code-error @endif"
                        placeholder="Contoh: HC-261014-A7K2"
-                       class="mt-2 min-h-12 w-full rounded-xl border border-border bg-bg px-4 font-mono text-base font-bold uppercase tracking-wider text-text focus:border-accent focus:ring-accent">
+                       class="mt-1.5 min-h-11 w-full rounded-[var(--radius-control)] border border-border-input bg-bg px-3.5 font-tabular text-sm font-bold text-text focus:border-primary focus:outline-none">
+                <p id="code-help" class="mt-1 text-[11px] text-text-muted">Kode unik yang tertera saat pemesanan dibuat.</p>
+                @if ($errors->has('code'))
+                    <p id="code-error" class="mt-1 text-xs font-semibold text-danger-text">{{ $errors->first('code') }}</p>
+                @endif
             </div>
 
             <div>
-                <label for="whatsapp" class="block text-xs font-bold uppercase tracking-wider text-text">Nomor WhatsApp</label>
+                <label for="whatsapp" class="block text-xs font-bold text-text">Nomor WhatsApp</label>
                 <input id="whatsapp"
                        name="whatsapp"
                        value="{{ old('whatsapp') }}"
@@ -71,34 +83,40 @@
                        type="tel"
                        inputmode="numeric"
                        autocomplete="tel"
+                       aria-describedby="whatsapp-help @if ($errors->has('whatsapp')) whatsapp-error @endif"
                        placeholder="Contoh: 081234567890"
-                       class="mt-2 min-h-12 w-full rounded-xl border border-border bg-bg px-4 text-sm text-text focus:border-accent focus:ring-accent">
-                <p class="mt-1.5 text-[11px] text-text-muted">Hanya pemesan terverifikasi yang dapat mengakses rincian tiket.</p>
+                       class="mt-1.5 min-h-11 w-full rounded-[var(--radius-control)] border border-border-input bg-bg px-3.5 text-sm text-text focus:border-primary focus:outline-none">
+                <p id="whatsapp-help" class="mt-1 text-[11px] text-text-muted">Nomor WhatsApp aktif pemesan untuk verifikasi keamanan.</p>
+                @if ($errors->has('whatsapp'))
+                    <p id="whatsapp-error" class="mt-1 text-xs font-semibold text-danger-text">{{ $errors->first('whatsapp') }}</p>
+                @endif
             </div>
 
-            <button type="submit"
-                    class="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-accent px-5 text-sm font-bold text-accent-contrast shadow-sm transition hover:opacity-90">
-                Buka Tiket / Pembayaran
-            </button>
+            <div class="pt-2">
+                <button type="submit"
+                        class="inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-control)] bg-primary px-5 text-xs font-bold text-white shadow-xs transition hover:opacity-95">
+                    Cek booking
+                </button>
+            </div>
         </form>
 
-        {{-- Riwayat Booking di Perangkat Ini --}}
-        <div x-show="savedCodes.length > 0" x-cloak class="mt-6 rounded-2xl border border-border bg-surface-2/60 p-4">
-            <p class="text-xs font-bold uppercase tracking-wider text-text-muted">Booking Terakhir di Perangkat Ini:</p>
-            <div class="mt-2.5 flex flex-wrap gap-2">
+        {{-- Riwayat Booking di Perangkat Ini (Booking Saya) --}}
+        <section x-show="savedCodes.length > 0" x-cloak class="mt-6 rounded-[var(--radius-control)] border border-border bg-surface-2 p-4 sm:p-5">
+            <h2 class="text-xs font-bold text-text-muted">Booking saya di perangkat ini</h2>
+            <p class="mt-1 text-xs text-text-muted">Sentuh salah satu kode untuk mengisi form di atas:</p>
+            <div class="mt-3 flex flex-wrap gap-2">
                 <template x-for="c in savedCodes" :key="c">
                     <button type="button"
                             @click="selectCode(c)"
-                            class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 font-mono text-xs font-bold text-accent hover:border-accent hover:bg-accent/5">
+                            class="inline-flex min-h-9 items-center gap-1.5 rounded-[var(--radius-control)] border border-border-input bg-surface px-3 py-1 font-tabular text-xs font-bold text-text hover:border-primary hover:text-primary">
                         <span x-text="c"></span>
                     </button>
                 </template>
             </div>
-            <p class="mt-2 text-[11px] text-text-muted">Klik salah satu kode di atas untuk mengisi otomatis.</p>
-        </div>
+        </section>
 
-        <div class="mt-8 text-center text-xs text-text-muted">
-            <p>Butuh bantuan? <a href="{{ route('home') }}" class="font-bold text-accent hover:underline">Kembali ke Beranda</a></p>
-        </div>
+        <footer class="mt-8 text-center text-xs text-text-muted">
+            <p>Ingin melihat sesi film lain? <a href="{{ route('home') }}" class="font-bold text-link hover:underline">Kembali ke beranda</a></p>
+        </footer>
     </section>
 @endsection

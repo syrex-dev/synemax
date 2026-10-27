@@ -1,204 +1,295 @@
 @extends('layouts.public')
 
-@section('title', 'SynemaX Home Cinema — Film pilihanmu, suasana rumah')
+@section('title', 'SynemaX: Bioskop Mini Desa')
 @section('meta')
-    <meta name="description" content="Pilih film dan jadwal, lalu booking bioskop kecil yang hangat bareng keluarga atau teman. Kapasitas enam kursi per sesi.">
+    <meta name="description" content="Nonton dekat, seru bareng di studio mini SynemaX. Pilih film dan amankan kursi tanpa harus membuat akun. Kapasitas enam kursi per sesi.">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="SynemaX Home Cinema — Nonton dekat, seru bareng">
-    <meta property="og:description" content="Film pilihanmu, suasana rumah. Pilih jadwal dan booking tanpa bikin akun.">
+    <meta property="og:title" content="SynemaX: Bioskop Mini Desa">
+    <meta property="og:description" content="Film pilihanmu, suasana rumah. Pilih jadwal dan amankan kursimu dengan cepat.">
     <meta property="og:image" content="{{ asset('social-banner.png') }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:type" content="image/png">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="SynemaX Home Cinema — Nonton dekat, seru bareng">
-    <meta name="twitter:description" content="Pilih film dan jadwal, lalu booking gampang tanpa bikin akun.">
+    <meta name="twitter:title" content="SynemaX: Bioskop Mini Desa">
+    <meta name="twitter:description" content="Film pilihanmu, suasana rumah. Pilih jadwal dan amankan kursimu dengan cepat.">
     <meta name="twitter:image" content="{{ asset('social-banner.png') }}">
 @endsection
 
 @section('content')
-    <div class="mx-auto max-w-6xl px-4 sm:px-6">
-        <section class="relative isolate mt-5 overflow-hidden rounded-[2rem] border border-border bg-surface px-5 py-9 shadow-token sm:mt-8 sm:px-10 sm:py-14 lg:px-14">
-            <div class="pointer-events-none absolute -right-16 -top-24 -z-10 size-80 rounded-full bg-accent/10 blur-3xl sm:size-[28rem]"></div>
-            <div class="max-w-2xl">
-                <p class="text-sm font-bold uppercase tracking-[0.18em] text-accent">Bioskop kecil, cerita besar</p>
-                <h1 class="mt-4 text-4xl font-black leading-[1.08] tracking-tight text-text sm:text-6xl">Film pilihanmu,<br><span class="text-accent">suasana rumah.</span></h1>
-                <p class="mt-5 max-w-xl text-base leading-7 text-text-muted sm:text-lg">Ajak keluarga atau teman nonton bareng. Pilih film, amankan kursi, dan kalau mau sekalian pesan jajan—tanpa bikin akun.</p>
-                <div class="mt-7 flex flex-col gap-3 sm:flex-row">
-                    @if ($nextAvailableSession)
-                        <a href="{{ route('schedule.date', ['date' => $nextAvailableSession->session_date]) }}" class="inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-accent px-6 text-base font-bold text-accent-contrast shadow-token hover:opacity-90 sm:w-auto">Booking Sekarang</a>
-                        <p class="self-center text-sm text-text-muted">Sesi terdekat: {{ $nextAvailableSession->startsAt()->locale('id')->translatedFormat('D, d M') }} · {{ substr((string) $nextAvailableSession->start_time, 0, 5) }}</p>
-                    @else
-                        <a href="#jadwal" class="inline-flex min-h-14 w-full items-center justify-center rounded-xl bg-accent px-6 text-base font-bold text-accent-contrast sm:w-auto">Lihat jadwal</a>
-                        <p class="self-center text-sm text-text-muted">Jadwal baru segera dibuka, ya.</p>
-                    @endif
+    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-10">
+        {{-- HERO: Panel Layar Proyektor Menyala --}}
+        <section class="hero-screen-panel p-5 sm:p-8 lg:p-10">
+            @if ($nextAvailableSession && $nextAvailableSession->film)
+                @php
+                    $heroFilm = $nextAvailableSession->film;
+                    $heroTime = substr((string) $nextAvailableSession->start_time, 0, 5) . ' WIB';
+                    $heroDate = $nextAvailableSession->startsAt()->locale('id')->translatedFormat('l, d F Y');
+                @endphp
+                <div class="flex flex-col gap-6 sm:flex-row sm:items-center lg:gap-10">
+                    <div class="w-32 shrink-0 sm:w-44 lg:w-52">
+                        <div class="aspect-[2/3] w-full overflow-hidden rounded-[var(--radius-control)] bg-[#16201F]">
+                            @if ($heroFilm->poster_path)
+                                <img src="{{ Storage::url($heroFilm->poster_path) }}"
+                                     alt="Poster {{ $heroFilm->title }}"
+                                     loading="eager"
+                                     fetchpriority="high"
+                                     class="size-full object-cover">
+                            @else
+                                <div class="flex size-full items-center justify-center p-3 text-center text-xs font-bold text-white/70">
+                                    {{ $heroFilm->title }}
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-xs font-bold text-[#4A605E]">Tayangan terdekat di Studio 1</p>
+                        <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-[#16201F] sm:text-4xl lg:text-5xl leading-tight">
+                            {{ $heroFilm->title }}
+                        </h1>
+                        <p class="mt-2 text-xs font-medium text-[#4A605E]">
+                            {{ $heroFilm->genre }}, {{ $heroFilm->duration_minutes }} menit, batas usia {{ $heroFilm->age_rating }}
+                        </p>
+                        <p class="mt-3 max-w-xl text-sm leading-relaxed text-[#16201F]/80">
+                            {{ $heroFilm->synopsis ?: 'Ajak keluarga atau teman nonton bareng di studio mini berpendingin ruangan. Kapasitas enam kursi tiap sesi.' }}
+                        </p>
+
+                        <div class="mt-6 flex flex-wrap items-center gap-3">
+                            <a href="{{ route('booking.create', ['session' => $nextAvailableSession->id]) }}"
+                               class="inline-flex min-h-12 items-center justify-center rounded-[var(--radius-control)] bg-primary px-6 text-sm font-bold text-white shadow-xs transition hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                                Pesan tiket
+                            </a>
+                            <span class="inline-flex min-h-12 items-center rounded-[var(--radius-control)] bg-[#FFC62E] px-4 font-tabular text-sm font-bold text-[#16201F]">
+                                {{ $heroTime }}
+                            </span>
+                        </div>
+                        <p class="mt-2 text-xs text-[#4A605E]">
+                            Sesi {{ $heroDate }}. Tiket hari biasa mulai Rp {{ number_format($weekdayPrice, 0, ',', '.') }} per orang.
+                        </p>
+                    </div>
                 </div>
-                <p class="mt-4 text-sm font-semibold text-text-muted">Tiket mulai Rp {{ number_format($weekdayPrice, 0, ',', '.') }} per orang · maksimal 6 kursi per sesi</p>
-            </div>
-            <div aria-hidden="true" class="pointer-events-none absolute bottom-0 right-12 hidden h-56 w-40 -rotate-6 rounded-t-[2rem] border border-accent/30 bg-surface-2 shadow-token md:block">
-                <div class="absolute inset-4 rounded-2xl border border-border bg-bg"></div>
-                <span class="absolute inset-x-0 bottom-8 text-center text-sm font-black tracking-[0.2em] text-accent">LAYAR KITA</span>
-            </div>
+            @else
+                <div class="max-w-2xl py-4 sm:py-6">
+                    <p class="text-xs font-bold text-[#4A605E]">Studio mini desa</p>
+                    <h1 class="mt-2 text-3xl font-extrabold tracking-tight text-[#16201F] sm:text-5xl">
+                        Film pilihanmu, suasana rumah.
+                    </h1>
+                    <p class="mt-4 text-base leading-relaxed text-[#16201F]/80">
+                        Ajak keluarga atau teman menonton bareng di studio mini berpendingin ruangan. Pilih film, amankan kursi, dan pesan jajan tanpa ribet membuat akun.
+                    </p>
+                    <div class="mt-6">
+                        <a href="#jadwal" class="inline-flex min-h-12 items-center justify-center rounded-[var(--radius-control)] bg-primary px-6 text-sm font-bold text-white shadow-xs hover:opacity-95">
+                            Pesan tiket
+                        </a>
+                    </div>
+                    <p class="mt-3 text-xs text-[#4A605E]">
+                        Kapasitas maksimal 6 kursi per sesi. Tiket hari biasa mulai Rp {{ number_format($weekdayPrice, 0, ',', '.') }} per orang.
+                    </p>
+                </div>
+            @endif
         </section>
 
-        <section id="booking-saya" x-data="{
-                    codes: [],
-                    loadCodes() {
-                        try {
-                            const stored = JSON.parse(localStorage.getItem('synemax:booking-codes') || '[]');
-                            this.codes = Array.isArray(stored) ? [...new Set(stored.filter((code) => typeof code === 'string'))] : [];
-                        } catch {
-                            this.codes = [];
-                        }
-                    },
-                    removeCode(code) {
-                        this.codes = this.codes.filter((saved) => saved !== code);
-                        try {
-                            localStorage.setItem('synemax:booking-codes', JSON.stringify(this.codes));
-                        } catch {
-                            this.loadCodes();
-                        }
-                    }
-                }" x-init="loadCodes()" x-show="codes.length > 0" x-cloak class="mt-5 rounded-2xl border border-border bg-surface p-4 shadow-token sm:p-5">
-            <div class="flex flex-wrap items-end justify-between gap-2">
-                <div><p class="text-sm font-bold uppercase tracking-[0.15em] text-accent">Perangkat ini</p><h2 class="mt-1 text-xl font-bold text-text">Booking Saya</h2></div>
-                <p class="text-sm text-text-muted">Kode saja yang disimpan. Nomor WhatsApp tetap diminta saat cek status.</p>
+        {{-- Booking Saya (Tersimpan Lokal di Perangkat Pengguna) --}}
+        <section id="booking-saya"
+                 x-data="{
+                     codes: [],
+                     loadCodes() {
+                         try {
+                             const stored = JSON.parse(localStorage.getItem('synemax:booking-codes') || '[]');
+                             this.codes = Array.isArray(stored) ? [...new Set(stored.filter((code) => typeof code === 'string'))] : [];
+                         } catch {
+                             this.codes = [];
+                         }
+                     },
+                     removeCode(code) {
+                         this.codes = this.codes.filter((saved) => saved !== code);
+                         try {
+                             localStorage.setItem('synemax:booking-codes', JSON.stringify(this.codes));
+                         } catch {
+                             this.loadCodes();
+                         }
+                     }
+                 }"
+                 x-init="loadCodes()"
+                 x-show="codes.length > 0"
+                 x-cloak
+                 class="mt-10 rounded-[var(--radius-control)] border border-border bg-surface p-5">
+            <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-3">
+                <h2 class="text-base font-bold text-text">Booking saya di perangkat ini</h2>
+                <p class="text-xs text-text-muted">Nomor WhatsApp tetap diminta saat memeriksa status.</p>
             </div>
-            <ul class="mt-3 space-y-2">
+            <ul class="mt-4 space-y-2">
                 <template x-for="code in codes" :key="code">
-                    <li class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-bg p-3">
-                        <a :href="`{{ route('booking.lookup.form') }}?code=${encodeURIComponent(code)}`" class="min-h-11 flex-1 content-center font-mono text-base font-bold text-accent underline underline-offset-2" x-text="code"></a>
-                        <button type="button" @click="removeCode(code)" class="min-h-11 rounded-lg border border-border px-3 text-sm font-semibold text-text">Hapus kode</button>
+                    <li class="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] border border-border-input bg-surface-2 p-3">
+                        <a :href="`{{ route('booking.lookup.form') }}?code=${encodeURIComponent(code)}`"
+                           class="font-tabular text-sm font-bold text-primary underline underline-offset-2"
+                           x-text="code"></a>
+                        <div class="flex gap-2">
+                            <a :href="`{{ route('booking.lookup.form') }}?code=${encodeURIComponent(code)}`"
+                               class="inline-flex min-h-9 items-center rounded-[var(--radius-control)] bg-primary px-3 text-xs font-bold text-white">
+                                Cek status
+                            </a>
+                            <button type="button"
+                                    @click="removeCode(code)"
+                                    class="inline-flex min-h-9 items-center rounded-[var(--radius-control)] border border-border-input px-3 text-xs font-medium text-text hover:border-danger-border hover:text-danger-text">
+                                Hapus
+                            </button>
+                        </div>
                     </li>
                 </template>
             </ul>
         </section>
 
-        <section id="jadwal" class="scroll-mt-6 pt-12 sm:pt-16">
-            <div class="flex flex-wrap items-end justify-between gap-3">
+        {{-- Jadwal 7 Hari --}}
+        <section id="jadwal" class="scroll-mt-8 pt-12 sm:pt-16">
+            <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-3">
                 <div>
-                    <p class="text-sm font-bold uppercase tracking-[0.16em] text-accent">Langkah pertama</p>
-                    <h2 class="mt-2 text-2xl font-black text-text sm:text-3xl">Pilih jadwal nonton</h2>
+                    <h2 class="text-2xl font-bold tracking-tight text-text sm:text-3xl">Pilih hari nonton</h2>
+                    <p class="mt-1 text-sm text-text-muted">Jadwal 7 hari ke depan. Tiket mulai Rp {{ number_format($weekdayPrice, 0, ',', '.') }} per orang.</p>
                 </div>
-                <p class="text-sm text-text-muted">Jadwal 7 hari ke depan</p>
             </div>
-            <nav class="mt-5 flex snap-x gap-3 overflow-x-auto pb-3" aria-label="Jadwal untuk tujuh hari ke depan">
+
+            <nav class="mt-6 flex snap-x gap-2.5 overflow-x-auto pb-3" aria-label="Jadwal 7 hari ke depan">
                 @foreach ($dates as $date)
                     @php($dateKey = $date->toDateString())
-                    <a href="{{ route('schedule.date', ['date' => $dateKey]) }}" class="min-w-40 snap-start rounded-2xl border border-border bg-surface p-4 transition hover:border-accent hover:shadow-token">
-                        <span class="flex items-start justify-between gap-2">
-                            <span class="font-bold text-text">{{ $loop->first ? 'Hari ini' : $date->locale('id')->translatedFormat('D, d M') }}</span>
+                    <a href="{{ route('schedule.date', ['date' => $dateKey]) }}"
+                       class="min-w-36 snap-start rounded-[var(--radius-control)] border border-border-input bg-surface p-3.5 transition hover:border-primary">
+                        <div class="flex items-start justify-between gap-1">
+                            <span class="text-xs font-bold text-text">{{ $loop->first ? 'Hari ini' : $date->locale('id')->translatedFormat('l') }}</span>
                             @if ($holidayDates->has($dateKey))
-                                <span class="rounded-full bg-warning/15 px-2 py-1 text-xs font-bold text-warning">Libur</span>
+                                <span class="rounded-[var(--radius-control)] bg-[#FFC62E] px-1.5 py-0.5 text-[10px] font-bold text-[#16201F]">Libur</span>
                             @endif
-                        </span>
-                        <span class="mt-3 flex min-h-8 flex-wrap gap-2">
+                        </div>
+                        <span class="mt-1 block font-tabular text-base font-extrabold text-text">{{ $date->format('d M') }}</span>
+                        <div class="mt-3 flex flex-wrap gap-1.5">
                             @forelse ($sessionsByDate->get($dateKey, collect()) as $session)
-                                <span class="rounded-lg bg-surface-2 px-2 py-1 text-xs font-semibold text-text">{{ substr((string) $session->start_time, 0, 5) }}</span>
+                                <span class="rounded-[var(--radius-control)] bg-surface-2 px-1.5 py-0.5 font-tabular text-[11px] font-semibold text-text">
+                                    {{ substr((string) $session->start_time, 0, 5) }}
+                                </span>
                             @empty
-                                <span class="text-sm text-text-muted">Jadwal menyusul</span>
+                                <span class="text-xs text-text-muted">Menyusul</span>
                             @endforelse
-                        </span>
+                        </div>
                     </a>
                 @endforeach
             </nav>
         </section>
 
+        {{-- Dinding Poster Film (Rasio 2:3, Rapat Tanpa Bingkai Kartu) --}}
         <section class="pt-12 sm:pt-16">
-            <div class="flex items-end justify-between gap-3">
+            <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-3">
                 <div>
-                    <p class="text-sm font-bold uppercase tracking-[0.16em] text-accent">Pilih tontonan</p>
-                    <h2 class="mt-2 text-2xl font-black text-text sm:text-3xl">Film tersedia</h2>
+                    <h2 class="text-2xl font-bold tracking-tight text-text sm:text-3xl">Film tersedia</h2>
+                    <p class="mt-1 text-sm text-text-muted">Pilihan tontonan di studio mini SynemaX minggu ini. Klik poster atau judul untuk melihat jadwal.</p>
                 </div>
-                <span class="text-sm text-text-muted">{{ $films->count() }} film</span>
+                <span class="font-tabular text-xs font-medium text-text-muted">{{ $films->count() }} film</span>
             </div>
-            <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
+
+            <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 xl:grid-cols-5">
                 @forelse ($films as $film)
-                    <article class="overflow-hidden rounded-2xl border border-border bg-surface shadow-token">
-                        <div class="relative aspect-[2/3] overflow-hidden bg-surface-2" @if ($film->poster_path) x-data="{ posterLoaded: false }" x-init="$nextTick(() => posterLoaded = $refs.poster.complete)" @endif>
-                            @if ($film->poster_path)
-                                <x-skeleton x-show="!posterLoaded" class="absolute inset-0 rounded-none" />
-                                <img x-ref="poster" x-on:load="posterLoaded = true" x-on:error="posterLoaded = true" src="{{ Storage::url($film->poster_path) }}" alt="Poster {{ $film->title }}" loading="lazy" decoding="async" width="500" height="750" class="relative size-full object-cover">
-                            @else
-                                <div class="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-overlay to-transparent p-3 sm:p-4">
-                                    <span class="mb-2 text-xs font-bold uppercase tracking-[0.14em] text-accent">Pilihan studio</span>
-                                    <span class="text-lg font-black leading-tight text-text sm:text-xl">{{ $film->title }}</span>
-                                </div>
-                            @endif
-                            <span class="absolute right-2 top-2 rounded-lg bg-overlay px-2 py-1 text-xs font-bold text-text">{{ $film->age_rating }}</span>
-                        </div>
-                        <div class="p-3 sm:p-4">
-                            <h3 class="line-clamp-2 font-bold leading-snug text-text">{{ $film->title }}</h3>
-                            <p class="mt-1 text-sm text-text-muted">{{ $film->genre }} · {{ $film->duration_minutes }} menit</p>
-                            <p class="mt-3 line-clamp-3 text-sm leading-5 text-text-muted">{{ $film->synopsis }}</p>
-                            @if ($film->trailer_url)
-                                <a href="{{ $film->trailer_url }}" target="_blank" rel="noopener noreferrer" class="mt-3 inline-flex min-h-11 items-center text-sm font-bold text-accent hover:underline">▶ Lihat trailer</a>
-                            @endif
+                    <article class="flex flex-col">
+                        <a href="{{ route('home') }}#jadwal" class="group block overflow-hidden rounded-[var(--radius-control)] bg-surface-2">
+                            <div class="relative aspect-[2/3] w-full overflow-hidden bg-surface-2">
+                                @if ($film->poster_path)
+                                    <img src="{{ Storage::url($film->poster_path) }}"
+                                         alt="Poster {{ $film->title }}"
+                                         loading="lazy"
+                                         width="500"
+                                         height="750"
+                                         class="size-full object-cover transition duration-200 group-hover:scale-[1.02]">
+                                @else
+                                    <div class="flex size-full items-center justify-center p-3 text-center text-xs font-bold text-text-muted">
+                                        {{ $film->title }}
+                                    </div>
+                                @endif
+                                <span class="absolute right-2 top-2 rounded-[var(--radius-control)] bg-[#16201F]/80 px-1.5 py-0.5 font-tabular text-[10px] font-bold text-white">
+                                    {{ $film->age_rating }}
+                                </span>
+                            </div>
+                        </a>
+                        <div class="mt-2.5">
+                            <h3 class="text-sm font-bold text-text leading-snug">
+                                <a href="{{ route('home') }}#jadwal" class="hover:text-primary">
+                                    {{ $film->title }}
+                                </a>
+                            </h3>
+                            <p class="mt-0.5 text-xs text-text-muted">
+                                {{ $film->genre }}
+                            </p>
                         </div>
                     </article>
                 @empty
-                    <p class="col-span-full rounded-xl border border-border bg-surface p-5 text-base text-text-muted">Katalog film sedang disiapkan admin. Coba cek lagi sebentar, ya.</p>
+                    <p class="col-span-full rounded-[var(--radius-control)] border border-border bg-surface p-5 text-sm text-text-muted">
+                        Katalog film sedang disiapkan pengelola studio. Silakan periksa kembali beberapa saat lagi.
+                    </p>
                 @endforelse
             </div>
         </section>
 
-        {{-- Section Nobar Komunitas --}}
+        {{-- Nobar di Luar Ruangan --}}
         @if ($infoNobarEnabled && $upcomingNobar->isNotEmpty())
             <section class="pt-12 sm:pt-16">
-                <div class="flex flex-wrap items-end justify-between gap-3">
+                <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-3">
                     <div>
-                        <p class="text-sm font-bold uppercase tracking-[0.16em] text-accent">Nonton Bareng Sepak Bola</p>
-                        <h2 class="mt-2 text-2xl font-black text-text sm:text-3xl">Nobar Komunitas</h2>
+                        <h2 class="text-2xl font-bold tracking-tight text-text sm:text-3xl">Nobar di luar ruangan</h2>
+                        <p class="mt-1 text-sm text-text-muted">Nonton bareng gratis di halaman depan bioskop mini SynemaX.</p>
                     </div>
-                    <a href="{{ route('nobar.index') }}" class="inline-flex items-center gap-1 text-sm font-bold text-accent hover:underline">
-                        <span>Semua Acara Nobar</span>
-                        <span>→</span>
+                    <a href="{{ route('nobar.index') }}" class="text-xs font-bold text-primary hover:underline">
+                        Semua acara nobar
                     </a>
                 </div>
-                <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+                <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($upcomingNobar as $event)
-                        <article class="flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-surface p-5 shadow-token transition hover:border-accent">
+                        <article class="flex flex-col justify-between rounded-[var(--radius-control)] border border-border bg-surface p-5">
                             <div>
                                 @if ($event->hasPoster())
-                                    <a href="{{ route('nobar.show', ['slug' => $event->slug]) }}" class="block aspect-[4/5] w-full overflow-hidden bg-surface-2 rounded-xl mb-4">
-                                        <img src="{{ $event->posterUrl() }}" alt="{{ $event->posterAltText() }}" class="size-full object-cover object-top transition duration-300 hover:scale-105" loading="lazy">
+                                    <a href="{{ route('nobar.show', ['slug' => $event->slug]) }}" class="block aspect-[4/5] w-full overflow-hidden rounded-[var(--radius-control)] bg-surface-2 mb-4">
+                                        <img src="{{ $event->posterUrl() }}"
+                                             alt="{{ $event->posterAltText() }}"
+                                             loading="lazy"
+                                             class="size-full object-cover object-top transition duration-200 hover:scale-[1.02]">
                                     </a>
                                 @endif
+
                                 <div class="flex items-center justify-between gap-2">
-                                    <span class="rounded-full px-2.5 py-0.5 text-xs font-bold {{ $event->badgeClasses() }}">
+                                    <span class="rounded-[var(--radius-control)] bg-surface-2 px-2 py-0.5 text-[11px] font-bold text-text">
                                         {{ $event->display_status }}
                                     </span>
-                                    <span class="text-xs font-semibold text-text-muted">
-                                        {{ $event->is_free ? 'Gratis' : ($event->harga_info ?: 'Berbayar') }}
-                                    </span>
+                                    @if ($event->is_free)
+                                        <span class="rounded-[var(--radius-control)] bg-[#FFC62E] px-2 py-0.5 text-[11px] font-bold text-[#16201F]">
+                                            Gratis
+                                        </span>
+                                    @elseif ($event->harga_info)
+                                        <span class="text-xs font-semibold text-text-muted">
+                                            {{ $event->harga_info }}
+                                        </span>
+                                    @endif
                                 </div>
-                                <h3 class="mt-3 text-lg font-bold text-text line-clamp-2">
-                                    <a href="{{ route('nobar.show', ['slug' => $event->slug]) }}" class="hover:text-accent">
+
+                                <h3 class="mt-3 text-base font-bold text-text">
+                                    <a href="{{ route('nobar.show', ['slug' => $event->slug]) }}" class="hover:text-primary">
                                         {{ $event->judul }}
                                     </a>
                                 </h3>
-                                <div class="mt-4 flex items-center justify-center rounded-xl bg-surface-2 p-3 text-center">
+
+                                <div class="mt-3 flex items-baseline justify-between rounded-[var(--radius-control)] bg-surface-2 p-3 text-sm">
                                     <span class="font-bold text-text">{{ $event->tim_a }}</span>
-                                    <span class="mx-2 text-xs font-black uppercase text-accent">VS</span>
+                                    <span class="text-xs text-text-muted">lawan</span>
                                     <span class="font-bold text-text">{{ $event->tim_b ?: 'TBA' }}</span>
                                 </div>
-                                <p class="mt-3 text-xs text-text-muted flex items-center gap-2">
-                                    <svg class="size-4 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                    <span>{{ $event->kickoff_at->locale('id')->translatedFormat('l, d F Y · H:i') }} WIB</span>
+
+                                <p class="mt-3 font-tabular text-xs font-bold text-text">
+                                    Kickoff: {{ $event->kickoff_at->locale('id')->translatedFormat('l, d F Y') }}, {{ $event->kickoff_at->format('H.i') }} WIB
                                 </p>
-                                <p class="mt-1.5 text-xs text-text-muted flex items-center gap-2">
-                                    <svg class="size-4 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                    <span class="truncate">{{ $event->lokasi_nama }}</span>
+                                <p class="mt-1 text-xs text-text-muted">
+                                    Lokasi: {{ $event->lokasi_nama }}
                                 </p>
                             </div>
-                            <div class="mt-5 pt-4 border-t border-border">
-                                <a href="{{ route('nobar.show', ['slug' => $event->slug]) }}" class="inline-flex min-h-10 w-full items-center justify-center rounded-xl border border-border bg-surface-2 px-4 text-xs font-bold text-text transition hover:border-accent hover:text-accent">
-                                    Lihat Detail & Lokasi
+
+                            <div class="mt-5 pt-3 border-t border-border">
+                                <a href="{{ route('nobar.show', ['slug' => $event->slug]) }}"
+                                   class="inline-flex min-h-11 w-full items-center justify-center rounded-[var(--radius-control)] bg-primary px-4 text-xs font-bold text-white shadow-xs hover:opacity-95">
+                                    Lihat detail nobar
                                 </a>
                             </div>
                         </article>
@@ -207,49 +298,48 @@
             </section>
         @endif
 
-        {{-- Section Kabar & Promo --}}
+        {{-- Kabar dan Pengumuman --}}
         @if ($infoNobarEnabled && $latestArticles->isNotEmpty())
             <section class="pt-12 sm:pt-16">
-                <div class="flex flex-wrap items-end justify-between gap-3">
+                <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-3">
                     <div>
-                        <p class="text-sm font-bold uppercase tracking-[0.16em] text-accent">Informasi & Penawaran</p>
-                        <h2 class="mt-2 text-2xl font-black text-text sm:text-3xl">Kabar & Promo</h2>
+                        <h2 class="text-2xl font-bold tracking-tight text-text sm:text-3xl">Kabar dan pengumuman</h2>
+                        <p class="mt-1 text-sm text-text-muted">Informasi terbaru seputar jadwal dan kegiatan bioskop.</p>
                     </div>
-                    <a href="{{ route('articles.index') }}" class="inline-flex items-center gap-1 text-sm font-bold text-accent hover:underline">
-                        <span>Semua Kabar</span>
-                        <span>→</span>
+                    <a href="{{ route('articles.index') }}" class="text-xs font-bold text-primary hover:underline">
+                        Semua kabar
                     </a>
                 </div>
-                <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+                <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($latestArticles as $article)
-                        <article class="flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-surface shadow-token transition hover:border-accent">
-                            @if ($article->cover_path)
-                                <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" class="block aspect-video overflow-hidden bg-surface-2">
-                                    <img src="{{ $article->coverUrl() }}" alt="{{ $article->judul }}" loading="lazy" class="h-full w-full object-cover transition duration-300 hover:scale-105">
-                                </a>
-                            @endif
-                            <div class="flex-1 p-5">
+                        <article class="flex flex-col justify-between rounded-[var(--radius-control)] border border-border bg-surface p-5">
+                            <div>
+                                @if ($article->cover_path)
+                                    <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" class="block aspect-video w-full overflow-hidden rounded-[var(--radius-control)] bg-surface-2 mb-3">
+                                        <img src="{{ $article->coverUrl() }}" alt="{{ $article->judul }}" loading="lazy" class="size-full object-cover">
+                                    </a>
+                                @endif
                                 <div class="flex items-center justify-between gap-2">
-                                    <span class="rounded-full px-2 py-0.5 text-[11px] font-bold {{ $article->kategori === 'Berita' ? 'bg-blue-500/15 text-blue-500' : ($article->kategori === 'Promo' ? 'bg-emerald-500/15 text-emerald-500' : 'bg-amber-500/15 text-amber-500') }}">
+                                    <span class="rounded-[var(--radius-control)] bg-surface-2 px-2 py-0.5 text-[11px] font-bold text-text">
                                         {{ $article->kategori }}
                                     </span>
                                     <span class="text-[11px] text-text-muted">
                                         {{ $article->tanggal_terbit ? $article->tanggal_terbit->locale('id')->diffForHumans() : '' }}
                                     </span>
                                 </div>
-                                <h3 class="mt-2.5 text-base font-bold text-text line-clamp-2">
-                                    <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" class="hover:text-accent">
+                                <h3 class="mt-2 text-base font-bold text-text">
+                                    <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" class="hover:text-primary">
                                         {{ $article->judul }}
                                     </a>
                                 </h3>
-                                <p class="mt-2 text-xs leading-relaxed text-text-muted line-clamp-3">
+                                <p class="mt-1.5 text-xs leading-relaxed text-text-muted line-clamp-3">
                                     {{ $article->ringkasan }}
                                 </p>
                             </div>
-                            <div class="p-5 pt-0">
-                                <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" class="inline-flex items-center gap-1 text-xs font-bold text-accent hover:underline">
-                                    <span>Baca selengkapnya</span>
-                                    <span>→</span>
+                            <div class="mt-4 pt-3 border-t border-border">
+                                <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" class="text-xs font-bold text-primary hover:underline">
+                                    Baca selengkapnya
                                 </a>
                             </div>
                         </article>
@@ -258,56 +348,60 @@
             </section>
         @endif
 
-        <section class="grid gap-8 py-12 sm:grid-cols-2 sm:py-16">
+        {{-- Bantuan & Informasi Biaya --}}
+        <section class="mt-12 grid gap-6 border-t border-border pt-12 sm:grid-cols-2">
             <div>
-                <p class="text-sm font-bold uppercase tracking-[0.16em] text-accent">Gampang kok</p>
-                <h2 class="mt-2 text-2xl font-black text-text sm:text-3xl">Nonton dalam 3 langkah</h2>
-                <ol class="mt-5 space-y-4">
-                    @foreach ([['1', 'Pilih sesi dan film', 'Cek hari, jam, lalu pilih tontonan yang kamu suka.'], ['2', 'Isi data dan pesan jajan', 'Tulis nama serta WhatsApp. Jajan boleh dilewati.'], ['3', 'Simpan kode booking', 'Admin akan mengonfirmasi lewat WhatsApp.']] as [$number, $title, $copy])
-                        <li class="flex gap-3 rounded-xl border border-border bg-surface p-4">
-                            <span class="grid size-10 shrink-0 place-items-center rounded-full bg-accent/15 font-black text-accent">{{ $number }}</span>
-                            <span><strong class="block text-text">{{ $title }}</strong><span class="mt-1 block text-sm text-text-muted">{{ $copy }}</span></span>
-                        </li>
-                    @endforeach
-                </ol>
-            </div>
-            <div class="space-y-7">
-                <div>
-                    <p class="text-sm font-bold uppercase tracking-[0.16em] text-accent">Harga tiket</p>
-                    <h2 class="mt-2 text-2xl font-black text-text">Jelas dari awal</h2>
-                    <dl class="mt-4 divide-y divide-border rounded-xl border border-border bg-surface px-4">
-                        <div class="flex justify-between gap-4 py-3 text-base"><dt class="text-text-muted">Hari biasa</dt><dd class="font-bold text-text">Rp {{ number_format($weekdayPrice, 0, ',', '.') }} / orang</dd></div>
-                        <div class="flex justify-between gap-4 py-3 text-base"><dt class="text-text-muted">Akhir pekan</dt><dd class="font-bold text-text">Rp {{ number_format($weekendPrice, 0, ',', '.') }} / orang</dd></div>
-                        <div class="flex justify-between gap-4 py-3 text-base"><dt class="text-text-muted">Hari libur</dt><dd class="font-bold text-text">Rp {{ number_format($holidayPrice, 0, ',', '.') }} / orang</dd></div>
-                    </dl>
-                </div>
-                <div>
-                    <p class="text-sm font-bold uppercase tracking-[0.16em] text-accent">Yang sering ditanya</p>
-                    <div class="mt-3 space-y-2">
-                        <details class="rounded-xl border border-border bg-surface p-4">
-                            <summary class="min-h-8 cursor-pointer content-center font-bold text-text">Perlu bikin akun?</summary>
-                            <p class="mt-2 text-sm leading-6 text-text-muted">Nggak perlu. Booking cukup pakai nama dan nomor WhatsApp.</p>
-                        </details>
-                        <details class="rounded-xl border border-border bg-surface p-4">
-                            <summary class="min-h-8 cursor-pointer content-center font-bold text-text">Bisa pesan jajan belakangan?</summary>
-                            <p class="mt-2 text-sm leading-6 text-text-muted">Pesanan jajan tidak bisa diubah sendiri setelah booking. Hubungi admin lewat WhatsApp, ya.</p>
-                        </details>
-                        <details class="rounded-xl border border-border bg-surface p-4">
-                            <summary class="min-h-8 cursor-pointer content-center font-bold text-text">Bagaimana cara bayar?</summary>
-                            <p class="mt-2 text-sm leading-6 text-text-muted">Cara bayar yang tersedia akan terlihat sebelum booking dikirim. Ikuti petunjuk resmi dari admin.</p>
-                        </details>
+                <h2 class="text-xl font-bold tracking-tight text-text">Harga tiket studio</h2>
+                <p class="mt-1 text-sm text-text-muted">Tarif resmi per orang untuk setiap sesi penayangan.</p>
+                <dl class="mt-4 divide-y divide-border rounded-[var(--radius-control)] border border-border bg-surface px-4">
+                    <div class="flex justify-between py-3 text-sm">
+                        <dt class="text-text-muted">Hari biasa (Senin sampai Kamis)</dt>
+                        <dd class="font-tabular font-bold text-text">Rp {{ number_format($weekdayPrice, 0, ',', '.') }}</dd>
                     </div>
+                    <div class="flex justify-between py-3 text-sm">
+                        <dt class="text-text-muted">Akhir pekan (Jumat sampai Minggu)</dt>
+                        <dd class="font-tabular font-bold text-text">Rp {{ number_format($weekendPrice, 0, ',', '.') }}</dd>
+                    </div>
+                    <div class="flex justify-between py-3 text-sm">
+                        <dt class="text-text-muted">Hari libur nasional</dt>
+                        <dd class="font-tabular font-bold text-text">Rp {{ number_format($holidayPrice, 0, ',', '.') }}</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <div>
+                <h2 class="text-xl font-bold tracking-tight text-text">Pertanyaan yang sering diajukan</h2>
+                <div class="mt-4 space-y-2">
+                    <details class="rounded-[var(--radius-control)] border border-border bg-surface p-3.5">
+                        <summary class="cursor-pointer font-bold text-sm text-text">Perlu membuat akun sebelum memesan?</summary>
+                        <p class="mt-2 text-xs leading-relaxed text-text-muted">Tidak perlu. Anda cukup mengisi nama pemesan dan nomor WhatsApp saat booking.</p>
+                    </details>
+                    <details class="rounded-[var(--radius-control)] border border-border bg-surface p-3.5">
+                        <summary class="cursor-pointer font-bold text-sm text-text">Bisa memesan seluruh studio untuk rombongan?</summary>
+                        <p class="mt-2 text-xs leading-relaxed text-text-muted">Bisa. Pilih opsi Sewa Studio Privat pada langkah tipe nonton untuk mengunci seluruh 6 kursi khusus rombongan Anda.</p>
+                    </details>
+                    <details class="rounded-[var(--radius-control)] border border-border bg-surface p-3.5">
+                        <summary class="cursor-pointer font-bold text-sm text-text">Bagaimana cara membayar?</summary>
+                        <p class="mt-2 text-xs leading-relaxed text-text-muted">Pembayaran dapat diselesaikan melalui QRIS, transfer bank, atau bayar langsung di tempat sebelum masuk studio.</p>
+                    </details>
                 </div>
             </div>
         </section>
 
-        <section class="mb-12 rounded-2xl border border-border bg-surface p-5 text-center shadow-token sm:mb-16 sm:p-8">
-            <p class="text-sm font-bold uppercase tracking-[0.16em] text-accent">Butuh bantuan?</p>
-            <h2 class="mt-2 text-2xl font-black text-text">Tanya admin studio</h2>
-            <p class="mt-2 text-base text-text-muted">Kami bantu cek jadwal dan pertanyaan bookingmu.</p>
-            @if ($adminWhatsAppUrl)
-                <a href="{{ $adminWhatsAppUrl }}" target="_blank" rel="noopener noreferrer" class="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-success px-5 font-bold text-success-contrast sm:w-auto">Chat admin via WhatsApp</a>
-            @endif
-        </section>
+        {{-- Kontak Admin --}}
+        @if ($adminWhatsAppUrl)
+            <section class="mt-12 rounded-[var(--radius-control)] border border-border bg-surface p-6 text-center">
+                <h2 class="text-lg font-bold text-text">Ada pertanyaan seputar jadwal atau sewa studio?</h2>
+                <p class="mt-1 text-xs text-text-muted">Pengelola studio siap membantu konfirmasi pemesanan dan pertanyaan Anda.</p>
+                <div class="mt-4">
+                    <a href="{{ $adminWhatsAppUrl }}"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-control)] bg-primary px-5 text-xs font-bold text-white shadow-xs hover:opacity-95">
+                        Hubungi pengelola via WhatsApp
+                    </a>
+                </div>
+            </section>
+        @endif
     </div>
 @endsection
