@@ -5,14 +5,14 @@
 @section('meta')
     <meta property="og:type" content="event">
     <meta property="og:title" content="{{ $event->judul }} · Nobar SynemaX">
-    <meta property="og:description" content="{{ $event->vsTitle() }}, {{ $event->kickoff_at->locale('id')->translatedFormat('l, d F Y') }} pukul {{ $event->kickoff_at->format('H.i') }} WIB di {{ $event->lokasi_nama }}. {{ $event->is_free ? 'Tiket masuk: gratis' : $event->harga_info }}">
+    <meta property="og:description" content="{{ $event->vsTitle() }}, {{ format_hari_tanggal_id($event->kickoff_at) }} pukul {{ format_jam_id($event->kickoff_at) }} di {{ $event->lokasi_nama }}. {{ $event->is_free ? 'Tiket masuk: gratis' : $event->harga_info }}">
     <meta property="og:url" content="{{ route('nobar.show', ['slug' => $event->slug]) }}">
     <meta property="og:image" content="{{ $event->posterOgUrl() }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{{ $event->judul }}">
-    <meta name="twitter:description" content="{{ $event->vsTitle() }}, {{ $event->kickoff_at->locale('id')->translatedFormat('l, d F Y') }} pukul {{ $event->kickoff_at->format('H.i') }} WIB di {{ $event->lokasi_nama }}">
+    <meta name="twitter:description" content="{{ $event->vsTitle() }}, {{ format_hari_tanggal_id($event->kickoff_at) }} pukul {{ format_jam_id($event->kickoff_at) }} di {{ $event->lokasi_nama }}">
     <meta name="twitter:image" content="{{ $event->posterOgUrl() }}">
 @endsection
 
@@ -85,11 +85,16 @@
                 {{-- Kolom Kiri: Poster Asli Tanpa Potong dengan Bingkai Cinema --}}
                 <aside class="rounded-3xl border border-border dark:border-white/10 bg-surface dark:bg-gradient-to-b dark:from-surface dark:via-[#0C111D] dark:to-[#07090E] p-4 shadow-xl">
                     <div class="group relative flex items-center justify-center overflow-hidden rounded-2xl bg-slate-100 dark:bg-black/60 p-2 border border-border dark:border-white/5 shadow-inner">
-                        <img src="{{ $event->posterUrl() }}"
-                             alt="{{ $event->posterAltText() }}"
-                             style="{{ $event->aspectRatioStyle() }}"
-                             fetchpriority="high"
-                             class="max-h-[60vh] w-auto max-w-full object-contain rounded-xl">
+                        <x-ui.image
+                            :src="$event->posterUrl()"
+                            :alt="$event->posterAltText()"
+                            :title="$event->judul"
+                            :badge="$event->kompetisi"
+                            :style="$event->aspectRatioStyle()"
+                            aspect="aspect-[4/5]"
+                            imgClass="max-h-[60vh] w-auto max-w-full object-contain mx-auto rounded-xl"
+                            class="w-full flex items-center justify-center"
+                        />
 
                         <button type="button"
                                 @click="openModal($el)"
@@ -167,10 +172,10 @@
                         <div class="rounded-2xl border border-border dark:border-white/10 bg-surface-2/60 dark:bg-surface/60 p-4">
                             <span class="block text-xs font-bold uppercase tracking-wider text-text-muted">Waktu kickoff</span>
                             <p class="mt-1 font-tabular text-2xl font-black text-amber-600 dark:text-amber-400">
-                                {{ $event->kickoff_at->format('H.i') }} WIB
+                                {{ format_jam_id($event->kickoff_at) }}
                             </p>
                             <p class="mt-1 text-xs text-text">
-                                {{ $event->kickoff_at->locale('id')->translatedFormat('l, d F Y') }} (durasi perkiraan {{ $event->durasi_menit }} menit)
+                                {{ format_hari_tanggal_id($event->kickoff_at) }} (durasi perkiraan {{ $event->durasi_menit }} menit)
                             </p>
                         </div>
 
@@ -195,7 +200,7 @@
                             </svg>
                             <span>Buka peta lokasi</span>
                         </a>
-                        <a href="{{ route('home') }}#jadwal"
+                        <a href="{{ route('schedule.index') }}"
                            class="inline-flex min-h-11 items-center justify-center rounded-xl border border-border dark:border-white/20 bg-surface-2 dark:bg-surface px-5 text-xs font-bold text-text hover:border-amber-400 hover:text-amber-500 dark:hover:text-amber-300 transition">
                             Jadwal bioskop
                         </a>
@@ -259,10 +264,10 @@
                     <div class="rounded-2xl border border-border dark:border-white/10 bg-surface-2/60 dark:bg-surface/60 p-4">
                         <span class="block text-xs font-bold uppercase tracking-wider text-text-muted">Waktu kickoff</span>
                         <p class="mt-1 font-tabular text-2xl font-black text-amber-600 dark:text-amber-400">
-                            {{ $event->kickoff_at->format('H.i') }} WIB
+                            {{ format_jam_id($event->kickoff_at) }}
                         </p>
                         <p class="mt-1 text-xs text-text">
-                            {{ $event->kickoff_at->locale('id')->translatedFormat('l, d F Y') }} (durasi perkiraan {{ $event->durasi_menit }} menit)
+                            {{ format_hari_tanggal_id($event->kickoff_at) }} (durasi perkiraan {{ $event->durasi_menit }} menit)
                         </p>
                     </div>
 
@@ -287,7 +292,7 @@
                         </svg>
                         <span>Buka peta lokasi</span>
                     </a>
-                    <a href="{{ route('home') }}#jadwal"
+                    <a href="{{ route('schedule.index') }}"
                        class="inline-flex min-h-11 items-center justify-center rounded-xl border border-border dark:border-white/20 bg-surface-2 dark:bg-surface px-5 text-xs font-bold text-text hover:border-amber-400 hover:text-amber-500 dark:hover:text-amber-300 transition">
                         Jadwal bioskop
                     </a>

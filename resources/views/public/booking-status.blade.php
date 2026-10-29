@@ -140,8 +140,8 @@
             </div>
         </section>
 
-        <footer class="mt-8 text-center text-xs text-text-muted">
-            <p>Ingin melihat sesi film lain? <a href="{{ route('home') }}" class="font-bold text-amber-400 hover:underline">Kembali ke beranda</a></p>
-        </footer>
+        <div class="mt-8 text-center text-xs text-text-muted">
+            <p>Ingin melihat sesi film lain? <a href="{{ route('home') }}" class="font-bold text-accent-link hover:underline">Kembali ke beranda</a></p>
+        </div>
     </section>
 @endsection

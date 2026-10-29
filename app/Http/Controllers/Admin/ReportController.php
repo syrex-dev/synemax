@@ -58,11 +58,13 @@ class ReportController extends Controller
         $grossProfit = $ticketRevenue + $snackProfit - $electricityCost;
         $filmPopularity = Booking::query()
             ->select('film_id')
+            ->selectRaw('COUNT(*) as booking_count')
             ->selectRaw('SUM(seats_reserved) as viewer_count')
             ->whereIn('status', $paidStatuses)
             ->whereHas('session', fn ($query) => $query->whereBetween('session_date', [$startDate->toDateString(), $endDate->toDateString()]))
             ->whereNotNull('film_id')
             ->groupBy('film_id')
+            ->orderByDesc('booking_count')
             ->orderByDesc('viewer_count')
             ->with('film')
             ->limit(10)
@@ -85,6 +87,27 @@ class ReportController extends Controller
             ->selectRaw('screening_sessions.session_date as report_date, SUM(bookings.total_price) as revenue, SUM(bookings.ticket_total) as ticket_revenue, SUM(bookings.snack_total) as snack_revenue, SUM(bookings.seats_reserved) as viewers')
             ->groupBy('screening_sessions.session_date')
             ->orderBy('screening_sessions.session_date')
+            ->get();
+
+        $cancelledByQuorumCount = $sessions->filter(function (Session $session): bool {
+            if (str_contains((string) $session->resolution_notes, 'kuorum')) {
+                return true;
+            }
+
+            return $session->isCancelledByQuorum();
+        })->count();
+
+        $filmDemandPopularity = Booking::query()
+            ->select('film_id')
+            ->selectRaw('COUNT(*) as booking_count')
+            ->selectRaw('SUM(COALESCE(people_count, pax, seats_reserved)) as interested_viewers')
+            ->whereHas('session', fn ($query) => $query->whereBetween('session_date', [$startDate->toDateString(), $endDate->toDateString()]))
+            ->whereNotNull('film_id')
+            ->groupBy('film_id')
+            ->orderByDesc('interested_viewers')
+            ->orderByDesc('booking_count')
+            ->with('film')
+            ->limit(10)
             ->get();
 
         return view('admin.reports.index', [
@@ -117,6 +140,8 @@ class ReportController extends Controller
                     ];
                 }),
             'filmPopularity' => $filmPopularity,
+            'filmDemandPopularity' => $filmDemandPopularity,
+            'cancelledByQuorumCount' => $cancelledByQuorumCount,
             'snackPopularity' => $snackPopularity,
             'dailySummary' => $dailySummary,
         ]);

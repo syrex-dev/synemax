@@ -36,13 +36,36 @@ class PublicPagesTest extends TestCase
             'age_rating' => 'SU',
             'synopsis' => 'Cerita keluarga yang pulang ke desa.',
             'is_active' => true,
+            'is_coming_soon' => false,
         ]);
 
         $this->get(route('home'))
             ->assertOk()
-            ->assertSee('Film tersedia')
-            ->assertSee('Malam di Bukit Bintang')
-            ->assertSee('Jadwal 7 hari ke depan');
+            ->assertSee('Beranda')
+            ->assertSee('Jadwal')
+            ->assertSee('Katalog Film')
+            ->assertSee('Malam di Bukit Bintang');
+
+        $this->get(route('schedule.index'))
+            ->assertOk()
+            ->assertSee('Beranda')
+            ->assertSee('Jadwal')
+            ->assertSee('Pilih hari dan jam nonton')
+            ->assertDontSee('Kembali ke beranda');
+    }
+
+    public function test_kabar_page_renders_both_tabs_correctly(): void
+    {
+        $this->get(route('articles.index', ['tab' => 'berita']))
+            ->assertOk()
+            ->assertSee('Warta studio')
+            ->assertSee('Berita');
+
+        $this->get(route('articles.index', ['tab' => 'harga-faq']))
+            ->assertOk()
+            ->assertSee('Harga tiket studio per orang')
+            ->assertSee('Pertanyaan yang sering diajukan')
+            ->assertSee('Sewa studio privat (6 kursi)');
     }
 
     public function test_schedule_and_booking_pages_render_availability_and_locked_film(): void

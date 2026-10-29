@@ -92,11 +92,16 @@ class PublicInfoController extends Controller
     {
         $this->ensureFeatureEnabled();
 
+        $activeTab = $request->query('tab', 'berita');
+        if (! in_array($activeTab, ['berita', 'harga-faq'], true)) {
+            $activeTab = 'berita';
+        }
+
         $kategori = $request->query('kategori');
 
         $query = NewsArticle::query()->published();
 
-        if (in_array($kategori, ['Berita', 'Promo', 'Pengumuman'], true)) {
+        if (filled($kategori) && in_array($kategori, ['Berita', 'Pengumuman', 'Promo'], true)) {
             $query->where('kategori', $kategori);
         }
 
@@ -105,9 +110,18 @@ class PublicInfoController extends Controller
             ->paginate(12)
             ->withQueryString();
 
+        $settings = app(CinemaSettings::class);
+        $adminWhatsApp = preg_replace('/\D+/', '', $settings->string('admin_whatsapp'));
+
         return view('public.articles.index', [
             'articles' => $articles,
             'currentCategory' => $kategori,
+            'activeTab' => $activeTab,
+            'weekdayPrice' => $settings->integer('weekday_price', 5000),
+            'weekendPrice' => $settings->integer('weekend_price', 6000),
+            'holidayPrice' => $settings->integer('holiday_price', 6000),
+            'privatePrice' => $settings->integer('private_price', 36000),
+            'adminWhatsAppUrl' => $adminWhatsApp !== '' ? 'https://wa.me/'.$adminWhatsApp : null,
         ]);
     }
 

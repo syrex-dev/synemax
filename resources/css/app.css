@@ -116,9 +116,9 @@
     --text-muted: #475569;
     --text-subtle: #64748B;
 
-    /* Garis & Batas Input (Terang) */
-    --border-default: #E2E8F0;
-    --border-input: #94A3B8;
+    /* Garis & Batas Input (Terang - WCAG 3:1 compliant) */
+    --border-default: #CBD5E1;
+    --border-input: #64748B;
 
     /* Aksi Utama Emas XXI / Amber */
     --primary-color: #D97706;
@@ -185,9 +185,9 @@
     --text-muted: #94A3B8;
     --text-subtle: #64748B;
 
-    /* Garis & Batas Input (Gelap) */
-    --border-default: rgba(255, 255, 255, 0.08);
-    --border-input: rgba(255, 255, 255, 0.18);
+    /* Garis & Batas Input (Gelap - WCAG 3:1 compliant) */
+    --border-default: rgba(255, 255, 255, 0.12);
+    --border-input: rgba(255, 255, 255, 0.28);
 
     /* Aksi Utama Emas XXI / Amber (#D4AF37 / #F59E0B) */
     --primary-color: #D4AF37;
@@ -399,16 +399,98 @@ input[type='number']::-webkit-outer-spin-button {
     box-shadow: 0 -10px 30px -4px rgba(212, 175, 55, 0.45);
 }
 
-/* Gold Gradient Buttons & Accents */
-.btn-gold-cinema {
-    background: linear-gradient(135deg, #F59E0B 0%, #D4AF37 50%, #B45309 100%);
-    color: #07090E;
-    font-weight: 800;
-    box-shadow: 0 4px 18px -2px rgba(212, 175, 55, 0.35);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+/* === 1.3 SELEKSI TEKS GLOBAL (AKAR PERBAIKAN) === */
+::selection {
+    background-color: #FDE68A !important;
+    color: #111827 !important;
 }
-.btn-gold-cinema:hover {
+::-moz-selection {
+    background-color: #FDE68A !important;
+    color: #111827 !important;
+}
+
+:root.dark ::selection,
+.dark ::selection,
+[data-theme='dark'] ::selection {
+    background-color: rgba(245, 158, 11, 0.45) !important;
+    color: #FFFFFF !important;
+}
+:root.dark ::-moz-selection,
+.dark ::-moz-selection,
+[data-theme='dark'] ::-moz-selection {
+    background-color: rgba(245, 158, 11, 0.45) !important;
+    color: #FFFFFF !important;
+}
+
+/* Fallback seleksi untuk teks gradasi */
+*::selection {
+    -webkit-text-fill-color: initial !important;
+}
+*::-moz-selection {
+    -webkit-text-fill-color: initial !important;
+}
+
+/* === 2. LOGO TAMPILAN ADAPTIF TEMA === */
+html:not(.dark) .logo-dark,
+html.dark .logo-light {
+    display: none !important;
+}
+
+/* === 1.1 TOMBOL UTAMA (CTA) & SEKUNDER === */
+.btn-gold-cinema,
+.btn-primary,
+button.btn-primary {
+    background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+    color: #1C1917 !important;
+    border: 1px solid #D97706 !important;
+    box-shadow: 0 2px 8px -1px rgba(217, 119, 6, 0.25);
+    font-weight: 800;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-gold-cinema:hover,
+.btn-primary:hover,
+button.btn-primary:hover {
+    background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+    color: #1C1917 !important;
+    border-color: #B45309 !important;
+    box-shadow: 0 4px 14px -1px rgba(217, 119, 6, 0.35);
+}
+.btn-gold-cinema:active,
+.btn-primary:active,
+button.btn-primary:active {
+    transform: scale(0.98);
+}
+.btn-gold-cinema:focus-visible,
+.btn-primary:focus-visible,
+button.btn-primary:focus-visible {
+    outline: 2px solid #B45309 !important;
+    outline-offset: 2px !important;
+}
+.btn-gold-cinema:disabled,
+.btn-primary:disabled,
+button.btn-primary:disabled {
+    background: #E2E8F0 !important;
+    color: #94A3B8 !important;
+    border-color: #CBD5E1 !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
+/* Tema Gelap: Mewah emas sinema gelap */
+:root.dark .btn-gold-cinema,
+.dark .btn-gold-cinema,
+[data-theme='dark'] .btn-gold-cinema {
+    background: linear-gradient(135deg, #F59E0B 0%, #D4AF37 50%, #B45309 100%);
+    color: #07090E !important;
+    border: 1px solid rgba(212, 175, 55, 0.4) !important;
+    box-shadow: 0 4px 18px -2px rgba(212, 175, 55, 0.35);
+}
+:root.dark .btn-gold-cinema:hover,
+.dark .btn-gold-cinema:hover,
+[data-theme='dark'] .btn-gold-cinema:hover {
     box-shadow: 0 6px 25px -2px rgba(212, 175, 55, 0.55);
+    border-color: #FDE68A !important;
     transform: translateY(-1px);
 }
 
@@ -423,6 +505,62 @@ input[type='number']::-webkit-outer-spin-button {
 .btn-cyan-cinema:hover {
     box-shadow: 0 6px 25px -2px rgba(6, 182, 212, 0.55);
     transform: translateY(-1px);
+}
+
+/* Teks Aksen & Link Tema Terang Kontras Tinggi (>= 4.5:1) */
+.text-accent-link {
+    color: #B45309;
+    font-weight: 700;
+}
+.text-accent-link:hover {
+    color: #92400E;
+    text-decoration: underline;
+}
+:root.dark .text-accent-link,
+.dark .text-accent-link {
+    color: #FBBF24;
+}
+:root.dark .text-accent-link:hover,
+.dark .text-accent-link:hover {
+    color: #FDE68A;
+}
+
+/* 1.2 State Terpilih Filter & Chip */
+.filter-chip-selected {
+    background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%) !important;
+    color: #1C1917 !important;
+    border: 1px solid #D97706 !important;
+    font-weight: 800 !important;
+    box-shadow: 0 2px 6px -1px rgba(217, 119, 6, 0.25) !important;
+}
+.filter-chip-unselected {
+    background-color: #FFFFFF !important;
+    border: 1.5px solid #94A3B8 !important;
+    color: #334155 !important;
+    font-weight: 600 !important;
+}
+.filter-chip-unselected:hover {
+    border-color: #D97706 !important;
+    color: #0F172A !important;
+    background-color: #F8FAFC !important;
+}
+:root.dark .filter-chip-selected,
+.dark .filter-chip-selected {
+    background: linear-gradient(135deg, #F59E0B 0%, #D4AF37 100%) !important;
+    color: #07090E !important;
+    border: 1px solid #FDE68A !important;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.25) !important;
+}
+:root.dark .filter-chip-unselected,
+.dark .filter-chip-unselected {
+    background-color: rgba(14, 19, 31, 0.8) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+    color: #94A3B8 !important;
+}
+:root.dark .filter-chip-unselected:hover,
+.dark .filter-chip-unselected:hover {
+    border-color: #F59E0B !important;
+    color: #FFFFFF !important;
 }
 
 /* Interactive Seat Buttons */
@@ -481,3 +619,215 @@ input[type='number']::-webkit-outer-spin-button {
     right: -13px;
     border-left: 1px solid rgba(212, 175, 55, 0.35);
 }
+
+/* === FORM INPUT BORDERS & CONTRAST (WCAG 1.4.11) === */
+input[type='text'],
+input[type='email'],
+input[type='url'],
+input[type='password'],
+input[type='number'],
+input[type='date'],
+input[type='datetime-local'],
+input[type='month'],
+input[type='search'],
+input[type='tel'],
+input[type='time'],
+select,
+textarea {
+    border-width: 1.5px !important;
+    border-color: var(--border-input) !important;
+    background-color: var(--surface-default) !important;
+    color: var(--text-primary) !important;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--color-accent) !important;
+    box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.25) !important;
+    outline: none !important;
+}
+
+/* Reusable Chip with checkbox/radio: changes background & border when checked */
+.choice-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-height: 44px;
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.75rem;
+    border: 2px solid var(--border-input);
+    background-color: var(--surface-default);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 150ms ease;
+}
+
+.choice-chip:hover {
+    border-color: var(--color-accent);
+}
+
+.choice-chip:has(input:checked) {
+    border-color: var(--color-accent) !important;
+    background-color: rgba(217, 119, 6, 0.12) !important;
+    color: var(--text-primary) !important;
+    font-weight: 700;
+}
+
+:root.dark .choice-chip:has(input:checked) {
+    border-color: #F59E0B !important;
+    background-color: rgba(245, 158, 11, 0.18) !important;
+}
+
+/* Secondary Button Visible Border */
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    border: 1.5px solid var(--border-input);
+    background-color: var(--surface-default);
+    color: var(--text-primary);
+    font-weight: 600;
+    transition: all 150ms ease;
+}
+.btn-secondary:hover {
+    border-color: var(--color-accent);
+    background-color: var(--surface-raised);
+}
+
+/* === ADMIN TABLE SPECIFICATION (FASE 0.2) === */
+.admin-table-container {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 1rem;
+    border: 1px solid var(--border-default);
+    background-color: var(--surface-default);
+    box-shadow: var(--shadow-token);
+    -webkit-overflow-scrolling: touch;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    text-align: left;
+    font-size: 0.875rem;
+}
+
+.admin-table thead th {
+    position: relative;
+    background-color: var(--surface-raised);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border-default);
+    white-space: nowrap;
+}
+
+.admin-table thead tr:first-child th:first-child {
+    border-top-left-radius: 0.95rem;
+}
+
+.admin-table thead tr:first-child th:last-child {
+    border-top-right-radius: 0.95rem;
+}
+
+.admin-table tbody tr {
+    transition: background-color 150ms ease;
+}
+
+.admin-table tbody tr:hover {
+    background-color: var(--surface-raised);
+}
+
+.admin-table td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border-default);
+    vertical-align: middle;
+}
+
+.admin-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.admin-table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 0.95rem;
+}
+
+.admin-table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 0.95rem;
+}
+
+/* Table Column Utilities */
+.col-title-flex {
+    min-width: 260px;
+}
+
+.col-nowrap {
+    white-space: nowrap;
+}
+
+/* Sticky Action Column (Aligned, Fixed Width & Pinned) */
+.admin-table thead th.col-actions-sticky,
+.admin-table tbody td.col-actions-sticky {
+    position: sticky !important;
+    right: 0;
+    width: 160px;
+    min-width: 160px;
+    max-width: 160px;
+    box-sizing: border-box;
+    border-left: 1px solid var(--border-default);
+    text-align: right;
+    padding-left: 0.75rem;
+    padding-right: 1.25rem;
+    white-space: nowrap;
+}
+
+.admin-table thead th.col-actions-sticky {
+    z-index: 20;
+    background-color: var(--surface-raised);
+    color: var(--text-muted);
+}
+
+.admin-table tbody td.col-actions-sticky {
+    z-index: 10;
+    background-color: var(--surface-default);
+}
+
+.admin-table tbody tr:hover td.col-actions-sticky {
+    background-color: var(--surface-raised);
+}
+
+.admin-table tbody td.col-actions-sticky:has([aria-expanded="true"]) {
+    z-index: 30;
+}
+
+.admin-table thead tr:first-child th.col-actions-sticky {
+    border-top-right-radius: 0.95rem;
+}
+
+.admin-table tbody tr:last-child td.col-actions-sticky {
+    border-bottom-right-radius: 0.95rem;
+}
+
+/* Truncation helper */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.truncate-1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+

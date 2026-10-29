@@ -16,7 +16,7 @@
     }">
         <div class="flex flex-wrap items-center justify-between gap-4">
             <div>
-                <a href="{{ route('admin.articles.index') }}" class="text-xs font-semibold text-text-muted hover:text-text">← Kembali ke Kabar & Promo</a>
+                <a href="{{ route('admin.articles.index') }}" class="text-xs font-semibold text-text-muted hover:text-text">← Kembali ke Kabar Bioskop</a>
                 <h1 class="mt-1 text-3xl font-black text-text">{{ $isEdit ? 'Ubah Artikel' : 'Tulis Artikel Baru' }}</h1>
             </div>
             @if ($isEdit)
@@ -60,12 +60,17 @@
 
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label for="kategori" class="text-sm font-semibold">Kategori <span class="text-danger">*</span></label>
-                            <select id="kategori" name="kategori" required class="mt-1.5 min-h-12 w-full rounded-xl border border-border bg-bg px-3.5 text-sm text-text">
-                                <option value="Berita" @selected(old('kategori', $article->kategori) === 'Berita')>Berita</option>
-                                <option value="Promo" @selected(old('kategori', $article->kategori) === 'Promo')>Promo</option>
-                                <option value="Pengumuman" @selected(old('kategori', $article->kategori) === 'Pengumuman')>Pengumuman</option>
-                            </select>
+                            <x-ui.select
+                                name="kategori"
+                                id="kategori"
+                                label="Kategori"
+                                :required="true"
+                                :value="old('kategori', $article->kategori ?: 'Berita')"
+                                :options="[
+                                    'Berita' => 'Berita',
+                                    'Pengumuman' => 'Pengumuman',
+                                ]"
+                            />
                         </div>
                         <div>
                             <label for="slug" class="text-sm font-semibold">Slug URL (opsional, otomatis dibuat)</label>
@@ -156,11 +161,17 @@
                 <div class="mt-5 space-y-4">
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label for="status_publikasi" class="text-sm font-semibold">Status Publikasi <span class="text-danger">*</span></label>
-                            <select id="status_publikasi" name="status_publikasi" required class="mt-1.5 min-h-12 w-full rounded-xl border border-border bg-bg px-3.5 text-sm text-text">
-                                <option value="terbit" @selected(old('status_publikasi', $article->status_publikasi) === 'terbit')>Terbit (Publik)</option>
-                                <option value="draft" @selected(old('status_publikasi', $article->status_publikasi) === 'draft')>Draft (Hanya Admin)</option>
-                            </select>
+                            <x-ui.select
+                                name="status_publikasi"
+                                id="status_publikasi"
+                                label="Status Publikasi"
+                                :required="true"
+                                :value="old('status_publikasi', $article->status_publikasi ?: 'terbit')"
+                                :options="[
+                                    'terbit' => 'Terbit (Publik)',
+                                    'draft' => 'Draft (Hanya Admin)',
+                                ]"
+                            />
                         </div>
 
                         <div>

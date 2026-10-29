@@ -33,7 +33,7 @@
                     </p>
                 </div>
                 <div>
-                    <a href="{{ route('home') }}#jadwal" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border dark:border-white/20 bg-surface-2 dark:bg-surface/80 px-4 text-xs font-bold text-text hover:border-amber-400 hover:text-amber-500 dark:hover:text-amber-300 transition">
+                    <a href="{{ route('schedule.index') }}" class="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border dark:border-white/20 bg-surface-2 dark:bg-surface/80 px-4 text-xs font-bold text-text hover:border-amber-400 hover:text-amber-500 dark:hover:text-amber-300 transition">
                         <svg class="size-4 text-amber-500 dark:text-amber-400" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm0 3v2h2V7H4zm0 4v2h2v-2H4zm0 4v2h2v-2H4zm16-8h-2v2h2V7zm0 4h-2v2h2v-2zm0 4h-2v2h2v-2zm-12-8h8v10H8V7z"/>
                         </svg>
@@ -65,7 +65,7 @@
                     </span>
                     <h2 class="text-base font-black text-text">Belum ada jadwal nobar</h2>
                     <p class="mt-1 text-xs text-text-muted max-w-md mx-auto">Jadwal pertandingan berikutnya sedang dipersiapkan. Pantau terus halaman ini atau cek film bioskop kami.</p>
-                    <a href="{{ route('home') }}#jadwal" class="mt-5 btn-gold-cinema inline-flex min-h-11 items-center rounded-xl px-6 text-xs font-bold shadow-md">
+                    <a href="{{ route('schedule.index') }}" class="mt-5 btn-gold-cinema inline-flex min-h-11 items-center rounded-xl px-6 text-xs font-bold shadow-md">
                         Lihat jadwal film
                     </a>
                 </div>
@@ -75,10 +75,18 @@
                         <article class="flex flex-col justify-between rounded-3xl border border-border dark:border-white/10 bg-surface dark:bg-gradient-to-b dark:from-surface dark:via-[#0B0F19] dark:to-surface p-4 sm:p-5 shadow-xl transition-all duration-300 hover:border-amber-400/50 hover:-translate-y-1 group">
                             <div>
                                 @if ($item->hasPoster())
-                                    <div class="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-slate-100 dark:bg-black/60 flex items-center justify-center p-2 border border-border dark:border-white/5 shadow-inner">
-                                        <img src="{{ $item->posterUrl() }}" alt="{{ $item->posterAltText() }}" class="max-h-full max-w-full object-contain rounded-xl transition duration-500 group-hover:scale-105" loading="lazy">
+                                    <div class="relative mb-4">
+                                        <x-ui.image
+                                            :src="$item->posterUrl()"
+                                            :alt="$item->posterAltText()"
+                                            :title="$item->judul"
+                                            :badge="$item->display_status"
+                                            aspect="aspect-[4/5]"
+                                            imgClass="max-h-full max-w-full object-contain mx-auto rounded-xl transition duration-500 group-hover:scale-105"
+                                            class="flex items-center justify-center p-2 shadow-inner"
+                                        />
 
-                                        <div class="absolute left-3 top-3 flex flex-wrap gap-1.5">
+                                        <div class="absolute left-3 top-3 flex flex-wrap gap-1.5 pointer-events-none">
                                             <span class="rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider border border-border dark:border-white/20 bg-surface/90 dark:bg-black/80 text-text dark:text-white backdrop-blur-md shadow-md">
                                                 {{ $item->display_status }}
                                             </span>
@@ -90,14 +98,14 @@
                                         </div>
 
                                         @if ($item->is_free)
-                                            <div class="absolute bottom-3 right-3 rounded-lg bg-emerald-500/90 backdrop-blur-md border border-emerald-400/50 px-2.5 py-1 text-[10px] font-black uppercase text-white shadow-md">
+                                            <div class="absolute bottom-3 right-3 rounded-lg bg-emerald-500/90 backdrop-blur-md border border-emerald-400/50 px-2.5 py-1 text-[10px] font-black uppercase text-white shadow-md pointer-events-none">
                                                 Gratis
                                             </div>
                                         @endif
                                     </div>
                                 @endif
 
-                                <div class="{{ $item->hasPoster() ? 'mt-4' : '' }}">
+                                <div>
                                     @if ($item->kompetisi)
                                         <div class="flex items-center gap-1.5">
                                             <span class="size-1.5 rounded-full bg-cyan-500 dark:bg-cyan-400"></span>
@@ -120,10 +128,10 @@
 
                                     <div class="mt-3 flex items-baseline justify-between border-t border-border dark:border-white/10 pt-2.5">
                                         <span class="font-tabular text-sm font-black text-amber-600 dark:text-amber-400">
-                                            {{ $item->kickoff_at->format('H.i') }} WIB
+                                            {{ format_jam_id($item->kickoff_at) }}
                                         </span>
                                         <span class="text-[11px] font-medium text-text-muted">
-                                            {{ $item->kickoff_at->locale('id')->translatedFormat('D, d M Y') }}
+                                            {{ format_tanggal_id($item->kickoff_at) }}
                                         </span>
                                     </div>
                                     <p class="mt-1.5 text-xs text-text-muted flex items-center gap-1.5 truncate">

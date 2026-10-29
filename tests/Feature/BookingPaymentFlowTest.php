@@ -47,6 +47,8 @@ class BookingPaymentFlowTest extends TestCase
             'film_id' => $this->film->id,
             'capacity' => 6,
             'status' => 'tersedia',
+            'confirmation_method' => 'admin',
+            'confirmed_at' => CarbonImmutable::parse('2026-10-14 09:00:00', 'Asia/Jakarta'),
         ]);
 
         // Seed default settings

@@ -18,8 +18,20 @@
         </div>
     </section>
     <form method="POST" action="{{ route('admin.snacks.preparation.status', $session) }}" class="mt-5 flex flex-wrap items-end gap-3 rounded-lg border border-border bg-surface p-4 print:hidden">@csrf @method('PATCH')
-        <label for="session-status" class="text-sm font-semibold">Ubah status semua item aktif di sesi ini</label>
-        <select id="session-status" name="status" class="min-h-11 rounded-lg border border-border bg-bg px-3 text-base text-text">@foreach (['baru' => 'Baru', 'disiapkan' => 'Disiapkan', 'siap' => 'Siap', 'selesai' => 'Selesai'] as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
+        <div class="flex-1 min-w-[220px]">
+            <x-ui.select
+                id="session-status"
+                name="status"
+                label="Ubah status semua item aktif di sesi ini"
+                value="baru"
+                :options="[
+                    'baru' => 'Baru',
+                    'disiapkan' => 'Disiapkan',
+                    'siap' => 'Siap',
+                    'selesai' => 'Selesai',
+                ]"
+            />
+        </div>
         <button class="min-h-11 rounded-lg bg-accent px-4 text-sm font-bold text-accent-contrast">Terapkan semua</button>
     </form>
     <section class="mt-7 space-y-4">
@@ -63,11 +75,20 @@
                                         <td class="px-4 py-3"><p class="font-semibold text-text">{{ $item->name_snapshot }}</p>@if ($item->note)<p class="mt-1 text-sm text-text-muted">Catatan: {{ $item->note }}</p>@endif</td>
                                         <td class="px-4 py-3"><span class="inline-flex min-h-7 items-center rounded-full px-3 text-xs font-semibold" :class="tones[status]" x-text="labels[status]">{{ ucfirst($item->status) }}</span></td>
                                         <td class="px-4 py-3">
-                                            <form method="POST" action="{{ route('admin.snacks.items.status', $item) }}" @submit="saving = true">@csrf @method('PATCH')
-                                                <label for="item-status-desktop-{{ $item->id }}" class="sr-only">Status pesanan: {{ $item->name_snapshot }}</label>
-                                                <select id="item-status-desktop-{{ $item->id }}" name="status" x-model="status" class="min-h-10 w-full rounded-lg border border-border bg-bg px-2 text-sm text-text">
-                                                    @foreach (['baru' => 'Baru', 'disiapkan' => 'Disiapkan', 'siap' => 'Siap', 'selesai' => 'Selesai'] as $value => $label)<option value="{{ $value }}" @selected($item->status === $value)>{{ $label }}</option>@endforeach
-                                                </select>
+                                            <form method="POST" action="{{ route('admin.snacks.items.status', $item) }}" @submit="saving = true" @change="if ($event.target.name === 'status') status = $event.target.value">@csrf @method('PATCH')
+                                                <div class="min-w-[130px]">
+                                                    <x-ui.select
+                                                        id="item-status-desktop-{{ $item->id }}"
+                                                        name="status"
+                                                        :value="$item->status"
+                                                        :options="[
+                                                            'baru' => 'Baru',
+                                                            'disiapkan' => 'Disiapkan',
+                                                            'siap' => 'Siap',
+                                                            'selesai' => 'Selesai',
+                                                        ]"
+                                                    />
+                                                </div>
                                                 <span x-show="dirty" x-cloak class="mt-1 block text-right text-xs font-semibold text-warning">Belum disimpan</span>
                                                 <button :disabled="!dirty || saving" class="mt-2 min-h-10 w-full rounded-lg bg-accent px-3 text-sm font-bold text-accent-contrast disabled:cursor-not-allowed disabled:opacity-45"><span x-show="!saving">Simpan</span><span x-show="saving" x-cloak>Menyimpan…</span></button>
                                             </form>
@@ -87,10 +108,20 @@
                                 </div>
                                 <form method="POST" action="{{ route('admin.snacks.items.status', $item) }}" @submit="saving = true" class="mt-4 border-t border-border pt-3 print:hidden">@csrf @method('PATCH')
                                     <label for="item-status-mobile-{{ $item->id }}" class="mb-1 block text-sm font-semibold">Status pesanan</label>
-                                    <div class="flex items-end gap-2">
-                                        <select id="item-status-mobile-{{ $item->id }}" name="status" x-model="status" class="min-h-11 min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 text-base text-text">
-                                            @foreach (['baru' => 'Baru', 'disiapkan' => 'Disiapkan', 'siap' => 'Siap', 'selesai' => 'Selesai'] as $value => $label)<option value="{{ $value }}" @selected($item->status === $value)>{{ $label }}</option>@endforeach
-                                        </select>
+                                    <div class="flex items-end gap-2" @change="if ($event.target.name === 'status') status = $event.target.value">
+                                        <div class="flex-1 min-w-0">
+                                            <x-ui.select
+                                                id="item-status-mobile-{{ $item->id }}"
+                                                name="status"
+                                                :value="$item->status"
+                                                :options="[
+                                                    'baru' => 'Baru',
+                                                    'disiapkan' => 'Disiapkan',
+                                                    'siap' => 'Siap',
+                                                    'selesai' => 'Selesai',
+                                                ]"
+                                            />
+                                        </div>
                                         <button :disabled="!dirty || saving" class="min-h-11 rounded-lg bg-accent px-4 text-sm font-bold text-accent-contrast disabled:cursor-not-allowed disabled:opacity-45"><span x-show="!saving">Simpan</span><span x-show="saving" x-cloak>Menyimpan…</span></button>
                                     </div>
                                     <p x-show="dirty" x-cloak class="mt-2 text-xs font-semibold text-warning">Belum disimpan</p>

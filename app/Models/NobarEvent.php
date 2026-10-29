@@ -129,19 +129,27 @@ class NobarEvent extends Model
     public function ensurePosterDimensions(): void
     {
         if ($this->hasPoster() && (! $this->poster_width || ! $this->poster_height)) {
-            $disk = Storage::disk('local');
-            $relPath = 'nobar/'.basename($this->poster_path);
-            if ($disk->exists($relPath)) {
-                $fullPath = $disk->path($relPath);
-                $info = @getimagesize($fullPath);
-                if ($info && $info[0] > 0 && $info[1] > 0) {
-                    $this->poster_width = (int) $info[0];
-                    $this->poster_height = (int) $info[1];
-                    try {
-                        $this->saveQuietly();
-                    } catch (\Throwable) {
-                        // Safe fallback if database is read-only or in testing
+            $safeName = basename($this->poster_path);
+            $candidates = [
+                ['disk' => 'local', 'path' => 'nobar/'.$safeName],
+                ['disk' => 'public', 'path' => 'posters/'.$safeName],
+                ['disk' => 'public', 'path' => 'nobar/'.$safeName],
+                ['disk' => 'local', 'path' => 'posters/'.$safeName],
+            ];
+            foreach ($candidates as $cand) {
+                if (Storage::disk($cand['disk'])->exists($cand['path'])) {
+                    $fullPath = Storage::disk($cand['disk'])->path($cand['path']);
+                    $info = @getimagesize($fullPath);
+                    if ($info && $info[0] > 0 && $info[1] > 0) {
+                        $this->poster_width = (int) $info[0];
+                        $this->poster_height = (int) $info[1];
+                        try {
+                            $this->saveQuietly();
+                        } catch (\Throwable) {
+                            // Safe fallback if database is read-only or in testing
+                        }
                     }
+                    break;
                 }
             }
         }

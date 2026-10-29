@@ -63,41 +63,71 @@ class BookingService
                 $this->reject('whatsapp', 'Nomor ini belum bisa dipakai untuk booking. Silakan hubungi admin.');
             }
 
-            $isPrivate = $data['booking_type'] === 'private';
-            $pax = $isPrivate ? Session::MAX_CAPACITY : (int) ($data['pax'] ?? 0);
-            $occupiedSeats = (int) $session->occupiedBookings()->sum('seats_reserved');
-            $seatCapacity = $session->seatCapacity();
-
-            if ($session->isPrivateActive()) {
-                $this->reject('booking_type', 'Sesi ini sudah disewa private.');
+            $package = $data['package'] ?? ($data['booking_type'] === 'private' ? 'private' : 'reguler');
+            if (! in_array($package, ['reguler', 'couple', 'private'], true)) {
+                $package = 'reguler';
             }
 
-            if ($isPrivate) {
-                if ($session->hasActivePerPersonBookings() || $occupiedSeats > 0 || $seatCapacity < Session::MAX_CAPACITY) {
-                    $this->reject('booking_type', 'Sudah ada pemesan per orang di sesi ini, jadi Sewa Private tidak tersedia.');
-                }
-            } else {
-                if ($pax < 1 || $pax > Session::MAX_CAPACITY) {
-                    $this->reject('pax', 'Jumlah orang harus antara 1 sampai 6.');
-                }
+            $isPrivate = $package === 'private';
+            $isCouple = $package === 'couple';
+            $isReguler = $package === 'reguler';
 
-                if ($occupiedSeats + $pax > $seatCapacity) {
-                    $this->reject('pax', 'Jumlah kursi tersisa tidak cukup. Silakan pilih jumlah orang lebih sedikit.');
-                }
+            if ($isReguler && empty($data['people_count']) && empty($data['pax'])) {
+                $this->reject('pax', 'Pilih jumlah orang.');
             }
 
-            $filmId = $session->film_id ?: ($data['film_id'] ?? null);
+            $pax = match (true) {
+                $isPrivate => Session::MAX_CAPACITY,
+                $isCouple => 2,
+                default => (int) ($data['people_count'] ?? $data['pax'] ?? 1),
+            };
 
-            if ($session->film_id !== null && isset($data['film_id']) && (int) $data['film_id'] !== $session->film_id) {
-                $this->reject('film_id', 'Sesi ini sudah terkunci untuk film yang berbeda.');
+            $peopleCount = match (true) {
+                $isPrivate => (int) ($data['people_count'] ?? $data['pax'] ?? Session::MAX_CAPACITY),
+                $isCouple => 2,
+                default => $pax,
+            };
+
+            $requestedFilmId = ! empty($data['film_id']) ? (int) $data['film_id'] : null;
+            if ($session->isConfirmed() && $requestedFilmId !== null && $requestedFilmId !== (int) $session->film_id) {
+                $this->reject('film_id', 'Sesi ini sudah memiliki film yang terkonfirmasi.');
             }
 
-            $film = Film::query()
-                ->where('is_active', true)
-                ->find($filmId);
+            $filmId = (int) ($requestedFilmId ?: $session->film_id);
+            $film = Film::query()->where('is_active', true)->find($filmId);
 
             if ($film === null) {
                 $this->reject('film_id', 'Pilih film yang masih tersedia.');
+            }
+
+            // 1. Validasi Paket & Pagar Anti-Buntu
+            if ($isPrivate) {
+                $check = $session->canAcceptPrivateBooking();
+                if (! $check['allowed']) {
+                    $this->reject('booking_type', $check['reason'] ?? 'Sewa Private tidak tersedia.');
+                }
+            } elseif ($isCouple) {
+                if ($session->isPrivateActive()) {
+                    $this->reject('booking_type', 'Sesi ini sudah disewa private.');
+                }
+                $check = $session->canAcceptCoupleBooking($film->id);
+                if (! $check['allowed']) {
+                    $this->reject('package', $check['reason'] ?? 'Paket Couple tidak tersedia.');
+                }
+            } else {
+                if ($session->isPrivateActive()) {
+                    $this->reject('booking_type', 'Sesi ini sudah disewa private.');
+                }
+                if ($pax < 1 || $pax > Session::MAX_CAPACITY) {
+                    $this->reject('pax', 'Jumlah orang harus antara 1 sampai 6.');
+                }
+                if ($pax > $session->remainingSeats()) {
+                    $this->reject('pax', 'Jumlah kursi tersisa tidak cukup. Silakan pilih jumlah orang lebih sedikit.');
+                }
+                $check = $session->canAcceptRegularBooking($film->id, $pax);
+                if (! $check['allowed']) {
+                    $this->reject('film_id', $check['reason'] ?? 'Pilihan ini membuat sesi sulit tayang.');
+                }
             }
 
             $paymentMethod = $data['payment_method'];
@@ -107,28 +137,78 @@ class BookingService
                 $this->reject('payment_method', 'Metode pembayaran ini sedang tidak tersedia untuk sesi ini.');
             }
 
+            // 2. Hitung Harga Sesuai Paket & Hari
             $price = match (true) {
-                $isPrivate => $this->settings->integer('private_price', 36000),
-                $dayType === 'libur' => $this->settings->integer('holiday_price', 6000) * $pax,
-                $dayType === 'weekend' => $this->settings->integer('weekend_price', 6000) * $pax,
-                default => $this->settings->integer('weekday_price', 5000) * $pax,
+                $isPrivate => $this->settings->privatePriceForDayType($dayType),
+                $isCouple => $this->settings->couplePrice($dayType),
+                default => $this->settings->ticketPriceForDayType($dayType) * $pax,
             };
 
             $profile ??= CustomerProfile::query()->firstOrCreate(['whatsapp' => $whatsapp]);
-            $session->film_id = $film->getKey();
-            $session->is_private = $isPrivate;
-            $session->save();
 
+            // 3. Evaluasi Konfirmasi & Kunci Sesi
             $isOnline = in_array($paymentMethod, ['qris', 'transfer'], true);
+            $paymentLimitMinutes = $this->settings->paymentTimeLimitMinutes();
+            $onlineBufferMinutes = $this->settings->onlinePaymentCutoffMinutes();
+            $maxTimeByLimit = now()->addMinutes($paymentLimitMinutes);
+            $maxTimeBySession = $startsAt->subMinutes($onlineBufferMinutes);
+            $onlineExpiresAt = $maxTimeByLimit->lessThan($maxTimeBySession) ? $maxTimeByLimit : $maxTimeBySession;
+
+            $seatsReserved = match (true) {
+                $isPrivate => Session::MAX_CAPACITY,
+                $isCouple => 2,
+                default => $pax,
+            };
+
             $status = $isOnline ? 'menunggu_pembayaran' : 'menunggu_konfirmasi';
             $paymentExpiresAt = null;
 
-            if ($isOnline) {
-                $paymentLimitMinutes = $this->settings->paymentTimeLimitMinutes();
-                $onlineBufferMinutes = $this->settings->onlinePaymentCutoffMinutes();
-                $maxTimeByLimit = now()->addMinutes($paymentLimitMinutes);
-                $maxTimeBySession = $startsAt->subMinutes($onlineBufferMinutes);
-                $paymentExpiresAt = $maxTimeByLimit->lessThan($maxTimeBySession) ? $maxTimeByLimit : $maxTimeBySession;
+            if ($isPrivate) {
+                $session->confirmAndLock($film->id, 'private');
+                if ($isOnline) {
+                    $paymentExpiresAt = $onlineExpiresAt;
+                }
+            } elseif ($isCouple) {
+                $session->confirmAndLock($film->id, 'couple');
+                if ($isOnline) {
+                    $paymentExpiresAt = $onlineExpiresAt;
+                }
+            } else {
+                // Booking Reguler
+                $existingSeats = (int) $session->occupiedBookings()->where('film_id', $film->id)->sum('seats_reserved');
+                $newTotalForFilm = $existingSeats + $seatsReserved;
+
+                if (! $session->isConfirmed() && $newTotalForFilm >= $session->quorum()) {
+                    // Capai kuorum! Sesi menjadi Pasti Tayang dan film terkunci
+                    $session->confirmAndLock($film->id, 'quorum');
+
+                    // Pemesan film lain di sesi ini perlu pilih ulang
+                    Booking::query()
+                        ->where('session_id', $session->id)
+                        ->where('film_id', '!=', $film->id)
+                        ->whereNotIn('status', ['dibatalkan', 'kedaluwarsa'])
+                        ->update(['reselect_needed' => true]);
+
+                    // Aktifkan timer pembayaran untuk booking online yang tadinya menunggu kuorum
+                    Booking::query()
+                        ->where('session_id', $session->id)
+                        ->where('film_id', $film->id)
+                        ->whereIn('payment_method', ['qris', 'transfer'])
+                        ->where('status', 'menunggu_pembayaran')
+                        ->whereNull('payment_expires_at')
+                        ->update(['payment_expires_at' => $onlineExpiresAt]);
+                }
+
+                if ($session->isConfirmed()) {
+                    if ($isOnline) {
+                        $paymentExpiresAt = $onlineExpiresAt;
+                    }
+                } else {
+                    // Sesi belum Pasti Tayang: instruksi bayar online ditahan sampai kuorum tercapai
+                    if ($isOnline) {
+                        $paymentExpiresAt = null;
+                    }
+                }
             }
 
             $booking = Booking::query()->create([
@@ -139,8 +219,12 @@ class BookingService
                 'customer_name' => trim($data['customer_name']),
                 'whatsapp' => $whatsapp,
                 'pax' => $pax,
-                'seats_reserved' => $isPrivate ? $seatCapacity : $pax,
+                'seats_reserved' => $seatsReserved,
                 'booking_type' => $isPrivate ? 'private' : 'per_orang',
+                'package' => $package,
+                'people_count' => $peopleCount,
+                'reselect_needed' => false,
+                'refund_needed' => false,
                 'total_price' => $price,
                 'ticket_total' => $price,
                 'snack_total' => 0,
@@ -359,6 +443,220 @@ class BookingService
             $session->syncPrivateStatus();
 
             return $booking->fresh(['session', 'film']);
+        }, attempts: 3);
+    }
+
+    public function changeFilm(Booking $booking, int $newFilmId): Booking
+    {
+        return DB::transaction(function () use ($booking, $newFilmId): Booking {
+            $session = Session::query()->lockForUpdate()->findOrFail($booking->session_id);
+            $lockedBooking = Booking::query()->lockForUpdate()->findOrFail($booking->id);
+
+            if ($session->isConfirmed()) {
+                if ($newFilmId !== (int) $session->film_id) {
+                    $this->reject('film_id', 'Sesi ini sudah memiliki film yang terkonfirmasi, Anda hanya dapat memilih film yang tayang atau pindah sesi.');
+                }
+
+                $lockedBooking->update([
+                    'film_id' => $newFilmId,
+                    'reselect_needed' => false,
+                ]);
+
+                return $lockedBooking;
+            }
+
+            $newFilm = Film::query()->where('is_active', true)->findOrFail($newFilmId);
+
+            // Simulasikan kursi tanpa booking ini untuk film lama, lalu tambahkan ke film baru
+            $tallies = $session->candidateFilmTallies();
+            $seatsByFilm = [];
+            foreach ($tallies as $t) {
+                $seatsByFilm[$t['film_id']] = $t['seats'];
+            }
+            $seatsByFilm[$lockedBooking->film_id] = max(0, ($seatsByFilm[$lockedBooking->film_id] ?? 0) - $lockedBooking->seats_reserved);
+            if ($seatsByFilm[$lockedBooking->film_id] === 0) {
+                unset($seatsByFilm[$lockedBooking->film_id]);
+            }
+            $seatsByFilm[$newFilmId] = ($seatsByFilm[$newFilmId] ?? 0) + $lockedBooking->seats_reserved;
+
+            $capacity = $session->seatCapacity();
+            $quorum = $session->quorum();
+            $deadlockLimit = max(0, $capacity - $quorum);
+            $totalSeats = array_sum($seatsByFilm);
+            $maxSeats = ! empty($seatsByFilm) ? max($seatsByFilm) : 0;
+
+            if (($totalSeats - $maxSeats) > $deadlockLimit) {
+                $this->reject('film_id', 'Pilihan film ini membuat sesi sulit mencapai kuorum. Pilih film yang sudah memiliki peminat atau slot sesi lain.');
+            }
+
+            $lockedBooking->update([
+                'film_id' => $newFilmId,
+                'reselect_needed' => false,
+            ]);
+
+            // Cek apakah film baru ini kini mencapai kuorum
+            if ($seatsByFilm[$newFilmId] >= $quorum) {
+                $session->confirmAndLock($newFilmId, 'quorum');
+
+                Booking::query()
+                    ->where('session_id', $session->id)
+                    ->where('film_id', '!=', $newFilmId)
+                    ->whereNotIn('status', ['dibatalkan', 'kedaluwarsa'])
+                    ->update(['reselect_needed' => true]);
+
+                $startsAt = $session->startsAt();
+                $paymentLimitMinutes = $this->settings->paymentTimeLimitMinutes();
+                $onlineBufferMinutes = $this->settings->onlinePaymentCutoffMinutes();
+                $maxTimeByLimit = now()->addMinutes($paymentLimitMinutes);
+                $maxTimeBySession = $startsAt->subMinutes($onlineBufferMinutes);
+                $onlineExpiresAt = $maxTimeByLimit->lessThan($maxTimeBySession) ? $maxTimeByLimit : $maxTimeBySession;
+
+                Booking::query()
+                    ->where('session_id', $session->id)
+                    ->where('film_id', $newFilmId)
+                    ->whereIn('payment_method', ['qris', 'transfer'])
+                    ->where('status', 'menunggu_pembayaran')
+                    ->whereNull('payment_expires_at')
+                    ->update(['payment_expires_at' => $onlineExpiresAt]);
+            }
+
+            return $lockedBooking->fresh(['session', 'film']);
+        }, attempts: 3);
+    }
+
+    public function reschedule(Booking $booking, Session $targetSession, ?int $targetFilmId = null): Booking
+    {
+        return DB::transaction(function () use ($booking, $targetSession, $targetFilmId): Booking {
+            $oldSession = Session::query()->lockForUpdate()->findOrFail($booking->session_id);
+            $newSession = Session::query()->lockForUpdate()->findOrFail($targetSession->id);
+            $lockedBooking = Booking::query()->lockForUpdate()->findOrFail($booking->id);
+
+            $startsAt = $newSession->startsAt();
+            $cutoffMinutes = $this->settings->integer('booking_cutoff_minutes', 30);
+            if ($newSession->status !== 'tersedia' || now()->greaterThanOrEqualTo($startsAt->subMinutes($cutoffMinutes))) {
+                $this->reject('session', 'Sesi tujuan sudah tidak menerima pemesanan.');
+            }
+
+            $filmId = $targetFilmId ?: $lockedBooking->film_id;
+            $film = Film::query()->where('is_active', true)->findOrFail($filmId);
+
+            // Validasi di sesi tujuan
+            if ($lockedBooking->isPrivate()) {
+                $check = $newSession->canAcceptPrivateBooking();
+                if (! $check['allowed']) {
+                    $this->reject('session', $check['reason'] ?? 'Sewa Private tidak tersedia di sesi tujuan.');
+                }
+            } elseif ($lockedBooking->isCouple()) {
+                $check = $newSession->canAcceptCoupleBooking($film->id);
+                if (! $check['allowed']) {
+                    $this->reject('session', $check['reason'] ?? 'Paket Couple tidak tersedia di sesi tujuan.');
+                }
+            } else {
+                $check = $newSession->canAcceptRegularBooking($film->id, $lockedBooking->seats_reserved);
+                if (! $check['allowed']) {
+                    $this->reject('session', $check['reason'] ?? 'Kursi tidak cukup atau pilihan film membuat sesi tujuan sulit tayang.');
+                }
+            }
+
+            // Pindahkan booking
+            $lockedBooking->update([
+                'session_id' => $newSession->id,
+                'film_id' => $film->id,
+                'reselect_needed' => false,
+            ]);
+
+            // Sinkronisasi status sesi lama
+            $oldSession->syncPrivateStatus();
+
+            // Evaluasi konfirmasi di sesi tujuan
+            if ($lockedBooking->isPrivate()) {
+                $newSession->confirmAndLock($film->id, 'private');
+            } elseif ($lockedBooking->isCouple()) {
+                $newSession->confirmAndLock($film->id, 'couple');
+            } else {
+                $seatsForFilm = (int) $newSession->occupiedBookings()->where('film_id', $film->id)->sum('seats_reserved');
+                if (! $newSession->isConfirmed() && $seatsForFilm >= $newSession->quorum()) {
+                    $newSession->confirmAndLock($film->id, 'quorum');
+                }
+            }
+
+            return $lockedBooking->fresh(['session', 'film']);
+        }, attempts: 3);
+    }
+
+    public function upgrade(Booking $booking, string $targetPackage): Booking
+    {
+        return DB::transaction(function () use ($booking, $targetPackage): Booking {
+            $session = Session::query()->lockForUpdate()->findOrFail($booking->session_id);
+            $lockedBooking = Booking::query()->lockForUpdate()->findOrFail($booking->id);
+
+            $startsAt = $session->startsAt();
+            $dayType = $this->scheduleResolver->dayTypeFor($startsAt);
+
+            if (! in_array($targetPackage, ['couple', 'private'], true)) {
+                $this->reject('package', 'Paket upgrade yang dipilih tidak valid.');
+            }
+
+            if ($targetPackage === 'couple') {
+                if ($lockedBooking->seats_reserved > 2) {
+                    $this->reject('package', 'Upgrade ke Paket Couple hanya untuk pemesanan maksimal 2 kursi.');
+                }
+                // Couple checks
+                $check = $session->canAcceptCoupleBooking($lockedBooking->film_id);
+                if (! $check['allowed']) {
+                    $this->reject('package', $check['reason'] ?? 'Paket Couple tidak tersedia pada sesi ini.');
+                }
+
+                $newPrice = $this->settings->couplePrice($dayType);
+                $diff = max(0, $newPrice - $lockedBooking->ticket_total);
+
+                $lockedBooking->update([
+                    'package' => 'couple',
+                    'booking_type' => 'couple',
+                    'pax' => 2,
+                    'seats_reserved' => 2,
+                    'people_count' => 2,
+                    'ticket_total' => $newPrice,
+                    'total_price' => $lockedBooking->total_price + $diff,
+                    'reselect_needed' => false,
+                ]);
+
+                $session->confirmAndLock($lockedBooking->film_id, 'couple');
+            } else {
+                // Private upgrade
+                $otherBookings = $session->occupiedBookings()->where('id', '!=', $lockedBooking->id)->count();
+                if ($otherBookings > 0) {
+                    $this->reject('package', 'Sudah ada pemesan lain di sesi ini, sehingga Sewa Private tidak dapat diambil.');
+                }
+
+                $newPrice = $this->settings->privatePriceForDayType($dayType);
+                $diff = max(0, $newPrice - $lockedBooking->ticket_total);
+
+                $lockedBooking->update([
+                    'package' => 'private',
+                    'booking_type' => 'private',
+                    'pax' => Session::MAX_CAPACITY,
+                    'seats_reserved' => Session::MAX_CAPACITY,
+                    'people_count' => Session::MAX_CAPACITY,
+                    'ticket_total' => $newPrice,
+                    'total_price' => $lockedBooking->total_price + $diff,
+                    'reselect_needed' => false,
+                ]);
+
+                $session->confirmAndLock($lockedBooking->film_id, 'private');
+            }
+
+            // Jika pembayaran online dan sesi kini pasti tayang, aktifkan timer pembayaran
+            if ($lockedBooking->isOnlinePayment() && $lockedBooking->status === 'menunggu_pembayaran' && $lockedBooking->payment_expires_at === null) {
+                $paymentLimitMinutes = $this->settings->paymentTimeLimitMinutes();
+                $onlineBufferMinutes = $this->settings->onlinePaymentCutoffMinutes();
+                $maxTimeByLimit = now()->addMinutes($paymentLimitMinutes);
+                $maxTimeBySession = $startsAt->subMinutes($onlineBufferMinutes);
+                $onlineExpiresAt = $maxTimeByLimit->lessThan($maxTimeBySession) ? $maxTimeByLimit : $maxTimeBySession;
+                $lockedBooking->update(['payment_expires_at' => $onlineExpiresAt]);
+            }
+
+            return $lockedBooking->fresh(['session', 'film']);
         }, attempts: 3);
     }
 

@@ -1,582 +1,636 @@
 @extends('layouts.public')
 
-@section('title', 'SynemaX: Bioskop Mini Desa Berkualitas Premiere')
+@section('title', setting('site_name', 'SynemaX') . ' – ' . setting('site_tagline', 'Studio Home Cinema Privat Desa'))
 @section('meta')
-    <meta name="description" content="Nonton dekat, seru bareng di studio mini SynemaX. Pengalaman bioskop modern standar XXI & CGV dengan tata suara menggelegar dan kursi empuk.">
+    <meta name="description" content="{{ setting('seo_meta_description', 'Bioskop mini privat desa dengan teknologi modern, sofa empuk, dan audio sinematik.') }}">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="SynemaX: Bioskop Mini Premiere Desa">
-    <meta property="og:description" content="Film pilihan terbaik, suasana home cinema berkelas. Amankan kursimu sekarang.">
-    <meta property="og:image" content="{{ asset('social-banner.png') }}">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="SynemaX: Bioskop Mini Premiere Desa">
-    <meta name="twitter:description" content="Film pilihan terbaik, suasana home cinema berkelas. Amankan kursimu sekarang.">
-    <meta name="twitter:image" content="{{ asset('social-banner.png') }}">
+    <meta property="og:title" content="{{ setting('site_name', 'SynemaX') }}">
+    <meta property="og:description" content="{{ setting('seo_meta_description', 'Bioskop mini privat desa.') }}">
+    @if (setting('site_og_image'))
+        <meta property="og:image" content="{{ Storage::disk('public')->url(setting('site_og_image')) }}">
+    @endif
 @endsection
 
 @section('content')
-    <div x-data="{
-             trailerModal: false,
-             activeFilm: null,
-             openTrailer(film) {
-                 this.activeFilm = film;
-                 this.trailerModal = true;
-             },
-             closeTrailer() {
-                 this.trailerModal = false;
-                 this.activeFilm = null;
-             },
-             getEmbedUrl(url) {
-                 if (!url) return '';
-                 const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-                 const match = url.match(regExp);
-                 return (match && match[2].length === 11) ? 'https://www.youtube-nocookie.com/embed/' + match[2] + '?autoplay=1' : url;
-             }
-         }"
-         class="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-8">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6 space-y-12 sm:space-y-16">
 
-        {{-- HERO SECTION: Banner Sinematik Mewah ala XXI Premiere --}}
-        <section class="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0F1424] via-[#090D17] to-[#04060A] p-5 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.9)] sm:p-8 lg:p-10">
-            {{-- Ambient Lighting / Glow Effect --}}
-            <div class="pointer-events-none absolute -left-20 -top-20 size-80 rounded-full bg-amber-500/10 blur-3xl"></div>
-            <div class="pointer-events-none absolute -right-20 -bottom-20 size-80 rounded-full bg-cyan-500/10 blur-3xl"></div>
+        {{-- ============================================================== --}}
+        {{-- 1. HERO CAROUSEL BANNER (Gambar Murni, Transisi Halus)       --}}
+        {{-- ============================================================== --}}
+        <section
+            aria-label="Sorotan Utama Bioskop"
+            x-data="{
+                current: 0,
+                total: {{ max(1, $heroBanners->count()) }},
+                timer: null,
+                interval: {{ (int) setting('home_hero_interval', 5) * 1000 }},
+                autoplay: {{ setting('home_hero_autoplay', true) ? 'true' : 'false' }},
+                isDragging: false,
+                startX: 0,
+                currentTranslate: 0,
+                prevTranslate: 0,
+                isHovered: false,
+                init() {
+                    if (this.autoplay && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                        this.startAuto();
+                    }
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.hidden) {
+                            this.stopAuto();
+                        } else if (this.autoplay && !this.isHovered) {
+                            this.startAuto();
+                        }
+                    });
+                },
+                startAuto() {
+                    this.stopAuto();
+                    this.timer = setInterval(() => {
+                        if (!this.isHovered && !this.isDragging) {
+                            this.next();
+                        }
+                    }, this.interval);
+                },
+                stopAuto() {
+                    if (this.timer) clearInterval(this.timer);
+                },
+                next() {
+                    this.goTo((this.current + 1) % this.total);
+                },
+                prev() {
+                    this.goTo((this.current - 1 + this.total) % this.total);
+                },
+                goTo(index) {
+                    this.current = index;
+                    this.preloadNext();
+                },
+                preloadNext() {
+                    const nextIdx = (this.current + 1) % this.total;
+                    const nextImg = document.querySelector(`[data-hero-slide='${nextIdx}'] img`);
+                    if (nextImg && nextImg.decode) {
+                        nextImg.decode().catch(() => {});
+                    }
+                },
+                onPointerDown(e) {
+                    this.isDragging = true;
+                    this.startX = e.clientX || (e.touches && e.touches[0].clientX);
+                    this.stopAuto();
+                },
+                onPointerMove(e) {
+                    if (!this.isDragging) return;
+                    const currentX = e.clientX || (e.touches && e.touches[0].clientX);
+                    const diff = currentX - this.startX;
+                    this.currentTranslate = diff;
+                },
+                onPointerUp() {
+                    if (!this.isDragging) return;
+                    this.isDragging = false;
+                    const threshold = 60;
+                    if (this.currentTranslate < -threshold) {
+                        this.next();
+                    } else if (this.currentTranslate > threshold) {
+                        this.prev();
+                    }
+                    this.currentTranslate = 0;
+                    if (this.autoplay && !this.isHovered) {
+                        this.startAuto();
+                    }
+                }
+            }"
+            @mouseenter="isHovered = true; stopAuto()"
+            @mouseleave="isHovered = false; if (autoplay) startAuto()"
+            @focusin="isHovered = true; stopAuto()"
+            @focusout="isHovered = false; if (autoplay) startAuto()"
+            @keydown.arrow-left.prevent="prev()"
+            @keydown.arrow-right.prevent="next()"
+            tabindex="0"
+            class="relative overflow-hidden rounded-3xl border border-border dark:border-white/10 bg-surface dark:bg-[#07090E] shadow-2xl focus:outline-none focus:ring-2 focus:ring-amber-500"
+        >
+            {{-- Carousel Aspect Ratio Container (2,35:1 Desktop, 4:3 / Cover Mobile) --}}
+            <div
+                class="relative w-full aspect-[4/3] sm:aspect-[2.35/1] overflow-hidden select-none cursor-grab active:cursor-grabbing"
+                @pointerdown="onPointerDown($event)"
+                @pointermove="onPointerMove($event)"
+                @pointerup="onPointerUp()"
+                @pointercancel="onPointerUp()"
+            >
+                {{-- Sliding Track Animated with transform: translate3d --}}
+                <div
+                    class="flex h-full w-full"
+                    :style="isDragging
+                        ? `transform: translate3d(calc(-${current * 100}% + ${currentTranslate}px), 0, 0); transition: none; will-change: transform;`
+                        : `transform: translate3d(-${current * 100}%, 0, 0); transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1); will-change: transform;`"
+                >
+                    @foreach ($heroBanners as $index => $banner)
+                        <div
+                            data-hero-slide="{{ $index }}"
+                            class="relative h-full w-full shrink-0 overflow-hidden bg-slate-900"
+                        >
+                            @php
+                                $targetUrl = $banner->resolvedUrl();
+                            @endphp
+                            @if ($targetUrl)
+                                <a href="{{ $targetUrl }}" class="block size-full" title="{{ $banner->title }}">
+                            @endif
 
-            @if ($nextAvailableSession && $nextAvailableSession->film)
-                @php
-                    $heroFilm = $nextAvailableSession->film;
-                    $heroTime = substr((string) $nextAvailableSession->start_time, 0, 5) . ' WIB';
-                    $heroDate = $nextAvailableSession->startsAt()->locale('id')->translatedFormat('l, d F Y');
-                @endphp
-                <div class="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-center lg:gap-10">
-                    {{-- Poster Film --}}
-                    <div class="group relative w-36 shrink-0 sm:w-48 lg:w-56 mx-auto sm:mx-0">
-                        <div class="aspect-[2/3] w-full overflow-hidden rounded-2xl border-2 border-amber-400/30 bg-[#0E131F] shadow-[0_12px_30px_rgba(0,0,0,0.8)] transition duration-300 group-hover:scale-102 group-hover:border-amber-400">
-                            @if ($heroFilm->poster_path)
-                                <img src="{{ Storage::url($heroFilm->poster_path) }}"
-                                     alt="Poster {{ $heroFilm->title }}"
-                                     loading="eager"
-                                     fetchpriority="high"
-                                     class="size-full object-cover">
+                            @if ($banner->imageUrl())
+                                <picture class="size-full">
+                                    @if ($banner->mobile_image_path)
+                                        <source media="(max-width: 640px)" srcset="{{ Storage::disk('public')->url($banner->mobile_image_path) }}">
+                                    @endif
+                                    <img
+                                        src="{{ $banner->imageUrl() }}"
+                                        alt="{{ $banner->title }}"
+                                        @if ($loop->first)
+                                            loading="eager"
+                                            fetchpriority="high"
+                                        @else
+                                            loading="lazy"
+                                        @endif
+                                        class="size-full object-cover object-center"
+                                    >
+                                </picture>
                             @else
-                                <div class="flex size-full flex-col items-center justify-center p-4 text-center">
-                                    <svg class="size-10 text-amber-400/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                                    </svg>
-                                    <span class="mt-2 text-xs font-bold text-amber-200">{{ $heroFilm->title }}</span>
+                                {{-- Fallback Brand Hero Artwork --}}
+                                <div class="flex size-full flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-[#101827] to-[#1E1B10] p-6 text-center text-white">
+                                    <x-brand.logo size="lg" />
+                                    <p class="mt-3 max-w-md text-xs sm:text-sm font-medium text-amber-200/90 tracking-wide">
+                                        {{ setting('site_tagline', 'Pengalaman Nonton Sinematik Layar Lebar & Audio Dolby') }}
+                                    </p>
                                 </div>
                             @endif
+
+                            @if ($targetUrl)
+                                </a>
+                            @endif
                         </div>
-                        <span class="absolute -top-2 -right-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-700 px-2 py-0.5 font-tabular text-[10px] font-black uppercase tracking-wider text-black shadow-md">
-                            {{ $heroFilm->age_rating }}
-                        </span>
-                    </div>
-
-                    {{-- Informasi Film & Aksi --}}
-                    <div class="flex-1 min-w-0 text-center sm:text-left">
-                        <div class="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-[11px] font-bold text-amber-300 uppercase tracking-widest shadow-xs">
-                            <span class="size-2 rounded-full bg-amber-400 animate-pulse"></span>
-                            Sedang Tayang di Studio 1
-                        </div>
-
-                        <h1 class="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl lg:text-5xl leading-tight">
-                            {{ $heroFilm->title }}
-                        </h1>
-
-                        <div class="mt-2.5 flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs font-medium text-slate-300">
-                            <span class="rounded-md bg-white/10 px-2 py-0.5 text-amber-300 font-semibold">{{ $heroFilm->genre }}</span>
-                            <span class="rounded-md bg-white/10 px-2 py-0.5 font-tabular">{{ $heroFilm->duration_minutes }} Menit</span>
-                            <span class="rounded-md bg-white/10 px-2 py-0.5 font-tabular text-amber-200">Format Layar Lebar & Dolby Sound</span>
-                        </div>
-
-                        <p class="mt-3.5 max-w-xl text-xs sm:text-sm leading-relaxed text-slate-300/90 line-clamp-3">
-                            {{ $heroFilm->synopsis ?: 'Ajak keluarga dan teman nonton bareng di studio mini berpendingin ruangan dengan proyektor jernih dan tata suara sinematik.' }}
-                        </p>
-
-                        <div class="mt-6 flex flex-wrap items-center justify-center sm:justify-start gap-3">
-                            {{-- Tombol Pesan Tiket (Memenuhi assertSee('Pesan tiket')) --}}
-                            <a href="{{ route('booking.create', ['session' => $nextAvailableSession->id]) }}"
-                               class="btn-gold-cinema inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-7 text-sm font-black shadow-lg">
-                                <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm0 3v2h2V7H4zm0 4v2h2v-2H4zm0 4v2h2v-2H4zm16-8h-2v2h2V7zm0 4h-2v2h2v-2zm0 4h-2v2h2v-2zm-12-8h8v10H8V7z"/>
-                                </svg>
-                                <span>Pesan tiket</span>
-                            </a>
-
-                            {{-- Tombol Tonton Trailer --}}
-                            <button type="button"
-                                    @click="openTrailer(@js($heroFilm))"
-                                    class="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 backdrop-blur-md px-5 text-sm font-bold text-white transition hover:bg-white/15 hover:border-amber-400">
-                                <svg class="size-5 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M8 5v14l11-7z" />
-                                </svg>
-                                <span>Tonton Trailer</span>
-                            </button>
-
-                            <div class="inline-flex min-h-12 items-center rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 font-tabular text-sm font-black text-amber-300">
-                                Sesi Terdekat: {{ $heroTime }}
-                            </div>
-                        </div>
-
-                        <p class="mt-3 text-xs text-slate-400">
-                            Sesi tayang {{ $heroDate }}. Tiket hari biasa mulai Rp {{ number_format($weekdayPrice, 0, ',', '.') }} per orang.
-                        </p>
-                    </div>
+                    @endforeach
                 </div>
-            @else
-                <div class="relative z-10 max-w-2xl py-4 sm:py-6">
-                    <div class="inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1 text-[11px] font-bold text-amber-300 uppercase tracking-widest">
-                        Studio Mini Eksklusif Desa
-                    </div>
-                    <h1 class="mt-3 text-3xl font-black tracking-tight text-white sm:text-5xl leading-tight">
-                        Sensasi Nonton Bioskop Modern di Dekat Anda
-                    </h1>
-                    <p class="mt-4 text-sm sm:text-base leading-relaxed text-slate-300">
-                        Nikmati deretan film terbaik dengan proyektor laser definisi tinggi, AC dingin, dan tata suara surround layaknya bioskop komersial. Amankan kursimu tanpa antre.
-                    </p>
-                    <div class="mt-6 flex flex-wrap items-center gap-3">
-                        <a href="#jadwal" class="btn-gold-cinema inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-7 text-sm font-black shadow-lg">
-                            <span>Pesan tiket</span>
-                        </a>
-                    </div>
-                    <p class="mt-3 text-xs text-slate-400">
-                        Kapasitas privat 6 kursi per sesi. Tiket hari biasa mulai Rp {{ number_format($weekdayPrice, 0, ',', '.') }} per orang.
-                    </p>
+            </div>
+
+            {{-- Navigation Arrows (Visible on non-touch desktop) --}}
+            @if ($heroBanners->count() > 1)
+                <button
+                    type="button"
+                    @click.stop="prev()"
+                    class="absolute left-3 top-1/2 -translate-y-1/2 hidden sm:flex size-11 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md border border-white/15 hover:bg-amber-500 hover:text-black transition-all shadow-lg"
+                    aria-label="Slide Sebelumnya"
+                >
+                    <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                </button>
+                <button
+                    type="button"
+                    @click.stop="next()"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:flex size-11 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md border border-white/15 hover:bg-amber-500 hover:text-black transition-all shadow-lg"
+                    aria-label="Slide Berikutnya"
+                >
+                    <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+
+                {{-- Smooth Elongated Dot Indicators --}}
+                <div class="absolute bottom-4 inset-x-0 flex items-center justify-center gap-2 z-10 pointer-events-none">
+                    @foreach ($heroBanners as $index => $banner)
+                        <button
+                            type="button"
+                            @click="goTo({{ $index }})"
+                            class="pointer-events-auto h-2 rounded-full transition-all duration-300 {{ $index === 0 ? 'w-7 bg-amber-400' : 'w-2 bg-white/40 hover:bg-white/70' }}"
+                            :class="current === {{ $index }} ? 'w-7 bg-amber-400' : 'w-2 bg-white/40'"
+                            aria-label="Ke Slide {{ $index + 1 }}"
+                        ></button>
+                    @endforeach
                 </div>
             @endif
         </section>
 
-        {{-- Booking Saya (Tersimpan Lokal di Browser) --}}
-        <section id="booking-saya"
-                 x-data="{
-                     codes: [],
-                     loadCodes() {
-                         try {
-                             const stored = JSON.parse(localStorage.getItem('synemax:booking-codes') || '[]');
-                             this.codes = Array.isArray(stored) ? [...new Set(stored.filter((code) => typeof code === 'string'))] : [];
-                         } catch {
-                             this.codes = [];
-                         }
-                     },
-                     removeCode(code) {
-                         this.codes = this.codes.filter((saved) => saved !== code);
-                         try {
-                             localStorage.setItem('synemax:booking-codes', JSON.stringify(this.codes));
-                         } catch {
-                             this.loadCodes();
-                         }
-                     }
-                 }"
-                 x-init="loadCodes()"
-                 x-show="codes.length > 0"
-                 x-cloak
-                 class="mt-8 rounded-2xl border border-border bg-surface/80 backdrop-blur-md p-5 shadow-sm">
-            <div class="flex flex-wrap items-baseline justify-between gap-2 border-b border-border pb-3">
-                <div class="flex items-center gap-2">
-                    <span class="flex size-6 items-center justify-center rounded-md bg-amber-500/20 text-amber-400">
-                        <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                        </svg>
-                    </span>
-                    <h2 class="text-base font-bold text-text">Booking saya di perangkat ini</h2>
-                </div>
-                <p class="text-xs text-text-muted">Nomor WhatsApp tetap diminta saat memeriksa status tiket.</p>
-            </div>
-            <ul class="mt-4 space-y-2">
-                <template x-for="code in codes" :key="code">
-                    <li class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface-2/60 p-3">
-                        <a :href="`{{ route('booking.lookup.form') }}?code=${encodeURIComponent(code)}`"
-                           class="font-tabular text-sm font-bold text-primary underline underline-offset-2"
-                           x-text="code"></a>
-                        <div class="flex gap-2">
-                            <a :href="`{{ route('booking.lookup.form') }}?code=${encodeURIComponent(code)}`"
-                               class="btn-gold-cinema inline-flex min-h-9 items-center rounded-lg px-3.5 text-xs font-bold shadow-xs">
-                                Cek status
-                            </a>
-                            <button type="button"
-                                    @click="removeCode(code)"
-                                    class="inline-flex min-h-9 items-center rounded-lg border border-border px-3 text-xs font-medium text-text-muted hover:border-danger hover:text-danger">
-                                Hapus
-                            </button>
-                        </div>
-                    </li>
-                </template>
-            </ul>
-        </section>
-
-        {{-- JADWAL 7 HARI KE DEPAN (Memenuhi assertSee('Jadwal 7 hari ke depan')) --}}
-        <section id="jadwal" class="scroll-mt-12 pt-12 sm:pt-16">
-            <div class="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
-                <div>
-                    <div class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
-                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span>Pilih Waktu Menonton</span>
-                    </div>
-                    <h2 class="mt-1 text-2xl font-black tracking-tight text-text sm:text-3xl">Jadwal 7 hari ke depan</h2>
-                    <p class="mt-0.5 text-xs sm:text-sm text-text-muted">Pilih tanggal untuk melihat ketersediaan kursi di Studio 1. Tiket mulai Rp {{ number_format($weekdayPrice, 0, ',', '.') }} per orang.</p>
-                </div>
-            </div>
-
-            {{-- Horizontal Scrolling Date Pills --}}
-            <nav class="mt-6 flex snap-x gap-2.5 overflow-x-auto pb-3 scrollbar-none" aria-label="Jadwal 7 hari ke depan">
-                @foreach ($dates as $date)
-                    @php($dateKey = $date->toDateString())
-                    <a href="{{ route('schedule.date', ['date' => $dateKey]) }}"
-                       class="group min-w-36 shrink-0 snap-start rounded-2xl border border-border bg-surface p-3.5 transition-all duration-200 hover:border-primary hover:shadow-[0_8px_20px_-4px_rgba(212,175,55,0.2)]">
-                        <div class="flex items-center justify-between gap-1">
-                            <span class="text-xs font-bold text-text-muted group-hover:text-primary">
-                                {{ $loop->first ? 'Hari ini' : $date->locale('id')->translatedFormat('l') }}
-                            </span>
-                            @if ($holidayDates->has($dateKey))
-                                <span class="rounded-md bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">Libur</span>
-                            @endif
-                        </div>
-                        <span class="mt-1.5 block font-tabular text-xl font-black text-text group-hover:text-primary">
-                            {{ $date->format('d M') }}
-                        </span>
-                        <div class="mt-3 flex flex-wrap gap-1.5">
-                            @forelse ($sessionsByDate->get($dateKey, collect()) as $session)
-                                <span class="rounded-md bg-surface-2 px-2 py-0.5 font-tabular text-[11px] font-bold text-text">
-                                    {{ substr((string) $session->start_time, 0, 5) }}
-                                </span>
-                            @empty
-                                <span class="text-[11px] text-text-muted">Jadwal menyusul</span>
-                            @endforelse
-                        </div>
-                    </a>
-                @endforeach
-            </nav>
-        </section>
-
-        {{-- DAFTAR FILM TERSEDIA (Memenuhi assertSee('Film tersedia')) --}}
-        <section class="pt-12 sm:pt-16">
-            <div class="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
-                <div>
-                    <div class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
-                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                        </svg>
-                        <span>Now Showing & Coming Soon</span>
-                    </div>
-                    <h2 class="mt-1 text-2xl font-black tracking-tight text-text sm:text-3xl">Film tersedia</h2>
-                    <p class="mt-0.5 text-xs sm:text-sm text-text-muted">Koleksi film pilihan di Studio Mini SynemaX. Klik poster untuk melihat trailer atau pesan tiket langsung.</p>
-                </div>
-                <span class="rounded-full bg-surface-2 px-3 py-1 font-tabular text-xs font-bold text-text-muted">
-                    {{ $films->count() }} Judul Film
-                </span>
-            </div>
-
-            {{-- Grid Poster Film Berasio 2:3 ala Bioskop Komersial --}}
-            <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                @forelse ($films as $film)
-                    <article class="group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all duration-300 hover:border-amber-400/60 hover:shadow-[0_12px_30px_-5px_rgba(212,175,55,0.25)]">
-                        <div class="relative aspect-[2/3] w-full overflow-hidden bg-[#0A0D14]">
-                            @if ($film->poster_path)
-                                <img src="{{ Storage::url($film->poster_path) }}"
-                                     alt="Poster {{ $film->title }}"
-                                     loading="lazy"
-                                     width="500"
-                                     height="750"
-                                     class="size-full object-cover transition duration-300 group-hover:scale-105">
-                            @else
-                                <div class="flex size-full flex-col items-center justify-center p-3 text-center">
-                                    <svg class="size-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+        {{-- ============================================================== --}}
+        {{-- 2. CHIP INFO KECIL (Dari Pengaturan)                           --}}
+        {{-- ============================================================== --}}
+        @if (count($infoChips) > 0)
+            <section aria-label="Informasi Bioskop" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                @foreach ($infoChips as $chip)
+                    @if (!empty($chip['is_visible']))
+                        <div class="flex items-center gap-3 rounded-2xl border border-slate-300 dark:border-white/10 bg-surface dark:bg-[#0B101B] p-3.5 shadow-sm transition hover:border-amber-500/50">
+                            <span class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                @if (($chip['icon'] ?? '') === 'chair')
+                                    <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
                                     </svg>
-                                    <span class="mt-2 text-xs font-bold text-slate-400">{{ $film->title }}</span>
-                                </div>
-                            @endif
-
-                            {{-- Rating Usia Badge --}}
-                            <span class="absolute right-2.5 top-2.5 rounded-lg bg-black/80 backdrop-blur-md px-2 py-0.5 font-tabular text-[10px] font-black uppercase text-amber-400 border border-amber-400/30">
-                                {{ $film->age_rating }}
-                            </span>
-
-                            {{-- Durasi Badge --}}
-                            <span class="absolute left-2.5 bottom-2.5 rounded-md bg-black/80 backdrop-blur-md px-2 py-0.5 font-tabular text-[10px] font-bold text-slate-200">
-                                {{ $film->duration_minutes }}m
-                            </span>
-
-                            {{-- Hover Overlay dengan Tombol Trailer --}}
-                            <div class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/70 p-3 opacity-0 backdrop-blur-xs transition duration-200 group-hover:opacity-100">
-                                <button type="button"
-                                        @click="openTrailer(@js($film))"
-                                        class="inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-lg bg-white/20 px-3 text-xs font-bold text-white hover:bg-white/30">
-                                    <svg class="size-4 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M8 5v14l11-7z" />
+                                @elseif (($chip['icon'] ?? '') === 'tag')
+                                    <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                                     </svg>
-                                    <span>Trailer</span>
-                                </button>
-                                <a href="{{ route('home') }}#jadwal"
-                                   class="btn-gold-cinema inline-flex min-h-9 w-full items-center justify-center rounded-lg px-3 text-xs font-bold shadow-xs">
-                                    Pesan Tiket
-                                </a>
-                            </div>
-                        </div>
-
-                        {{-- Metadata Judul & Genre --}}
-                        <div class="p-3">
-                            <h3 class="text-sm font-bold text-text leading-snug line-clamp-1 group-hover:text-primary">
-                                <a href="{{ route('home') }}#jadwal">
-                                    {{ $film->title }}
-                                </a>
-                            </h3>
-                            <p class="mt-1 text-xs text-text-muted truncate">
-                                {{ $film->genre }}
-                            </p>
-                        </div>
-                    </article>
-                @empty
-                    <p class="col-span-full rounded-2xl border border-border bg-surface p-6 text-center text-sm text-text-muted">
-                        Katalog film sedang disiapkan pengelola studio. Silakan periksa kembali beberapa saat lagi.
-                    </p>
-                @endforelse
-            </div>
-        </section>
-
-        {{-- ACARA NOBAR (Bila Aktif) --}}
-        @if ($infoNobarEnabled && $upcomingNobar->isNotEmpty())
-            <section class="pt-12 sm:pt-16">
-                <div class="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
-                    <div>
-                        <div class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-cyan-400">
-                            <span class="size-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                            <span>Acara Komunitas</span>
-                        </div>
-                        <h2 class="mt-1 text-2xl font-black tracking-tight text-text sm:text-3xl">Nobar di luar ruangan</h2>
-                        <p class="mt-0.5 text-xs sm:text-sm text-text-muted">Nonton bareng seru di halaman terbuka SynemaX dengan layar tancap modern.</p>
-                    </div>
-                    <a href="{{ route('nobar.index') }}" class="text-xs font-bold text-primary hover:underline">
-                        Semua acara nobar
-                    </a>
-                </div>
-
-                <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    @foreach ($upcomingNobar as $event)
-                        <article class="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5 shadow-sm transition hover:border-cyan-500/50">
-                            <div>
-                                @if ($event->hasPoster())
-                                    <a href="{{ route('nobar.show', ['slug' => $event->slug]) }}" class="block aspect-[4/5] w-full overflow-hidden rounded-xl bg-surface-2 mb-4">
-                                        <img src="{{ $event->posterUrl() }}"
-                                             alt="{{ $event->posterAltText() }}"
-                                             loading="lazy"
-                                             class="size-full object-cover object-top transition duration-200 hover:scale-102">
-                                    </a>
+                                @else
+                                    <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                                    </svg>
                                 @endif
-                                <span class="rounded-md bg-cyan-500/10 px-2 py-0.5 text-[11px] font-bold text-cyan-400">
-                                    {{ $event->kickoff_at->locale('id')->translatedFormat('l, d F Y - H:i') }} WIB
-                                </span>
-                                <h3 class="mt-2 text-base font-bold text-text">
-                                    <a href="{{ route('nobar.show', ['slug' => $event->slug]) }}" class="hover:text-primary">
-                                        {{ $event->judul }}
-                                    </a>
-                                </h3>
-                                <p class="mt-1.5 text-xs leading-relaxed text-text-muted line-clamp-2">
-                                    {{ $event->ringkasan ?: 'Ajak teman dan keluarga meramaikan nobar seru di pelataran bioskop.' }}
-                                </p>
-                            </div>
-                            <div class="mt-4 pt-3 border-t border-border flex items-center justify-between">
-                                <span class="font-tabular text-xs font-bold text-emerald-400">Gratis / Terbuka</span>
-                                <a href="{{ route('nobar.show', ['slug' => $event->slug]) }}" class="text-xs font-bold text-primary hover:underline">
-                                    Rincian acara
-                                </a>
-                            </div>
-                        </article>
-                    @endforeach
-                </div>
-            </section>
-        @endif
-
-        {{-- KABAR & ARTIKEL TERBARU (Bila Aktif) --}}
-        @if ($infoNobarEnabled && $latestArticles->isNotEmpty())
-            <section class="pt-12 sm:pt-16">
-                <div class="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-4">
-                    <div>
-                        <div class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
-                            <span>Informasi & Pengumuman</span>
+                            </span>
+                            <span class="text-xs sm:text-sm font-bold text-text leading-snug">
+                                {{ $chip['text'] }}
+                            </span>
                         </div>
-                        <h2 class="mt-1 text-2xl font-black tracking-tight text-text sm:text-3xl">Kabar bioskop</h2>
-                        <p class="mt-0.5 text-xs sm:text-sm text-text-muted">Seputar promo tiket, menu jajan baru, dan agenda spesial SynemaX.</p>
-                    </div>
-                    <a href="{{ route('articles.index') }}" class="text-xs font-bold text-primary hover:underline">
-                        Semua kabar
-                    </a>
-                </div>
-
-                <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    @foreach ($latestArticles as $article)
-                        <article class="flex flex-col justify-between rounded-2xl border border-border bg-surface p-5 shadow-sm">
-                            <div>
-                                <div class="flex items-center justify-between gap-2">
-                                    <span class="rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] font-bold text-amber-400">
-                                        {{ $article->kategori ?: 'Info' }}
-                                    </span>
-                                    <span class="text-[11px] text-text-muted">
-                                        {{ $article->created_at->diffForHumans() }}
-                                    </span>
-                                </div>
-                                <h3 class="mt-2 text-base font-bold text-text">
-                                    <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" class="hover:text-primary">
-                                        {{ $article->judul }}
-                                    </a>
-                                </h3>
-                                <p class="mt-1.5 text-xs leading-relaxed text-text-muted line-clamp-3">
-                                    {{ $article->ringkasan }}
-                                </p>
-                            </div>
-                            <div class="mt-4 pt-3 border-t border-border">
-                                <a href="{{ route('articles.show', ['slug' => $article->slug]) }}" class="text-xs font-bold text-primary hover:underline">
-                                    Baca selengkapnya
-                                </a>
-                            </div>
-                        </article>
-                    @endforeach
-                </div>
+                    @endif
+                @endforeach
             </section>
         @endif
 
-        {{-- HARGA TIKET & FAQ --}}
-        <section class="mt-12 grid gap-6 border-t border-border pt-12 sm:grid-cols-2">
-            <div class="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-                <div class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
-                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Transparansi Tarif</span>
+        {{-- ============================================================== --}}
+        {{-- 3. DAFTAR FILM (Katalog On-Demand Dengan Filter Realtime)      --}}
+        {{-- ============================================================== --}}
+        <section
+            aria-label="Katalog Film"
+            id="katalog-film"
+            x-data="{
+                genre: new URLSearchParams(window.location.search).get('genre') || '',
+                tahun: new URLSearchParams(window.location.search).get('tahun') || '',
+                allFilms: {{ Js::from($films->map(fn($f) => [
+                    'id' => $f->id,
+                    'title' => $f->title,
+                    'slug' => $f->slug,
+                    'genre' => $f->genre,
+                    'release_year' => $f->release_year ?: ($f->release_date ? $f->release_date->format('Y') : null),
+                    'duration_minutes' => $f->duration_minutes,
+                    'age_rating' => $f->age_rating,
+                    'poster_url' => $f->posterUrl(),
+                    'url' => route('films.show', $f->slug ?: $f->id),
+                ])) }},
+                get filteredFilms() {
+                    return this.allFilms.filter(f => {
+                        const matchGenre = !this.genre || (f.genre && f.genre.toLowerCase().split(',').map(s => s.trim()).includes(this.genre.toLowerCase()));
+                        const matchTahun = !this.tahun || String(f.release_year) === String(this.tahun);
+                        return matchGenre && matchTahun;
+                    });
+                },
+                setFilter(g, t) {
+                    if (g !== undefined) this.genre = g;
+                    if (t !== undefined) this.tahun = t;
+                    const url = new URL(window.location);
+                    if (this.genre) url.searchParams.set('genre', this.genre); else url.searchParams.delete('genre');
+                    if (this.tahun) url.searchParams.set('tahun', this.tahun); else url.searchParams.delete('tahun');
+                    window.history.replaceState({}, '', url);
+                },
+                resetFilter() {
+                    this.setFilter('', '');
+                }
+            }"
+            class="space-y-6"
+        >
+            <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 border-l-4 border-amber-500 pl-3 sm:pl-4">
+                <div>
+                    <h2 class="text-xl sm:text-2xl font-black text-text tracking-tight uppercase">Katalog Film</h2>
+                    <p class="mt-0.5 text-xs text-text-muted">Pilih film favoritmu berdasarkan genre dan tahun rilis</p>
                 </div>
-                <h2 class="mt-1 text-xl font-black text-text">Harga tiket studio</h2>
-                <p class="mt-1 text-xs text-text-muted">Tarif resmi per orang untuk setiap sesi pemutaran di Studio 1.</p>
-                <dl class="mt-4 divide-y divide-border rounded-xl border border-border bg-surface-2/40 px-4">
-                    <div class="flex justify-between py-3 text-sm">
-                        <dt class="text-text-muted">Hari biasa (Senin sampai Kamis)</dt>
-                        <dd class="font-tabular font-black text-amber-400">Rp {{ number_format($weekdayPrice, 0, ',', '.') }}</dd>
-                    </div>
-                    <div class="flex justify-between py-3 text-sm">
-                        <dt class="text-text-muted">Akhir pekan (Jumat sampai Minggu)</dt>
-                        <dd class="font-tabular font-black text-amber-400">Rp {{ number_format($weekendPrice, 0, ',', '.') }}</dd>
-                    </div>
-                    <div class="flex justify-between py-3 text-sm">
-                        <dt class="text-text-muted">Hari libur nasional</dt>
-                        <dd class="font-tabular font-black text-amber-400">Rp {{ number_format($holidayPrice, 0, ',', '.') }}</dd>
-                    </div>
-                </dl>
+                <a href="{{ route('films.index') }}" class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-accent-link hover:underline">
+                    <span>Lihat semua film</span>
+                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                </a>
             </div>
 
-            <div class="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-                <div class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
-                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Informasi Pemesanan</span>
-                </div>
-                <h2 class="mt-1 text-xl font-black text-text">Pertanyaan yang sering diajukan</h2>
-                <div class="mt-4 space-y-2.5">
-                    <details class="group rounded-xl border border-border bg-surface-2/40 p-3.5">
-                        <summary class="cursor-pointer font-bold text-sm text-text flex items-center justify-between">
-                            <span>Perlu membuat akun sebelum memesan?</span>
-                            <span class="text-amber-400 text-xs transition group-open:rotate-180">▼</span>
-                        </summary>
-                        <p class="mt-2 text-xs leading-relaxed text-text-muted">Tidak perlu. Anda cukup mengisi nama dan nomor WhatsApp saat booking. E-tiket instan diterbitkan langsung.</p>
-                    </details>
-                    <details class="group rounded-xl border border-border bg-surface-2/40 p-3.5">
-                        <summary class="cursor-pointer font-bold text-sm text-text flex items-center justify-between">
-                            <span>Bisa memesan seluruh studio untuk rombongan?</span>
-                            <span class="text-amber-400 text-xs transition group-open:rotate-180">▼</span>
-                        </summary>
-                        <p class="mt-2 text-xs leading-relaxed text-text-muted">Bisa. Pilih opsi Sewa Studio Privat pada formulir pemesanan untuk mengunci seluruh 6 kursi khusus rombongan Anda.</p>
-                    </details>
-                    <details class="group rounded-xl border border-border bg-surface-2/40 p-3.5">
-                        <summary class="cursor-pointer font-bold text-sm text-text flex items-center justify-between">
-                            <span>Bagaimana cara melakukan pembayaran?</span>
-                            <span class="text-amber-400 text-xs transition group-open:rotate-180">▼</span>
-                        </summary>
-                        <p class="mt-2 text-xs leading-relaxed text-text-muted">Kami mendukung QRIS instan, Transfer Bank, atau bayar langsung di kasir studio sebelum penayangan.</p>
-                    </details>
-                </div>
+            {{-- Reusable Film Filter Bar Component --}}
+            <x-public.film-filter-bar :genres="$genres" :years="$years" />
+
+            {{-- Film Grid (Poster 2:3 Ratio with Single Age Rating Badge) --}}
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
+                <template x-for="film in filteredFilms" :key="film.id">
+                    <a
+                        :href="film.url"
+                        class="group relative flex flex-col rounded-2xl overflow-hidden border border-slate-300 dark:border-white/10 bg-surface dark:bg-[#0B101B] shadow-sm hover:shadow-xl hover:border-amber-500 transition-all duration-200"
+                    >
+                        {{-- Poster Image 2:3 with single Age Rating Badge --}}
+                        <div class="relative w-full aspect-[2/3] overflow-hidden bg-slate-900">
+                            <template x-if="film.poster_url">
+                                <img
+                                    :src="film.poster_url"
+                                    :alt="film.title"
+                                    loading="lazy"
+                                    class="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                >
+                            </template>
+                            <template x-if="!film.poster_url">
+                                <div class="flex size-full flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-slate-900 via-amber-950/40 to-slate-950">
+                                    <span class="text-xs font-black text-amber-400 uppercase tracking-wider line-clamp-2" x-text="film.title"></span>
+                                    <span class="mt-2 text-[10px] text-text-muted">SynemaX Cinema</span>
+                                </div>
+                            </template>
+
+                            {{-- Single Clean Age Rating Badge in Corner --}}
+                            <div class="absolute top-2.5 right-2.5 z-10">
+                                <span class="inline-flex items-center rounded-md bg-black/75 backdrop-blur-md px-2 py-0.5 text-[10px] font-black text-white border border-white/20 shadow-sm" x-text="film.age_rating"></span>
+                            </div>
+                        </div>
+
+                        {{-- Metadata Below Poster --}}
+                        <div class="p-3 sm:p-4 flex flex-col flex-1 justify-between">
+                            <div>
+                                <h3 class="font-bold text-sm sm:text-base text-text group-hover:text-amber-500 transition-colors line-clamp-1" x-text="film.title"></h3>
+                                <p class="mt-1 text-xs text-text-muted truncate" x-text="film.genre"></p>
+                            </div>
+                            <div class="mt-3 flex items-center justify-between text-[11px] text-text-muted border-t border-border/60 pt-2 font-medium">
+                                <span x-text="film.release_year || '-'"></span>
+                                <span x-text="`${film.duration_minutes} mnt`"></span>
+                            </div>
+                        </div>
+                    </a>
+                </template>
+            </div>
+
+            {{-- Empty State for Filter --}}
+            <div x-show="filteredFilms.length === 0" x-cloak class="rounded-2xl border border-border bg-surface p-12 text-center">
+                <p class="text-sm font-bold text-text">Belum ada film untuk filter ini</p>
+                <p class="mt-1 text-xs text-text-muted">Coba ubah pilihan genre atau tahun rilis Anda.</p>
+                <button type="button" @click="resetFilter()" class="mt-4 inline-flex min-h-[38px] items-center rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400 shadow-xs">
+                    Reset Filter
+                </button>
             </div>
         </section>
 
-        {{-- BANTUAN WHATSAPP --}}
-        @if ($adminWhatsAppUrl)
-            <section class="mt-12 rounded-3xl border border-amber-400/20 bg-gradient-to-r from-amber-500/10 via-surface to-surface p-8 text-center shadow-lg">
-                <h2 class="text-xl font-black text-text">Ada pertanyaan seputar jadwal atau reservasi privat?</h2>
-                <p class="mt-1.5 text-xs text-text-muted max-w-md mx-auto">Customer service SynemaX siap membantu rekomendasi film, sesi rombongan, dan konfirmasi reservasi.</p>
-                <div class="mt-5">
-                    <a href="{{ $adminWhatsAppUrl }}"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       class="btn-gold-cinema inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-6 text-xs font-black shadow-md">
-                        <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2z"/>
+        {{-- Divider Dotted --}}
+        <div class="border-t border-dashed border-slate-300 dark:border-white/10 my-8 sm:my-12"></div>
+
+        {{-- ============================================================== --}}
+        {{-- 4. PROMO & PENAWARAN (CGV Partner Deal Style Carousel)        --}}
+        {{-- ============================================================== --}}
+        @if ($promos->count() > 0)
+            <section
+                aria-label="Promo dan Penawaran"
+                class="space-y-6"
+                x-data="{
+                    current: 0,
+                    total: {{ $promos->count() }},
+                    isDragging: false,
+                    startX: 0,
+                    currentTranslate: 0,
+                    hasMoved: false,
+                    isTransitioning: false,
+                    get stepPercent() {
+                        return window.innerWidth < 640 ? 88 : 72;
+                    },
+                    get gapPx() {
+                        return window.innerWidth < 640 ? 16 : 24;
+                    },
+                    prev() {
+                        if (this.current > 0) {
+                            this.goTo(this.current - 1);
+                        }
+                    },
+                    next() {
+                        if (this.current < this.total - 1) {
+                            this.goTo(this.current + 1);
+                        }
+                    },
+                    goTo(idx) {
+                        this.current = idx;
+                    },
+                    onPointerDown(e) {
+                        if (this.total <= 1) return;
+                        this.isDragging = true;
+                        this.hasMoved = false;
+                        this.startX = e.clientX || (e.touches && e.touches[0].clientX);
+                    },
+                    onPointerMove(e) {
+                        if (!this.isDragging) return;
+                        const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                        const diff = clientX - this.startX;
+                        if (Math.abs(diff) > 5) {
+                            this.hasMoved = true;
+                        }
+                        this.currentTranslate = diff;
+                    },
+                    onPointerUp() {
+                        if (!this.isDragging) return;
+                        this.isDragging = false;
+                        const threshold = 50;
+                        if (this.currentTranslate < -threshold && this.current < this.total - 1) {
+                            this.next();
+                        } else if (this.currentTranslate > threshold && this.current > 0) {
+                            this.prev();
+                        }
+                        this.currentTranslate = 0;
+                    }
+                }"
+            >
+                {{-- CGV Style Section Header --}}
+                <div class="flex items-center justify-between border-l-4 border-amber-500 pl-3 sm:pl-4">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-black text-text tracking-tight uppercase">Promo & Penawaran</h2>
+                        <p class="mt-0.5 text-xs text-text-muted">Penawaran hemat dan paket spesial menonton di SynemaX</p>
+                    </div>
+                    <a href="{{ route('promos.index') }}" class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-accent-link hover:underline">
+                        <span>Lihat semua</span>
+                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>
-                        <span>Hubungi Pengelola via WhatsApp</span>
                     </a>
+                </div>
+
+                {{-- Carousel Viewport with Peek (72% desktop, 88% mobile) --}}
+                <div class="relative overflow-hidden">
+                    <div
+                        class="select-none cursor-grab active:cursor-grabbing"
+                        @pointerdown="onPointerDown($event)"
+                        @pointermove="onPointerMove($event)"
+                        @pointerup="onPointerUp()"
+                        @pointercancel="onPointerUp()"
+                    >
+                        <div
+                            class="flex gap-4 sm:gap-6"
+                            :style="isDragging
+                                ? `transform: translate3d(calc(-${current} * (${stepPercent}% + ${gapPx}px) + ${currentTranslate}px), 0, 0); transition: none; will-change: transform;`
+                                : `transform: translate3d(calc(-${current} * (${stepPercent}% + ${gapPx}px)), 0, 0); transition: transform 650ms cubic-bezier(0.22, 1, 0.36, 1); will-change: transform;`"
+                        >
+                            @foreach ($promos as $promo)
+                                <div
+                                    class="shrink-0 w-[88%] sm:w-[72%] transition-transform duration-200"
+                                >
+                                    <a
+                                        href="{{ route('promos.show', $promo->slug) }}"
+                                        @click="if (hasMoved) { $event.preventDefault(); hasMoved = false; }"
+                                        class="group relative block w-full aspect-[2/1] overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-300 dark:border-white/10 bg-surface shadow-sm hover:shadow-xl hover:border-amber-500 hover:-translate-y-0.5 sm:hover:-translate-y-1 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-amber-500"
+                                    >
+                                        {{-- Pure Image 2:1 --}}
+                                        @if ($promo->imageUrl())
+                                            <img
+                                                src="{{ $promo->imageUrl() }}"
+                                                alt="{{ $promo->title }}"
+                                                loading="lazy"
+                                                class="size-full object-cover transition-transform duration-300 group-hover:scale-102"
+                                            >
+                                        @else
+                                            <div class="flex size-full flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-amber-950 via-slate-900 to-slate-950">
+                                                <span class="text-sm sm:text-base font-bold text-amber-400 uppercase tracking-wider">{{ $promo->title }}</span>
+                                            </div>
+                                        @endif
+                                    </a>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Semi-transparent Circular Arrows (Desktop Only, Pinned Vertically Centered Inside Container) --}}
+                    @if ($promos->count() > 1)
+                        <button
+                            type="button"
+                            x-show="current > 0"
+                            x-cloak
+                            @click="prev()"
+                            class="hidden sm:flex absolute left-4 top-1/2 -translate-y-1/2 size-11 items-center justify-center rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-md border border-white/20 transition-all shadow-xl z-20 focus-visible:outline-2 focus-visible:outline-amber-500"
+                            aria-label="Geser promo ke kiri"
+                        >
+                            <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </button>
+                        <button
+                            type="button"
+                            x-show="current < total - 1"
+                            x-cloak
+                            @click="next()"
+                            class="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 size-11 items-center justify-center rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-md border border-white/20 transition-all shadow-xl z-20 focus-visible:outline-2 focus-visible:outline-amber-500"
+                            aria-label="Geser promo ke kanan"
+                        >
+                            <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+
+                        {{-- Smooth Elongated Dots Indicator --}}
+                        <div class="mt-4 flex items-center justify-center gap-2">
+                            @foreach ($promos as $index => $promo)
+                                <button
+                                    type="button"
+                                    @click="goTo({{ $index }})"
+                                    class="h-2 rounded-full transition-all duration-300 focus-visible:outline-none"
+                                    :class="current === {{ $index }} ? 'w-8 bg-amber-500' : 'w-2.5 bg-slate-400 dark:bg-white/25 hover:bg-amber-400/50'"
+                                    aria-label="Lihat Promo {{ $index + 1 }}"
+                                ></button>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
             </section>
         @endif
 
-        {{-- MODAL TRAILER FILM INTERAKTIF (Ala Bioskop Modern) --}}
-        <div x-show="trailerModal"
-             x-cloak
-             class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"
-             @keydown.escape.window="closeTrailer()"
-             @click.self="closeTrailer()">
-            <div class="relative w-full max-w-3xl overflow-hidden rounded-3xl border border-amber-400/30 bg-[#0E131F] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] animate-in fade-in zoom-in-95 duration-200">
-                {{-- Header Modal --}}
-                <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
-                    <div class="flex items-center gap-2.5">
-                        <span class="flex size-7 items-center justify-center rounded-lg bg-amber-500 text-black">
-                            <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
-                        </span>
-                        <div>
-                            <h3 class="text-base font-black text-white" x-text="activeFilm?.title"></h3>
-                            <p class="text-[11px] text-amber-400" x-text="activeFilm ? activeFilm.genre + ' • ' + activeFilm.duration_minutes + ' Menit' : ''"></p>
-                        </div>
+        {{-- Divider Dotted --}}
+        <div class="border-t border-dashed border-slate-300 dark:border-white/10 my-8 sm:my-12"></div>
+
+        {{-- ============================================================== --}}
+        {{-- 5. BLOK MAKANAN & MINUMAN (Kartu Gambar Besar 1200x600)       --}}
+        {{-- ============================================================== --}}
+        @if (count($snackBanners ?? []) > 0)
+            <section aria-label="Makanan dan Minuman" class="space-y-6">
+                <div class="flex items-center justify-between border-l-4 border-amber-500 pl-3 sm:pl-4">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-black text-text tracking-tight uppercase">Makanan & Minuman</h2>
+                        <p class="mt-0.5 text-xs text-text-muted">Popcorn hangat, minuman segar, dan camilan lezat menemani nontonmu</p>
                     </div>
-                    <button type="button"
-                            @click="closeTrailer()"
-                            class="rounded-xl border border-white/10 bg-white/5 p-2 text-slate-300 hover:bg-white/15 hover:text-white">
-                        <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    <a href="{{ route('booking.lookup.form') }}" class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-accent-link hover:underline">
+                        <span>Pesan camilan</span>
+                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>
-                    </button>
-                </div>
-
-                {{-- Player Video YouTube / Placeholder --}}
-                <div class="aspect-video w-full bg-black">
-                    <template x-if="activeFilm && activeFilm.trailer_url">
-                        <iframe :src="getEmbedUrl(activeFilm.trailer_url)"
-                                class="size-full"
-                                frameborder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowfullscreen></iframe>
-                    </template>
-                    <template x-if="activeFilm && !activeFilm.trailer_url">
-                        <div class="flex size-full flex-col items-center justify-center p-6 text-center text-slate-400">
-                            <svg class="size-12 text-amber-500/50 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                            </svg>
-                            <p class="text-sm font-bold text-white">Trailer Resmi Segera Tayang</p>
-                            <p class="mt-1 text-xs max-w-sm" x-text="activeFilm?.synopsis"></p>
-                        </div>
-                    </template>
-                </div>
-
-                {{-- Footer Modal --}}
-                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 p-4 bg-[#090D17]">
-                    <p class="text-xs text-slate-400 line-clamp-1 flex-1 min-w-0" x-text="activeFilm?.synopsis"></p>
-                    <a href="#jadwal"
-                       @click="closeTrailer()"
-                       class="btn-gold-cinema inline-flex min-h-10 items-center justify-center rounded-xl px-5 text-xs font-black shadow-md">
-                        Pesan Tiket Sesi Ini
                     </a>
                 </div>
-            </div>
-        </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    @foreach ($snackBanners as $sb)
+                        <a
+                            href="{{ $sb['url'] ?? route('booking.lookup.form') }}"
+                            class="group relative block aspect-[2/1] w-full overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-300 dark:border-white/10 bg-surface shadow-sm hover:shadow-xl hover:border-amber-500 hover:-translate-y-0.5 sm:hover:-translate-y-1 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-amber-500"
+                            title="{{ $sb['title'] ?? 'Makanan & Minuman SynemaX' }}"
+                        >
+                            @php
+                                $sbUrl = !empty($sb['image_path']) ? (str_starts_with($sb['image_path'], 'http') ? $sb['image_path'] : Storage::disk('public')->url($sb['image_path'])) : null;
+                            @endphp
+                            @if ($sbUrl)
+                                <img
+                                    src="{{ $sbUrl }}"
+                                    alt="{{ $sb['title'] ?? 'Makanan & Minuman' }}"
+                                    loading="lazy"
+                                    class="size-full object-cover transition-transform duration-300 group-hover:scale-102"
+                                >
+                            @else
+                                <div class="flex size-full flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-amber-950 via-slate-900 to-slate-950">
+                                    <span class="text-sm font-bold text-amber-400 uppercase tracking-wider">{{ $sb['title'] ?? 'Makanan & Minuman' }}</span>
+                                </div>
+                            @endif
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        {{-- Divider Dotted --}}
+        <div class="border-t border-dashed border-slate-300 dark:border-white/10 my-8 sm:my-12"></div>
+
+        {{-- ============================================================== --}}
+        {{-- 6. NOBAR MENDATANG (Format Grid 2x2, Gambar Murni + Badge)    --}}
+        {{-- ============================================================== --}}
+        @if ($infoNobarEnabled && $upcomingNobar->count() > 0)
+            <section aria-label="Nonton Bareng Mendatang" class="space-y-6">
+                <div class="flex items-center justify-between border-l-4 border-amber-500 pl-3 sm:pl-4">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-black text-text tracking-tight uppercase">Nobar Mendatang</h2>
+                        <p class="mt-0.5 text-xs text-text-muted">Siaran langsung pertandingan seru komunitas di layar bioskop</p>
+                    </div>
+                    <a href="{{ route('nobar.index') }}" class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-accent-link hover:underline">
+                        <span>Semua acara</span>
+                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </a>
+                </div>
+
+                {{-- Grid 2 Kolom x 2 Baris --}}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    @foreach ($upcomingNobar as $nobar)
+                        <a
+                            href="{{ route('nobar.show', $nobar->slug) }}"
+                            class="group relative flex flex-col rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-300 dark:border-white/10 bg-surface dark:bg-[#0B101B] shadow-sm hover:shadow-xl hover:border-amber-500 hover:-translate-y-0.5 sm:hover:-translate-y-1 transition-all duration-200 focus-visible:outline-2 focus-visible:outline-amber-500"
+                        >
+                            {{-- Banner Gambar 2:1 --}}
+                            <div class="relative w-full aspect-[2/1] overflow-hidden bg-slate-900">
+                                @if ($nobar->hasPoster())
+                                    <img
+                                        src="{{ $nobar->posterUrl() }}"
+                                        alt="{{ $nobar->posterAltText() }}"
+                                        loading="lazy"
+                                        class="size-full object-cover group-hover:scale-102 transition-transform duration-300"
+                                    >
+                                @else
+                                    <div class="flex size-full flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-slate-950 via-slate-900 to-[#101E17]">
+                                        <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">{{ $nobar->judul }}</span>
+                                    </div>
+                                @endif
+
+                                {{-- Kickoff Date Badge Overlay --}}
+                                <div class="absolute top-3 left-3 z-10 flex items-center gap-2">
+                                    <span class="inline-flex items-center gap-1 rounded-lg bg-black/80 backdrop-blur-md px-2.5 py-1 text-xs font-black text-amber-400 border border-white/20 shadow-md">
+                                        {{ format_tanggal_pendek_id($nobar->kickoff_at) }} – {{ format_jam_id($nobar->kickoff_at) }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="p-4 flex items-center justify-between">
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="font-bold text-sm sm:text-base text-text group-hover:text-amber-500 transition-colors truncate">
+                                        {{ $nobar->judul }}
+                                    </h3>
+                                    <p class="text-xs text-text-muted mt-0.5">{{ $nobar->vsTitle() }} – <span class="font-semibold text-amber-600 dark:text-amber-400">{{ $nobar->kompetisi }}</span></p>
+                                </div>
+                                <span class="shrink-0 text-xs font-bold text-emerald-500 ml-3">
+                                    {{ $nobar->is_free ? 'Gratis' : ($nobar->harga_info ?: 'Tiket Tersedia') }}
+                                </span>
+                            </div>
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
 
     </div>
 @endsection

@@ -22,11 +22,11 @@
     <div class="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
         {{-- Navigasi Balik --}}
         <div class="mb-5">
-            <a href="{{ route('articles.index') }}" class="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-amber-400 hover:text-amber-300 transition">
+            <a href="{{ route('articles.index') }}" class="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-accent-link transition">
                 <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
-                <span>Kembali ke kabar dan promo</span>
+                <span>Kembali ke kabar & pengumuman</span>
             </a>
         </div>
 
@@ -41,8 +41,15 @@
         <article class="rounded-3xl border border-border dark:border-white/10 bg-surface dark:bg-gradient-to-b dark:from-surface dark:via-[#0C111D] dark:to-[#07090E] p-6 sm:p-10 shadow-2xl">
             {{-- Cover Image --}}
             @if ($article->cover_path)
-                <div class="relative mb-8 max-h-[420px] w-full overflow-hidden rounded-2xl bg-slate-100 dark:bg-black/60 border border-border dark:border-white/5 shadow-inner">
-                    <img src="{{ $article->coverUrl() }}" alt="Cover {{ $article->judul }}" class="size-full max-h-[420px] object-cover rounded-xl">
+                <div class="relative mb-8 max-h-[420px] w-full">
+                    <x-ui.image
+                        :src="$article->coverUrl()"
+                        :alt="'Cover ' . $article->judul"
+                        :title="$article->judul"
+                        :badge="$article->kategori"
+                        aspect="aspect-[16/9]"
+                        class="w-full max-h-[420px] shadow-inner"
+                    />
                 </div>
             @endif
 

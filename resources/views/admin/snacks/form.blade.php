@@ -13,7 +13,16 @@
             <summary class="cursor-pointer font-bold">Informasi menu & harga</summary>
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
                 <div><label for="name" class="text-sm font-semibold">Nama menu</label><input id="name" name="name" value="{{ old('name', $menuItem->name) }}" required maxlength="120" class="mt-2 min-h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text"></div>
-                <div><label for="category_id" class="text-sm font-semibold">Kategori</label><select id="category_id" name="category_id" required class="mt-2 min-h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text">@foreach ($categories as $category)<option value="{{ $category->id }}" @selected(old('category_id', $menuItem->category_id) == $category->id)>{{ $category->name }}{{ $category->is_active ? '' : ' · Nonaktif' }}</option>@endforeach</select></div>
+                <div>
+                    <x-ui.select
+                        name="category_id"
+                        id="category_id"
+                        label="Kategori"
+                        :required="true"
+                        :value="old('category_id', $menuItem->category_id)"
+                        :options="$categories->mapWithKeys(fn($cat) => [$cat->id => $cat->name . ($cat->is_active ? '' : ' · Nonaktif')])->toArray()"
+                    />
+                </div>
                 <div><label for="price" class="text-sm font-semibold">Harga jual (Rp)</label><input id="price" name="price" type="number" min="500" max="1000000" step="500" value="{{ old('price', $menuItem->price) }}" required class="mt-2 min-h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text"></div>
                 <div><label for="cost_price" class="text-sm font-semibold">Harga modal (opsional)</label><input id="cost_price" name="cost_price" type="number" min="0" max="1000000" step="500" value="{{ old('cost_price', $menuItem->cost_price) }}" class="mt-2 min-h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text"></div>
             </div>
@@ -23,7 +32,19 @@
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
                 <div><label for="prep_minutes" class="text-sm font-semibold">Waktu persiapan (menit)</label><input id="prep_minutes" name="prep_minutes" type="number" min="0" max="600" value="{{ old('prep_minutes', $menuItem->prep_minutes ?? 0) }}" required class="mt-2 min-h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text"></div>
                 <div><label for="sort_order" class="text-sm font-semibold">Urutan tampil</label><input id="sort_order" name="sort_order" type="number" min="0" max="65535" value="{{ old('sort_order', $menuItem->sort_order ?? 0) }}" required class="mt-2 min-h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text"></div>
-                <div><label for="stock_mode" class="text-sm font-semibold">Mode stok</label><select id="stock_mode" name="stock_mode" required class="mt-2 min-h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text"><option value="toggle" @selected(old('stock_mode', $menuItem->stock_mode ?? 'toggle') === 'toggle')>Toggle tersedia / habis</option><option value="angka" @selected(old('stock_mode', $menuItem->stock_mode) === 'angka')>Stok angka</option></select></div>
+                <div>
+                    <x-ui.select
+                        name="stock_mode"
+                        id="stock_mode"
+                        label="Mode stok"
+                        :required="true"
+                        :value="old('stock_mode', $menuItem->stock_mode ?? 'toggle')"
+                        :options="[
+                            'toggle' => 'Toggle tersedia / habis',
+                            'angka' => 'Stok angka',
+                        ]"
+                    />
+                </div>
                 <div><label for="stock_qty" class="text-sm font-semibold">Jumlah stok (mode angka)</label><input id="stock_qty" name="stock_qty" type="number" min="0" max="1000000" value="{{ old('stock_qty', $menuItem->stock_qty) }}" class="mt-2 min-h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text"></div>
                 <div><label for="stock_alert_threshold" class="text-sm font-semibold">Peringatan stok menipis di angka</label><input id="stock_alert_threshold" name="stock_alert_threshold" type="number" min="0" max="100000" value="{{ old('stock_alert_threshold', $menuItem->stock_alert_threshold ?? 3) }}" required class="mt-2 min-h-11 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text"></div>
             </div>

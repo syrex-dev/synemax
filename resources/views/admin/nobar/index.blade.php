@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Kelola Nobar Sepak Bola')
+@section('title', 'Jadwal Nobar')
 
 @section('content')
     <div x-data="{
@@ -13,151 +13,197 @@
             this.currentStatus = status;
             this.currentReason = reason || '';
             this.statusModal = true;
+            window.dispatchEvent(new CustomEvent('synemax-select-set', { detail: { name: 'status_acara', value: status } }));
         }
     }">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-            <div>
-                <p class="text-xs font-bold uppercase tracking-[0.2em] text-accent">Komunitas</p>
-                <h1 class="mt-1 text-3xl font-black text-text">Jadwal Nonton Bareng</h1>
-            </div>
-            <a href="{{ route('admin.nobar.create') }}" class="inline-flex min-h-12 items-center gap-2 rounded-xl bg-accent px-5 font-bold text-accent-contrast shadow-sm hover:opacity-90">
-                <span class="text-lg">+</span>
+        {{-- Standard Admin Page Header --}}
+        <x-admin.page-header
+            eyebrow="Komunitas"
+            title="Jadwal Nonton Bareng"
+            subtitle="Kelola jadwal nobar sepak bola dan siaran langsung untuk komunitas bioskop."
+        >
+            <a href="{{ route('admin.nobar.create') }}" class="inline-flex min-h-[42px] items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 shadow-sm hover:bg-amber-400 transition-colors">
+                <span class="text-base leading-none">+</span>
                 <span>Tambah Acara Nobar</span>
             </a>
-        </div>
+        </x-admin.page-header>
 
-        {{-- Filter Status --}}
+        {{-- Filter Status Tabs --}}
         <div class="mt-6 flex flex-wrap gap-2">
-            <a href="{{ route('admin.nobar.index') }}" class="inline-flex min-h-10 items-center rounded-xl px-4 text-xs font-bold transition {{ empty($currentFilter) ? 'bg-accent text-accent-contrast shadow-xs' : 'border border-border bg-surface text-text-muted hover:text-text' }}">
-                Semua Acara
-            </a>
-            <a href="{{ route('admin.nobar.index', ['status' => 'terbit']) }}" class="inline-flex min-h-10 items-center rounded-xl px-4 text-xs font-bold transition {{ $currentFilter === 'terbit' ? 'bg-accent text-accent-contrast shadow-xs' : 'border border-border bg-surface text-text-muted hover:text-text' }}">
-                Terbit
-            </a>
-            <a href="{{ route('admin.nobar.index', ['status' => 'draft']) }}" class="inline-flex min-h-10 items-center rounded-xl px-4 text-xs font-bold transition {{ $currentFilter === 'draft' ? 'bg-accent text-accent-contrast shadow-xs' : 'border border-border bg-surface text-text-muted hover:text-text' }}">
-                Draft
-            </a>
-            <a href="{{ route('admin.nobar.index', ['status' => 'ditunda']) }}" class="inline-flex min-h-10 items-center rounded-xl px-4 text-xs font-bold transition {{ $currentFilter === 'ditunda' ? 'bg-accent text-accent-contrast shadow-xs' : 'border border-border bg-surface text-text-muted hover:text-text' }}">
-                Ditunda
-            </a>
-            <a href="{{ route('admin.nobar.index', ['status' => 'dibatalkan']) }}" class="inline-flex min-h-10 items-center rounded-xl px-4 text-xs font-bold transition {{ $currentFilter === 'dibatalkan' ? 'bg-accent text-accent-contrast shadow-xs' : 'border border-border bg-surface text-text-muted hover:text-text' }}">
-                Dibatalkan
-            </a>
+            @php
+                $tabs = [
+                    '' => 'Semua Acara',
+                    'terbit' => 'Terbit',
+                    'draft' => 'Draft',
+                    'ditunda' => 'Ditunda',
+                    'dibatalkan' => 'Dibatalkan',
+                ];
+            @endphp
+            @foreach ($tabs as $key => $label)
+                <a
+                    href="{{ empty($key) ? route('admin.nobar.index') : route('admin.nobar.index', ['status' => $key]) }}"
+                    class="inline-flex min-h-[38px] items-center rounded-xl px-4 text-xs font-bold transition-colors {{ (empty($key) && empty($currentFilter)) || ($currentFilter === $key) ? 'bg-amber-500 text-slate-950 shadow-xs' : 'border border-slate-300 dark:border-white/10 bg-surface text-text-muted hover:text-text' }}"
+                >
+                    {{ $label }}
+                </a>
+            @endforeach
         </div>
 
-        {{-- Table Card --}}
-        <div class="mt-6 overflow-hidden rounded-2xl border border-border bg-surface shadow-token">
-            @if ($events->isEmpty())
-                <div class="p-12 text-center text-text-muted">
-                    <svg class="mx-auto size-12 text-text-muted/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    <p class="mt-3 text-base font-bold text-text">Belum ada acara nobar</p>
-                    <p class="mt-1 text-xs">Tambahkan jadwal nobar pertandingan sepak bola untuk komunitas Anda.</p>
-                </div>
-            @else
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="border-b border-border bg-surface-2 text-xs uppercase tracking-wider text-text-muted">
+        @if ($events->isEmpty())
+            <div class="mt-6 rounded-2xl border border-border bg-surface shadow-token">
+                <x-admin.empty-state
+                    title="Belum ada acara nobar"
+                    description="Tambahkan jadwal nobar pertandingan sepak bola untuk komunitas Anda."
+                    actionUrl="{{ route('admin.nobar.create') }}"
+                    actionLabel="Tambah Acara Nobar"
+                />
+            </div>
+        @else
+            {{-- DESKTOP TABLE VIEW (1024px and up) --}}
+            <div class="mt-6 hidden lg:block admin-table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th class="col-title-flex">Poster & Judul Acara</th>
+                            <th class="col-nowrap">Kickoff (WIB)</th>
+                            <th class="col-nowrap">Status Tampilan</th>
+                            <th class="col-nowrap">Publikasi</th>
+                            <th class="col-nowrap">Tiket</th>
+                            <th class="col-actions-sticky">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($events as $item)
                             <tr>
-                                <th class="px-4 py-3.5">Poster & Judul Acara</th>
-                                <th class="px-4 py-3.5">Kickoff (WIB)</th>
-                                <th class="px-4 py-3.5">Status Tampilan</th>
-                                <th class="px-4 py-3.5">Publikasi</th>
-                                <th class="px-4 py-3.5">Tiket</th>
-                                <th class="px-4 py-3.5 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-border">
-                            @foreach ($events as $item)
-                                <tr class="transition hover:bg-surface-2/50">
-                                    <td class="px-4 py-4">
-                                        <div class="flex items-center gap-3">
-                                            @if ($item->hasPoster())
-                                                <img src="{{ $item->posterUrl() }}" alt="{{ $item->posterAltText() }}" class="size-12 shrink-0 rounded-lg object-cover border border-border">
-                                            @else
-                                                <div class="flex size-12 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-2 text-[10px] font-semibold text-text-muted uppercase text-center p-1 leading-tight">
-                                                    Tanpa Poster
-                                                </div>
-                                            @endif
-                                            <div>
-                                                <div class="flex items-center gap-1.5">
-                                                    <span class="font-bold text-text">{{ $item->judul }}</span>
-                                                    @if ($item->is_pinned)
-                                                        <span class="inline-flex items-center gap-1 rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-accent" title="Disematkan di atas">
-                                                            Semat
-                                                        </span>
-                                                    @endif
-                                                </div>
-                                                <p class="text-xs text-text-muted">
-                                                    {{ $item->vsTitle() }} · <span class="text-accent">{{ $item->kompetisi ?: 'Sepak Bola' }}</span>
-                                                </p>
+                                <td class="col-title-flex">
+                                    <div class="flex items-center gap-3">
+                                        @if ($item->hasPoster())
+                                            <img src="{{ $item->posterUrl() }}" alt="{{ $item->posterAltText() }}" class="h-12 w-20 shrink-0 rounded-lg object-cover border border-border shadow-xs">
+                                        @else
+                                            <div class="flex h-12 w-20 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-2 text-[10px] font-semibold text-text-muted uppercase text-center p-1 leading-tight">
+                                                Tanpa poster
+                                            </div>
+                                        @endif
+                                        <div class="min-w-0 flex-1">
+                                            <p class="font-bold text-text line-clamp-2 leading-snug" title="{{ $item->judul }}">{{ $item->judul }}</p>
+                                            <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                                                @if ($item->is_pinned)
+                                                    <span class="inline-flex items-center rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                                        Disematkan
+                                                    </span>
+                                                @endif
+                                                <span class="text-xs text-text-muted truncate">
+                                                    {{ $item->vsTitle() }} · <span class="font-semibold text-amber-600 dark:text-amber-400">{{ $item->kompetisi ?: 'Sepak Bola' }}</span>
+                                                </span>
                                             </div>
                                         </div>
-                                    </td>
-                                    <td class="whitespace-nowrap px-4 py-4">
-                                        <p class="font-bold text-text">{{ $item->kickoff_at->translatedFormat('d M Y') }}</p>
-                                        <p class="text-xs text-accent font-semibold">{{ $item->kickoff_at->format('H:i') }} WIB ({{ $item->durasi_menit }} mnt)</p>
-                                    </td>
-                                    <td class="whitespace-nowrap px-4 py-4">
-                                        <button type="button" @click="openStatusModal('{{ route('admin.nobar.status', ['nobar' => $item->id]) }}', '{{ $item->status_acara }}', '{{ addslashes($item->alasan_status ?? '') }}')" class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition hover:opacity-80 {{ $item->badgeClasses() }}" title="Klik untuk ubah status acara (Tunda/Batalkan)">
-                                            <span>{{ $item->display_status }}</span>
-                                            <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                            </svg>
-                                        </button>
-                                        @if ($item->status_acara !== 'aktif' && $item->alasan_status)
-                                            <p class="mt-1 max-w-xs text-[11px] text-danger truncate" title="{{ $item->alasan_status }}">{{ $item->alasan_status }}</p>
-                                        @endif
-                                    </td>
-                                    <td class="whitespace-nowrap px-4 py-4">
-                                        @if ($item->status_publikasi === 'terbit')
-                                            <span class="rounded-full bg-success/10 px-2.5 py-1 text-xs font-bold text-success">Terbit</span>
-                                        @else
-                                            <span class="rounded-full bg-surface-2 px-2.5 py-1 text-xs font-bold text-text-muted">Draft</span>
-                                        @endif
-                                    </td>
-                                    <td class="whitespace-nowrap px-4 py-4">
-                                        @if ($item->is_free)
-                                            <span class="text-xs font-bold text-success">Gratis</span>
-                                        @else
-                                            <span class="text-xs font-medium text-text">{{ $item->harga_info ?: 'Berbayar' }}</span>
-                                        @endif
-                                    </td>
-                                    <td class="whitespace-nowrap px-4 py-4 text-right">
-                                        <div class="flex items-center justify-end gap-1.5">
-                                            <a href="{{ route('nobar.show', ['slug' => $item->slug]) }}" target="_blank" class="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-text hover:border-accent" title="Lihat Tampilan Publik">
-                                                Lihat
-                                            </a>
-                                            <form method="POST" action="{{ route('admin.nobar.duplicate', ['nobar' => $item->id]) }}" onsubmit="return confirm('Duplikat acara nobar ini sebagai draft baru?');" class="inline">
-                                                @csrf
-                                                <button type="submit" class="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-text hover:border-accent" title="Duplikat Acara">
-                                                    Duplikat
-                                                </button>
-                                            </form>
-                                            <a href="{{ route('admin.nobar.edit', ['nobar' => $item->id]) }}" class="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-text hover:border-accent" title="Edit Acara">
-                                                Edit
-                                            </a>
-                                            <form method="POST" action="{{ route('admin.nobar.destroy', ['nobar' => $item->id]) }}" onsubmit="return confirm('Hapus acara nobar ini? Poster dan data terkait akan dihapus permanen.');" class="inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="rounded-lg border border-danger/40 px-2.5 py-1.5 text-xs font-semibold text-danger hover:bg-danger/10" title="Hapus">
-                                                    Hapus
-                                                </button>
-                                            </form>
+                                    </div>
+                                </td>
+                                <td class="col-nowrap">
+                                    <p class="font-bold text-text">{{ format_tanggal_id($item->kickoff_at) }}</p>
+                                    <p class="text-xs text-amber-600 dark:text-amber-400 font-semibold">{{ format_jam_id($item->kickoff_at) }} ({{ $item->durasi_menit }} mnt)</p>
+                                </td>
+                                <td class="col-nowrap">
+                                    <button type="button" @click="openStatusModal('{{ route('admin.nobar.status', ['nobar' => $item->id]) }}', '{{ $item->status_acara }}', '{{ addslashes($item->alasan_status ?? '') }}')" class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition hover:opacity-80 {{ $item->badgeClasses() }}" title="Klik untuk ubah status acara">
+                                        <span>{{ $item->display_status }}</span>
+                                        <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                    </button>
+                                    @if ($item->status_acara !== 'aktif' && $item->alasan_status)
+                                        <p class="mt-1 max-w-[180px] text-[11px] text-danger truncate" title="{{ $item->alasan_status }}">{{ $item->alasan_status }}</p>
+                                    @endif
+                                </td>
+                                <td class="col-nowrap">
+                                    @if ($item->status_publikasi === 'terbit')
+                                        <span class="inline-flex items-center rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-bold text-success border border-success/30">Terbit</span>
+                                    @else
+                                        <span class="inline-flex items-center rounded-full bg-slate-200 dark:bg-white/10 px-2.5 py-0.5 text-xs font-semibold text-text-muted">Draft</span>
+                                    @endif
+                                </td>
+                                <td class="col-nowrap">
+                                    @if ($item->is_free)
+                                        <span class="inline-flex items-center rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-bold text-success border border-success/30">Gratis</span>
+                                    @else
+                                        <div>
+                                            <span class="inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400 border border-amber-500/30">Berbayar</span>
+                                            @if ($item->harga_info)
+                                                <p class="mt-0.5 max-w-[160px] truncate text-[11px] text-text-muted" title="{{ $item->harga_info }}">{{ $item->harga_info }}</p>
+                                            @endif
                                         </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                                    @endif
+                                </td>
+                                <td class="col-actions-sticky">
+                                    <x-admin.action-menu
+                                        editUrl="{{ route('admin.nobar.edit', $item->id) }}"
+                                        viewUrl="{{ route('nobar.show', $item->slug) }}"
+                                        duplicateUrl="{{ route('admin.nobar.duplicate', $item->id) }}"
+                                        deleteUrl="{{ route('admin.nobar.destroy', $item->id) }}"
+                                        deleteMessage="Hapus acara nobar ini? Poster dan data terkait akan dihapus permanen."
+                                        itemName="nobar"
+                                    />
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
 
-                <div class="p-4 border-t border-border">
-                    {{ $events->links() }}
-                </div>
-            @endif
-        </div>
+            {{-- MOBILE STACKED CARDS VIEW (< 1024px) --}}
+            <div class="mt-6 grid gap-4 lg:hidden">
+                @foreach ($events as $item)
+                    <div class="rounded-2xl border border-border bg-surface p-4 shadow-token space-y-3">
+                        <div class="flex items-start gap-3">
+                            @if ($item->hasPoster())
+                                <img src="{{ $item->posterUrl() }}" alt="{{ $item->posterAltText() }}" class="size-14 shrink-0 rounded-xl object-cover border border-border">
+                            @else
+                                <div class="flex size-14 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-2 text-[10px] font-semibold text-text-muted uppercase text-center p-1 leading-tight">
+                                    Tanpa poster
+                                </div>
+                            @endif
+                            <div class="min-w-0 flex-1">
+                                <p class="font-bold text-text leading-snug">{{ $item->judul }}</p>
+                                <p class="text-xs text-text-muted mt-0.5">{{ $item->vsTitle() }} · <span class="font-semibold text-amber-600 dark:text-amber-400">{{ $item->kompetisi ?: 'Sepak Bola' }}</span></p>
+                                <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                                    @if ($item->is_pinned)
+                                        <span class="inline-flex items-center rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                            Disematkan
+                                        </span>
+                                    @endif
+                                    @if ($item->status_publikasi === 'terbit')
+                                        <span class="inline-flex items-center rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-bold text-success border border-success/30">Terbit</span>
+                                    @else
+                                        <span class="inline-flex items-center rounded-full bg-slate-200 dark:bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-text-muted">Draft</span>
+                                    @endif
+                                    <button type="button" @click="openStatusModal('{{ route('admin.nobar.status', ['nobar' => $item->id]) }}', '{{ $item->status_acara }}', '{{ addslashes($item->alasan_status ?? '') }}')" class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold {{ $item->badgeClasses() }}">
+                                        <span>{{ $item->display_status }}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between border-t border-border pt-3 text-xs">
+                            <div>
+                                <span class="font-semibold text-text">{{ format_tanggal_id($item->kickoff_at) }}</span>
+                                <span class="text-text-muted">· {{ format_jam_id($item->kickoff_at) }}</span>
+                            </div>
+                            <x-admin.action-menu
+                                editUrl="{{ route('admin.nobar.edit', $item->id) }}"
+                                viewUrl="{{ route('nobar.show', $item->slug) }}"
+                                duplicateUrl="{{ route('admin.nobar.duplicate', $item->id) }}"
+                                deleteUrl="{{ route('admin.nobar.destroy', $item->id) }}"
+                                deleteMessage="Hapus acara nobar ini? Poster dan data terkait akan dihapus permanen."
+                                itemName="nobar"
+                            />
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="mt-4">
+                {{ $events->links() }}
+            </div>
+        @endif
 
         {{-- Modal Ubah Status Acara (Tunda / Batalkan) --}}
         <div x-show="statusModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="statusModal = false" @keydown.escape.window="statusModal = false">
@@ -175,13 +221,18 @@
                     @csrf
                     @method('PATCH')
 
-                    <div>
-                        <label for="modal_status_acara" class="block text-xs font-semibold text-text">Status Acara</label>
-                        <select id="modal_status_acara" name="status_acara" x-model="currentStatus" class="mt-1.5 min-h-11 w-full rounded-xl border border-border bg-bg px-3 text-sm text-text">
-                            <option value="aktif">Aktif (Sesuai Jadwal)</option>
-                            <option value="ditunda">Ditunda</option>
-                            <option value="dibatalkan">Dibatalkan</option>
-                        </select>
+                    <div @change="if ($event.target.name === 'status_acara') currentStatus = $event.target.value">
+                        <x-ui.select
+                            id="modal_status_acara"
+                            name="status_acara"
+                            label="Status Acara"
+                            value="aktif"
+                            :options="[
+                                'aktif' => 'Aktif (Sesuai Jadwal)',
+                                'ditunda' => 'Ditunda',
+                                'dibatalkan' => 'Dibatalkan',
+                            ]"
+                        />
                     </div>
 
                     <div x-show="currentStatus !== 'aktif'" x-cloak>
@@ -193,7 +244,7 @@
                         <button type="button" @click="statusModal = false" class="min-h-10 rounded-xl border border-border px-4 text-xs font-semibold text-text hover:bg-surface-2">
                             Batal
                         </button>
-                        <button type="submit" class="min-h-10 rounded-xl bg-accent px-5 text-xs font-bold text-accent-contrast hover:opacity-90">
+                        <button type="submit" class="min-h-10 rounded-xl bg-amber-500 px-5 text-xs font-bold text-slate-950 hover:bg-amber-400">
                             Simpan Perubahan
                         </button>
                     </div>

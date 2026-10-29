@@ -9,18 +9,28 @@ class StoreBookingRequest extends FormRequest
 {
     protected function prepareForValidation(): void
     {
+        $package = $this->input('package') ?: ($this->input('booking_type') === 'private' ? 'private' : ($this->input('booking_type') === 'couple' ? 'couple' : 'reguler'));
+        $bookingType = $this->input('booking_type') ?: ($package === 'private' ? 'private' : ($package === 'couple' ? 'couple' : 'per_orang'));
+
         $this->merge([
             'whatsapp' => WhatsAppNumber::normalize((string) $this->input('whatsapp')),
+            'package' => $package,
+            'booking_type' => $bookingType,
         ]);
     }
 
     public function rules(): array
     {
+        $package = $this->input('package') ?: ($this->input('booking_type') === 'private' ? 'private' : ($this->input('booking_type') === 'couple' ? 'couple' : 'reguler'));
+        $isRegular = ! in_array($package, ['couple', 'private'], true);
+
         return [
             'customer_name' => ['required', 'string', 'max:120'],
             'whatsapp' => ['required', 'string', 'regex:/^62\d{9,12}$/'],
-            'pax' => ['exclude_unless:booking_type,per_orang', 'required', 'integer', 'between:1,6'],
-            'booking_type' => ['required', 'in:per_orang,private'],
+            'pax' => [$isRegular ? 'required_without:people_count' : 'nullable', 'integer', 'between:1,6'],
+            'people_count' => ['nullable', 'integer', 'between:1,6'],
+            'booking_type' => ['nullable', 'in:per_orang,private,couple'],
+            'package' => ['nullable', 'in:reguler,couple,private'],
             'film_id' => ['nullable', 'integer', 'exists:films,id'],
             'payment_method' => ['required', 'in:di_tempat,qris,transfer'],
             'payment_proof' => ['prohibited'],

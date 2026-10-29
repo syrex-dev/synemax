@@ -19,7 +19,7 @@ class NewsController extends Controller
 
         $query = NewsArticle::query();
 
-        if (in_array($kategori, ['Berita', 'Promo', 'Pengumuman'], true)) {
+        if (in_array($kategori, ['Berita', 'Pengumuman'], true)) {
             $query->where('kategori', $kategori);
         }
 
@@ -126,7 +126,7 @@ class NewsController extends Controller
         $data = $request->validate([
             'judul' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255'],
-            'kategori' => ['required', 'in:Berita,Promo,Pengumuman'],
+            'kategori' => ['required', 'in:Berita,Pengumuman'],
             'ringkasan' => ['required', 'string', 'max:500'],
             'konten' => ['required', 'string', 'max:50000'],
             'cover' => ['nullable', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:3072'],
