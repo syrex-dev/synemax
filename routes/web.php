@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FilmController;
 use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\NobarController;
+use App\Http\Controllers\Admin\PromoController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\SettingController;
@@ -16,12 +18,22 @@ use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PublicCinemaController;
 use App\Http\Controllers\PublicInfoController;
 use App\Http\Controllers\StyleguideController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicCinemaController::class, 'index'])->name('home');
+Route::get('/jadwal', [PublicCinemaController::class, 'schedule'])->name('schedule.index');
 Route::get('/jadwal/{date}', [PublicCinemaController::class, 'schedule'])
     ->where('date', '\d{4}-\d{2}-\d{2}')
     ->name('schedule.date');
+
+// Public Film Catalog & Detail
+Route::get('/film', [PublicCinemaController::class, 'filmIndex'])->name('films.index');
+Route::get('/film/{slug}', [PublicCinemaController::class, 'filmShow'])->name('films.show');
+
+// Public Promo Catalog & Detail
+Route::get('/promo', [PublicCinemaController::class, 'promoIndex'])->name('promos.index');
+Route::get('/promo/{slug}', [PublicCinemaController::class, 'promoShow'])->name('promos.show');
 
 // Media Routes (independent of storage symlink)
 Route::get('/media/nobar/{filename}', [MediaController::class, 'nobarPoster'])->name('media.nobar');
@@ -57,6 +69,15 @@ Route::post('/cek-booking', [PublicBookingController::class, 'lookup'])
 Route::post('/cek-booking/{code}/batal', [PublicBookingController::class, 'cancel'])
     ->middleware('throttle:5,1')
     ->name('booking.cancel');
+Route::post('/cek-booking/{code}/ubah-film', [PublicBookingController::class, 'changeFilm'])
+    ->middleware('throttle:10,1')
+    ->name('booking.change-film');
+Route::post('/cek-booking/{code}/pindah-sesi', [PublicBookingController::class, 'reschedule'])
+    ->middleware('throttle:10,1')
+    ->name('booking.reschedule');
+Route::post('/cek-booking/{code}/upgrade', [PublicBookingController::class, 'upgrade'])
+    ->middleware('throttle:10,1')
+    ->name('booking.upgrade');
 Route::get('/styleguide', StyleguideController::class)->name('styleguide');
 
 Route::get('/dashboard', function () {
@@ -76,6 +97,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/films/{film}/ubah', [FilmController::class, 'edit'])->name('films.edit');
     Route::put('/films/{film}', [FilmController::class, 'update'])->name('films.update');
     Route::delete('/films/{film}', [FilmController::class, 'destroy'])->name('films.destroy');
+    Route::patch('/films/{film}/status', [FilmController::class, 'toggleStatus'])->name('films.status');
+    Route::post('/films/{film}/duplikat', [FilmController::class, 'duplicate'])->name('films.duplicate');
     Route::get('/jadwal', [ScheduleController::class, 'index'])->name('schedule.index');
     Route::post('/jadwal/generate', [ScheduleController::class, 'generate'])->name('schedule.generate');
     Route::post('/jadwal/template', [ScheduleController::class, 'storeTemplate'])->name('schedule.templates.store');
@@ -84,8 +107,12 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/jadwal/libur', [ScheduleController::class, 'storeHoliday'])->name('schedule.holidays.store');
     Route::delete('/jadwal/libur/{holiday}', [ScheduleController::class, 'destroyHoliday'])->name('schedule.holidays.destroy');
     Route::post('/jadwal/tutup', [ScheduleController::class, 'storeBlockedDate'])->name('schedule.blocked.store');
-    Route::delete('/jadwal/tutup/{blockedDate}', [ScheduleController::class, 'destroyBlockedDate'])->name('schedule.blocked.destroy');
     Route::patch('/jadwal/sesi/{session}', [ScheduleController::class, 'updateSession'])->name('schedule.sessions.update');
+    Route::patch('/jadwal/sesi/{session}/toggle', [ScheduleController::class, 'toggleSessionStatus'])->name('schedule.sessions.toggle');
+    Route::post('/jadwal/sesi/{session}/selesaikan', [ScheduleController::class, 'resolveSession'])->name('schedule.sessions.resolve');
+    Route::post('/jadwal/hari/toggle', [ScheduleController::class, 'toggleDaySessions'])->name('schedule.day.toggle');
+    Route::patch('/density', [DashboardController::class, 'updateDensity'])->name('density.update');
+    Route::get('/polling/status', [DashboardController::class, 'pollStatus'])->name('polling.status');
     Route::get('/booking', [BookingController::class, 'index'])->name('bookings.index');
     Route::get('/booking/{booking}', [BookingController::class, 'show'])->name('bookings.show');
     Route::patch('/booking/{booking}/jajan', [BookingController::class, 'updateSnacks'])->name('bookings.snacks.update');
@@ -119,6 +146,27 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::patch('/nobar/{nobar}/status', [NobarController::class, 'updateStatus'])->name('nobar.status');
     Route::post('/nobar/{nobar}/duplikat', [NobarController::class, 'duplicate'])->name('nobar.duplicate');
 
+    // Admin Banner Hero
+    Route::get('/banners', [BannerController::class, 'index'])->name('banners.index');
+    Route::get('/banners/buat', [BannerController::class, 'create'])->name('banners.create');
+    Route::post('/banners', [BannerController::class, 'store'])->name('banners.store');
+    Route::get('/banners/{banner}/ubah', [BannerController::class, 'edit'])->name('banners.edit');
+    Route::put('/banners/{banner}', [BannerController::class, 'update'])->name('banners.update');
+    Route::delete('/banners/{banner}', [BannerController::class, 'destroy'])->name('banners.destroy');
+    Route::patch('/banners/{banner}/status', [BannerController::class, 'toggleStatus'])->name('banners.status');
+    Route::post('/banners/reorder', [BannerController::class, 'reorder'])->name('banners.reorder');
+
+    // Admin Promo
+    Route::get('/promos', [PromoController::class, 'index'])->name('promos.index');
+    Route::get('/promos/buat', [PromoController::class, 'create'])->name('promos.create');
+    Route::post('/promos', [PromoController::class, 'store'])->name('promos.store');
+    Route::get('/promos/{promo}/ubah', [PromoController::class, 'edit'])->name('promos.edit');
+    Route::put('/promos/{promo}', [PromoController::class, 'update'])->name('promos.update');
+    Route::delete('/promos/{promo}', [PromoController::class, 'destroy'])->name('promos.destroy');
+    Route::patch('/promos/{promo}/status', [PromoController::class, 'toggleStatus'])->name('promos.status');
+    Route::post('/promos/{promo}/duplikat', [PromoController::class, 'duplicate'])->name('promos.duplicate');
+    Route::post('/promos/reorder', [PromoController::class, 'reorder'])->name('promos.reorder');
+
     // Admin Kabar / Berita
     Route::get('/berita', [NewsController::class, 'index'])->name('articles.index');
     Route::get('/berita/buat', [NewsController::class, 'create'])->name('articles.create');
@@ -130,8 +178,17 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/pengaturan', [SettingController::class, 'edit'])->name('settings.edit');
     Route::put('/pengaturan', [SettingController::class, 'update'])->name('settings.update');
     Route::delete('/pengaturan/qris', [SettingController::class, 'destroyQris'])->name('settings.qris.destroy');
+    Route::post('/pengaturan/cache-clear', [SettingController::class, 'clearCache'])->name('settings.cache.clear');
+    Route::post('/pengaturan/reset', [SettingController::class, 'resetDefaults'])->name('settings.reset');
     Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/laporan/export.csv', [ReportController::class, 'export'])->name('reports.export');
+
+    // Aliases for admin navigation
+    Route::redirect('/schedule', '/admin/jadwal');
+    Route::redirect('/articles', '/admin/berita');
+    Route::get('/settings', fn (Request $r) => redirect('/admin/pengaturan'.($r->getQueryString() ? '?'.$r->getQueryString() : '')));
+    Route::redirect('/snacks/preparation', '/admin/jajanan/siapkan');
+    Route::redirect('/reports', '/admin/laporan');
 });
 
 require __DIR__.'/auth.php';

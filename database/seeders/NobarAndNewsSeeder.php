@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\NewsArticle;
 use App\Models\NobarEvent;
 use App\Models\Setting;
+use App\Support\ImagePlaceholderGenerator;
 use Illuminate\Database\Seeder;
 
 class NobarAndNewsSeeder extends Seeder
@@ -12,7 +13,7 @@ class NobarAndNewsSeeder extends Seeder
     public function run(): void
     {
         // 1. Enable Info & Nobar feature setting
-        Setting::updateOrCreate(
+        Setting::firstOrCreate(
             ['key' => 'info_nobar_enabled'],
             ['value' => '1'],
         );
@@ -76,6 +77,23 @@ class NobarAndNewsSeeder extends Seeder
         ];
 
         foreach ($events as $event) {
+            $posterPath = ImagePlaceholderGenerator::generate(
+                'posters/'.$event['slug'].'.png',
+                1200,
+                600,
+                $event['tim_a'].' vs '.$event['tim_b'],
+                $event['kompetisi'],
+                'blue'
+            );
+            $event['poster_path'] = $posterPath;
+
+            // Also mirror to local disk nobar/ for seamless access
+            $localNobarPath = storage_path('app/nobar/'.basename($posterPath));
+            if (! file_exists($localNobarPath)) {
+                @mkdir(dirname($localNobarPath), 0755, true);
+                @copy(storage_path('app/public/'.$posterPath), $localNobarPath);
+            }
+
             NobarEvent::updateOrCreate(
                 ['slug' => $event['slug']],
                 $event,
@@ -97,7 +115,7 @@ class NobarAndNewsSeeder extends Seeder
             [
                 'judul' => '[Contoh] Paket Combo Cemilan Hangat Spesial Akhir Pekan',
                 'slug' => 'contoh-paket-combo-cemilan-hangat-spesial-akhir-pekan',
-                'kategori' => 'Promo',
+                'kategori' => 'Pengumuman',
                 'ringkasan' => 'Nikmati bundling camilan goreng renyah dan minuman segar dengan harga hemat khusus pemesanan sesi akhir pekan.',
                 'konten' => "Menonton film favorit atau mendukung tim jagoan tentu makin asyik ditemani camilan gurih yang hangat.\n\n## Menu Paket Hemat\n\n1. **Paket Santai:** Tahu krispi + Teh manis dingin hanya Rp 7.000.\n2. **Paket Kenyang:** Mi rebus telur + Sosis goreng + Air mineral dingin hanya Rp 14.000.\n\nCamilan bisa langsung Anda pesan bersamaan saat melakukan reservasi jadwal secara online tanpa perlu repot antre di lokasi.",
                 'status_publikasi' => 'terbit',
@@ -117,6 +135,23 @@ class NobarAndNewsSeeder extends Seeder
         ];
 
         foreach ($articles as $article) {
+            $coverPath = ImagePlaceholderGenerator::generate(
+                'articles/'.$article['slug'].'.png',
+                1200,
+                600,
+                $article['judul'],
+                $article['kategori'].' • SynemaX',
+                'amber'
+            );
+            $article['cover_path'] = $coverPath;
+
+            // Also mirror to local disk news/ for seamless access
+            $localNewsPath = storage_path('app/news/'.basename($coverPath));
+            if (! file_exists($localNewsPath)) {
+                @mkdir(dirname($localNewsPath), 0755, true);
+                @copy(storage_path('app/public/'.$coverPath), $localNewsPath);
+            }
+
             NewsArticle::updateOrCreate(
                 ['slug' => $article['slug']],
                 $article,

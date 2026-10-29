@@ -109,7 +109,7 @@ class BookingFlowTest extends TestCase
 
         $this->assertSame(6, $booking->pax);
         $this->assertSame(6, $booking->seats_reserved);
-        $this->assertSame(36000, $booking->total_price);
+        $this->assertSame(30000, $booking->total_price);
         $this->assertTrue($session->fresh()->is_private);
 
         $this->from(route('booking.create', $session))
@@ -128,7 +128,7 @@ class BookingFlowTest extends TestCase
         $booking = Booking::query()->firstOrFail();
         $this->assertSame(6, $booking->pax);
         $this->assertSame(6, $booking->seats_reserved);
-        $this->assertSame(36000, $booking->total_price);
+        $this->assertSame(30000, $booking->total_price);
     }
 
     public function test_per_person_booking_requires_pax_and_calculates_ticket_total_on_the_server(): void

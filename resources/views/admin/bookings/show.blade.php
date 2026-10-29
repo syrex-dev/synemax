@@ -43,14 +43,14 @@
 
         <div class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
             <p><span class="text-text-muted">Pemesan:</span> {{ $booking->customer_name }} · {{ $booking->whatsapp }}</p>
-            <p><span class="text-text-muted">Sesi:</span> {{ $booking->session->session_date }} · {{ substr((string) $booking->session->start_time, 0, 5) }} WIB</p>
+            <p><span class="text-text-muted">Sesi:</span> {{ \Carbon\Carbon::parse($booking->session->session_date)->locale('id')->translatedFormat('D, d M Y') }} · {{ str_replace(':', '.', substr((string) $booking->session->start_time, 0, 5)) }} WIB</p>
             <p><span class="text-text-muted">Film:</span> {{ $booking->film?->title ?? '—' }}</p>
             <p><span class="text-text-muted">Jumlah:</span> {{ $booking->booking_type === 'private' ? 'Sewa Private (6 kursi)' : $booking->pax.' orang' }}</p>
             <p><span class="text-text-muted">Tiket:</span> Rp {{ number_format($booking->ticket_total, 0, ',', '.') }}</p>
             <p><span class="text-text-muted">Jajan:</span> Rp {{ number_format($booking->snack_total, 0, ',', '.') }}</p>
             <p class="font-black text-accent text-lg sm:col-span-2">Total booking: Rp {{ number_format($booking->total_price, 0, ',', '.') }}</p>
             @if ($booking->status === 'menunggu_pembayaran' && $booking->payment_expires_at)
-                <p class="sm:col-span-2 text-xs font-semibold text-warning">Batas waktu pembayaran: {{ $booking->payment_expires_at->locale('id')->diffForHumans() }} ({{ $booking->payment_expires_at->format('H:i') }} WIB)</p>
+                <p class="sm:col-span-2 text-xs font-semibold text-warning">Batas waktu pembayaran: {{ $booking->payment_expires_at->locale('id')->diffForHumans() }} ({{ $booking->payment_expires_at->format('H.i') }} WIB)</p>
             @endif
         </div>
 
@@ -89,7 +89,7 @@
 
         <div class="mt-5 flex flex-wrap items-center gap-2 border-t border-border pt-4">
             @if ($booking->status === 'menunggu_pembayaran')
-                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" onsubmit="return confirm('Tandai booking ini sudah dibayar?')">
+                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Tandai booking ini sudah dibayar?" data-confirm-title="Konfirmasi Pembayaran" data-confirm-action="Tandai Dibayar" novalidate>
                     @csrf @method('PATCH')
                     <input type="hidden" name="action" value="tandai_dibayar">
                     <button class="inline-flex min-h-11 items-center justify-center rounded-xl bg-accent px-4 text-sm font-bold text-accent-contrast hover:opacity-90">Tandai sudah dibayar</button>
@@ -127,13 +127,13 @@
                     <input type="hidden" name="action" value="hadir">
                     <button class="inline-flex min-h-11 items-center justify-center rounded-xl bg-success px-4 text-sm font-bold text-success-contrast hover:opacity-90">Tandai hadir</button>
                 </form>
-                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" onsubmit="return confirm('Tandai pemesan tidak hadir? Ini akan menambah catatan no-show pelanggan.')">
+                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Tandai pemesan tidak hadir? Ini akan menambah catatan no-show pelanggan." data-confirm-title="Tandai No-Show" data-confirm-action="Tandai Tidak Hadir" data-confirm-is-danger="true" novalidate>
                     @csrf @method('PATCH')
                     <input type="hidden" name="action" value="tidak_hadir">
                     <button class="inline-flex min-h-11 items-center justify-center rounded-xl border border-warning px-4 text-sm font-semibold text-warning hover:bg-warning/10">Tidak hadir (no-show)</button>
                 </form>
             @elseif ($booking->status === 'kedaluwarsa')
-                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" onsubmit="return confirm('Pulihkan booking ini? Kursi akan ditahan kembali jika sesi masih memiliki kapasitas.')">
+                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Pulihkan booking ini? Kursi akan ditahan kembali jika sesi masih memiliki kapasitas." data-confirm-title="Pulihkan Booking" data-confirm-action="Pulihkan" novalidate>
                     @csrf @method('PATCH')
                     <input type="hidden" name="action" value="pulihkan">
                     <button class="inline-flex min-h-11 items-center justify-center rounded-xl border border-accent bg-accent/10 px-4 text-sm font-bold text-accent hover:bg-accent/20">Pulihkan booking kedaluwarsa</button>
@@ -141,7 +141,7 @@
             @endif
 
             @if ($booking->status !== 'dibatalkan' && $booking->status !== 'kedaluwarsa')
-                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" onsubmit="return confirm('Batalkan booking ini?')">
+                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Batalkan booking ini? Kursi yang dipesan akan dilepas kembali ke sesi." data-confirm-title="Batalkan Booking" data-confirm-action="Batalkan Booking" data-confirm-is-danger="true" novalidate>
                     @csrf @method('PATCH')
                     <input type="hidden" name="action" value="batal">
                     <button class="inline-flex min-h-11 items-center justify-center rounded-xl border border-danger/40 px-3 text-sm font-semibold text-danger hover:bg-danger/10">Batalkan booking</button>
@@ -233,8 +233,20 @@
                 <form method="POST" action="{{ route('admin.bookings.snacks.status', $booking) }}" class="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
                     @csrf @method('PATCH')
                     <label for="booking-snack-status" class="text-sm font-semibold">Status semua jajan booking ini</label>
-                    <select id="booking-snack-status" name="status" class="min-h-10 rounded-lg border border-border bg-bg px-3 text-sm text-text">@foreach (['baru' => 'Baru', 'disiapkan' => 'Disiapkan', 'siap' => 'Siap', 'selesai' => 'Selesai'] as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach</select>
-                    <button class="min-h-12 rounded-lg border border-border px-4 text-sm font-semibold">Terapkan status</button>
+                    <div class="w-48">
+                        <x-ui.select
+                            id="booking-snack-status"
+                            name="status"
+                            value="baru"
+                            :options="[
+                                'baru' => 'Baru',
+                                'disiapkan' => 'Disiapkan',
+                                'siap' => 'Siap',
+                                'selesai' => 'Selesai',
+                            ]"
+                        />
+                    </div>
+                    <button class="min-h-11 rounded-xl btn-secondary text-sm font-semibold">Terapkan status</button>
                 </form>
             @endif
             <form method="POST" action="{{ route('admin.bookings.snacks.update', $booking) }}" class="mt-5 border-t border-border pt-5">

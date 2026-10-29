@@ -7,6 +7,14 @@
 
         <meta name="theme-color" content="#fbf6ea">
         <title>Masuk admin · {{ config('app.name') }}</title>
+        @php
+            $settingsService = app(\App\Services\CinemaSettings::class);
+            $faviconUrl = $settingsService->siteFaviconUrl();
+            $faviconMime = $settingsService->siteFaviconMime();
+        @endphp
+        <link rel="icon" type="{{ $faviconMime }}" href="{{ $faviconUrl }}">
+        <link rel="shortcut icon" href="{{ $faviconUrl }}">
+        <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
         <script>
             (() => {
                 const storageKey = 'synemax-theme';
@@ -56,9 +64,8 @@
                     <span data-theme-thumb class="pointer-events-none absolute left-1 top-1 size-9 rounded-full bg-accent shadow-sm transition-transform duration-150"></span>
                 </button>
             </div>
-            <a href="{{ route('home') }}" class="mb-6 flex items-center gap-3">
-                <span class="grid size-11 place-items-center rounded-xl bg-accent font-black text-accent-contrast">HC</span>
-                <span class="text-left"><span class="block text-sm font-bold tracking-wide">HOME CINEMA</span><span class="block text-xs text-text-muted">Panel admin</span></span>
+            <a href="{{ route('home') }}" class="mb-6 inline-flex items-center">
+                <x-brand.logo size="lg" />
             </a>
             <div class="w-full max-w-md rounded-3xl border border-border bg-surface p-6 shadow-token sm:p-8">
                 {{ $slot }}

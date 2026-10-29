@@ -57,7 +57,7 @@
                                 <span x-show="dirty" x-cloak class="mb-1 block text-xs font-semibold text-warning">Belum disimpan</span>
                                 <button form="category-update-desktop-{{ $category->id }}" :disabled="!dirty || saving" class="min-h-10 min-w-20 rounded-lg bg-accent px-3 text-sm font-bold text-accent-contrast disabled:cursor-not-allowed disabled:opacity-45"><span x-show="!saving">Simpan</span><span x-show="saving" x-cloak>Menyimpan…</span></button>
                             </td>
-                            <td class="px-4 py-3 text-right"><form method="POST" action="{{ route('admin.snacks.categories.destroy', $category) }}" onsubmit="return confirm('Yakin hapus kategori ini?')">@csrf @method('DELETE')<button class="min-h-10 rounded-lg border border-danger/40 px-3 text-sm font-semibold text-danger hover:bg-danger-surface">Hapus</button></form></td>
+                            <td class="px-4 py-3 text-right"><form method="POST" action="{{ route('admin.snacks.categories.destroy', $category) }}" data-confirm="Yakin hapus kategori &quot;{{ $category->name }}&quot;? Menu dalam kategori ini mungkin terdampak." data-confirm-title="Hapus Kategori" data-confirm-action="Hapus" data-confirm-is-danger="true" novalidate>@csrf @method('DELETE')<button class="min-h-10 rounded-lg border border-danger/40 px-3 text-sm font-semibold text-danger hover:bg-danger-surface">Hapus</button></form></td>
                         </tr>
                     @empty
                         <tr><td colspan="5" class="px-4 py-10 text-center text-sm text-text-muted">Kategori belum ada. Tambahkan kategori pertama lewat formulir di atas.</td></tr>
@@ -84,7 +84,7 @@
                         <span x-show="dirty" x-cloak class="text-xs font-semibold text-warning">Belum disimpan</span><span x-show="!dirty" class="text-xs text-text-muted">Tersimpan</span>
                         <div class="flex gap-2">
                             <button form="category-update-mobile-{{ $category->id }}" :disabled="!dirty || saving" class="min-h-11 rounded-lg bg-accent px-4 text-sm font-bold text-accent-contrast disabled:cursor-not-allowed disabled:opacity-45"><span x-show="!saving">Simpan</span><span x-show="saving" x-cloak>Menyimpan…</span></button>
-                            <form method="POST" action="{{ route('admin.snacks.categories.destroy', $category) }}" onsubmit="return confirm('Yakin hapus kategori ini?')">@csrf @method('DELETE')<button aria-label="Hapus kategori {{ $category->name }}" class="min-h-11 rounded-lg border border-danger/40 px-3 text-sm font-semibold text-danger hover:bg-danger-surface">Hapus</button></form>
+                            <form method="POST" action="{{ route('admin.snacks.categories.destroy', $category) }}" data-confirm="Yakin hapus kategori &quot;{{ $category->name }}&quot;? Menu dalam kategori ini mungkin terdampak." data-confirm-title="Hapus Kategori" data-confirm-action="Hapus" data-confirm-is-danger="true" novalidate>@csrf @method('DELETE')<button aria-label="Hapus kategori {{ $category->name }}" class="min-h-11 rounded-lg border border-danger/40 px-3 text-sm font-semibold text-danger hover:bg-danger-surface">Hapus</button></form>
                         </div>
                     </div>
                 </div>
@@ -129,7 +129,7 @@
                             <button class="min-h-10 rounded-lg border border-border px-3 text-xs font-semibold">Koreksi stok</button>
                         </form>
                     @endif
-                    <form method="POST" action="{{ route('admin.snacks.destroy', $item) }}" onsubmit="return confirm('Hapus menu ini? Riwayat pesanan tetap tersimpan.')">@csrf @method('DELETE')
+                    <form method="POST" action="{{ route('admin.snacks.destroy', $item) }}" data-confirm="Hapus menu &quot;{{ $item->name }}&quot;? Riwayat pesanan tetap tersimpan." data-confirm-title="Hapus Menu" data-confirm-action="Hapus" data-confirm-is-danger="true" novalidate>@csrf @method('DELETE')
                         <button class="min-h-10 rounded-lg border border-danger/30 px-3 text-xs font-semibold text-danger">Hapus</button>
                     </form>
                 </div>

@@ -105,34 +105,35 @@
 
 :root {
     color-scheme: light;
-    /* Kanvas & Permukaan Layar Tancap (Terang) */
-    --surface-canvas: #F2F5F3;        /* Layar: Putih dingin kehijauan */
-    --surface-default: #FFFFFF;       /* Panel permukaan terang */
-    --surface-raised: #E5EBE8;        /* Panel sekunder */
-    --surface-sunken: #DBE3E0;        /* Bidang cekung */
+    /* Kanvas & Permukaan Bioskop Terang (Luxury Champagne / Warm Slate) */
+    --surface-canvas: #F8FAFC;
+    --surface-default: #FFFFFF;
+    --surface-raised: #F1F5F9;
+    --surface-sunken: #E2E8F0;
 
     /* Teks / Tinta (Terang) */
-    --text-primary: #16201F;          /* Arang: Hitam arang */
-    --text-muted: #4A605E;            /* Keterangan redup (6,12:1 WCAG AA) */
-    --text-subtle: #687E7B;
+    --text-primary: #0F172A;
+    --text-muted: #475569;
+    --text-subtle: #64748B;
 
-    /* Garis & Batas Input (Terang) */
-    --border-default: #D3DDD9;        /* Garis pemisah dekoratif 1.5px */
-    --border-input: #758A86;          /* Batas input kontrol form (3,34:1 WCAG UI >= 3:1) */
+    /* Garis & Batas Input (Terang - WCAG 3:1 compliant) */
+    --border-default: #CBD5E1;
+    --border-input: #64748B;
 
-    /* Aksi Utama Biru Sablon & Tautan (Terang) */
-    --primary-color: #2845D6;         /* Tombol utama Biru Sablon */
-    --primary-text-color: #FFFFFF;    /* Teks tombol utama (7,21:1 WCAG AAA) */
-    --link-color: #2845D6;            /* Tautan inline (6,57:1 WCAG AA) */
+    /* Aksi Utama Emas XXI / Amber */
+    --primary-color: #D97706;
+    --primary-text-color: #FFFFFF;
+    --link-color: #B45309;
 
-    /* Penanda Fisik Kuning Karcis & Alias Legacy Aksentuasi Interaktif */
-    --accent-kuning: #FFC62E;         /* Kuning Karcis (hanya slot terpilih, gratis, pita karcis) */
-    --accent-kuning-contrast: #16201F;
-    --accent-primary: var(--primary-color);   /* Tombol & aksen interaktif lama dipetakan ke Biru Sablon */
+    /* Penanda Fisik Kuning Karcis & Aksen */
+    --accent-kuning: #F59E0B;
+    --accent-kuning-contrast: #0F172A;
+    --accent-primary: var(--primary-color);
     --accent-hover: var(--link-color);
     --accent-contrast: var(--primary-text-color);
-    --accent-gold: #805700;           /* Emas tua WCAG untuk teks/garis di latar terang */
-    --accent-gold-surface: #FFF5D6;
+    --accent-gold: #B45309;
+    --accent-gold-surface: #FEF3C7;
+    --accent-cyan: #0284C7;
 
     /* Token Legacy Murni var(...) */
     --text: var(--text-primary);
@@ -142,67 +143,66 @@
     --bg: var(--surface-canvas);
     --surface: var(--surface-default);
 
-    /* Status Terkonfirmasi Hijau Daun (Terang) */
-    --status-success: #2A9461;        /* Isian badge/ikon */
+    /* Status */
+    --status-success: #059669;
     --status-success-contrast: #FFFFFF;
-    --status-success-surface: #EAF6F0;/* Latar banner sukses */
-    --status-success-border: #90CDAC; /* Batas banner sukses (3,05:1) */
-    --status-success-text: #146B41;   /* Teks sukses di atas banner (5,90:1 WCAG AA) */
+    --status-success-surface: #ECFDF5;
+    --status-success-border: #A7F3D0;
+    --status-success-text: #065F46;
 
-    /* Status Batal/Peringatan Merah Cabe (Terang) */
-    --status-danger: #D93B2B;         /* Isian badge/ikon */
+    --status-danger: #DC2626;
     --status-danger-contrast: #FFFFFF;
-    --status-danger-surface: #FDECEB; /* Latar banner bahaya */
-    --status-danger-border: #E8A29A;  /* Batas banner bahaya (3,12:1) */
-    --status-danger-text: #B72617;    /* Teks bahaya di atas banner (5,56:1 WCAG AA) */
+    --status-danger-surface: #FEF2F2;
+    --status-danger-border: #FECACA;
+    --status-danger-text: #991B1B;
 
-    /* Status Informasi & Peringatan */
-    --status-warning: #A16207;
+    --status-warning: #D97706;
     --status-warning-contrast: #FFFFFF;
-    --status-warning-surface: #FEF9C3;
-    --status-info: #2845D6;
+    --status-warning-surface: #FFFBEB;
+    --status-info: #0284C7;
     --status-info-contrast: #FFFFFF;
-    --status-info-surface: #EFF3FF;
+    --status-info-surface: #F0F9FF;
 
     /* Entitas Fisik Layar & Tiket */
-    --hero-screen-color: #FFFFFF;     /* Layar proyektor murni */
-    --ticket-paper-color: #ECEFEA;    /* Kertas karcis fisik tetap */
+    --hero-screen-color: #FFFFFF;
+    --ticket-paper-color: #F8FAFC;
 
-    --focus-ring: #2845D6;
-    --overlay: rgb(15 42 47 / 72%);
-    --shadow-panel-token: 0 4px 20px -2px rgba(15, 42, 47, 0.08), 0 12px 36px -4px rgba(15, 42, 47, 0.12);
+    --focus-ring: #D97706;
+    --overlay: rgba(15, 23, 42, 0.75);
+    --shadow-panel-token: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.05);
 }
 
 :root.dark {
     color-scheme: dark;
-    /* Kanvas & Permukaan Layar Tancap (Gelap) */
-    --surface-canvas: #0F2A2F;        /* Malam: Hijau-teal tua hutan tropis */
-    --surface-default: #16393F;       /* Permukaan panel sekunder */
-    --surface-raised: #1C444B;        /* Panel sedikit terangkat */
-    --surface-sunken: #091D21;        /* Bidang cekung malam */
+    /* Kanvas & Permukaan Bioskop Kelas Dunia (Deep Obsidian Cinema Dark #07090E) */
+    --surface-canvas: #07090E;
+    --surface-default: #0E131F;
+    --surface-raised: #151D2E;
+    --surface-sunken: #030407;
 
     /* Teks / Tinta (Gelap) */
-    --text-primary: #F2F5F3;          /* Layar: Putih dingin kehijauan (13,74:1) */
-    --text-muted: #8FA8A4;            /* Keterangan redup (5,96:1 WCAG AA) */
-    --text-subtle: #738C88;
+    --text-primary: #F8FAFC;
+    --text-muted: #94A3B8;
+    --text-subtle: #64748B;
 
-    /* Garis & Batas Input (Gelap) */
-    --border-default: #1D444B;        /* Garis pemisah dekoratif 1.5px */
-    --border-input: #5C8E96;          /* Batas input kontrol form (3,41:1 di atas panel, 4,14:1 di atas kanvas) */
+    /* Garis & Batas Input (Gelap - WCAG 3:1 compliant) */
+    --border-default: rgba(255, 255, 255, 0.12);
+    --border-input: rgba(255, 255, 255, 0.28);
 
-    /* Aksi Utama Biru Sablon & Tautan (Gelap) */
-    --primary-color: #4D68F5;         /* Tombol utama Biru Sablon di gelap (3,31:1 terhadap Malam) */
-    --primary-text-color: #FFFFFF;    /* Teks tombol utama (4,55:1 WCAG AA) */
-    --link-color: #8096FF;            /* Tautan inline terang di gelap (5,55:1 WCAG AA) */
+    /* Aksi Utama Emas XXI / Amber (#D4AF37 / #F59E0B) */
+    --primary-color: #D4AF37;
+    --primary-text-color: #07090E;
+    --link-color: #FBBF24;
 
-    /* Penanda Fisik Kuning Karcis & Alias Legacy Aksentuasi Interaktif */
-    --accent-kuning: #FFC62E;
-    --accent-kuning-contrast: #16201F;
-    --accent-primary: var(--primary-color);   /* Tombol & aksen interaktif lama dipetakan ke Biru Sablon */
-    --accent-hover: var(--link-color);
+    /* Penanda Fisik Kuning Karcis & Aksen */
+    --accent-kuning: #F59E0B;
+    --accent-kuning-contrast: #07090E;
+    --accent-primary: var(--primary-color);
+    --accent-hover: #FBBF24;
     --accent-contrast: var(--primary-text-color);
-    --accent-gold: #FFC62E;
-    --accent-gold-surface: #262011;
+    --accent-gold: #D4AF37;
+    --accent-gold-surface: #1E1B10;
+    --accent-cyan: #06B6D4;
 
     /* Token Legacy Murni var(...) */
     --text: var(--text-primary);
@@ -212,35 +212,35 @@
     --bg: var(--surface-canvas);
     --surface: var(--surface-default);
 
-    /* Status Terkonfirmasi Hijau Daun (Gelap) */
-    --status-success: #2A9461;
-    --status-success-contrast: #FFFFFF;
-    --status-success-surface: #10261C;/* Latar banner sukses gelap */
-    --status-success-border: #21543A; /* Batas banner sukses gelap (3,15:1) */
-    --status-success-text: #4ED08F;   /* Teks sukses di atas banner (8,16:1 WCAG AAA) */
+    /* Status Terkonfirmasi Emerald */
+    --status-success: #10B981;
+    --status-success-contrast: #07090E;
+    --status-success-surface: #06281E;
+    --status-success-border: #047857;
+    --status-success-text: #34D399;
 
-    /* Status Batal/Peringatan Merah Cabe (Gelap) */
-    --status-danger: #D93B2B;
+    /* Status Batal Merah Crimson */
+    --status-danger: #EF4444;
     --status-danger-contrast: #FFFFFF;
-    --status-danger-surface: #281414; /* Latar banner bahaya gelap */
-    --status-danger-border: #632722;  /* Batas banner bahaya gelap (3,08:1) */
-    --status-danger-text: #FF8073;    /* Teks bahaya di atas banner (7,15:1 WCAG AAA) */
+    --status-danger-surface: #270D0E;
+    --status-danger-border: #991B1B;
+    --status-danger-text: #F87171;
 
     /* Status Informasi & Peringatan */
-    --status-warning: #FBBF24;
-    --status-warning-contrast: #16201F;
-    --status-warning-surface: #2A200B;
-    --status-info: #8096FF;
-    --status-info-contrast: #16201F;
-    --status-info-surface: #141A30;
+    --status-warning: #F59E0B;
+    --status-warning-contrast: #07090E;
+    --status-warning-surface: #241A07;
+    --status-info: #06B6D4;
+    --status-info-contrast: #07090E;
+    --status-info-surface: #08232C;
 
     /* Entitas Fisik Layar & Tiket */
-    --hero-screen-color: #FFFFFF;     /* Layar proyektor tetap putih */
-    --ticket-paper-color: #ECEFEA;    /* Kertas karcis fisik tetap */
+    --hero-screen-color: #0D121D;
+    --ticket-paper-color: #0E131F;
 
-    --focus-ring: #8096FF;
-    --overlay: rgb(0 0 0 / 78%);
-    --shadow-panel-token: 0 0 40px -10px rgba(242, 245, 243, 0.22), 0 20px 30px -15px rgba(0, 0, 0, 0.6);
+    --focus-ring: #D4AF37;
+    --overlay: rgba(3, 4, 7, 0.88);
+    --shadow-panel-token: 0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 35px -5px rgba(212, 175, 55, 0.12);
 }
 
 html {
@@ -360,9 +360,474 @@ input[type='number']::-webkit-outer-spin-button {
         transition: none !important;
     }
 }
-
 [x-cloak] {
     display: none !important;
 }
 
+/* === CINEMA LUXURY DESIGN SYSTEM (XXI & CGV) === */
+
+/* Glassmorphism Styles */
+.glass-panel {
+    background: rgba(14, 19, 31, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-gold {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(14, 19, 31, 0.85) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+.glass-card {
+    background: rgba(21, 29, 46, 0.65);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Curved Cinema Screen with Projection Light Beam */
+.curved-cinema-screen {
+    position: relative;
+    width: 100%;
+    height: 38px;
+    border-top: 3px solid #D4AF37;
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    background: linear-gradient(180deg, rgba(212, 175, 55, 0.28) 0%, rgba(212, 175, 55, 0.04) 60%, transparent 100%);
+    box-shadow: 0 -10px 30px -4px rgba(212, 175, 55, 0.45);
+}
+
+/* === 1.3 SELEKSI TEKS GLOBAL (AKAR PERBAIKAN) === */
+::selection {
+    background-color: #FDE68A !important;
+    color: #111827 !important;
+}
+::-moz-selection {
+    background-color: #FDE68A !important;
+    color: #111827 !important;
+}
+
+:root.dark ::selection,
+.dark ::selection,
+[data-theme='dark'] ::selection {
+    background-color: rgba(245, 158, 11, 0.45) !important;
+    color: #FFFFFF !important;
+}
+:root.dark ::-moz-selection,
+.dark ::-moz-selection,
+[data-theme='dark'] ::-moz-selection {
+    background-color: rgba(245, 158, 11, 0.45) !important;
+    color: #FFFFFF !important;
+}
+
+/* Fallback seleksi untuk teks gradasi */
+*::selection {
+    -webkit-text-fill-color: initial !important;
+}
+*::-moz-selection {
+    -webkit-text-fill-color: initial !important;
+}
+
+/* === 2. LOGO TAMPILAN ADAPTIF TEMA === */
+html:not(.dark) .logo-dark,
+html.dark .logo-light {
+    display: none !important;
+}
+
+/* === 1.1 TOMBOL UTAMA (CTA) & SEKUNDER === */
+.btn-gold-cinema,
+.btn-primary,
+button.btn-primary {
+    background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+    color: #1C1917 !important;
+    border: 1px solid #D97706 !important;
+    box-shadow: 0 2px 8px -1px rgba(217, 119, 6, 0.25);
+    font-weight: 800;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-gold-cinema:hover,
+.btn-primary:hover,
+button.btn-primary:hover {
+    background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+    color: #1C1917 !important;
+    border-color: #B45309 !important;
+    box-shadow: 0 4px 14px -1px rgba(217, 119, 6, 0.35);
+}
+.btn-gold-cinema:active,
+.btn-primary:active,
+button.btn-primary:active {
+    transform: scale(0.98);
+}
+.btn-gold-cinema:focus-visible,
+.btn-primary:focus-visible,
+button.btn-primary:focus-visible {
+    outline: 2px solid #B45309 !important;
+    outline-offset: 2px !important;
+}
+.btn-gold-cinema:disabled,
+.btn-primary:disabled,
+button.btn-primary:disabled {
+    background: #E2E8F0 !important;
+    color: #94A3B8 !important;
+    border-color: #CBD5E1 !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+}
+
+/* Tema Gelap: Mewah emas sinema gelap */
+:root.dark .btn-gold-cinema,
+.dark .btn-gold-cinema,
+[data-theme='dark'] .btn-gold-cinema {
+    background: linear-gradient(135deg, #F59E0B 0%, #D4AF37 50%, #B45309 100%);
+    color: #07090E !important;
+    border: 1px solid rgba(212, 175, 55, 0.4) !important;
+    box-shadow: 0 4px 18px -2px rgba(212, 175, 55, 0.35);
+}
+:root.dark .btn-gold-cinema:hover,
+.dark .btn-gold-cinema:hover,
+[data-theme='dark'] .btn-gold-cinema:hover {
+    box-shadow: 0 6px 25px -2px rgba(212, 175, 55, 0.55);
+    border-color: #FDE68A !important;
+    transform: translateY(-1px);
+}
+
+/* Neon Cyan Button (CGV Vibe) */
+.btn-cyan-cinema {
+    background: linear-gradient(135deg, #06B6D4 0%, #0284C7 100%);
+    color: #FFFFFF;
+    font-weight: 800;
+    box-shadow: 0 4px 18px -2px rgba(6, 182, 212, 0.35);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-cyan-cinema:hover {
+    box-shadow: 0 6px 25px -2px rgba(6, 182, 212, 0.55);
+    transform: translateY(-1px);
+}
+
+/* Teks Aksen & Link Tema Terang Kontras Tinggi (>= 4.5:1) */
+.text-accent-link {
+    color: #B45309;
+    font-weight: 700;
+}
+.text-accent-link:hover {
+    color: #92400E;
+    text-decoration: underline;
+}
+:root.dark .text-accent-link,
+.dark .text-accent-link {
+    color: #FBBF24;
+}
+:root.dark .text-accent-link:hover,
+.dark .text-accent-link:hover {
+    color: #FDE68A;
+}
+
+/* 1.2 State Terpilih Filter & Chip */
+.filter-chip-selected {
+    background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%) !important;
+    color: #1C1917 !important;
+    border: 1px solid #D97706 !important;
+    font-weight: 800 !important;
+    box-shadow: 0 2px 6px -1px rgba(217, 119, 6, 0.25) !important;
+}
+.filter-chip-unselected {
+    background-color: #FFFFFF !important;
+    border: 1.5px solid #94A3B8 !important;
+    color: #334155 !important;
+    font-weight: 600 !important;
+}
+.filter-chip-unselected:hover {
+    border-color: #D97706 !important;
+    color: #0F172A !important;
+    background-color: #F8FAFC !important;
+}
+:root.dark .filter-chip-selected,
+.dark .filter-chip-selected {
+    background: linear-gradient(135deg, #F59E0B 0%, #D4AF37 100%) !important;
+    color: #07090E !important;
+    border: 1px solid #FDE68A !important;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.25) !important;
+}
+:root.dark .filter-chip-unselected,
+.dark .filter-chip-unselected {
+    background-color: rgba(14, 19, 31, 0.8) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+    color: #94A3B8 !important;
+}
+:root.dark .filter-chip-unselected:hover,
+.dark .filter-chip-unselected:hover {
+    border-color: #F59E0B !important;
+    color: #FFFFFF !important;
+}
+
+/* Interactive Seat Buttons */
+.seat-item {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.seat-available {
+    background: rgba(21, 29, 46, 0.9);
+    border: 1.5px solid rgba(255, 255, 255, 0.16);
+    color: #94A3B8;
+}
+.seat-available:hover {
+    border-color: #D4AF37;
+    color: #F8FAFC;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(212, 175, 55, 0.3);
+}
+.seat-selected {
+    background: linear-gradient(135deg, #D4AF37 0%, #F59E0B 100%);
+    border: 1.5px solid #FDE68A;
+    color: #07090E;
+    box-shadow: 0 0 18px rgba(212, 175, 55, 0.7);
+    transform: scale(1.05);
+}
+.seat-occupied {
+    background: rgba(14, 19, 31, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #475569;
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+/* Ticket Stub with Cutout Notches */
+.ticket-stub {
+    position: relative;
+    background: linear-gradient(180deg, #111726 0%, #0A0E18 100%);
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    border-radius: 18px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 35px rgba(212, 175, 55, 0.12);
+}
+.ticket-notch-left, .ticket-notch-right {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: var(--surface-canvas);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+}
+.ticket-notch-left {
+    left: -13px;
+    border-right: 1px solid rgba(212, 175, 55, 0.35);
+}
+.ticket-notch-right {
+    right: -13px;
+    border-left: 1px solid rgba(212, 175, 55, 0.35);
+}
+
+/* === FORM INPUT BORDERS & CONTRAST (WCAG 1.4.11) === */
+input[type='text'],
+input[type='email'],
+input[type='url'],
+input[type='password'],
+input[type='number'],
+input[type='date'],
+input[type='datetime-local'],
+input[type='month'],
+input[type='search'],
+input[type='tel'],
+input[type='time'],
+select,
+textarea {
+    border-width: 1.5px !important;
+    border-color: var(--border-input) !important;
+    background-color: var(--surface-default) !important;
+    color: var(--text-primary) !important;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--color-accent) !important;
+    box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.25) !important;
+    outline: none !important;
+}
+
+/* Reusable Chip with checkbox/radio: changes background & border when checked */
+.choice-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-height: 44px;
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.75rem;
+    border: 2px solid var(--border-input);
+    background-color: var(--surface-default);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 150ms ease;
+}
+
+.choice-chip:hover {
+    border-color: var(--color-accent);
+}
+
+.choice-chip:has(input:checked) {
+    border-color: var(--color-accent) !important;
+    background-color: rgba(217, 119, 6, 0.12) !important;
+    color: var(--text-primary) !important;
+    font-weight: 700;
+}
+
+:root.dark .choice-chip:has(input:checked) {
+    border-color: #F59E0B !important;
+    background-color: rgba(245, 158, 11, 0.18) !important;
+}
+
+/* Secondary Button Visible Border */
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    border: 1.5px solid var(--border-input);
+    background-color: var(--surface-default);
+    color: var(--text-primary);
+    font-weight: 600;
+    transition: all 150ms ease;
+}
+.btn-secondary:hover {
+    border-color: var(--color-accent);
+    background-color: var(--surface-raised);
+}
+
+/* === ADMIN TABLE SPECIFICATION (FASE 0.2) === */
+.admin-table-container {
+    width: 100%;
+    overflow-x: auto;
+    border-radius: 1rem;
+    border: 1px solid var(--border-default);
+    background-color: var(--surface-default);
+    box-shadow: var(--shadow-token);
+    -webkit-overflow-scrolling: touch;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    text-align: left;
+    font-size: 0.875rem;
+}
+
+.admin-table thead th {
+    position: relative;
+    background-color: var(--surface-raised);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border-default);
+    white-space: nowrap;
+}
+
+.admin-table thead tr:first-child th:first-child {
+    border-top-left-radius: 0.95rem;
+}
+
+.admin-table thead tr:first-child th:last-child {
+    border-top-right-radius: 0.95rem;
+}
+
+.admin-table tbody tr {
+    transition: background-color 150ms ease;
+}
+
+.admin-table tbody tr:hover {
+    background-color: var(--surface-raised);
+}
+
+.admin-table td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border-default);
+    vertical-align: middle;
+}
+
+.admin-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.admin-table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 0.95rem;
+}
+
+.admin-table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 0.95rem;
+}
+
+/* Table Column Utilities */
+.col-title-flex {
+    min-width: 260px;
+}
+
+.col-nowrap {
+    white-space: nowrap;
+}
+
+/* Sticky Action Column (Aligned, Fixed Width & Pinned) */
+.admin-table thead th.col-actions-sticky,
+.admin-table tbody td.col-actions-sticky {
+    position: sticky !important;
+    right: 0;
+    width: 160px;
+    min-width: 160px;
+    max-width: 160px;
+    box-sizing: border-box;
+    border-left: 1px solid var(--border-default);
+    text-align: right;
+    padding-left: 0.75rem;
+    padding-right: 1.25rem;
+    white-space: nowrap;
+}
+
+.admin-table thead th.col-actions-sticky {
+    z-index: 20;
+    background-color: var(--surface-raised);
+    color: var(--text-muted);
+}
+
+.admin-table tbody td.col-actions-sticky {
+    z-index: 10;
+    background-color: var(--surface-default);
+}
+
+.admin-table tbody tr:hover td.col-actions-sticky {
+    background-color: var(--surface-raised);
+}
+
+.admin-table tbody td.col-actions-sticky:has([aria-expanded="true"]) {
+    z-index: 30;
+}
+
+.admin-table thead tr:first-child th.col-actions-sticky {
+    border-top-right-radius: 0.95rem;
+}
+
+.admin-table tbody tr:last-child td.col-actions-sticky {
+    border-bottom-right-radius: 0.95rem;
+}
+
+/* Truncation helper */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.truncate-1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 

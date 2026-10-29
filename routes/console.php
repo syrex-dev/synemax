@@ -15,3 +15,6 @@ Schedule::command('sessions:generate --days=14')
 
 Schedule::command('bookings:expire-unpaid')
     ->everyMinute();
+
+Schedule::command('sessions:resolve-quorum')
+    ->everyMinute();

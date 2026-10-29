@@ -14,10 +14,24 @@ class MediaController extends Controller
         }
 
         $safeName = basename($filename);
-        $path = 'nobar/'.$safeName;
-        $disk = Storage::disk('local');
+        $candidates = [
+            ['disk' => 'local', 'path' => 'nobar/'.$safeName],
+            ['disk' => 'public', 'path' => 'posters/'.$safeName],
+            ['disk' => 'public', 'path' => 'nobar/'.$safeName],
+            ['disk' => 'local', 'path' => 'posters/'.$safeName],
+        ];
 
-        if (! $disk->exists($path)) {
+        $matchedDisk = null;
+        $matchedPath = null;
+        foreach ($candidates as $cand) {
+            if (Storage::disk($cand['disk'])->exists($cand['path'])) {
+                $matchedDisk = Storage::disk($cand['disk']);
+                $matchedPath = $cand['path'];
+                break;
+            }
+        }
+
+        if (! $matchedDisk || ! $matchedPath) {
             abort(404, 'Poster acara tidak ditemukan.');
         }
 
@@ -28,7 +42,7 @@ class MediaController extends Controller
             default => 'image/jpeg',
         };
 
-        $content = $disk->get($path);
+        $content = $matchedDisk->get($matchedPath);
 
         return response($content, 200, [
             'Content-Type' => $mime,
@@ -43,10 +57,24 @@ class MediaController extends Controller
         }
 
         $safeName = basename($filename);
-        $path = 'news/'.$safeName;
-        $disk = Storage::disk('local');
+        $candidates = [
+            ['disk' => 'local', 'path' => 'news/'.$safeName],
+            ['disk' => 'public', 'path' => 'articles/'.$safeName],
+            ['disk' => 'public', 'path' => 'news/'.$safeName],
+            ['disk' => 'local', 'path' => 'articles/'.$safeName],
+        ];
 
-        if (! $disk->exists($path)) {
+        $matchedDisk = null;
+        $matchedPath = null;
+        foreach ($candidates as $cand) {
+            if (Storage::disk($cand['disk'])->exists($cand['path'])) {
+                $matchedDisk = Storage::disk($cand['disk']);
+                $matchedPath = $cand['path'];
+                break;
+            }
+        }
+
+        if (! $matchedDisk || ! $matchedPath) {
             abort(404, 'Gambar sampul artikel tidak ditemukan.');
         }
 
@@ -57,7 +85,7 @@ class MediaController extends Controller
             default => 'image/jpeg',
         };
 
-        $content = $disk->get($path);
+        $content = $matchedDisk->get($matchedPath);
 
         return response($content, 200, [
             'Content-Type' => $mime,

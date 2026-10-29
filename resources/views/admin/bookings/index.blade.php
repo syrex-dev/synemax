@@ -12,22 +12,40 @@
             <input type="hidden" name="session_id" value="{{ request('session_id') }}">
         @endif
         <div>
-            <label for="status" class="text-sm font-semibold text-text-muted">Status</label>
-            <select id="status" name="status" class="mt-2 min-h-12 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text">
-                <option value="">Semua status</option>
-                @foreach (['menunggu_pembayaran' => 'Menunggu pembayaran', 'menunggu_konfirmasi' => 'Menunggu konfirmasi', 'terkonfirmasi' => 'Terkonfirmasi', 'kedaluwarsa' => 'Kedaluwarsa', 'hadir' => 'Hadir', 'tidak_hadir' => 'Tidak hadir', 'dibatalkan' => 'Dibatalkan'] as $key => $label)
-                    <option value="{{ $key }}" @selected($selectedStatus === $key)>{{ $label }}</option>
-                @endforeach
-            </select>
+            <x-ui.select
+                name="status"
+                id="status"
+                label="Status"
+                placeholder="Semua status"
+                :value="$selectedStatus"
+                :autoSubmit="true"
+                :options="[
+                    '' => 'Semua status',
+                    'menunggu_pembayaran' => 'Menunggu pembayaran',
+                    'menunggu_konfirmasi' => 'Menunggu konfirmasi',
+                    'terkonfirmasi' => 'Terkonfirmasi',
+                    'kedaluwarsa' => 'Kedaluwarsa',
+                    'hadir' => 'Hadir',
+                    'tidak_hadir' => 'Tidak hadir',
+                    'dibatalkan' => 'Dibatalkan',
+                ]"
+            />
         </div>
         <div>
-            <label for="payment_method" class="text-sm font-semibold text-text-muted">Metode bayar</label>
-            <select id="payment_method" name="payment_method" class="mt-2 min-h-12 w-full rounded-lg border border-border bg-bg px-3 text-sm text-text">
-                <option value="">Semua metode</option>
-                <option value="di_tempat" @selected(($selectedMethod ?? '') === 'di_tempat')>Bayar di tempat</option>
-                <option value="qris" @selected(($selectedMethod ?? '') === 'qris')>QRIS</option>
-                <option value="transfer" @selected(($selectedMethod ?? '') === 'transfer')>Transfer</option>
-            </select>
+            <x-ui.select
+                name="payment_method"
+                id="payment_method"
+                label="Metode bayar"
+                placeholder="Semua metode"
+                :value="$selectedMethod ?? ''"
+                :autoSubmit="true"
+                :options="[
+                    '' => 'Semua metode',
+                    'di_tempat' => 'Bayar di tempat',
+                    'qris' => 'QRIS',
+                    'transfer' => 'Transfer',
+                ]"
+            />
         </div>
         <div>
             <label for="q" class="text-sm font-semibold text-text-muted">Cari booking</label>
@@ -88,11 +106,10 @@
 
                 <div class="mt-4 grid gap-2 border-t border-border pt-4 text-sm sm:grid-cols-2">
                     <p><span class="text-text-muted">WhatsApp:</span> {{ $booking->whatsapp }}</p>
-                    <p><span class="text-text-muted">Film:</span> {{ $booking->film?->title ?? '—' }}</p>
-                    <p><span class="text-text-muted">Jadwal:</span> {{ $booking->session->session_date }} · {{ substr((string) $booking->session->start_time, 0, 5) }} WIB</p>
+                    <p><span class="text-text-muted">Jadwal:</span> {{ \Carbon\Carbon::parse($booking->session->session_date)->locale('id')->translatedFormat('D, d M Y') }} · {{ str_replace(':', '.', substr((string) $booking->session->start_time, 0, 5)) }} WIB</p>
                     <p><span class="text-text-muted">Metode bayar:</span> <strong class="uppercase text-text">{{ ['di_tempat' => 'Di tempat', 'qris' => 'QRIS', 'transfer' => 'Transfer'][$booking->payment_method] ?? $booking->payment_method }}</strong></p>
                     @if ($booking->status === 'menunggu_pembayaran' && $booking->payment_expires_at)
-                        <p class="sm:col-span-2 text-xs text-warning font-semibold">Batas bayar: {{ $booking->payment_expires_at->locale('id')->diffForHumans() }} ({{ $booking->payment_expires_at->format('H:i') }} WIB)</p>
+                        <p class="sm:col-span-2 text-xs text-warning font-semibold">Batas bayar: {{ $booking->payment_expires_at->locale('id')->diffForHumans() }} ({{ $booking->payment_expires_at->format('H.i') }} WIB)</p>
                     @endif
                 </div>
 
@@ -103,7 +120,7 @@
                         <a href="{{ route('admin.bookings.proof', $booking) }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold hover:bg-surface-2">Lihat bukti bayar ↗</a>
                     @endif
                     @if ($booking->customerProfile)
-                        <form method="POST" action="{{ route('admin.customers.toggle-block', $booking->customerProfile) }}" onsubmit="return confirm('{{ $booking->customerProfile->is_blocked ? 'Buka blokir nomor WhatsApp ini?' : 'Blokir nomor WhatsApp ini dari booking baru?' }}')">@csrf @method('PATCH')
+                        <form method="POST" action="{{ route('admin.customers.toggle-block', $booking->customerProfile) }}" data-confirm="{{ $booking->customerProfile->is_blocked ? 'Buka blokir nomor WhatsApp ini?' : 'Blokir nomor WhatsApp ini dari booking baru?' }}" data-confirm-title="{{ $booking->customerProfile->is_blocked ? 'Buka Blokir Nomor' : 'Blokir Nomor' }}" data-confirm-action="{{ $booking->customerProfile->is_blocked ? 'Buka Blokir' : 'Blokir' }}" data-confirm-is-danger="{{ $booking->customerProfile->is_blocked ? 'false' : 'true' }}" novalidate>@csrf @method('PATCH')
                             <button class="min-h-11 w-full rounded-lg border border-border px-4 text-sm font-semibold {{ $booking->customerProfile->is_blocked ? 'text-success' : 'text-danger' }}">{{ $booking->customerProfile->is_blocked ? 'Buka blokir' : 'Blokir nomor' }}</button>
                         </form>
                     @endif
@@ -112,12 +129,12 @@
                 @if (in_array($booking->status, ['menunggu_pembayaran', 'menunggu_konfirmasi', 'terkonfirmasi', 'kedaluwarsa'], true))
                     <div class="mt-4 grid gap-2 border-t border-border pt-4 sm:flex sm:flex-wrap">
                         @if ($booking->status === 'menunggu_pembayaran')
-                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" onsubmit="return confirm('Tandai booking ini sudah dibayar?')">
+                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Tandai booking ini sudah dibayar?" data-confirm-title="Konfirmasi Pembayaran" data-confirm-action="Tandai Dibayar" novalidate>
                                 @csrf @method('PATCH')
                                 <input type="hidden" name="action" value="tandai_dibayar">
                                 <button class="min-h-11 w-full rounded-lg bg-accent px-4 text-sm font-bold text-accent-contrast sm:w-auto">Tandai sudah dibayar</button>
                             </form>
-                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" onsubmit="return confirm('Batalkan booking ini?')">
+                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Batalkan booking ini?" data-confirm-title="Batalkan Booking" data-confirm-action="Batalkan" data-confirm-is-danger="true" novalidate>
                                 @csrf @method('PATCH')
                                 <input type="hidden" name="action" value="batal">
                                 <button class="min-h-11 w-full rounded-lg border border-danger px-4 text-sm font-semibold text-danger sm:w-auto">Batalkan</button>
@@ -149,7 +166,7 @@
                                     </div>
                                 </div>
                             @endif
-                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" onsubmit="return confirm('Batalkan booking ini?')">
+                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Batalkan booking ini?" data-confirm-title="Batalkan Booking" data-confirm-action="Batalkan" data-confirm-is-danger="true" novalidate>
                                 @csrf @method('PATCH')
                                 <input type="hidden" name="action" value="batal">
                                 <button class="min-h-11 w-full rounded-lg border border-danger px-4 text-sm font-semibold text-danger sm:w-auto">Batalkan</button>
@@ -160,18 +177,18 @@
                                 <input type="hidden" name="action" value="hadir">
                                 <button class="min-h-11 w-full rounded-lg bg-success px-4 text-sm font-bold text-success-contrast sm:w-auto">Tandai hadir</button>
                             </form>
-                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" onsubmit="return confirm('Tandai pemesan tidak hadir? Ini akan menambah catatan no-show pelanggan.')">
+                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Tandai pemesan tidak hadir? Ini akan menambah catatan no-show pelanggan." data-confirm-title="Tandai No-Show" data-confirm-action="Tandai Tidak Hadir" data-confirm-is-danger="true" novalidate>
                                 @csrf @method('PATCH')
                                 <input type="hidden" name="action" value="tidak_hadir">
                                 <button class="min-h-11 w-full rounded-lg border border-warning px-4 text-sm font-semibold text-warning sm:w-auto">Tidak hadir (no-show)</button>
                             </form>
-                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" onsubmit="return confirm('Batalkan booking ini?')">
+                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Batalkan booking ini?" data-confirm-title="Batalkan Booking" data-confirm-action="Batalkan" data-confirm-is-danger="true" novalidate>
                                 @csrf @method('PATCH')
                                 <input type="hidden" name="action" value="batal">
                                 <button class="min-h-11 w-full rounded-lg border border-danger px-4 text-sm font-semibold text-danger sm:w-auto">Batalkan</button>
                             </form>
                         @elseif ($booking->status === 'kedaluwarsa')
-                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" onsubmit="return confirm('Pulihkan booking kedaluwarsa ini? Kursi akan kembali ditahan dengan batas waktu baru jika kapasitas sesi masih tersedia.')">
+                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Pulihkan booking kedaluwarsa ini? Kursi akan kembali ditahan dengan batas waktu baru jika kapasitas sesi masih tersedia." data-confirm-title="Pulihkan Booking" data-confirm-action="Pulihkan" novalidate>
                                 @csrf @method('PATCH')
                                 <input type="hidden" name="action" value="pulihkan">
                                 <button class="min-h-11 w-full rounded-lg border border-accent bg-accent/10 px-4 text-sm font-bold text-accent sm:w-auto hover:bg-accent/20">Pulihkan booking</button>

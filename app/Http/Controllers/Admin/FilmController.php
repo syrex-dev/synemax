@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class FilmController extends Controller
@@ -84,6 +85,32 @@ class FilmController extends Controller
         return redirect()->route('admin.films.index')->with('status', 'Film dinonaktifkan dari katalog publik.');
     }
 
+    public function toggleStatus(Film $film): RedirectResponse
+    {
+        $newStatus = ! $film->is_active;
+        if (! $newStatus) {
+            DB::transaction(function () use ($film): void {
+                $this->closeUpcomingSessions($film);
+                $film->update(['is_active' => false]);
+            });
+        } else {
+            $film->update(['is_active' => true]);
+        }
+
+        return back()->with('status', 'Status film berhasil diubah.');
+    }
+
+    public function duplicate(Film $film): RedirectResponse
+    {
+        $replica = $film->replicate();
+        $replica->title = $film->title.' (Duplikat)';
+        $replica->slug = Str::slug($replica->title).'-'.time();
+        $replica->is_active = false;
+        $replica->save();
+
+        return redirect()->route('admin.films.edit', $replica->id)->with('status', 'Film berhasil diduplikat sebagai draft baru.');
+    }
+
     private function closeUpcomingSessions(Film $film): void
     {
         Session::query()
@@ -98,10 +125,22 @@ class FilmController extends Controller
 
     private function validatedData(Request $request): array
     {
+        // Support both genres array (multi-select) and direct string input
+        if ($request->has('genres') && is_array($request->input('genres'))) {
+            $selected = array_filter(array_map('trim', (array) $request->input('genres')));
+            if (! empty($request->input('custom_genre'))) {
+                $custom = array_filter(array_map('trim', explode(',', (string) $request->input('custom_genre'))));
+                $selected = array_unique(array_merge($selected, $custom));
+            }
+            $request->merge(['genre' => implode(', ', $selected)]);
+        }
+
         return $request->validate([
             'title' => ['required', 'string', 'max:180'],
+            'slug' => ['nullable', 'string', 'max:180'],
             'duration_minutes' => ['required', 'integer', 'between:1,600'],
-            'genre' => ['required', 'string', 'max:100'],
+            'release_year' => ['nullable', 'integer', 'between:1900,2100'],
+            'genre' => ['required', 'string', 'max:150'],
             'age_rating' => ['required', 'in:SU,13+,17+'],
             'synopsis' => ['required', 'string', 'max:3000'],
             'trailer_url' => ['nullable', 'url', 'max:255'],

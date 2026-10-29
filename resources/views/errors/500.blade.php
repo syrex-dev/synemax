@@ -13,7 +13,7 @@
             <a href="{{ route('home') }}" class="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-control)] bg-primary px-5 text-xs font-bold text-white shadow-xs transition hover:opacity-95">
                 Kembali ke beranda
             </a>
-            <a href="{{ route('home') }}#jadwal" class="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-control)] border-[1.5px] border-border-input bg-surface px-4 text-xs font-bold text-text hover:border-primary">
+            <a href="{{ route('schedule.index') }}" class="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-control)] border-[1.5px] border-border-input bg-surface px-4 text-xs font-bold text-text hover:border-primary">
                 Lihat jadwal bioskop
             </a>
         </div>

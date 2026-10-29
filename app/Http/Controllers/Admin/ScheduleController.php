@@ -4,14 +4,18 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BlockedDate;
+use App\Models\Booking;
 use App\Models\Film;
 use App\Models\Holiday;
 use App\Models\ScheduleTemplate;
 use App\Models\Session;
+use App\Services\BookingService;
 use App\Services\ScheduleResolver;
 use App\Services\SessionGenerationService;
+use App\Services\SnackOrderService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,16 +29,23 @@ class ScheduleController extends Controller
     {
         $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
 
+        $allSessions = Session::query()
+            ->whereBetween('session_date', [$today->toDateString(), $today->addDays(13)->toDateString()])
+            ->with(['film', 'bookings.film', 'bookings.customerProfile', 'occupiedBookings'])
+            ->withSum('occupiedBookings as occupied_seats', 'seats_reserved')
+            ->orderBy('session_date')
+            ->orderBy('start_time')
+            ->get();
+
+        $sessionsByDate = $allSessions->groupBy('session_date');
+
         return view('admin.schedule.index', [
             'templates' => ScheduleTemplate::query()->orderBy('day_type')->orderBy('start_time')->get(),
             'holidays' => Holiday::query()->where('holiday_date', '>=', $today->toDateString())->orderBy('holiday_date')->get(),
             'blockedDates' => BlockedDate::query()->where('blocked_date', '>=', $today->toDateString())->with('session')->orderBy('blocked_date')->get(),
-            'sessions' => Session::query()
-                ->whereBetween('session_date', [$today->toDateString(), $today->addDays(13)->toDateString()])
-                ->with('film')
-                ->orderBy('session_date')
-                ->orderBy('start_time')
-                ->get(),
+            'sessions' => $allSessions,
+            'sessionsByDate' => $sessionsByDate,
+            'todayDate' => $today->toDateString(),
             'films' => Film::query()->where('is_active', true)->orderBy('title')->get(),
             'dayTypes' => [
                 'weekday' => 'Senin–Kamis',
@@ -221,6 +232,271 @@ class ScheduleController extends Controller
         });
 
         return back()->with('status', 'Sesi berhasil diperbarui.');
+    }
+
+    public function toggleSessionStatus(Request $request, Session $session): JsonResponse|RedirectResponse
+    {
+        $targetStatus = $request->input('status');
+        if (! in_array($targetStatus, ['tersedia', 'ditutup'], true)) {
+            $targetStatus = $session->status === 'tersedia' ? 'ditutup' : 'tersedia';
+        }
+
+        $confirmed = $request->boolean('confirmed', false);
+
+        if ($targetStatus === 'ditutup') {
+            $activeBookings = $session->occupiedBookings()->get();
+            $bookingCount = $activeBookings->count();
+
+            if ($bookingCount > 0 && ! $confirmed) {
+                return response()->json([
+                    'requires_confirmation' => true,
+                    'booking_count' => $bookingCount,
+                    'active_bookings_count' => $bookingCount,
+                    'session_id' => $session->id,
+                    'message' => "Sesi ini memiliki {$bookingCount} booking aktif. Jika ditutup, seluruh booking yang terdampak akan dibatalkan otomatis dan pelanggan perlu dihubungi untuk penjadwalan ulang atau pengembalian dana (refund).",
+                ]);
+            }
+
+            DB::transaction(function () use ($session, $activeBookings): void {
+                $lockedSession = Session::query()->lockForUpdate()->findOrFail($session->id);
+                $lockedSession->update(['status' => 'ditutup']);
+
+                foreach ($activeBookings as $booking) {
+                    $lockedBooking = Booking::query()->lockForUpdate()->find($booking->id);
+                    if ($lockedBooking) {
+                        $lockedBooking->update([
+                            'status' => 'dibatalkan',
+                            'cancelled_at' => now(),
+                        ]);
+                        app(SnackOrderService::class)->cancelItems($lockedBooking);
+                    }
+                }
+
+                $lockedSession->syncPrivateStatus();
+            });
+
+            $msg = $bookingCount > 0
+                ? "Sesi berhasil ditutup dan {$bookingCount} booking aktif dibatalkan."
+                : 'Sesi berhasil ditutup.';
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'status' => 'ok',
+                    'session_status' => 'ditutup',
+                    'message' => $msg,
+                ]);
+            }
+
+            return back()->with('status', $msg);
+        }
+
+        // Reopen session
+        $date = CarbonImmutable::parse($session->session_date, config('app.timezone'));
+        if (
+            app(ScheduleResolver::class)->dayTypeFor($date) === null
+            || app(ScheduleResolver::class)->isSlotBlocked($date, substr((string) $session->start_time, 0, 5))
+        ) {
+            $err = 'Tanggal atau jam sesi ini sedang ditutup/diblokir.';
+            if ($request->wantsJson()) {
+                return response()->json(['status' => 'error', 'message' => $err], 422);
+            }
+
+            return back()->with('error', $err);
+        }
+
+        $session->update(['status' => 'tersedia']);
+        $msg = 'Sesi berhasil dibuka kembali.';
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'session_status' => 'tersedia',
+                'message' => $msg,
+            ]);
+        }
+
+        return back()->with('status', $msg);
+    }
+
+    public function toggleDaySessions(Request $request): JsonResponse|RedirectResponse
+    {
+        $data = $request->validate([
+            'date' => ['required', 'date_format:Y-m-d'],
+            'action' => ['required', 'in:tutup,buka'],
+            'confirmed' => ['nullable', 'boolean'],
+        ]);
+
+        $dateStr = $data['date'];
+        $action = $data['action'];
+        $confirmed = (bool) ($data['confirmed'] ?? false);
+
+        $sessions = Session::query()
+            ->where('session_date', $dateStr)
+            ->with('occupiedBookings')
+            ->get();
+
+        if ($action === 'tutup') {
+            $totalBookings = $sessions->sum(fn ($s) => $s->occupiedBookings->count());
+
+            if ($totalBookings > 0 && ! $confirmed) {
+                return response()->json([
+                    'requires_confirmation' => true,
+                    'booking_count' => $totalBookings,
+                    'date' => $dateStr,
+                    'message' => "Terdapat {$totalBookings} booking aktif pada tanggal ini. Jika seluruh hari ditutup, seluruh booking akan dibatalkan otomatis dan pelanggan perlu dihubungi untuk refund/reschedule.",
+                ]);
+            }
+
+            DB::transaction(function () use ($sessions): void {
+                foreach ($sessions as $session) {
+                    $lockedSession = Session::query()->lockForUpdate()->find($session->id);
+                    if ($lockedSession) {
+                        $lockedSession->update(['status' => 'ditutup']);
+                        foreach ($session->occupiedBookings as $booking) {
+                            $lockedBooking = Booking::query()->lockForUpdate()->find($booking->id);
+                            if ($lockedBooking) {
+                                $lockedBooking->update([
+                                    'status' => 'dibatalkan',
+                                    'cancelled_at' => now(),
+                                ]);
+                                app(SnackOrderService::class)->cancelItems($lockedBooking);
+                            }
+                        }
+                        $lockedSession->syncPrivateStatus();
+                    }
+                }
+            });
+
+            $msg = "Seluruh sesi pada tanggal {$dateStr} berhasil ditutup.";
+            if ($request->wantsJson()) {
+                return response()->json(['status' => 'ok', 'message' => $msg]);
+            }
+
+            return back()->with('status', $msg);
+        }
+
+        // Buka seluruh hari
+        DB::transaction(function () use ($sessions): void {
+            foreach ($sessions as $session) {
+                $session->update(['status' => 'tersedia']);
+            }
+        });
+
+        $msg = "Seluruh sesi pada tanggal {$dateStr} berhasil dibuka kembali.";
+        if ($request->wantsJson()) {
+            return response()->json(['status' => 'ok', 'message' => $msg]);
+        }
+
+        return back()->with('status', $msg);
+    }
+
+    public function resolveSession(
+        Request $request,
+        Session $session,
+        BookingService $bookingService,
+    ): RedirectResponse|JsonResponse {
+        $action = $request->input('action');
+
+        if ($action === 'tayangkan_tetap') {
+            $data = $request->validate([
+                'film_id' => ['required', 'integer', 'exists:films,id'],
+                'reason' => ['required', 'string', 'max:250'],
+            ], [
+                'film_id.required' => 'Pilih film yang akan ditayangkan tetap.',
+                'reason.required' => 'Wajib menyertakan alasan singkat tayangkan tetap.',
+            ]);
+
+            DB::transaction(function () use ($session, $data) {
+                $lockedSession = Session::query()->lockForUpdate()->findOrFail($session->id);
+                $lockedSession->confirmAndLock((int) $data['film_id'], 'admin', $data['reason']);
+
+                Booking::query()
+                    ->where('session_id', $session->id)
+                    ->where('status', '!=', 'dibatalkan')
+                    ->where('film_id', '!=', (int) $data['film_id'])
+                    ->update(['reselect_needed' => true]);
+            });
+
+            $msg = 'Sesi berhasil dikonfirmasi tayang tetap dengan film pilihan admin.';
+
+            if ($request->wantsJson()) {
+                return response()->json(['status' => 'ok', 'message' => $msg]);
+            }
+
+            return back()->with('status', $msg);
+        }
+
+        if ($action === 'pindahkan_booking') {
+            $data = $request->validate([
+                'target_session_id' => ['required', 'integer', 'exists:screening_sessions,id'],
+            ], [
+                'target_session_id.required' => 'Pilih sesi tujuan pemindahan booking.',
+            ]);
+
+            if ((int) $data['target_session_id'] === (int) $session->id) {
+                return back()->with('error', 'Sesi tujuan harus berbeda dari sesi saat ini.');
+            }
+
+            $targetSession = Session::query()->findOrFail((int) $data['target_session_id']);
+            $activeBookings = $session->occupiedBookings()->get();
+
+            DB::transaction(function () use ($activeBookings, $targetSession, $bookingService) {
+                foreach ($activeBookings as $b) {
+                    $bookingService->reschedule($b, $targetSession, $b->film_id);
+                }
+            });
+
+            $msg = count($activeBookings).' booking berhasil dipindahkan ke sesi tujuan.';
+
+            if ($request->wantsJson()) {
+                return response()->json(['status' => 'ok', 'message' => $msg]);
+            }
+
+            return back()->with('status', $msg);
+        }
+
+        if ($action === 'batalkan_sesi') {
+            $data = $request->validate([
+                'reason' => ['required', 'string', 'max:250'],
+            ], [
+                'reason.required' => 'Wajib menyertakan alasan pembatalan sesi.',
+            ]);
+
+            $activeBookings = $session->occupiedBookings()->get();
+
+            DB::transaction(function () use ($session, $data, $activeBookings) {
+                $lockedSession = Session::query()->lockForUpdate()->findOrFail($session->id);
+                $lockedSession->update([
+                    'status' => 'ditutup',
+                    'resolution_notes' => 'Dibatalkan admin: '.$data['reason'],
+                ]);
+
+                foreach ($activeBookings as $b) {
+                    $lockedBooking = Booking::query()->lockForUpdate()->find($b->id);
+                    if ($lockedBooking) {
+                        $isPaid = $lockedBooking->isPaid() || $lockedBooking->status === 'terkonfirmasi';
+                        $lockedBooking->update([
+                            'status' => 'dibatalkan',
+                            'cancelled_at' => now(),
+                            'cancellation_reason' => 'Dibatalkan admin: '.$data['reason'],
+                            'refund_needed' => $isPaid,
+                        ]);
+                        app(SnackOrderService::class)->cancelItems($lockedBooking);
+                    }
+                }
+                $lockedSession->syncPrivateStatus();
+            });
+
+            $msg = 'Sesi berhasil dibatalkan dan seluruh booking aktif telah diproses pembatalan.';
+
+            if ($request->wantsJson()) {
+                return response()->json(['status' => 'ok', 'message' => $msg]);
+            }
+
+            return back()->with('status', $msg);
+        }
+
+        return back()->with('error', 'Aksi penyelesaian sesi tidak valid.');
     }
 
     private function assertNoOverlap(string $dayType, string $startTime, int $duration, ?int $ignoreId = null): void

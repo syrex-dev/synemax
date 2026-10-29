@@ -11,6 +11,7 @@ use App\Models\Session;
 use App\Services\BookingService;
 use App\Services\CinemaSettings;
 use App\Services\ScheduleResolver;
+use App\Services\SessionQuorumService;
 use App\Services\SnackOrderService;
 use App\Support\WhatsAppNumber;
 use Illuminate\Http\JsonResponse;
@@ -29,6 +30,9 @@ class PublicBookingController extends Controller
         CinemaSettings $settings,
         SnackOrderService $snackOrders,
     ): View|RedirectResponse {
+        app(SessionQuorumService::class)->resolveAll();
+        $session->refresh();
+
         $session->load('film');
         $session->loadSum('occupiedBookings as occupied_seats', 'seats_reserved');
         $deadline = $session->startsAt()->subMinutes($settings->integer('booking_cutoff_minutes', 30));
@@ -44,19 +48,60 @@ class PublicBookingController extends Controller
                 ->with('error', 'Sesi ini sudah tidak bisa dibooking. Pilih jadwal lain, ya.');
         }
 
-        $unitPrice = match (app(ScheduleResolver::class)->dayTypeFor($session->startsAt())) {
-            'libur' => $settings->integer('holiday_price', 6000),
-            'weekend' => $settings->integer('weekend_price', 6000),
-            default => $settings->integer('weekday_price', 5000),
-        };
+        $dayType = app(ScheduleResolver::class)->dayTypeFor($session->startsAt());
+        $unitPrice = $settings->ticketPriceForDayType($dayType);
+        $couplePrice = $settings->couplePrice($dayType);
+        $privatePrice = $settings->privatePriceForDayType($dayType);
+
+        $tallies = $session->candidateFilmTallies()->keyBy('film_id');
+        $allFilms = Film::query()->where('is_active', true)->orderBy('title')->get();
+
+        $filmList = $allFilms->map(function (Film $film) use ($session, $tallies) {
+            $tally = $tallies->get($film->id);
+            $seats = $tally ? $tally['seats'] : 0;
+            $deadlockCheck = $session->canAcceptRegularBooking($film->id, 1);
+
+            return [
+                'id' => $film->id,
+                'title' => $film->title,
+                'genre' => $film->genre,
+                'year' => $film->release_year,
+                'duration' => $film->duration_minutes,
+                'age_rating' => $film->age_rating,
+                'synopsis' => $film->synopsis,
+                'poster_url' => $film->poster_url,
+                'seats' => $seats,
+                'can_pick' => $session->isConfirmed() ? ($session->film_id === $film->id) : $deadlockCheck['allowed'],
+                'disabled_reason' => $session->isConfirmed()
+                    ? ($session->film_id !== $film->id ? 'Sesi sudah terkunci untuk film lain' : null)
+                    : ($deadlockCheck['allowed'] ? null : $deadlockCheck['reason']),
+            ];
+        });
+
+        $coupleCheck = $session->canAcceptCoupleBooking();
+        $privateCheck = $session->canAcceptPrivateBooking();
+        $canReguler = ! $session->isPrivateActive() && $session->remainingSeats() > 0;
+        $regulerDisabledReason = $session->isPrivateActive()
+            ? 'Sesi ini sudah disewa private.'
+            : ($session->remainingSeats() === 0 ? 'Kursi pada sesi ini sudah penuh.' : null);
 
         return view('public.booking-form', [
             'session' => $session,
-            'films' => $session->film_id
+            'films' => $session->isConfirmed()
                 ? collect([$session->film])->filter()
-                : Film::query()->where('is_active', true)->orderBy('title')->get(),
+                : $allFilms,
+            'filmList' => $filmList,
+            'candidateTallies' => $tallies,
+            'quorum' => $session->quorum(),
             'unitPrice' => $unitPrice,
-            'privatePrice' => $settings->integer('private_price', 36000),
+            'couplePrice' => $couplePrice,
+            'privatePrice' => $privatePrice,
+            'canCouple' => $coupleCheck['allowed'],
+            'coupleDisabledReason' => $coupleCheck['reason'],
+            'canPrivate' => $privateCheck['allowed'],
+            'privateDisabledReason' => $privateCheck['reason'],
+            'canReguler' => $canReguler,
+            'regulerDisabledReason' => $regulerDisabledReason,
             'paymentMethods' => $settings->availablePaymentMethodsForSession($session),
             'paymentInstructions' => $settings->string('payment_instructions'),
             'paymentTimeLimit' => $settings->paymentTimeLimitMinutes(),
@@ -87,12 +132,16 @@ class PublicBookingController extends Controller
         $isPrivateActive = $session->isPrivateActive();
         $hasActivePerPerson = $session->hasActivePerPersonBookings();
 
+        $coupleCheck = $session->canAcceptCoupleBooking();
+        $privateCheck = $session->canAcceptPrivateBooking();
+
         $canPrivate = ! $isPast
             && ! $isClosed
-            && ! $isPrivateActive
-            && ! $hasActivePerPerson
-            && $occupiedSeats === 0
-            && $seatCapacity === Session::MAX_CAPACITY;
+            && $privateCheck['allowed'];
+
+        $canCouple = ! $isPast
+            && ! $isClosed
+            && $coupleCheck['allowed'];
 
         $canPerPerson = ! $isPast
             && ! $isClosed
@@ -102,10 +151,13 @@ class PublicBookingController extends Controller
         $privateDisabledReason = match (true) {
             $isPast => 'Sesi sudah lewat.',
             $isClosed => 'Booking untuk sesi ini sudah ditutup.',
-            $isPrivateActive => 'Sesi ini sudah disewa private.',
-            $hasActivePerPerson || $occupiedSeats > 0 => 'Sudah ada pemesan per orang di sesi ini, jadi Sewa Private tidak tersedia.',
-            $seatCapacity < Session::MAX_CAPACITY => 'Kapasitas sesi tidak mencukupi untuk private.',
-            default => null,
+            default => $privateCheck['reason'],
+        };
+
+        $coupleDisabledReason = match (true) {
+            $isPast => 'Sesi sudah lewat.',
+            $isClosed => 'Booking untuk sesi ini sudah ditutup.',
+            default => $coupleCheck['reason'],
         };
 
         $perPersonDisabledReason = match (true) {
@@ -119,16 +171,20 @@ class PublicBookingController extends Controller
         return response()->json([
             'session_id' => $session->id,
             'status' => $session->status,
-            'is_available' => ! $isPast && ! $isClosed && ($canPrivate || $canPerPerson),
+            'is_available' => ! $isPast && ! $isClosed && ($canPrivate || $canCouple || $canPerPerson),
             'seat_capacity' => $seatCapacity,
             'occupied_seats' => $occupiedSeats,
             'remaining_seats' => $remainingSeats,
             'is_private_active' => $isPrivateActive,
             'has_active_per_person' => $hasActivePerPerson,
             'can_private' => $canPrivate,
+            'can_couple' => $canCouple,
             'can_per_orang' => $canPerPerson,
+            'can_reguler' => $canPerPerson,
             'private_disabled_reason' => $privateDisabledReason,
+            'couple_disabled_reason' => $coupleDisabledReason,
             'per_orang_disabled_reason' => $perPersonDisabledReason,
+            'reguler_disabled_reason' => $perPersonDisabledReason,
         ])->withHeaders([
             'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
             'Pragma' => 'no-cache',
@@ -149,6 +205,11 @@ class PublicBookingController extends Controller
         $request->session()->put('verified_booking_'.$booking->code, true);
 
         if ($booking->payment_method === 'di_tempat') {
+            return redirect()->route('booking.ticket', ['code' => $booking->code]);
+        }
+
+        // Jika metode online tapi sesi belum pasti tayang (menunggu kuorum), tahan dan arahkan ke tiket
+        if ($booking->payment_expires_at === null) {
             return redirect()->route('booking.ticket', ['code' => $booking->code]);
         }
 
@@ -173,6 +234,11 @@ class PublicBookingController extends Controller
         $booking = $bookingService->expireIfOverdue($booking);
 
         if ($booking->payment_method === 'di_tempat') {
+            return redirect()->route('booking.ticket', ['code' => $booking->code]);
+        }
+
+        // Jika sesi belum Pasti Tayang, jangan tampilkan halaman transfer/QRIS
+        if (! $booking->session->isConfirmed() && $booking->payment_expires_at === null) {
             return redirect()->route('booking.ticket', ['code' => $booking->code]);
         }
 
@@ -201,10 +267,13 @@ class PublicBookingController extends Controller
         CinemaSettings $settings,
         BookingService $bookingService,
     ): Response|RedirectResponse {
+        app(SessionQuorumService::class)->resolveAll();
+
         $booking = Booking::query()
             ->where('code', strtoupper(trim($code)))
             ->with([
                 'session.film',
+                'session.occupiedBookings.film',
                 'film',
                 'items.menuItem',
             ])
@@ -216,9 +285,14 @@ class PublicBookingController extends Controller
 
         $booking = $bookingService->expireIfOverdue($booking);
 
-        if ($booking->isOnlinePayment() && $booking->status === 'menunggu_pembayaran' && ! $booking->isExpired()) {
+        if ($booking->isOnlinePayment() && $booking->status === 'menunggu_pembayaran' && $booking->payment_expires_at !== null && ! $booking->isExpired()) {
             return redirect()->route('booking.payment', ['code' => $booking->code]);
         }
+
+        $session = $booking->session;
+        $dayType = app(ScheduleResolver::class)->dayTypeFor($session->startsAt());
+        $couplePrice = $settings->couplePrice($dayType);
+        $privatePrice = $settings->privatePriceForDayType($dayType);
 
         $activeItems = $booking->items->where('status', '!=', 'dibatalkan')->values();
         $items = $booking->status === 'dibatalkan'
@@ -229,18 +303,43 @@ class PublicBookingController extends Controller
             ->map(fn ($item): int => (int) ($item->menuItem?->prep_minutes ?? 0))
             ->max();
         $deadline = $activeItems->isNotEmpty()
-            ? app(SnackOrderService::class)->deadlineFor($booking->session, $longestPrep)
+            ? app(SnackOrderService::class)->deadlineFor($session, $longestPrep)
             : null;
         $snackLocked = $booking->status === 'dibatalkan'
             || ($deadline !== null && now()->greaterThanOrEqualTo($deadline));
 
         $cancellationCutoff = $settings->cancellationCutoffHours();
         $canCancel = ! in_array($booking->status, ['dibatalkan', 'kedaluwarsa', 'hadir', 'tidak_hadir'], true)
-            && now()->lessThanOrEqualTo($booking->session->startsAt()->subHours($cancellationCutoff));
+            && (! $session->isConfirmed() || now()->lessThanOrEqualTo($session->startsAt()->subHours($cancellationCutoff)));
+
+        $candidateTallies = $session->candidateFilmTallies();
+        $allFilms = Film::query()->where('is_active', true)->orderBy('title')->get();
+
+        $alternativeSessions = Session::query()
+            ->where('status', 'tersedia')
+            ->where('id', '!=', $session->id)
+            ->whereDate('session_date', '>=', now()->toDateString())
+            ->with(['film', 'occupiedBookings'])
+            ->orderBy('session_date')
+            ->orderBy('start_time')
+            ->take(10)
+            ->get();
 
         return response()
             ->view('public.ticket', [
                 'booking' => $booking,
+                'session' => $session,
+                'sessionStatus' => $session->statusWaktu(),
+                'candidateTallies' => $candidateTallies,
+                'allFilms' => $allFilms,
+                'alternativeSessions' => $alternativeSessions,
+                'couplePrice' => $couplePrice,
+                'privatePrice' => $privatePrice,
+                'coupleUpgradeDiff' => max(0, $couplePrice - $booking->ticket_total),
+                'privateUpgradeDiff' => max(0, $privatePrice - $booking->ticket_total),
+                'canUpgradeCouple' => ! $session->isConfirmed() && $booking->seats_reserved <= 2 && $session->canAcceptCoupleBooking($booking->film_id)['allowed'],
+                'canUpgradePrivate' => ! $session->isConfirmed() && ($session->occupiedBookings()->where('id', '!=', $booking->id)->count() === 0),
+                'ajakTemanUrl' => $this->ajakTemanWhatsAppUrl($booking),
                 'whatsAppUrl' => $this->ticketWhatsAppUrl($booking, $settings),
                 'snackWhatsAppUrl' => $this->snackWhatsAppUrl($booking, $settings),
                 'snackLocked' => $snackLocked,
@@ -250,6 +349,71 @@ class PublicBookingController extends Controller
             ->header('Referrer-Policy', 'same-origin');
     }
 
+    public function changeFilm(
+        Request $request,
+        string $code,
+        BookingService $bookingService,
+    ): RedirectResponse {
+        $booking = Booking::query()->where('code', strtoupper(trim($code)))->firstOrFail();
+        $this->authorizeBookingAccess($request, $booking);
+
+        $data = $request->validate([
+            'film_id' => ['required', 'integer', 'exists:films,id'],
+        ], [
+            'film_id.required' => 'Pilih film pengganti.',
+            'film_id.exists' => 'Film tidak ditemukan.',
+        ]);
+
+        $bookingService->changeFilm($booking, (int) $data['film_id']);
+
+        return redirect()->route('booking.ticket', ['code' => $booking->code])
+            ->with('status', 'Pilihan film berhasil diubah.');
+    }
+
+    public function reschedule(
+        Request $request,
+        string $code,
+        BookingService $bookingService,
+    ): RedirectResponse {
+        $booking = Booking::query()->where('code', strtoupper(trim($code)))->firstOrFail();
+        $this->authorizeBookingAccess($request, $booking);
+
+        $data = $request->validate([
+            'target_session_id' => ['required', 'integer', 'exists:screening_sessions,id'],
+            'film_id' => ['nullable', 'integer', 'exists:films,id'],
+        ], [
+            'target_session_id.required' => 'Pilih sesi tujuan.',
+            'target_session_id.exists' => 'Sesi tujuan tidak ditemukan.',
+        ]);
+
+        $targetSession = Session::query()->findOrFail((int) $data['target_session_id']);
+        $bookingService->reschedule($booking, $targetSession, ! empty($data['film_id']) ? (int) $data['film_id'] : null);
+
+        return redirect()->route('booking.ticket', ['code' => $booking->code])
+            ->with('status', 'Jadwal sesi berhasil dipindahkan.');
+    }
+
+    public function upgrade(
+        Request $request,
+        string $code,
+        BookingService $bookingService,
+    ): RedirectResponse {
+        $booking = Booking::query()->where('code', strtoupper(trim($code)))->firstOrFail();
+        $this->authorizeBookingAccess($request, $booking);
+
+        $data = $request->validate([
+            'target_package' => ['required', 'in:couple,private'],
+        ], [
+            'target_package.required' => 'Pilih paket upgrade.',
+            'target_package.in' => 'Paket upgrade tidak valid.',
+        ]);
+
+        $bookingService->upgrade($booking, $data['target_package']);
+
+        return redirect()->route('booking.ticket', ['code' => $booking->code])
+            ->with('status', 'Paket berhasil di-upgrade.');
+    }
+
     public function statusJson(
         Request $request,
         string $code,
@@ -257,10 +421,16 @@ class PublicBookingController extends Controller
     ): JsonResponse {
         $booking = Booking::query()
             ->where('code', strtoupper(trim($code)))
+            ->with(['session', 'film'])
             ->firstOrFail();
 
         $this->authorizeBookingAccess($request, $booking);
         $booking = $bookingService->expireIfOverdue($booking);
+
+        $session = $booking->session;
+        $quorum = $session->quorum();
+        $occupiedForFilm = (int) $session->occupiedBookings()->where('film_id', $booking->film_id)->sum('seats_reserved');
+        $neededForMyFilm = max(0, $quorum - $occupiedForFilm);
 
         $statusLabels = [
             'menunggu_pembayaran' => 'Menunggu pembayaran',
@@ -272,15 +442,15 @@ class PublicBookingController extends Controller
             'dibatalkan' => 'Dibatalkan',
         ];
 
-        $bannerText = match ($booking->status) {
-            'menunggu_konfirmasi' => $booking->payment_method === 'di_tempat'
-                ? 'Booking diterima. Bayar tunai di lokasi sebelum film mulai. Admin akan mengonfirmasi lewat WhatsApp.'
-                : 'Bukti bayar diterima. Admin akan memeriksa dan mengonfirmasi tiketmu.',
-            'terkonfirmasi' => 'Tiket terkonfirmasi. Tunjukkan kode ini saat datang.',
-            'kedaluwarsa' => 'Batas waktu pembayaran habis dan kursi telah dilepaskan kembali.',
-            'dibatalkan' => 'Booking ini telah dibatalkan.',
-            'hadir' => 'Tiket sudah dipakai.',
-            default => '',
+        $bannerText = match (true) {
+            $booking->status === 'dibatalkan' => $booking->notes === 'Dibatalkan: kuorum tidak terpenuhi'
+                ? 'Sesi dibatalkan karena kuorum tidak terpenuhi hingga batas konfirmasi.'
+                : 'Booking ini telah dibatalkan.',
+            $booking->status === 'kedaluwarsa' => 'Batas waktu pembayaran habis dan kursi telah dilepaskan kembali.',
+            $booking->needsReselect() => 'Sesi telah Pasti Tayang dengan film lain. Silakan pilih film yang tayang atau pindah ke sesi lain.',
+            $session->isConfirmed() => 'Sesi Pasti Tayang: '.($session->film?->title ?? 'Film').'. Tunjukkan kode ini saat datang.',
+            $session->isInAgreementWindow() => 'Butuh kesepakatan: Sesi belum mencapai kuorum menjelang jam tayang. Silakan sepakati film atau pindah jadwal.',
+            default => 'Menunggu kuorum: butuh '.$neededForMyFilm.' penonton lagi untuk film '.($booking->film?->title ?? 'pilihanmu').'.',
         };
 
         return response()->json([
@@ -290,6 +460,9 @@ class PublicBookingController extends Controller
             'is_final' => in_array($booking->status, ['terkonfirmasi', 'dibatalkan', 'kedaluwarsa', 'hadir', 'tidak_hadir'], true),
             'banner_text' => $bannerText,
             'needs_payment' => $booking->status === 'menunggu_pembayaran' && ! $booking->isExpired(),
+            'is_confirmed' => $session->isConfirmed(),
+            'needs_reselect' => $booking->needsReselect(),
+            'needed_seats' => $neededForMyFilm,
         ]);
     }
 
@@ -591,6 +764,22 @@ class PublicBookingController extends Controller
         ];
 
         return 'https://wa.me/'.$adminWhatsApp.'?text='.rawurlencode(implode("\n", $lines));
+    }
+
+    private function ajakTemanWhatsAppUrl(Booking $booking): string
+    {
+        $filmTitle = $booking->film?->title ?? 'film seru';
+        $session = $booking->session;
+        $startsAt = $session->startsAt();
+        $formattedDate = $startsAt->locale('id')->translatedFormat('l, j M').' jam '.substr((string) $session->start_time, 0, 5).' WIB';
+
+        $occupiedForFilm = (int) $session->occupiedBookings()->where('film_id', $booking->film_id)->sum('seats_reserved');
+        $needed = max(1, $session->quorum() - $occupiedForFilm);
+
+        $sessionUrl = route('booking.create', ['session' => $session->id]);
+        $message = "Nonton {$filmTitle}, {$formattedDate} di SynemaX, kurang {$needed} orang lagi! Yuk gabung pesan di sini: {$sessionUrl}";
+
+        return 'https://wa.me/?text='.rawurlencode($message);
     }
 
     private function snackWhatsAppUrl(Booking $booking, CinemaSettings $settings): ?string

@@ -226,20 +226,30 @@
 
                 <div class="mt-5 grid gap-4 sm:grid-cols-3">
                     <div>
-                        <label for="status_publikasi" class="text-sm font-semibold">Status Publikasi</label>
-                        <select id="status_publikasi" name="status_publikasi" class="mt-1.5 min-h-12 w-full rounded-xl border border-border bg-bg px-3 text-sm text-text">
-                            <option value="terbit" @selected(old('status_publikasi', $event->status_publikasi) === 'terbit')>Terbit (Tampil ke Publik)</option>
-                            <option value="draft" @selected(old('status_publikasi', $event->status_publikasi) === 'draft')>Draft (Disimpan Privat)</option>
-                        </select>
+                        <x-ui.select
+                            name="status_publikasi"
+                            id="status_publikasi"
+                            label="Status Publikasi"
+                            :value="old('status_publikasi', $event->status_publikasi)"
+                            :options="[
+                                'terbit' => 'Terbit (Tampil ke Publik)',
+                                'draft' => 'Draft (Disimpan Privat)',
+                            ]"
+                        />
                     </div>
 
-                    <div>
-                        <label for="status_acara" class="text-sm font-semibold">Status Acara</label>
-                        <select id="status_acara" name="status_acara" x-model="statusAcara" class="mt-1.5 min-h-12 w-full rounded-xl border border-border bg-bg px-3 text-sm text-text">
-                            <option value="aktif">Aktif (Sesuai Jadwal)</option>
-                            <option value="ditunda">Ditunda</option>
-                            <option value="dibatalkan">Dibatalkan</option>
-                        </select>
+                    <div @change="if ($event.target.name === 'status_acara') statusAcara = $event.target.value">
+                        <x-ui.select
+                            name="status_acara"
+                            id="status_acara"
+                            label="Status Acara"
+                            :value="old('status_acara', $event->status_acara)"
+                            :options="[
+                                'aktif' => 'Aktif (Sesuai Jadwal)',
+                                'ditunda' => 'Ditunda',
+                                'dibatalkan' => 'Dibatalkan',
+                            ]"
+                        />
                     </div>
 
                     <div>

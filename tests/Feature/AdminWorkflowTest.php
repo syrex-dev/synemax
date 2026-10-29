@@ -138,12 +138,13 @@ class AdminWorkflowTest extends TestCase
 
         $response = $this->get(route('admin.dashboard'))->assertOk();
         $content = $response->getContent();
-        $todayPosition = strpos($content, '<h2 class="text-xl font-bold">Sesi hari ini</h2>');
-        $lowAttendancePosition = strpos($content, 'Sesi belum mencapai 3 penonton');
+        $todayPosition = strpos($content, 'Sesi hari ini');
+        $lowAttendancePosition = strpos($content, 'Minimal 4 penonton per sesi');
 
         $this->assertNotFalse($todayPosition);
         $this->assertNotFalse($lowAttendancePosition);
-        $this->assertLessThan($lowAttendancePosition, $todayPosition);
+        // In the new layout, 'Sesi perlu penonton' is placed above 'Sesi hari ini' in the left column
+        $this->assertLessThan($todayPosition, $lowAttendancePosition);
     }
 
     public function test_dashboard_and_reports_count_reserved_seats_for_private_bookings(): void
