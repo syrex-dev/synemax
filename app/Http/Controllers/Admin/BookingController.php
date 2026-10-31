@@ -12,7 +12,9 @@ use App\Services\BookingService;
 use App\Services\CinemaSettings;
 use App\Services\SnackOrderService;
 use App\Support\WhatsAppNumber;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -48,10 +50,19 @@ class BookingController extends Controller
                 }
             })
             ->when($filters['q'] ?? null, function (Builder $query, string $search): void {
-                $query->where(function (Builder $query) use ($search): void {
+                $digits = preg_replace('/\D+/', '', $search);
+                $query->where(function (Builder $query) use ($search, $digits): void {
                     $query->where('code', 'like', "%{$search}%")
-                        ->orWhere('customer_name', 'like', "%{$search}%")
-                        ->orWhere('whatsapp', 'like', "%{$search}%");
+                        ->orWhere('customer_name', 'like', "%{$search}%");
+
+                    if ($digits !== '') {
+                        $query->orWhere('whatsapp', 'like', "%{$digits}%");
+                        if (str_starts_with($digits, '0')) {
+                            $query->orWhere('whatsapp', 'like', '%'.substr($digits, 1).'%');
+                        } elseif (str_starts_with($digits, '62')) {
+                            $query->orWhere('whatsapp', 'like', '%'.substr($digits, 2).'%');
+                        }
+                    }
                 });
             })
             ->latest()
@@ -63,6 +74,67 @@ class BookingController extends Controller
             'selectedStatus' => $filters['status'] ?? '',
             'selectedMethod' => $filters['payment_method'] ?? '',
             'search' => $filters['q'] ?? '',
+        ]);
+    }
+
+    public function liveSearch(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->input('q', ''));
+        if ($q === '') {
+            return response()->json(['results' => [], 'count' => 0]);
+        }
+
+        $digits = preg_replace('/\D+/', '', $q);
+
+        $results = Booking::query()
+            ->with(['session.film', 'film'])
+            ->where(function (Builder $query) use ($q, $digits): void {
+                $query->where('code', 'like', "%{$q}%")
+                    ->orWhere('customer_name', 'like', "%{$q}%");
+
+                if ($digits !== '') {
+                    $query->orWhere('whatsapp', 'like', "%{$digits}%");
+                    if (str_starts_with($digits, '0')) {
+                        $query->orWhere('whatsapp', 'like', '%'.substr($digits, 1).'%');
+                    } elseif (str_starts_with($digits, '62')) {
+                        $query->orWhere('whatsapp', 'like', '%'.substr($digits, 2).'%');
+                    }
+                }
+            })
+            ->latest('id')
+            ->take(8)
+            ->get()
+            ->map(function (Booking $b): array {
+                $statusLabels = [
+                    'menunggu_pembayaran' => 'Menunggu Bayar',
+                    'menunggu_konfirmasi' => 'Menunggu Konfirmasi',
+                    'terkonfirmasi' => 'Terkonfirmasi',
+                    'kedaluwarsa' => 'Kedaluwarsa',
+                    'hadir' => 'Hadir',
+                    'tidak_hadir' => 'Tidak Datang',
+                    'dibatalkan' => 'Dibatalkan',
+                ];
+
+                $sessionDate = $b->session ? Carbon::parse($b->session->session_date)->locale('id')->translatedFormat('D, d M') : '';
+                $sessionTime = $b->session ? str_replace(':', '.', substr((string) $b->session->start_time, 0, 5)).' WIB' : '';
+
+                return [
+                    'id' => $b->id,
+                    'code' => $b->code,
+                    'customer_name' => $b->customer_name,
+                    'whatsapp' => $b->whatsapp,
+                    'film_title' => $b->session?->film?->title ?? $b->film?->title ?? 'Film',
+                    'status' => $b->status,
+                    'status_label' => $statusLabels[$b->status] ?? ucfirst($b->status),
+                    'total_price_formatted' => 'Rp '.number_format($b->total_price, 0, ',', '.'),
+                    'session_info' => trim("{$sessionDate} · {$sessionTime}", ' ·'),
+                    'url' => route('admin.bookings.show', $b),
+                ];
+            });
+
+        return response()->json([
+            'results' => $results,
+            'count' => $results->count(),
         ]);
     }
 
@@ -87,6 +159,20 @@ class BookingController extends Controller
             'snackMaxQty' => $settings->integer('snack_max_qty_per_item', 10),
             'snackChangeLogs' => $booking->snackChangeLogs,
             'snackUpdateWhatsAppUrl' => $this->snackUpdateWhatsAppUrl($booking),
+        ]);
+    }
+
+    public function ticket(Booking $booking): View
+    {
+        $booking->load([
+            'session.film',
+            'film',
+            'customerProfile',
+            'items.menuItem',
+        ]);
+
+        return view('admin.bookings.ticket', [
+            'booking' => $booking,
         ]);
     }
 

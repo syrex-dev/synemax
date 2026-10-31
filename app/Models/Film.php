@@ -24,6 +24,8 @@ use Illuminate\Support\Str;
     'is_active',
     'release_date',
     'is_coming_soon',
+    'is_sample',
+    'import_batch_id',
 ])]
 class Film extends Model
 {
@@ -89,6 +91,7 @@ class Film extends Model
             'is_active' => 'boolean',
             'is_coming_soon' => 'boolean',
             'release_date' => 'date',
+            'is_sample' => 'boolean',
         ];
     }
 

@@ -3,6 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Banner;
+use App\Models\Film;
+use App\Models\NewsArticle;
+use App\Models\NobarEvent;
+use App\Models\Promo;
 use App\Models\Setting;
 use App\Services\CinemaSettings;
 use App\Support\WhatsAppNumber;
@@ -39,6 +44,15 @@ class SettingController extends Controller
         // Collect available library images
         $libraryImages = $this->collectMediaLibrary();
 
+        $sampleCounts = [
+            'films' => Film::where('is_sample', true)->count(),
+            'promos' => Promo::where('is_sample', true)->count(),
+            'banners' => Banner::where('is_sample', true)->count(),
+            'nobar' => NobarEvent::where('is_sample', true)->count(),
+            'news' => NewsArticle::where('is_sample', true)->count(),
+        ];
+        $sampleCounts['total'] = array_sum($sampleCounts);
+
         return view('admin.settings.edit', [
             'currentTab' => $currentTab,
             'settings' => $settings,
@@ -47,6 +61,7 @@ class SettingController extends Controller
             'hasTransferAccounts' => $settings->hasValidTransferAccounts(),
             'qrisRatioWarning' => $qrisRatioWarning,
             'libraryImages' => $libraryImages,
+            'sampleCounts' => $sampleCounts,
         ]);
     }
 
@@ -262,6 +277,9 @@ class SettingController extends Controller
             'snack_max_qty_per_item' => $request->input('snack_max_qty_per_item', $settings->integer('snack_max_qty_per_item', 10)),
             'info_nobar_enabled' => $request->boolean('info_nobar_enabled', $settings->boolean('info_nobar_enabled', true)) ? 1 : 0,
             'maintenance_mode' => $request->boolean('maintenance_mode', false) ? 1 : 0,
+            'ticket_arrive_minutes' => $request->input('ticket_arrive_minutes', $settings->integer('ticket_arrive_minutes', 15)),
+            'ticket_studio_name' => $request->input('ticket_studio_name', $settings->string('ticket_studio_name', 'Studio 1')),
+            'ticket_notes' => $request->input('ticket_notes', $settings->string('ticket_notes', 'Tunjukkan e-tiket ini kepada petugas di pintu masuk bioskop.')),
         ]);
 
         $data = $request->validate([
@@ -273,6 +291,9 @@ class SettingController extends Controller
             'cancellation_cutoff_hours' => ['required', 'integer', 'between:0,168'],
             'maintenance_mode' => ['required', 'boolean'],
             'maintenance_message' => ['nullable', 'string', 'max:500'],
+            'ticket_arrive_minutes' => ['required', 'integer', 'between:0,120'],
+            'ticket_studio_name' => ['required', 'string', 'max:50'],
+            'ticket_notes' => ['nullable', 'string', 'max:160'],
             'admin_whatsapp' => ['required', 'string', 'regex:/^62\d{9,12}$/'],
             'payment_instructions' => ['nullable', 'string', 'max:2000'],
             'electricity_cost_per_session' => ['required', 'integer', 'between:0,10000000'],
@@ -414,24 +435,93 @@ class SettingController extends Controller
     private function updateKontak(Request $request, CinemaSettings $settings): void
     {
         $validated = $request->validate([
-            'contact_email' => 'nullable|email|max:100',
-            'contact_address' => 'nullable|string|max:300',
-            'contact_maps_url' => 'nullable|url|max:300',
-            'social_instagram' => 'nullable|string|max:100',
-            'social_youtube' => 'nullable|string|max:150',
-            'social_tiktok' => 'nullable|string|max:100',
-            'footer_text' => 'nullable|string|max:300',
-            'show_floating_whatsapp' => 'nullable|boolean',
+            'contact_email' => ['nullable', 'email', 'max:100'],
+            'contact_address' => ['nullable', 'string', 'max:300'],
+            'maps_label' => ['nullable', 'string', 'max:30'],
+            'maps_url' => ['nullable', 'string', 'max:500'],
+            'instagram_label' => ['nullable', 'string', 'max:30'],
+            'instagram_url' => ['nullable', 'string', 'max:500'],
+            'tiktok_label' => ['nullable', 'string', 'max:30'],
+            'tiktok_url' => ['nullable', 'string', 'max:500'],
+            'youtube_label' => ['nullable', 'string', 'max:30'],
+            'youtube_url' => ['nullable', 'string', 'max:500'],
+            'footer_text' => ['nullable', 'string', 'max:300'],
+            'show_floating_whatsapp' => ['nullable', 'boolean'],
         ]);
+
+        $platforms = [
+            'instagram' => ['domain' => 'instagram.com', 'default_label' => '@synemax'],
+            'tiktok' => ['domain' => 'tiktok.com', 'default_label' => '@synemax'],
+            'youtube' => ['domain' => ['youtube.com', 'youtu.be'], 'default_label' => 'SynemaX Cinema'],
+            'maps' => ['domain' => ['google.com', 'goo.gl'], 'default_label' => 'Lihat di Google Maps'],
+        ];
+
+        $cleanedParamsNotified = false;
+
+        foreach ($platforms as $platform => $cfg) {
+            $urlKey = $platform === 'maps' ? 'maps_url' : "{$platform}_url";
+            $labelKey = $platform === 'maps' ? 'maps_label' : "{$platform}_label";
+
+            $rawUrl = trim((string) ($validated[$urlKey] ?? ''));
+            $rawLabel = trim((string) ($validated[$labelKey] ?? ''));
+
+            if ($rawUrl !== '') {
+                // Must be https or valid scheme
+                if (str_starts_with(strtolower($rawUrl), 'javascript:') || str_starts_with(strtolower($rawUrl), 'data:')) {
+                    throw ValidationException::withMessages([
+                        $urlKey => "Alamat URL {$platform} tidak aman atau tidak valid.",
+                    ]);
+                }
+
+                $cleanUrl = CinemaSettings::cleanSocialUrl($rawUrl);
+                if ($cleanUrl !== $rawUrl) {
+                    $cleanedParamsNotified = true;
+                }
+
+                // Domain check
+                $parsedHost = parse_url($cleanUrl, PHP_URL_HOST) ?? '';
+                $domains = (array) $cfg['domain'];
+                $domainMatches = false;
+                foreach ($domains as $d) {
+                    if (str_ends_with(strtolower($parsedHost), strtolower($d))) {
+                        $domainMatches = true;
+                        break;
+                    }
+                }
+
+                if (! $domainMatches) {
+                    throw ValidationException::withMessages([
+                        $urlKey => "Alamat URL harus merupakan tautan resmi dari {$platform} (domain: ".implode(', ', $domains).').',
+                    ]);
+                }
+
+                if ($rawLabel === '') {
+                    $rawLabel = CinemaSettings::suggestSocialHandle($platform, $cleanUrl) ?: $cfg['default_label'];
+                }
+
+                $settings->set($urlKey, $cleanUrl, 'kontak');
+                $settings->set($labelKey, mb_substr($rawLabel, 0, 30), 'kontak');
+
+                if ($platform === 'maps') {
+                    $settings->set('contact_maps_url', $cleanUrl, 'kontak');
+                }
+            } else {
+                $settings->set($urlKey, '', 'kontak');
+                $settings->set($labelKey, '', 'kontak');
+                if ($platform === 'maps') {
+                    $settings->set('contact_maps_url', '', 'kontak');
+                }
+            }
+        }
 
         $settings->set('contact_email', $validated['contact_email'] ?? '', 'kontak');
         $settings->set('contact_address', $validated['contact_address'] ?? '', 'kontak');
-        $settings->set('contact_maps_url', $validated['contact_maps_url'] ?? '', 'kontak');
-        $settings->set('social_instagram', $validated['social_instagram'] ?? '', 'kontak');
-        $settings->set('social_youtube', $validated['social_youtube'] ?? '', 'kontak');
-        $settings->set('social_tiktok', $validated['social_tiktok'] ?? '', 'kontak');
         $settings->set('footer_text', $validated['footer_text'] ?? '', 'kontak');
         $settings->set('show_floating_whatsapp', $request->boolean('show_floating_whatsapp'), 'kontak');
+
+        if ($cleanedParamsNotified) {
+            session()->flash('info', 'Parameter pelacak pada tautan media sosial berhasil dibersihkan otomatis.');
+        }
     }
 
     private function updateSeo(Request $request, CinemaSettings $settings): void
@@ -524,5 +614,83 @@ class SettingController extends Controller
         }
 
         return $library;
+    }
+
+    public function deleteSampleData(): RedirectResponse
+    {
+        $deletedCounts = [
+            'films' => 0,
+            'promos' => 0,
+            'banners' => 0,
+            'nobar' => 0,
+            'news' => 0,
+        ];
+
+        // Delete Sample Films
+        $films = Film::where('is_sample', true)->get();
+        foreach ($films as $film) {
+            if ($film->poster_path && Storage::disk('public')->exists($film->poster_path)) {
+                Storage::disk('public')->delete($film->poster_path);
+            }
+            if ($film->banner_path && Storage::disk('public')->exists($film->banner_path)) {
+                Storage::disk('public')->delete($film->banner_path);
+            }
+            $film->sessions()->delete();
+            $film->forceDelete();
+            $deletedCounts['films']++;
+        }
+
+        // Delete Sample Promos
+        $promos = Promo::where('is_sample', true)->get();
+        foreach ($promos as $promo) {
+            if ($promo->image_path && Storage::disk('public')->exists($promo->image_path)) {
+                Storage::disk('public')->delete($promo->image_path);
+            }
+            $promo->forceDelete();
+            $deletedCounts['promos']++;
+        }
+
+        // Delete Sample Banners
+        $banners = Banner::where('is_sample', true)->get();
+        foreach ($banners as $banner) {
+            if ($banner->image_path && Storage::disk('public')->exists($banner->image_path)) {
+                Storage::disk('public')->delete($banner->image_path);
+            }
+            if ($banner->mobile_image_path && Storage::disk('public')->exists($banner->mobile_image_path)) {
+                Storage::disk('public')->delete($banner->mobile_image_path);
+            }
+            $banner->forceDelete();
+            $deletedCounts['banners']++;
+        }
+
+        // Delete Sample Nobar
+        $nobars = NobarEvent::where('is_sample', true)->get();
+        foreach ($nobars as $nobar) {
+            if ($nobar->poster_path && Storage::disk('public')->exists($nobar->poster_path)) {
+                Storage::disk('public')->delete($nobar->poster_path);
+            }
+            if ($nobar->poster_og_path && Storage::disk('public')->exists($nobar->poster_og_path)) {
+                Storage::disk('public')->delete($nobar->poster_og_path);
+            }
+            $nobar->forceDelete();
+            $deletedCounts['nobar']++;
+        }
+
+        // Delete Sample News
+        $news = NewsArticle::where('is_sample', true)->get();
+        foreach ($news as $article) {
+            if ($article->cover_path && Storage::disk('public')->exists($article->cover_path)) {
+                Storage::disk('public')->delete($article->cover_path);
+            }
+            $article->forceDelete();
+            $deletedCounts['news']++;
+        }
+
+        $total = array_sum($deletedCounts);
+
+        return redirect()->route('admin.settings.edit', ['tab' => 'seo'])->with(
+            'status',
+            "Data contoh berhasil dibersihkan ({$total} item dihapus: {$deletedCounts['films']} film, {$deletedCounts['promos']} promo, {$deletedCounts['banners']} banner hero, {$deletedCounts['nobar']} nobar, {$deletedCounts['news']} kabar)."
+        );
     }
 }

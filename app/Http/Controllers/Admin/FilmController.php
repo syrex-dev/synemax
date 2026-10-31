@@ -15,10 +15,64 @@ use Illuminate\View\View;
 
 class FilmController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $showTrash = $request->boolean('trash');
+        $filter = $request->query('filter', '');
+        $search = trim((string) $request->query('q', ''));
+        $batchId = $request->query('batch_id');
+
+        $query = Film::query();
+
+        if ($showTrash) {
+            $query->onlyTrashed()->where('deleted_at', '>=', now()->subDays(30))->latest('deleted_at');
+        } else {
+            if ($filter === 'belum_tampil') {
+                $query->where('is_active', false);
+            } elseif ($filter === 'tanpa_poster') {
+                $query->where(fn ($q) => $q->whereNull('poster_path')->orWhere('poster_path', ''));
+            } elseif ($filter === 'perlu_dilengkapi') {
+                $query->where(fn ($q) => $q->whereNull('synopsis')->orWhere('synopsis', '')->orWhere('synopsis', 'like', 'Sinopsis belum tersedia%'));
+            }
+
+            if (filled($batchId)) {
+                $query->where('import_batch_id', $batchId);
+            }
+
+            $query->orderByDesc('is_active')->orderBy('title');
+        }
+
+        if (filled($search)) {
+            $query->where('title', 'like', '%'.$search.'%');
+        }
+
+        $allCount = Film::count();
+        $inactiveCount = Film::where('is_active', false)->count();
+        $noPosterCount = Film::where(fn ($q) => $q->whereNull('poster_path')->orWhere('poster_path', ''))->count();
+        $needsCompletionCount = Film::where(fn ($q) => $q->whereNull('synopsis')->orWhere('synopsis', '')->orWhere('synopsis', 'like', 'Sinopsis belum tersedia%'))->count();
+        $trashedCount = Film::onlyTrashed()->where('deleted_at', '>=', now()->subDays(30))->count();
+
+        // Undo batch info if set in session
+        $undoBatchId = session('undo_batch_id');
+        $undoBatchCount = 0;
+        if ($undoBatchId) {
+            $undoBatchCount = Film::where('import_batch_id', $undoBatchId)->count();
+        }
+
         return view('admin.films.index', [
-            'films' => Film::query()->orderByDesc('is_active')->orderBy('title')->paginate(15),
+            'films' => $query->paginate(15)->withQueryString(),
+            'showTrash' => $showTrash,
+            'filter' => $filter,
+            'search' => $search,
+            'batchId' => $batchId,
+            'allCount' => $allCount,
+            'inactiveCount' => $inactiveCount,
+            'noPosterCount' => $noPosterCount,
+            'needsCompletionCount' => $needsCompletionCount,
+            'trashedCount' => $trashedCount,
+            'undoBatchId' => $undoBatchId,
+            'undoBatchCount' => $undoBatchCount,
+            'canonicalGenres' => Film::CANONICAL_GENRES,
         ]);
     }
 
@@ -77,12 +131,26 @@ class FilmController extends Controller
 
     public function destroy(Film $film): RedirectResponse
     {
+        $filmId = $film->id;
+        $filmTitle = $film->title;
+
         DB::transaction(function () use ($film): void {
             $this->closeUpcomingSessions($film);
             $film->delete();
         });
 
-        return redirect()->route('admin.films.index')->with('status', 'Film dinonaktifkan dari katalog publik.');
+        return redirect()->route('admin.films.index')
+            ->with('status', 'Film "'.$filmTitle.'" berhasil dihapus.')
+            ->with('undo_route', route('admin.films.restore', $filmId));
+    }
+
+    public function restore(int $id): RedirectResponse
+    {
+        $film = Film::withTrashed()->findOrFail($id);
+        $film->restore();
+
+        return redirect()->route('admin.films.index')
+            ->with('status', 'Film "'.$film->title.'" berhasil dipulihkan.');
     }
 
     public function toggleStatus(Film $film): RedirectResponse
@@ -109,6 +177,102 @@ class FilmController extends Controller
         $replica->save();
 
         return redirect()->route('admin.films.edit', $replica->id)->with('status', 'Film berhasil diduplikat sebagai draft baru.');
+    }
+
+    public function bulkAction(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'action' => ['required', 'string', 'in:activate,deactivate,delete,restore,set_rating,add_genre,replace_genre'],
+            'film_ids' => ['nullable', 'array'],
+            'film_ids.*' => ['integer'],
+            'select_all' => ['nullable', 'boolean'],
+            'filter' => ['nullable', 'string'],
+            'q' => ['nullable', 'string'],
+            'batch_id' => ['nullable', 'string'],
+            'age_rating' => ['nullable', 'string', 'in:SU,13+,17+'],
+            'genre' => ['nullable', 'string'],
+        ], [
+            'action.in' => 'Aksi yang dipilih tidak valid.',
+        ]);
+
+        $action = $validated['action'];
+        $selectAll = $request->boolean('select_all');
+        $count = 0;
+
+        DB::transaction(function () use ($request, $action, $selectAll, $validated, &$count): void {
+            if ($selectAll) {
+                $query = Film::query();
+                if ($request->boolean('trash')) {
+                    $query->onlyTrashed()->where('deleted_at', '>=', now()->subDays(30));
+                } else {
+                    $filter = $request->input('filter');
+                    if ($filter === 'belum_tampil') {
+                        $query->where('is_active', false);
+                    } elseif ($filter === 'tanpa_poster') {
+                        $query->where(fn ($q) => $q->whereNull('poster_path')->orWhere('poster_path', ''));
+                    } elseif ($filter === 'perlu_dilengkapi') {
+                        $query->where(fn ($q) => $q->whereNull('synopsis')->orWhere('synopsis', '')->orWhere('synopsis', 'like', 'Sinopsis belum tersedia%'));
+                    }
+                    if ($request->filled('batch_id')) {
+                        $query->where('import_batch_id', $request->input('batch_id'));
+                    }
+                }
+                if ($request->filled('q')) {
+                    $query->where('title', 'like', '%'.$request->input('q').'%');
+                }
+                $films = $query->get();
+            } else {
+                $ids = (array) ($validated['film_ids'] ?? []);
+                if (empty($ids)) {
+                    return;
+                }
+                $films = Film::withTrashed()->whereIn('id', $ids)->get();
+            }
+
+            foreach ($films as $film) {
+                if ($action === 'restore' && $film->trashed()) {
+                    $film->restore();
+                    $count++;
+                } elseif ($action === 'delete') {
+                    $this->closeUpcomingSessions($film);
+                    $film->delete();
+                    $count++;
+                } elseif ($action === 'activate') {
+                    $film->update(['is_active' => true]);
+                    $count++;
+                } elseif ($action === 'deactivate') {
+                    $this->closeUpcomingSessions($film);
+                    $film->update(['is_active' => false]);
+                    $count++;
+                } elseif ($action === 'set_rating' && ! empty($validated['age_rating'])) {
+                    $film->update(['age_rating' => $validated['age_rating']]);
+                    $count++;
+                } elseif ($action === 'replace_genre' && ! empty($validated['genre'])) {
+                    $film->update(['genre' => trim($validated['genre'])]);
+                    $count++;
+                } elseif ($action === 'add_genre' && ! empty($validated['genre'])) {
+                    $newGenre = trim($validated['genre']);
+                    $existingGenres = array_filter(array_map('trim', explode(',', (string) $film->genre)));
+                    if (! in_array(strtolower($newGenre), array_map('strtolower', $existingGenres), true)) {
+                        $existingGenres[] = $newGenre;
+                        $film->update(['genre' => implode(', ', $existingGenres)]);
+                    }
+                    $count++;
+                }
+            }
+        });
+
+        $messages = [
+            'activate' => "{$count} film berhasil ditampilkan.",
+            'deactivate' => "{$count} film berhasil disembunyikan.",
+            'delete' => "{$count} film berhasil dipindahkan ke sampah.",
+            'restore' => "{$count} film berhasil dipulihkan.",
+            'set_rating' => "Klasifikasi usia {$count} film berhasil diatur ke '{$request->input('age_rating')}'.",
+            'add_genre' => "Genre berhasil ditambahkan ke {$count} film.",
+            'replace_genre' => "Genre {$count} film berhasil diperbarui.",
+        ];
+
+        return back()->with('status', $messages[$action] ?? "Aksi massal berhasil diterapkan pada {$count} film.");
     }
 
     private function closeUpcomingSessions(Film $film): void

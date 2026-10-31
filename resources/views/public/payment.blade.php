@@ -101,22 +101,20 @@
 
         {{-- ==================== COUNTDOWN TIMER PEMBAYARAN & PROGRESS BAR ==================== --}}
         <div x-show="!isExpired"
-             class="mb-6 overflow-hidden rounded-2xl border p-5 shadow-lg transition-all"
-             :class="isUrgent
-                 ? 'border-red-500/60 bg-red-500/10 dark:bg-gradient-to-r dark:from-red-950/40 dark:via-surface dark:to-red-950/20 shadow-[0_0_25px_rgba(239,68,68,0.25)]'
-                 : 'border-amber-400/40 bg-amber-500/10 dark:bg-gradient-to-r dark:from-amber-950/30 dark:via-surface dark:to-surface shadow-[0_0_20px_rgba(212,175,55,0.15)]'">
+             class="mb-6 rounded-xl border p-5 shadow-none transition-all"
+             :class="isUrgent ? 'badge-danger-soft' : 'badge-accent-soft'">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <div class="flex items-center gap-2">
                         <span class="size-2 rounded-full"
-                              :class="isUrgent ? 'bg-red-500 animate-ping' : 'bg-amber-400 animate-pulse'"></span>
+                              :class="isUrgent ? 'bg-danger' : 'bg-amber-600 dark:bg-amber-400'"></span>
                         <p class="text-xs font-bold uppercase tracking-wider text-text-muted">
                             Sisa waktu pembayaran
                         </p>
                     </div>
                     <div class="mt-1 flex items-baseline gap-2">
                         <p class="font-tabular text-3xl font-black sm:text-4xl"
-                           :class="isUrgent ? 'text-red-400' : 'text-amber-400'"
+                           :class="isUrgent ? 'text-danger-text' : 'text-amber-800 dark:text-amber-300'"
                            x-text="formatTime(timeLeft)">--:--</p>
                         <span class="text-xs text-text-muted">Menit : Detik</span>
                     </div>
@@ -130,9 +128,9 @@
             </div>
 
             {{-- Visual Progress Bar --}}
-            <div class="mt-4 w-full overflow-hidden rounded-full bg-surface-2 h-2.5">
-                <div class="h-full rounded-full transition-all duration-1000 ease-linear shadow-sm"
-                     :class="isUrgent ? 'bg-gradient-to-r from-red-500 to-rose-600' : 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600'"
+            <div class="mt-4 w-full overflow-hidden rounded-full progress-track h-2">
+                <div class="h-full rounded-full transition-all duration-1000 ease-linear shadow-none"
+                     :class="isUrgent ? 'bg-danger' : 'progress-fill'"
                      :style="`width: ${progressPct}%`"></div>
             </div>
             <p class="mt-2 text-[11px] text-text-muted text-center sm:text-left">
@@ -142,14 +140,14 @@
 
         {{-- Banner Jika Waktu Pembayaran Habis --}}
         <div x-show="isExpired" x-cloak
-             class="mb-6 rounded-2xl border border-danger/40 bg-danger-surface p-6 text-center text-danger-text shadow-lg">
+             class="mb-6 rounded-xl border border-danger/40 bg-danger-surface p-6 text-center text-danger-text">
             <h1 class="text-lg font-black text-danger-text sm:text-xl">Waktu Pembayaran Habis</h1>
             <p class="mt-1.5 text-xs text-danger-text/90 leading-relaxed">
                 Batas waktu transfer telah berakhir dan kursi pesanan telah dilepaskan kembali ke publik.
             </p>
             <div class="mt-5 flex flex-wrap justify-center gap-3">
                 <a href="{{ route('booking.create', ['session' => $booking->session_id]) }}"
-                   class="btn-gold-cinema inline-flex min-h-11 items-center justify-center rounded-xl px-5 text-xs font-bold shadow-md">
+                   class="btn-gold-cinema inline-flex min-h-11 items-center justify-center rounded-xl px-5 text-xs font-bold">
                     Buat Booking Baru
                 </a>
                 @if ($whatsAppUrl)
@@ -163,7 +161,7 @@
 
         {{-- Catatan Penolakan Bukti Sebelumnya (Jika Ada) --}}
         @if ($booking->proof_rejection_note)
-            <div class="mb-5 rounded-2xl border border-danger/40 bg-danger-surface p-4 text-xs text-danger-text">
+            <div class="mb-5 rounded-xl border border-danger/40 bg-danger-surface p-4 text-xs text-danger-text">
                 <p class="font-bold">Bukti pembayaran sebelumnya belum dapat disetujui admin:</p>
                 <p class="mt-1 font-semibold">{{ $booking->proof_rejection_note }}</p>
                 <p class="mt-1 opacity-90">Silakan unggah ulang bukti transfer yang jelas sebelum waktu pembayaran habis.</p>
@@ -171,18 +169,18 @@
         @endif
 
         <div x-show="!isExpired">
-            {{-- Kartu Total Pembayaran Sinematik --}}
-            <div class="rounded-2xl border border-white/10 bg-gradient-to-br from-[#111726] to-[#0A0E18] p-5 shadow-xl sm:p-6">
-                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+            {{-- Kartu Total Pembayaran --}}
+            <div class="rounded-xl border border-border bg-surface-2 dark:bg-[#0E131F] p-5 sm:p-6 shadow-none">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
                     <div>
-                        <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Total Yang Harus Ditransfer</span>
-                        <p class="mt-0.5 font-tabular text-3xl font-black text-white sm:text-4xl">
+                        <span class="text-xs font-bold uppercase tracking-wider text-text">Total Yang Harus Ditransfer</span>
+                        <p class="mt-0.5 font-tabular text-3xl font-black text-text sm:text-4xl">
                             Rp {{ number_format($booking->total_price, 0, ',', '.') }}
                         </p>
                     </div>
                     <button type="button"
                             @click="copyNominal({{ $booking->total_price }})"
-                            class="btn-gold-cinema inline-flex min-h-10 items-center gap-1.5 rounded-xl px-4 text-xs font-bold shadow-sm">
+                            class="btn-gold-cinema inline-flex min-h-10 items-center gap-1.5 rounded-xl px-4 text-xs font-bold">
                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                         </svg>
@@ -190,17 +188,17 @@
                     </button>
                 </div>
 
-                <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
-                    <p>Kode Booking: <strong class="font-tabular font-bold text-amber-300">{{ $booking->code }}</strong></p>
+                <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-text-muted">
+                    <p>Kode Booking: <strong class="font-tabular font-bold text-amber-700 dark:text-amber-400">{{ $booking->code }}</strong></p>
                     <p>Transfer tepat sesuai jumlah di atas.</p>
                 </div>
 
                 {{-- ==================== METODE 1: QRIS INSTAN ==================== --}}
                 @if ($booking->payment_method === 'qris')
-                    <div class="mt-6 border-t border-white/10 pt-6">
+                    <div class="mt-6 border-t border-border pt-6">
                         <div class="flex items-center justify-between gap-2">
-                            <h2 class="text-sm font-black text-white">Pindai kode QRIS</h2>
-                            <span class="rounded-lg bg-amber-500/20 px-2.5 py-0.5 text-xs font-bold text-amber-400">
+                            <h2 class="text-sm font-black text-text">Pindai kode QRIS</h2>
+                            <span class="badge-accent-soft rounded-lg px-2.5 py-0.5 text-xs font-bold">
                                 {{ $qrisMerchantName ?: 'SynemaX Cinema' }}
                             </span>
                         </div>

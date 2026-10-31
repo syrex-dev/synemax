@@ -4,6 +4,8 @@ use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\BookingController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FilmController;
+use App\Http\Controllers\Admin\FilmImportController;
+use App\Http\Controllers\Admin\FilmPosterController;
 use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\NobarController;
 use App\Http\Controllers\Admin\PromoController;
@@ -17,6 +19,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PublicCinemaController;
 use App\Http\Controllers\PublicInfoController;
+use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\StyleguideController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -56,6 +59,9 @@ Route::post('/booking/{session}', [PublicBookingController::class, 'store'])
 Route::get('/pembayaran/qris', [PublicBookingController::class, 'qrisImage'])->name('payment.qris');
 Route::get('/pembayaran/{code}', [PublicBookingController::class, 'paymentView'])->name('booking.payment');
 Route::get('/tiket/{code}', [PublicBookingController::class, 'ticketView'])->name('booking.ticket');
+Route::get('/qr-code', [QrCodeController::class, 'show'])
+    ->middleware('throttle:60,1')
+    ->name('qr.code');
 Route::get('/booking/{code}/sukses', [PublicBookingController::class, 'success'])->name('booking.success');
 Route::get('/booking/{code}/status-ringkas', [PublicBookingController::class, 'statusJson'])->name('booking.status.json');
 Route::get('/booking/{code}/bukti', [PublicBookingController::class, 'showProof'])->name('booking.proof.show');
@@ -92,6 +98,22 @@ Route::middleware(['auth', 'admin'])->group(function () {
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::get('/films', [FilmController::class, 'index'])->name('films.index');
+    Route::post('/films/bulk-action', [FilmController::class, 'bulkAction'])->name('films.bulk_action');
+    Route::get('/films/impor/template', [FilmImportController::class, 'downloadTemplate'])->name('films.import.template');
+    Route::get('/films/impor', [FilmImportController::class, 'create'])->name('films.import.create');
+    Route::post('/films/impor/preview', [FilmImportController::class, 'preview'])->name('films.import.preview');
+    Route::post('/films/impor/process-chunk', [FilmImportController::class, 'processChunk'])->name('films.import.chunk');
+    Route::get('/films/impor/lanjut/{batchToken}', [FilmImportController::class, 'resume'])->name('films.import.resume');
+    Route::get('/films/impor/report-errors/{batchToken}', [FilmImportController::class, 'downloadErrorReport'])->name('films.import.report_errors');
+    Route::post('/films/impor/confirm', [FilmImportController::class, 'confirm'])->name('films.import.confirm');
+    Route::post('/films/impor/rollback/{batchId}', [FilmImportController::class, 'rollback'])->name('films.import.rollback');
+    Route::get('/films/export', [FilmImportController::class, 'exportCatalog'])->name('films.export');
+
+    // Dedicated bulk poster management
+    Route::get('/films/posters', [FilmPosterController::class, 'index'])->name('films.posters.index');
+    Route::post('/films/posters', [FilmPosterController::class, 'upload'])->name('films.posters.upload');
+    Route::post('/films/posters/assign', [FilmPosterController::class, 'assign'])->name('films.posters.assign');
+    Route::delete('/films/posters/{filename}', [FilmPosterController::class, 'destroy'])->name('films.posters.destroy');
     Route::get('/films/buat', [FilmController::class, 'create'])->name('films.create');
     Route::post('/films', [FilmController::class, 'store'])->name('films.store');
     Route::get('/films/{film}/ubah', [FilmController::class, 'edit'])->name('films.edit');
@@ -99,6 +121,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::delete('/films/{film}', [FilmController::class, 'destroy'])->name('films.destroy');
     Route::patch('/films/{film}/status', [FilmController::class, 'toggleStatus'])->name('films.status');
     Route::post('/films/{film}/duplikat', [FilmController::class, 'duplicate'])->name('films.duplicate');
+    Route::post('/films/{id}/pulihkan', [FilmController::class, 'restore'])->name('films.restore');
     Route::get('/jadwal', [ScheduleController::class, 'index'])->name('schedule.index');
     Route::post('/jadwal/generate', [ScheduleController::class, 'generate'])->name('schedule.generate');
     Route::post('/jadwal/template', [ScheduleController::class, 'storeTemplate'])->name('schedule.templates.store');
@@ -114,7 +137,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::patch('/density', [DashboardController::class, 'updateDensity'])->name('density.update');
     Route::get('/polling/status', [DashboardController::class, 'pollStatus'])->name('polling.status');
     Route::get('/booking', [BookingController::class, 'index'])->name('bookings.index');
+    Route::get('/booking/search', [BookingController::class, 'liveSearch'])->name('bookings.live_search');
     Route::get('/booking/{booking}', [BookingController::class, 'show'])->name('bookings.show');
+    Route::get('/booking/{booking}/tiket', [BookingController::class, 'ticket'])->name('bookings.ticket');
     Route::patch('/booking/{booking}/jajan', [BookingController::class, 'updateSnacks'])->name('bookings.snacks.update');
     Route::patch('/booking/{booking}/jajan/status', [BookingController::class, 'updateSnackStatuses'])->name('bookings.snacks.status');
     Route::patch('/booking/{booking}/status', [BookingController::class, 'updateStatus'])->name('bookings.status');
@@ -153,6 +178,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/banners/{banner}/ubah', [BannerController::class, 'edit'])->name('banners.edit');
     Route::put('/banners/{banner}', [BannerController::class, 'update'])->name('banners.update');
     Route::delete('/banners/{banner}', [BannerController::class, 'destroy'])->name('banners.destroy');
+    Route::post('/banners/{id}/pulihkan', [BannerController::class, 'restore'])->name('banners.restore');
     Route::patch('/banners/{banner}/status', [BannerController::class, 'toggleStatus'])->name('banners.status');
     Route::post('/banners/reorder', [BannerController::class, 'reorder'])->name('banners.reorder');
 
@@ -163,6 +189,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/promos/{promo}/ubah', [PromoController::class, 'edit'])->name('promos.edit');
     Route::put('/promos/{promo}', [PromoController::class, 'update'])->name('promos.update');
     Route::delete('/promos/{promo}', [PromoController::class, 'destroy'])->name('promos.destroy');
+    Route::post('/promos/{id}/pulihkan', [PromoController::class, 'restore'])->name('promos.restore');
     Route::patch('/promos/{promo}/status', [PromoController::class, 'toggleStatus'])->name('promos.status');
     Route::post('/promos/{promo}/duplikat', [PromoController::class, 'duplicate'])->name('promos.duplicate');
     Route::post('/promos/reorder', [PromoController::class, 'reorder'])->name('promos.reorder');
@@ -174,12 +201,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/berita/{article}/ubah', [NewsController::class, 'edit'])->name('articles.edit');
     Route::put('/berita/{article}', [NewsController::class, 'update'])->name('articles.update');
     Route::delete('/berita/{article}', [NewsController::class, 'destroy'])->name('articles.destroy');
+    Route::post('/berita/{id}/pulihkan', [NewsController::class, 'restore'])->name('articles.restore');
 
     Route::get('/pengaturan', [SettingController::class, 'edit'])->name('settings.edit');
     Route::put('/pengaturan', [SettingController::class, 'update'])->name('settings.update');
     Route::delete('/pengaturan/qris', [SettingController::class, 'destroyQris'])->name('settings.qris.destroy');
     Route::post('/pengaturan/cache-clear', [SettingController::class, 'clearCache'])->name('settings.cache.clear');
     Route::post('/pengaturan/reset', [SettingController::class, 'resetDefaults'])->name('settings.reset');
+    Route::post('/pengaturan/delete-sample', [SettingController::class, 'deleteSampleData'])->name('settings.delete_sample');
     Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/laporan/export.csv', [ReportController::class, 'export'])->name('reports.export');
 

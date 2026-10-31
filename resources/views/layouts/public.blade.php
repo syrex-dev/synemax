@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="id" class="dark">
+<html lang="id">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>@yield('title', setting('site_name', 'SynemaX') . ' - ' . setting('site_tagline', 'Studio Bioskop Mini'))</title>
         <meta name="application-name" content="{{ setting('site_name', 'SynemaX') }}">
+        <meta name="color-scheme" id="color-scheme-meta" content="light dark">
         <meta name="theme-color" id="theme-color-meta" content="#07090E">
 
         {{-- Dynamic Favicon from Settings or Local Fallback --}}
@@ -24,42 +25,68 @@
 
         <script>
             (function () {
-                const storageKey = 'synemax_theme_preference';
-                const getMode = () => {
+                const storageKeys = ['synemax_theme_preference', 'synemax-theme'];
+                const getSavedMode = () => {
                     try {
-                        const saved = localStorage.getItem(storageKey);
-                        if (saved === 'dark' || saved === 'light') {
-                            return saved;
+                        for (const k of storageKeys) {
+                            const val = localStorage.getItem(k);
+                            if (val === 'dark' || val === 'light' || val === 'system') {
+                                return val;
+                            }
                         }
-                    } catch (error) {
-                        console.error('Unable to read the saved theme preference.', error);
-                    }
+                    } catch (e) {}
                     return 'dark';
                 };
+                const resolveEffective = (mode) => {
+                    if (mode === 'system') {
+                        return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+                    }
+                    return mode === 'light' ? 'light' : 'dark';
+                };
                 const applyMode = (mode) => {
-                    const isDark = mode === 'dark';
-                    document.documentElement.classList.toggle('dark', isDark);
-                    document.documentElement.dataset.theme = mode;
-                    const meta = document.getElementById('theme-color-meta');
-                    if (meta) {
-                        meta.setAttribute('content', isDark ? '#07090E' : '#F8FAFC');
+                    const effective = resolveEffective(mode);
+                    const isDark = effective === 'dark';
+                    const docEl = document.documentElement;
+
+                    docEl.classList.toggle('dark', isDark);
+                    docEl.dataset.theme = effective;
+                    docEl.dataset.themeMode = mode;
+
+                    const schemeMeta = document.getElementById('color-scheme-meta');
+                    if (schemeMeta) {
+                        schemeMeta.setAttribute('content', effective);
+                    }
+
+                    const themeMeta = document.getElementById('theme-color-meta');
+                    if (themeMeta) {
+                        themeMeta.setAttribute('content', isDark ? '#07090E' : '#FFFFFF');
                     }
                 };
+
                 window.synemaXTheme = {
-                    storageKey,
-                    getMode,
+                    getMode: getSavedMode,
                     applyMode,
                     setMode(mode) {
                         try {
-                            localStorage.setItem(storageKey, mode);
-                        } catch (error) {
-                            console.error('Unable to save the theme preference.', error);
-                        }
+                            for (const k of storageKeys) {
+                                localStorage.setItem(k, mode);
+                            }
+                        } catch (e) {}
                         applyMode(mode);
-                        window.dispatchEvent(new CustomEvent('synemax-theme-changed', { detail: { mode } }));
+                        window.dispatchEvent(new CustomEvent('synemax-theme-changed', { detail: { mode, effective: resolveEffective(mode) } }));
                     },
                 };
-                applyMode(getMode());
+
+                if (window.matchMedia) {
+                    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                        const cur = getSavedMode();
+                        if (cur === 'system') {
+                            applyMode('system');
+                        }
+                    });
+                }
+
+                applyMode(getSavedMode());
             })();
         </script>
         <link rel="preload" href="{{ Vite::asset('resources/fonts/bricolage-grotesque-latin-wght-normal.woff2') }}" as="font" type="font/woff2" crossorigin>
@@ -67,15 +94,27 @@
         @stack('styles')
     </head>
     <body
-        x-data="{ mobileNavOpen: false }"
+        x-data="{
+            mobileNavOpen: false,
+            currentTheme: window.synemaXTheme ? window.synemaXTheme.getMode() : 'dark',
+            toggleTheme() {
+                const next = this.currentTheme === 'dark' ? 'light' : 'dark';
+                if (window.synemaXTheme) {
+                    window.synemaXTheme.setMode(next);
+                }
+                this.currentTheme = next;
+            }
+        }"
+        @synemax-theme-changed.window="currentTheme = $event.detail.mode"
+        :class="{ 'overflow-hidden': mobileNavOpen }"
         class="min-h-screen bg-bg font-sans text-text antialiased transition-colors duration-200"
     >
-        {{-- Sticky Glassmorphic Cinema Navbar (Responsive with Drawer under 1024px) --}}
-        <header class="sticky top-0 z-40 border-b border-border dark:border-white/10 bg-surface/90 dark:bg-[#07090E]/90 backdrop-blur-xl transition-colors duration-200">
-            <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-                {{-- Logo brand mengarah ke Beranda --}}
-                <a href="{{ route('home') }}" class="inline-flex min-h-11 items-center gap-2 group transition-transform hover:scale-102" aria-label="{{ setting('site_name', 'SynemaX') }}, beranda">
-                    <x-brand.logo />
+        {{-- Sticky Cinema Navbar (Opaque mobile, backdrop-blur on desktop only) --}}
+        <header class="sticky top-0 z-40 border-b border-border dark:border-white/10 bg-surface dark:bg-[#07090E] lg:bg-surface/90 lg:dark:bg-[#07090E]/90 lg:backdrop-blur-xl transition-colors duration-200 pt-[env(safe-area-inset-top)]">
+            <div class="mx-auto flex h-14 lg:h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
+                {{-- Element 1: Logo Brand --}}
+                <a href="{{ route('home') }}" class="inline-flex min-h-11 items-center gap-2 group transition-transform hover:scale-102 shrink-0" aria-label="{{ setting('site_name', 'SynemaX') }}, beranda">
+                    <x-brand.logo size="default" />
                 </a>
 
                 @php
@@ -117,7 +156,7 @@
                             @else
                                 <a
                                     href="{{ url($item['url'] ?? '/') }}"
-                                    class="relative inline-flex min-h-10 shrink-0 items-center px-3 py-1.5 font-bold transition rounded-lg {{ $isActive ? 'text-[#0F172A] font-extrabold after:content-[\'\'] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-[3px] after:bg-[#F59E0B] after:rounded-full dark:after:hidden dark:bg-amber-500/15 dark:text-amber-400 dark:border dark:border-amber-400/40 dark:shadow-[0_0_12px_rgba(212,175,55,0.2)]' : 'text-slate-600 hover:bg-[#F1F5F9] hover:text-[#0F172A] dark:text-text-muted dark:hover:bg-surface-2 dark:hover:text-amber-400' }}"
+                                    class="relative inline-flex min-h-10 shrink-0 items-center px-3 py-1.5 font-bold transition rounded-lg {{ $isActive ? 'text-[#0F172A] font-extrabold after:content-[\'\'] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-[3px] after:bg-[#F59E0B] after:rounded-full dark:after:hidden dark:bg-amber-500/15 dark:text-amber-400 dark:border dark:border-amber-400/40' : 'text-slate-600 hover:bg-[#F1F5F9] hover:text-[#0F172A] dark:text-text-muted dark:hover:bg-surface-2 dark:hover:text-amber-400' }}"
                                 >
                                     {{ $item['label'] }}
                                 </a>
@@ -126,14 +165,13 @@
                     @endforeach
                 </nav>
 
-                {{-- Action Area (Theme Switcher + Mobile Hamburger) --}}
-                <div class="flex items-center gap-2">
-                    {{-- Theme Switcher (Bisa disembunyikan lewat Pengaturan) --}}
+                {{-- Action Area: Desktop Segmented Switcher / Mobile Single Icon + Hamburger --}}
+                <div class="flex items-center gap-2 shrink-0">
+                    {{-- Desktop Segmented Theme Switcher (>= 1024px) --}}
                     @if (setting('show_theme_toggle', true))
-                        <div class="inline-flex items-center rounded-full border border-slate-300 dark:border-white/15 bg-slate-200/80 dark:bg-black/50 p-1 backdrop-blur-md shadow-inner transition-colors duration-200"
+                        <div class="hidden lg:inline-flex items-center rounded-full border border-slate-300 dark:border-white/15 bg-slate-200/80 dark:bg-black/50 p-1 backdrop-blur-md shadow-inner transition-colors duration-200"
                              role="group"
                              aria-label="Pilih mode tampilan">
-                            {{-- Memenuhi assertSee('Pakai tema gelap') untuk pengujian otomatis --}}
                             <span class="sr-only">Pakai tema gelap</span>
 
                             {{-- Tombol Kiri: Mode Terang --}}
@@ -166,14 +204,33 @@
                                 </svg>
                             </button>
                         </div>
+
+                        {{-- Element 2 (Mobile): Single Icon 44px Theme Toggle Button (< 1024px) --}}
+                        <button
+                            type="button"
+                            @click="toggleTheme()"
+                            class="lg:hidden inline-flex size-11 items-center justify-center rounded-xl border border-slate-300 dark:border-white/15 bg-surface text-text hover:bg-surface-2 transition focus-visible:outline-2 focus-visible:outline-amber-500"
+                            aria-label="Ganti mode tampilan terang atau gelap"
+                            :title="currentTheme === 'dark' ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'"
+                        >
+                            {{-- Moon when in light mode --}}
+                            <svg x-show="currentTheme === 'light'" class="size-5 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                            </svg>
+                            {{-- Sun when in dark mode --}}
+                            <svg x-show="currentTheme === 'dark'" class="size-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="display: none;">
+                                <circle cx="12" cy="12" r="4"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/>
+                            </svg>
+                        </button>
                     @endif
 
-                    {{-- Hamburger Button (< 1024px) --}}
+                    {{-- Element 3 (Mobile): 44px Hamburger Button (< 1024px) --}}
                     <button
                         type="button"
                         @click="mobileNavOpen = !mobileNavOpen"
-                        class="lg:hidden flex size-10 items-center justify-center rounded-xl border border-slate-300 dark:border-white/15 bg-surface text-text hover:bg-surface-2 transition"
-                        aria-label="Menu Navigasi"
+                        class="lg:hidden inline-flex size-11 items-center justify-center rounded-xl border border-slate-300 dark:border-white/15 bg-surface text-text hover:bg-surface-2 transition focus-visible:outline-2 focus-visible:outline-amber-500"
+                        aria-label="Buka menu navigasi"
                         :aria-expanded="mobileNavOpen"
                     >
                         <svg x-show="!mobileNavOpen" class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -185,94 +242,100 @@
                     </button>
                 </div>
             </div>
+        </header>
 
-            {{-- Mobile Drawer Overlay & Panel (< 1024px) --}}
+        {{-- Mobile Drawer Overlay & Panel: OUTSIDE <header>, DIRECT CHILD OF <body> --}}
+        <div
+            x-show="mobileNavOpen"
+            x-cloak
+            class="lg:hidden fixed inset-0 z-50 overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu Navigasi Mobile"
+        >
+            {{-- Backdrop Overlay (50% solid black) --}}
             <div
                 x-show="mobileNavOpen"
+                x-transition:enter="transition-opacity ease-linear duration-200"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="transition-opacity ease-linear duration-200"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                @click="mobileNavOpen = false"
+                class="fixed inset-0 bg-black/50"
+                aria-hidden="true"
+            ></div>
+
+            {{-- Slide-Over Drawer: OPAQUE BACKGROUND, 100dvh HEIGHT, min(86vw, 320px) WIDTH --}}
+            <div
+                x-show="mobileNavOpen"
+                x-transition:enter="transition ease-in-out duration-300 transform"
+                x-transition:enter-start="translate-x-full"
+                x-transition:enter-end="translate-x-0"
+                x-transition:leave="transition ease-in-out duration-300 transform"
+                x-transition:leave-start="translate-x-0"
+                x-transition:leave-end="translate-x-full"
                 @keydown.escape.window="mobileNavOpen = false"
-                class="lg:hidden fixed inset-0 z-50 overflow-hidden"
-                style="display: none;"
+                class="fixed inset-y-0 right-0 h-[100dvh] w-[min(86vw,320px)] max-w-[320px] bg-surface dark:bg-[#07090E] opacity-100 border-l border-slate-300 dark:border-white/10 p-5 shadow-2xl z-50 flex flex-col justify-between overflow-y-auto overscroll-contain"
             >
-                {{-- Backdrop Overlay --}}
-                <div
-                    x-show="mobileNavOpen"
-                    x-transition:enter="transition-opacity ease-linear duration-200"
-                    x-transition:enter-start="opacity-0"
-                    x-transition:enter-end="opacity-100"
-                    x-transition:leave="transition-opacity ease-linear duration-200"
-                    x-transition:leave-start="opacity-100"
-                    x-transition:leave-end="opacity-0"
-                    @click="mobileNavOpen = false"
-                    class="fixed inset-0 bg-black/70 backdrop-blur-sm"
-                    aria-hidden="true"
-                ></div>
+                <div class="space-y-5">
+                    {{-- Drawer Header: Brand Logo + 44px Close Button --}}
+                    <div class="flex items-center justify-between pb-3.5 border-b border-slate-200 dark:border-white/10 shrink-0">
+                        <x-brand.logo size="sm" />
+                        <button
+                            type="button"
+                            @click="mobileNavOpen = false"
+                            class="inline-flex size-11 items-center justify-center rounded-xl border border-slate-300 dark:border-white/15 bg-surface text-text hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-amber-500"
+                            aria-label="Tutup menu navigasi"
+                        >
+                            <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
 
-                {{-- Slide-Over Drawer --}}
-                <div
-                    x-show="mobileNavOpen"
-                    x-transition:enter="transition ease-in-out duration-300 transform"
-                    x-transition:enter-start="translate-x-full"
-                    x-transition:enter-end="translate-x-0"
-                    x-transition:leave="transition ease-in-out duration-300 transform"
-                    x-transition:leave-start="translate-x-0"
-                    x-transition:leave-end="translate-x-full"
-                    class="fixed inset-y-0 right-0 max-w-xs w-full bg-surface dark:bg-[#07090E] border-l border-slate-300 dark:border-white/10 p-6 shadow-2xl flex flex-col justify-between"
-                >
-                    <div class="space-y-6">
-                        <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-white/10">
-                            <x-brand.logo size="sm" />
-                            <button
-                                type="button"
-                                @click="mobileNavOpen = false"
-                                class="rounded-xl p-2 text-text-muted hover:text-text"
-                                aria-label="Tutup Menu"
-                            >
-                                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                            </button>
-                        </div>
+                    {{-- Nav Items List in Mobile Drawer (min-h 48px) --}}
+                    <nav class="flex flex-col gap-1.5" aria-label="Menu navigasi mobile">
+                        @foreach ($menuItems as $item)
+                            @if (!empty($item['is_visible']))
+                                @php
+                                    $isActive = $activeChecker($item);
+                                    $isBookingLookup = ($item['id'] ?? '') === 'booking_lookup';
+                                @endphp
 
-                        {{-- Nav Items List in Mobile Drawer --}}
-                        <nav class="flex flex-col gap-1.5" aria-label="Menu navigasi mobile">
-                            @foreach ($menuItems as $item)
-                                @if (!empty($item['is_visible']))
-                                    @php
-                                        $isActive = $activeChecker($item);
-                                        $isBookingLookup = ($item['id'] ?? '') === 'booking_lookup';
-                                    @endphp
-
-                                    @if ($isBookingLookup)
-                                        <a
-                                            href="{{ url($item['url'] ?? '/cek-booking') }}"
-                                            @click="mobileNavOpen = false"
-                                            class="btn-gold-cinema flex min-h-12 items-center justify-center gap-2.5 rounded-xl px-4 text-xs font-black mt-2 {{ $isActive ? 'ring-2 ring-amber-500 ring-offset-2' : '' }}"
-                                        >
-                                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                                            </svg>
-                                            <span>{{ $item['label'] ?? 'Cek booking' }}</span>
-                                        </a>
-                                    @else
-                                        <a
-                                            href="{{ url($item['url'] ?? '/') }}"
-                                            @click="mobileNavOpen = false"
-                                            class="flex min-h-11 items-center rounded-xl px-4 text-sm font-bold transition {{ $isActive ? 'bg-[#FEF3C7] text-[#78350F] font-bold border-l-4 border-[#F59E0B] rounded-r-xl rounded-l-none pl-3 dark:bg-amber-500/15 dark:text-amber-400 dark:border dark:border-amber-400/40 dark:rounded-xl dark:pl-4' : 'text-slate-600 hover:bg-[#F1F5F9] hover:text-[#0F172A] dark:text-text-muted dark:hover:bg-surface-2 dark:hover:text-text' }}"
-                                        >
-                                            {{ $item['label'] }}
-                                        </a>
-                                    @endif
+                                @if ($isBookingLookup)
+                                    <a
+                                        href="{{ url($item['url'] ?? '/cek-booking') }}"
+                                        @click="mobileNavOpen = false"
+                                        class="btn-gold-cinema flex min-h-12 w-full items-center justify-center gap-2.5 rounded-xl px-4 text-xs font-black mt-2 shadow-xs {{ $isActive ? 'ring-2 ring-amber-500 ring-offset-2' : '' }}"
+                                    >
+                                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                                        </svg>
+                                        <span>{{ $item['label'] ?? 'Cek booking' }}</span>
+                                    </a>
+                                @else
+                                    <a
+                                        href="{{ url($item['url'] ?? '/') }}"
+                                        @click="mobileNavOpen = false"
+                                        class="flex min-h-12 items-center rounded-xl px-3.5 text-sm font-bold transition {{ $isActive ? 'bg-[#FEF3C7] text-[#78350F] font-bold border-l-4 border-[#F59E0B] rounded-r-xl rounded-l-none pl-3 dark:bg-amber-500/15 dark:text-amber-400 dark:border dark:border-amber-400/40 dark:rounded-xl dark:pl-3.5' : 'text-slate-700 hover:bg-[#F1F5F9] hover:text-[#0F172A] dark:text-text-muted dark:hover:bg-surface-2 dark:hover:text-text' }}"
+                                    >
+                                        {{ $item['label'] }}
+                                    </a>
                                 @endif
-                            @endforeach
-                        </nav>
-                    </div>
+                            @endif
+                        @endforeach
+                    </nav>
+                </div>
 
-                    {{-- Footer Inside Drawer --}}
-                    <div class="pt-6 border-t border-slate-200 dark:border-white/10 text-xs text-text-muted space-y-2">
-                        <p class="font-medium text-text">{{ setting('site_name', 'SynemaX') }}</p>
-                        <p class="text-[11px] leading-relaxed">{{ setting('site_tagline', 'Studio Bioskop Mini Eksklusif') }}</p>
-                    </div>
+                {{-- Drawer Footer: Theme info & contact --}}
+                <div class="pt-4 mt-6 border-t border-slate-200 dark:border-white/10 text-xs text-text-muted space-y-2 shrink-0">
+                    <p class="font-bold text-text">{{ setting('site_name', 'SynemaX') }}</p>
+                    <p class="text-[11px] leading-relaxed">{{ setting('site_tagline', 'Studio Bioskop Mini Privat') }}</p>
                 </div>
             </div>
-        </header>
+        </div>
 
         {{-- Flash Session Messages --}}
         @if (session('status') || session('error'))
@@ -290,10 +353,18 @@
         {{-- Floating WhatsApp Action Button --}}
         @if (setting('show_floating_whatsapp', true) && setting('whatsapp_number'))
             <a
+                x-data="{ footerInView: false }"
+                x-init="
+                    const obs = new IntersectionObserver(([e]) => { footerInView = e.isIntersecting; }, { threshold: 0.05 });
+                    const f = document.querySelector('footer');
+                    if (f) obs.observe(f);
+                "
+                :class="footerInView ? 'opacity-0 pointer-events-none translate-y-4' : 'opacity-100 pointer-events-auto translate-y-0'"
                 href="https://wa.me/{{ preg_replace('/[^0-9]/', '', setting('whatsapp_number')) }}?text={{ urlencode('Halo ' . setting('site_name', 'SynemaX') . ', saya ingin bertanya seputar pemesanan tiket & jadwal bioskop.') }}"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-3 shadow-2xl hover:scale-105 transition-all duration-200 border border-emerald-400/30"
+                class="fixed right-4 z-40 flex size-12 sm:w-auto sm:px-4 sm:h-12 items-center justify-center gap-2 rounded-full bg-emerald-700 hover:bg-emerald-600 text-white shadow-xl transition-all duration-200 border border-emerald-500/30"
+                style="bottom: calc(16px + env(safe-area-inset-bottom) + var(--bottom-bar-h, 0px));"
                 aria-label="Hubungi WhatsApp"
             >
                 <svg class="size-5 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.303-.058.116-.087.188-.173.289l-.26.302c-.087.087-.179.182-.077.357.101.174.449.741.963 1.199.662.59 1.221.774 1.394.861.173.087.275.072.376-.043.101-.116.433-.506.549-.68.116-.173.231-.144.39-.086.159.058 1.011.477 1.184.564.173.087.289.13.332.202.043.072.043.419-.101.824z"/></svg>

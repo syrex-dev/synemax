@@ -9,7 +9,8 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        <meta name="theme-color" content="#fbf6ea">
+        <meta name="color-scheme" content="light dark">
+        <meta name="theme-color" content="#07090E">
         <title>@yield('title', 'Admin'): SynemaX Admin</title>
         @php
             $settingsService = app(\App\Services\CinemaSettings::class);
@@ -21,42 +22,50 @@
         <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
         <script>
             (() => {
-                const storageKey = 'synemax-theme';
+                const storageKeys = ['synemax-theme', 'synemax_theme_preference'];
                 const modes = ['light', 'dark', 'system'];
                 const getMode = () => {
                     try {
-                        const mode = localStorage.getItem(storageKey);
-                        return modes.includes(mode) ? mode : 'system';
-                    } catch (error) {
-                        return 'system';
-                    }
+                        for (const k of storageKeys) {
+                            const mode = localStorage.getItem(k);
+                            if (modes.includes(mode)) return mode;
+                        }
+                    } catch (error) {}
+                    return 'system';
                 };
                 const applyMode = (mode) => {
                     const dark = mode === 'dark' || (mode === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+                    const effective = dark ? 'dark' : 'light';
                     document.documentElement.classList.toggle('dark', dark);
-                    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
                     document.documentElement.dataset.themeMode = mode;
-                    const meta = document.querySelector('meta[name="theme-color"]');
-                    if (meta) {
-                        meta.content = dark ? '#07090E' : '#F8FAFC';
+                    const schemeMeta = document.querySelector('meta[name="color-scheme"]');
+                    if (schemeMeta) {
+                        schemeMeta.content = effective;
+                    }
+                    const themeMeta = document.querySelector('meta[name="theme-color"]');
+                    if (themeMeta) {
+                        themeMeta.content = dark ? '#07090E' : '#FFFFFF';
                     }
                 };
                 window.synemaXTheme = {
-                    storageKey,
                     getMode,
                     applyMode,
                     setMode(mode) {
-                        if (!modes.includes(mode)) {
-                            return;
-                        }
+                        if (!modes.includes(mode)) return;
                         try {
-                            localStorage.setItem(storageKey, mode);
-                        } catch (error) {
-                            console.error('Unable to save the theme preference.', error);
-                        }
+                            for (const k of storageKeys) {
+                                localStorage.setItem(k, mode);
+                            }
+                        } catch (error) {}
                         applyMode(mode);
+                        window.dispatchEvent(new CustomEvent('synemax-theme-changed', { detail: { mode } }));
                     },
                 };
+                if (window.matchMedia) {
+                    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                        if (getMode() === 'system') applyMode('system');
+                    });
+                }
                 applyMode(getMode());
             })();
         </script>
@@ -115,10 +124,11 @@
                 }).catch(() => {});
             }
         }"
+        :class="{ 'overflow-hidden': sidebarOpen }"
         class="min-h-screen bg-bg font-sans text-text antialiased"
     >
         {{-- Sticky Admin Header (56px mobile, 64px desktop, viewport-fit=cover) --}}
-        <header class="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur pt-[env(safe-area-inset-top)]">
+        <header class="sticky top-0 z-30 border-b border-border bg-surface lg:bg-surface/95 lg:backdrop-blur pt-[env(safe-area-inset-top)]">
             <div class="mx-auto flex h-14 lg:h-16 max-w-screen-2xl items-center justify-between gap-2 px-3 sm:px-6">
                 {{-- Left: Hamburger + Logo + Breadcrumb --}}
                 <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -295,10 +305,10 @@
                 x-transition:leave-start="opacity-100"
                 x-transition:leave-end="opacity-0"
                 @click="sidebarOpen = false"
-                class="fixed inset-0 bg-black/60 backdrop-blur-xs"
+                class="fixed inset-0 bg-black/50"
             ></div>
 
-            {{-- Sliding Drawer Content (Width: min(86vw, 320px)) --}}
+            {{-- Sliding Drawer Content (Width: min(86vw, 320px), Height: 100dvh) --}}
             <div
                 x-show="sidebarOpen"
                 x-transition:enter="transition ease-in-out duration-250 transform"
@@ -308,7 +318,7 @@
                 x-transition:leave-start="translate-x-0"
                 x-transition:leave-end="-translate-x-full"
                 @keydown.escape.window="sidebarOpen = false"
-                class="relative flex w-[min(86vw,320px)] flex-col h-full bg-surface border-r border-border shadow-2xl z-50"
+                class="relative flex w-[min(86vw,320px)] flex-col h-[100dvh] bg-surface border-r border-border shadow-2xl z-50 overflow-y-auto overscroll-contain"
             >
                 {{-- Header Drawer --}}
                 <div class="flex items-center justify-between p-4 border-b border-border shrink-0">

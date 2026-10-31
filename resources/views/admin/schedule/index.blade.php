@@ -419,24 +419,28 @@
                                                 <button type="button" 
                                                         @click="activeAction = (activeAction === 'tayang' ? null : 'tayang')"
                                                         class="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 text-xs font-bold text-emerald-500 hover:bg-emerald-500 hover:text-black transition">
-                                                    ✓ Tayangkan Tetap
+                                                    <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                                    <span>Tayangkan Tetap</span>
                                                 </button>
                                                 <button type="button" 
                                                         @click="activeAction = (activeAction === 'pindah' ? null : 'pindah')"
                                                         class="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-400 transition">
-                                                    ↷ Pindahkan Booking
+                                                    <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3"/></svg>
+                                                    <span>Pindahkan Booking</span>
                                                 </button>
                                                 <button type="button" 
                                                         @click="activeAction = (activeAction === 'batal' ? null : 'batal')"
                                                         class="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-danger/40 bg-danger/10 px-3.5 text-xs font-bold text-danger hover:bg-danger hover:text-white transition">
-                                                    ✕ Batalkan Sesi
+                                                    <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                    <span>Batalkan Sesi</span>
                                                 </button>
                                             </div>
 
                                             {{-- Form Aksi 1: Tayangkan Tetap --}}
                                             <div x-show="activeAction === 'tayang'" x-cloak class="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3.5 space-y-3">
                                                 <h5 class="text-xs font-black text-emerald-400">Konfirmasi Tayangkan Tetap Sesi Ini</h5>
-                                                <form method="POST" action="{{ route('admin.schedule.sessions.resolve', ['session' => $session->id]) }}" class="space                                                    @csrf
+                                                <form method="POST" action="{{ route('admin.schedule.sessions.resolve', ['session' => $session->id]) }}" class="space-y-3">
+                                                    @csrf
                                                     <input type="hidden" name="action" value="tayangkan_tetap">
                                                     <div>
                                                         <label class="block text-[11px] font-bold text-text mb-1">Pilih Film yang Ditayangkan:</label>
@@ -480,7 +484,7 @@
                                                             placeholder="Pilih Sesi Tujuan..."
                                                             required
                                                         />
-                                                    </div>  </div>
+                                                    </div>
                                                     <div class="flex justify-end gap-2">
                                                         <button type="button" @click="activeAction = null" class="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-text">Batal</button>
                                                         <button type="submit" class="btn-gold-cinema rounded-lg px-4 py-1.5 text-xs font-bold">Pindahkan Booking</button>
@@ -543,9 +547,10 @@
                                                             <div class="flex flex-wrap items-center gap-1.5 shrink-0" x-data="{ openWa: false }">
                                                                 <div class="relative">
                                                                     <button type="button" @click="openWa = !openWa"
-                                                                            class="inline-flex min-h-[34px] items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 text-[11px] font-bold text-emerald-500 hover:bg-emerald-500 hover:text-black transition">
-                                                                        <span>💬 Hubungi WA</span>
-                                                                        <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                                                            class="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 text-[11px] font-bold text-emerald-500 hover:bg-emerald-500 hover:text-black transition">
+                                                                        <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a.75.75 0 01-.974-.948l.582-1.745C3.766 16.71 3 14.475 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/></svg>
+                                                                        <span>Hubungi WA</span>
+                                                                        <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                                                                     </button>
 
                                                                     <div x-show="openWa" @click.outside="openWa = false" x-cloak
@@ -566,8 +571,9 @@
                                                                 </div>
 
                                                                 <a href="{{ route('admin.bookings.show', $booking) }}" 
-                                                                   class="inline-flex min-h-[34px] items-center justify-center rounded-lg border border-border bg-surface-2 px-2.5 text-[11px] font-bold text-text hover:border-amber-400 transition">
-                                                                    Detail ↗
+                                                                   class="inline-flex min-h-[34px] items-center justify-center gap-1 rounded-lg border border-border bg-surface-2 px-2.5 text-[11px] font-bold text-text hover:border-amber-400 transition">
+                                                                    <span>Detail</span>
+                                                                    <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
                                                                 </a>
                                                             </div>
                                                         </div>
@@ -578,7 +584,7 @@
                                     </div>
                                 </div>
                             @endforeach
-                        </div>/div>
+                        </div>
                     </div>
                 @endforeach
             </div>

@@ -9,12 +9,14 @@
             title="{{ $film->exists ? 'Ubah Film: ' . $film->title : 'Tambah Film Baru' }}"
             subtitle="Tambahkan film ke katalog bioskop. Poster menggunakan rasio standar 2:3 (600 × 900 px)."
         >
-            <a href="{{ route('admin.films.index') }}" class="btn-secondary text-xs">
-                ← Kembali ke Katalog
+            <a href="{{ route('admin.films.index') }}" class="btn-secondary text-xs inline-flex items-center gap-1.5">
+                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
+                <span>Kembali ke Katalog</span>
             </a>
             @if ($film->exists && $film->slug)
-                <a href="{{ url('/film/' . $film->slug) }}" target="_blank" class="btn-secondary text-xs">
-                    Lihat di Situs ↗
+                <a href="{{ url('/film/' . $film->slug) }}" target="_blank" class="btn-secondary text-xs inline-flex items-center gap-1.5">
+                    <span>Lihat di Situs</span>
+                    <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
                 </a>
             @endif
         </x-admin.page-header>
@@ -38,9 +40,9 @@
 
                     <div>
                         <label for="slug" class="block text-xs font-bold uppercase tracking-wider text-text">
-                            Slug URL (Opsional)
+                            Alamat Halaman (URL, Opsional)
                         </label>
-                        <input id="slug" name="slug" value="{{ old('slug', $film->slug) }}" placeholder="Otomatis dibuat dari judul" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm font-mono">
+                        <input id="slug" name="slug" value="{{ old('slug', $film->slug) }}" placeholder="Otomatis dibuat dari judul jika kosong" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm font-mono">
                     </div>
                 </div>
 

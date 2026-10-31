@@ -1,0 +1,588 @@
+{
+  "touchGestures": {
+    "touchAction": "pan-y pinch-zoom",
+    "panYSupported": true,
+    "initialScrollLeft": 0,
+    "newScrollLeft": 360,
+    "scrolled": true,
+    "pass": true
+  },
+  "mobileDrawer": {
+    "320x568": {
+      "viewport": "320x568",
+      "parentTag": "body",
+      "isBodyChild": true,
+      "rect": {
+        "x": 44.8125,
+        "y": 0,
+        "width": 275.1875,
+        "height": 568
+      },
+      "styles": {
+        "backgroundColor": "rgb(7, 9, 14)",
+        "opacity": "1",
+        "position": "fixed",
+        "backdropFilter": "none"
+      },
+      "pass": true
+    },
+    "360x640": {
+      "viewport": "360x640",
+      "parentTag": "body",
+      "isBodyChild": true,
+      "rect": {
+        "x": 50.40625,
+        "y": 0,
+        "width": 309.59375,
+        "height": 640
+      },
+      "styles": {
+        "backgroundColor": "rgb(7, 9, 14)",
+        "opacity": "1",
+        "position": "fixed",
+        "backdropFilter": "none"
+      },
+      "pass": true
+    }
+  },
+  "ticketInspection": {
+    "bookingCode": "HC-261016-P8IOMO",
+    "styles": {
+      "backgroundColor": "rgb(255, 255, 255)",
+      "color": "oklch(0.208 0.042 265.755)",
+      "borderRadius": "16px",
+      "borderWidth": "1px"
+    },
+    "isLightCard": true,
+    "monoCode": "HC-261016-P8IOMO",
+    "notchCount": 2,
+    "qrDataParam": "HC-261016-P8IOMO",
+    "qrMatchesBookingCode": true,
+    "pass": true
+  },
+  "actionBudgetBenchmarks": [
+    {
+      "task": "Customer Arrival (Tandai Hadir)",
+      "budget": 3,
+      "actual": 2,
+      "actions": [
+        "1. Buka detail booking dari daftar/pencarian live",
+        "2. Klik tombol \"Tandai Hadir\""
+      ],
+      "status": "PASS"
+    },
+    {
+      "task": "Snack Prep Status Update",
+      "budget": 1,
+      "actual": 1,
+      "actions": [
+        "1. Klik langsung toggle status item/sesi pada layar Dapur"
+      ],
+      "status": "PASS"
+    },
+    {
+      "task": "Modify Customer Snacks",
+      "budget": 4,
+      "actual": 3,
+      "actions": [
+        "1. Buka panel Kelola Jajan",
+        "2. Ubah kuantitas snack via stepper",
+        "3. Simpan perubahan"
+      ],
+      "status": "PASS"
+    },
+    {
+      "task": "Contact Customer via WhatsApp",
+      "budget": 2,
+      "actual": 1,
+      "actions": [
+        "1. Klik tombol \"WhatsApp\" pada header detail booking untuk membuka chat"
+      ],
+      "status": "PASS"
+    },
+    {
+      "task": "Confirm Customer Payment",
+      "budget": 3,
+      "actual": 2,
+      "actions": [
+        "1. Klik \"Konfirmasi Bayar\"",
+        "2. Konfirmasi pada modal in-app"
+      ],
+      "status": "PASS"
+    },
+    {
+      "task": "Session Close / Selesaikan Sesi",
+      "budget": 2,
+      "actual": 2,
+      "actions": [
+        "1. Klik \"Selesaikan Sesi\" pada jadwal",
+        "2. Konfirmasi pada modal"
+      ],
+      "status": "PASS"
+    }
+  ],
+  "axeContrastAudit": [
+    {
+      "page": "Public Home",
+      "url": "http://synemax.test/",
+      "elementsPassed": 97,
+      "violationsCount": 1,
+      "violations": [
+        {
+          "target": ".sm\\:inline.hidden.font-bold",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.65 (foreground color: #ffffff, background color: #009966, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        }
+      ],
+      "status": "WARNING"
+    },
+    {
+      "page": "Public Jadwal",
+      "url": "http://synemax.test/jadwal",
+      "elementsPassed": 85,
+      "violationsCount": 1,
+      "violations": [
+        {
+          "target": ".sm\\:inline",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.65 (foreground color: #ffffff, background color: #009966, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        }
+      ],
+      "status": "WARNING"
+    },
+    {
+      "page": "E-Ticket Light Card",
+      "url": "http://synemax.test/tiket/HC-261016-P8IOMO",
+      "elementsPassed": 66,
+      "violationsCount": 1,
+      "violations": [
+        {
+          "target": ".sm\\:inline",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.65 (foreground color: #ffffff, background color: #009966, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        }
+      ],
+      "status": "WARNING"
+    },
+    {
+      "page": "Admin Dashboard",
+      "url": "http://synemax.test/admin",
+      "elementsPassed": 92,
+      "violationsCount": 19,
+      "violations": [
+        {
+          "target": ".justify-between.items-center.flex > .text-amber-600.dark\\:text-amber-400.text-\\[11px\\]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #e17100, background color: #ffffff, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".group-hover\\:underline",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #e17100, background color: #ffffff, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".min-h-\\[92px\\].dark\\:border-white\\/10.shadow-sm:nth-child(4) > .justify-between.items-center.flex > .bg-amber-500\\/15.py-0\\.5.text-amber-600",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.85 (foreground color: #e17100, background color: #fff0d9, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".min-h-\\[38px\\] > span",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.96 (foreground color: #e17100, background color: #fff5e6, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "button[\\@click=\"activeTab = 'besok'\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.08 (foreground color: #e17100, background color: #f9fbfd, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".hover\\:underline",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #e17100, background color: #ffffff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3\\.5.bg-surface-2\\/40.sm\\:flex-row:nth-child(1) > .min-w-0.gap-3.items-center > .size-12.bg-surface.flex-col > .text-amber-600.dark\\:text-amber-400.font-tabular",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #e17100, background color: #ffffff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3\\.5.bg-surface-2\\/40.sm\\:flex-row:nth-child(2) > .min-w-0.gap-3.items-center > .size-12.bg-surface.flex-col > .text-amber-600.dark\\:text-amber-400.font-tabular",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #e17100, background color: #ffffff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3\\.5.bg-surface-2\\/40.sm\\:flex-row:nth-child(2) > .min-w-0.gap-3.items-center > .min-w-0 > .gap-1\\.5.items-center.flex > .rounded.py-0\\.2.text-amber-400",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.43 (foreground color: #ffb900, background color: #646465, font size: 6.8pt (9px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".text-warning",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.07 (foreground color: #d97706, background color: #f9fbfd, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3\\.5.bg-surface-2\\/40.sm\\:flex-row:nth-child(2) > .sm\\:justify-end.justify-between.gap-3 > .text-emerald-600.dark\\:text-emerald-400.bg-emerald-500\\/15",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.07 (foreground color: #009966, background color: #d4f2ea, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".pb-3\\.5.-mt-2.rounded-b-xl:nth-child(3) > .space-y-1\\.5 > .border-border\\/80.p-2\\.5.rounded-lg > .justify-between.items-center.flex > .font-mono.text-amber-500.font-bold",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.13 (foreground color: #fe9a00, background color: #ffffff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3\\.5.bg-surface-2\\/40.sm\\:flex-row:nth-child(4) > .min-w-0.gap-3.items-center > .size-12.bg-surface.flex-col > .text-amber-600.dark\\:text-amber-400.font-tabular",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #e17100, background color: #ffffff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3\\.5.bg-surface-2\\/40.sm\\:flex-row:nth-child(4) > .min-w-0.gap-3.items-center > .min-w-0 > .gap-1\\.5.items-center.flex > .rounded.py-0\\.2.text-amber-400",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.43 (foreground color: #ffb900, background color: #646465, font size: 6.8pt (9px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3\\.5.bg-surface-2\\/40.sm\\:flex-row:nth-child(4) > .sm\\:justify-end.justify-between.gap-3 > .text-emerald-600.dark\\:text-emerald-400.bg-emerald-500\\/15",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.07 (foreground color: #009966, background color: #d4f2ea, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".pb-3\\.5.-mt-2.rounded-b-xl:nth-child(5) > .space-y-1\\.5 > .border-border\\/80.p-2\\.5.rounded-lg > .justify-between.items-center.flex > .font-mono.text-amber-500.font-bold",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.13 (foreground color: #fe9a00, background color: #ffffff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3\\.5.bg-surface-2\\/40.sm\\:flex-row:nth-child(6) > .min-w-0.gap-3.items-center > .size-12.bg-surface.flex-col > .text-amber-600.dark\\:text-amber-400.font-tabular",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.19 (foreground color: #e17100, background color: #ffffff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3\\.5.bg-surface-2\\/40.sm\\:flex-row:nth-child(6) > .min-w-0.gap-3.items-center > .min-w-0 > .gap-1\\.5.items-center.flex > .rounded.py-0\\.2.text-amber-400",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.43 (foreground color: #ffb900, background color: #646465, font size: 6.8pt (9px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".p-3\\.5.bg-surface-2\\/40.sm\\:flex-row:nth-child(6) > .sm\\:justify-end.justify-between.gap-3 > .text-emerald-600.dark\\:text-emerald-400.bg-emerald-500\\/15",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.07 (foreground color: #009966, background color: #d4f2ea, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+        }
+      ],
+      "status": "WARNING"
+    },
+    {
+      "page": "Admin Booking List",
+      "url": "http://synemax.test/admin/booking",
+      "elementsPassed": 198,
+      "violationsCount": 78,
+      "violations": [
+        {
+          "target": ".tracking-\\[0\\.2em\\]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.04 (foreground color: #d97706, background color: #f8fafc, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".hover\\:underline",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.04 (foreground color: #d97706, background color: #f8fafc, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".px-5",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #ffffff, background color: #d97706, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".bg-success\\/15",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.13 (foreground color: #059669, background color: #daefe8, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(1) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(1) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(1) > .sm\\:flex-wrap.sm\\:flex.mt-4:nth-child(3) > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(1) > .sm\\:flex-wrap.sm\\:flex.mt-4:nth-child(3) > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".bg-accent.text-accent-contrast.sm\\:w-auto",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #ffffff, background color: #d97706, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "button[\\@click=\"openReject = true\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(2) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(2) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(2) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(2) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(3) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(3) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(3) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(3) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(4) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(4) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(4) > .sm\\:flex-wrap.sm\\:flex.mt-4:nth-child(3) > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(4) > .sm\\:flex-wrap.sm\\:flex.mt-4:nth-child(3) > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(4) > .pt-4.sm\\:flex-wrap.sm\\:flex > form[method=\"POST\"]:nth-child(1) > .bg-success.text-success-contrast.sm\\:w-auto",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(4) > .pt-4.sm\\:flex-wrap.sm\\:flex > form[data-confirm-title=\"Tandai Tidak Datang\"][data-confirm-action=\"Tandai Tidak Datang\"][data-confirm-is-danger=\"true\"] > .border-warning.text-warning.sm\\:w-auto",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(5) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(5) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(5) > .sm\\:flex-wrap.sm\\:flex.mt-4:nth-child(3) > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(5) > .sm\\:flex-wrap.sm\\:flex.mt-4:nth-child(3) > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(5) > .pt-4.sm\\:flex-wrap.sm\\:flex > form[method=\"POST\"]:nth-child(1) > .bg-success.text-success-contrast.sm\\:w-auto",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(5) > .pt-4.sm\\:flex-wrap.sm\\:flex > form[data-confirm-title=\"Tandai Tidak Datang\"][data-confirm-action=\"Tandai Tidak Datang\"][data-confirm-is-danger=\"true\"] > .border-warning.text-warning.sm\\:w-auto",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(6) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(6) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(6) > .sm\\:flex-wrap.sm\\:flex.mt-4:nth-child(3) > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(6) > .sm\\:flex-wrap.sm\\:flex.mt-4:nth-child(3) > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(6) > .pt-4.sm\\:flex-wrap.sm\\:flex > form[method=\"POST\"]:nth-child(1) > .bg-success.text-success-contrast.sm\\:w-auto",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(6) > .pt-4.sm\\:flex-wrap.sm\\:flex > form[data-confirm-title=\"Tandai Tidak Datang\"][data-confirm-action=\"Tandai Tidak Datang\"][data-confirm-is-danger=\"true\"] > .border-warning.text-warning.sm\\:w-auto",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(7) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(7) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(7) > .sm\\:flex-wrap.sm\\:flex.mt-4:nth-child(3) > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(7) > .sm\\:flex-wrap.sm\\:flex.mt-4:nth-child(3) > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(7) > .pt-4.sm\\:flex-wrap.sm\\:flex > form[method=\"POST\"]:nth-child(1) > .bg-success.text-success-contrast.sm\\:w-auto",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(7) > .pt-4.sm\\:flex-wrap.sm\\:flex > form[data-confirm-title=\"Tandai Tidak Datang\"][data-confirm-action=\"Tandai Tidak Datang\"][data-confirm-is-danger=\"true\"] > .border-warning.text-warning.sm\\:w-auto",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(8) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(8) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(8) > .sm\\:flex-wrap.sm\\:flex.mt-4:nth-child(3) > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(8) > .sm\\:flex-wrap.sm\\:flex.mt-4:nth-child(3) > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(8) > .pt-4.sm\\:flex-wrap.sm\\:flex > form[method=\"POST\"]:nth-child(1) > .bg-success.text-success-contrast.sm\\:w-auto",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(8) > .pt-4.sm\\:flex-wrap.sm\\:flex > form[data-confirm-title=\"Tandai Tidak Datang\"][data-confirm-action=\"Tandai Tidak Datang\"][data-confirm-is-danger=\"true\"] > .border-warning.text-warning.sm\\:w-auto",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(9) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(9) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(9) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(9) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(10) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(10) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(10) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(10) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(11) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(11) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(11) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(11) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(12) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(12) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(12) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(12) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(13) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(13) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(13) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(13) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(14) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(14) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(14) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(14) > .sm\\:flex-wrap.sm\\:flex.mt-4 > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(15) > .items-start.flex-wrap.gap-3 > div:nth-child(1) > .font-mono.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(15) > .items-start.flex-wrap.gap-3 > .sm\\:text-right.text-left > .text-lg.font-black.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 13.5pt (18px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(15) > .sm\\:flex-wrap.sm\\:flex.mt-4:nth-child(3) > .border-accent.hover\\:bg-surface-2.text-accent",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(15) > .sm\\:flex-wrap.sm\\:flex.mt-4:nth-child(3) > .hover\\:opacity-90[rel=\"noopener noreferrer\"][target=\"_blank\"]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(15) > .pt-4.sm\\:flex-wrap.sm\\:flex > form[method=\"POST\"]:nth-child(1) > .bg-success.text-success-contrast.sm\\:w-auto",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.76 (foreground color: #ffffff, background color: #059669, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": "article:nth-child(15) > .pt-4.sm\\:flex-wrap.sm\\:flex > form[data-confirm-title=\"Tandai Tidak Datang\"][data-confirm-action=\"Tandai Tidak Datang\"][data-confirm-is-danger=\"true\"] > .border-warning.text-warning.sm\\:w-auto",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.18 (foreground color: #d97706, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        }
+      ],
+      "status": "WARNING"
+    },
+    {
+      "page": "Admin Settings",
+      "url": "http://synemax.test/admin/pengaturan",
+      "elementsPassed": 116,
+      "violationsCount": 2,
+      "violations": [
+        {
+          "target": ".tracking-\\[0\\.2em\\]",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 3.05 (foreground color: #e17100, background color: #f8fafc, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+        },
+        {
+          "target": ".border-amber-500",
+          "summary": "Fix any of the following:\n  Element has insufficient color contrast of 2.83 (foreground color: #e17100, background color: #f9f0e3, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+        }
+      ],
+      "status": "WARNING"
+    }
+  ]
+}

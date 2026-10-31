@@ -364,12 +364,10 @@ class CinemaSettings
             return $chips;
         }
 
-        $minPrice = $this->integer('weekday_price', 5000);
-
         return [
-            ['icon' => 'chair', 'text' => '6 kursi privat per sesi', 'is_visible' => true, 'order' => 1],
-            ['icon' => 'tag', 'text' => 'Mulai Rp '.number_format($minPrice, 0, ',', '.'), 'is_visible' => true, 'order' => 2, 'auto_price' => true],
-            ['icon' => 'sparkles', 'text' => 'Studio AC & Audio Dolby', 'is_visible' => true, 'order' => 3],
+            ['icon' => '', 'text' => cinema_capacity_text(), 'is_visible' => true, 'order' => 1],
+            ['icon' => '', 'text' => cinema_starting_price_text(), 'is_visible' => true, 'order' => 2, 'auto_price' => true],
+            ['icon' => '', 'text' => 'Studio AC & tata suara sinematik', 'is_visible' => true, 'order' => 3],
         ];
     }
 
@@ -404,9 +402,51 @@ class CinemaSettings
         return $this->integer('minimum_public_viewers', 4);
     }
 
+    public static function minimumViewers(): int
+    {
+        return app(self::class)->minimumPublicViewers();
+    }
+
     public function quorum(): int
     {
-        return $this->minimumPublicViewers();
+        return self::minimumViewers();
+    }
+
+    public static function startingPrice(): int
+    {
+        $instance = app(self::class);
+        $override = $instance->get('starting_price');
+        if (filled($override) && is_numeric($override) && (int) $override > 0) {
+            return (int) $override;
+        }
+
+        $prices = [
+            $instance->weekdayPrice(),
+            $instance->weekendPrice(),
+            $instance->holidayPrice(),
+        ];
+
+        return min($prices);
+    }
+
+    public function weekdayPrice(): int
+    {
+        return $this->integer('weekday_price', 5000);
+    }
+
+    public function weekendPrice(): int
+    {
+        return $this->integer('weekend_price', 6000);
+    }
+
+    public function holidayPrice(): int
+    {
+        return $this->integer('holiday_price', 6000);
+    }
+
+    public function privatePrice(): int
+    {
+        return $this->integer('private_price', 36000);
     }
 
     public function agreementWindowMinutes(): int
@@ -422,15 +462,15 @@ class CinemaSettings
     public function ticketPriceForDayType(?string $dayType): int
     {
         return match ($dayType) {
-            'libur' => $this->integer('holiday_price', 6000),
-            'weekend' => $this->integer('weekend_price', 6000),
-            default => $this->integer('weekday_price', 5000),
+            'libur' => $this->holidayPrice(),
+            'weekend', 'jumat' => $this->weekendPrice(),
+            default => $this->weekdayPrice(),
         };
     }
 
     public function couplePrice(?string $dayType = null): int
     {
-        $isWeekend = in_array($dayType, ['weekend', 'libur'], true);
+        $isWeekend = in_array($dayType, ['weekend', 'jumat', 'libur'], true);
         $settingKey = $isWeekend ? 'couple_price_weekend' : 'couple_price_weekday';
         $altKey = $isWeekend ? 'couple_weekend_price' : 'couple_weekday_price';
         $override = $this->get($settingKey) ?: $this->get($altKey);
@@ -439,12 +479,12 @@ class CinemaSettings
             return (int) $override;
         }
 
-        return $this->minimumPublicViewers() * $this->ticketPriceForDayType($dayType);
+        return $this->minimumViewers() * $this->ticketPriceForDayType($dayType);
     }
 
     public function privatePriceForDayType(?string $dayType = null): int
     {
-        $isWeekend = in_array($dayType, ['weekend', 'libur'], true);
+        $isWeekend = in_array($dayType, ['weekend', 'jumat', 'libur'], true);
         $settingKey = $isWeekend ? 'private_price_weekend' : 'private_price_weekday';
         $altKey = $isWeekend ? 'private_weekend_price' : 'private_weekday_price';
         $override = $this->get($settingKey) ?: $this->get($altKey);
@@ -477,26 +517,23 @@ class CinemaSettings
         return $this->string('maintenance_message', 'Website kami sedang dalam pemeliharaan rutin. Silakan kembali beberapa saat lagi.');
     }
 
+    // === TIKET ELEKTRONIK (E-TIKET) ===
+    public function ticketArriveMinutes(): int
+    {
+        return $this->integer('ticket_arrive_minutes', 15);
+    }
+
+    public function ticketStudioName(): string
+    {
+        return $this->string('ticket_studio_name', 'Studio 1');
+    }
+
+    public function ticketNotes(): string
+    {
+        return $this->string('ticket_notes', 'Tunjukkan e-tiket ini kepada petugas di pintu masuk bioskop.');
+    }
+
     // === TAB 5: HARGA & FAQ ===
-    public function weekdayPrice(): int
-    {
-        return $this->integer('weekday_price', 5000);
-    }
-
-    public function weekendPrice(): int
-    {
-        return $this->integer('weekend_price', 6000);
-    }
-
-    public function holidayPrice(): int
-    {
-        return $this->integer('holiday_price', 20000);
-    }
-
-    public function privatePrice(): int
-    {
-        return $this->integer('private_price', 80000);
-    }
 
     public function faqs(): array
     {
@@ -521,37 +558,311 @@ class CinemaSettings
 
     public function contactEmail(): string
     {
-        return $this->string('contact_email', 'kontak@synemax.test');
+        return $this->string('contact_email', '');
     }
 
     public function contactAddress(): string
     {
-        return $this->string('contact_address', 'Jl. Bioskop Desa No. 1, Desa Kreatif');
+        $address = $this->string('contact_address', '');
+        if ($address !== '') {
+            return $address;
+        }
+
+        return $this->string('cinema_address', '');
     }
 
     public function contactMapsUrl(): string
     {
-        return $this->string('contact_maps_url', 'https://maps.google.com');
+        return $this->mapsUrl();
+    }
+
+    public function mapsUrl(): string
+    {
+        $url = $this->string('maps_url', '');
+        if ($url !== '') {
+            return $url;
+        }
+        $contactMaps = $this->string('contact_maps_url', '');
+        if ($contactMaps !== '') {
+            return $contactMaps;
+        }
+
+        return $this->string('google_maps_url', '');
+    }
+
+    public function mapsLabel(): string
+    {
+        return $this->string('maps_label', 'Lihat di Google Maps');
+    }
+
+    public function instagramUrl(): string
+    {
+        $url = $this->string('instagram_url', '');
+        if ($url !== '') {
+            return self::cleanSocialUrl($url);
+        }
+        $old = $this->string('social_instagram', '');
+        if ($old !== '') {
+            if (str_starts_with($old, 'http://') || str_starts_with($old, 'https://')) {
+                return self::cleanSocialUrl($old);
+            }
+            if (str_contains($old, 'instagram.com')) {
+                return self::cleanSocialUrl('https://'.ltrim($old, '/'));
+            }
+
+            return self::cleanSocialUrl('https://instagram.com/'.ltrim($old, '@'));
+        }
+
+        return '';
+    }
+
+    public function instagramLabel(): string
+    {
+        $lbl = $this->string('instagram_label', '');
+        if ($lbl !== '') {
+            return $lbl;
+        }
+        $old = $this->string('social_instagram', '');
+        if ($old !== '') {
+            if (str_starts_with($old, '@')) {
+                return $old;
+            }
+            if (! str_contains($old, '/') && ! str_contains($old, '.')) {
+                return '@'.ltrim($old, '@');
+            }
+            $url = $this->instagramUrl();
+            if ($url !== '') {
+                return self::suggestSocialHandle('instagram', $url);
+            }
+        }
+        $url = $this->instagramUrl();
+        if ($url !== '') {
+            return self::suggestSocialHandle('instagram', $url);
+        }
+
+        return '';
+    }
+
+    public function tiktokUrl(): string
+    {
+        $url = $this->string('tiktok_url', '');
+        if ($url !== '') {
+            return self::cleanSocialUrl($url);
+        }
+        $old = $this->string('social_tiktok', '');
+        if ($old !== '') {
+            if (str_starts_with($old, 'http://') || str_starts_with($old, 'https://')) {
+                return self::cleanSocialUrl($old);
+            }
+            if (str_contains($old, 'tiktok.com')) {
+                return self::cleanSocialUrl('https://'.ltrim($old, '/'));
+            }
+
+            return self::cleanSocialUrl('https://tiktok.com/@'.ltrim($old, '@'));
+        }
+
+        return '';
+    }
+
+    public function tiktokLabel(): string
+    {
+        $lbl = $this->string('tiktok_label', '');
+        if ($lbl !== '') {
+            return $lbl;
+        }
+        $old = $this->string('social_tiktok', '');
+        if ($old !== '') {
+            if (str_starts_with($old, '@')) {
+                return $old;
+            }
+            if (! str_contains($old, '/') && ! str_contains($old, '.')) {
+                return '@'.ltrim($old, '@');
+            }
+            $url = $this->tiktokUrl();
+            if ($url !== '') {
+                return self::suggestSocialHandle('tiktok', $url);
+            }
+        }
+        $url = $this->tiktokUrl();
+        if ($url !== '') {
+            return self::suggestSocialHandle('tiktok', $url);
+        }
+
+        return '';
+    }
+
+    public function youtubeUrl(): string
+    {
+        $url = $this->string('youtube_url', '');
+        if ($url !== '') {
+            return self::cleanSocialUrl($url);
+        }
+        $old = $this->string('social_youtube', '');
+        if ($old !== '') {
+            if (str_starts_with($old, 'http://') || str_starts_with($old, 'https://')) {
+                return self::cleanSocialUrl($old);
+            }
+            if (str_contains($old, 'youtube.com') || str_contains($old, 'youtu.be')) {
+                return self::cleanSocialUrl('https://'.ltrim($old, '/'));
+            }
+
+            return self::cleanSocialUrl('https://youtube.com/@'.ltrim($old, '@'));
+        }
+
+        return '';
+    }
+
+    public function youtubeLabel(): string
+    {
+        $lbl = $this->string('youtube_label', '');
+        if ($lbl !== '') {
+            return $lbl;
+        }
+        $old = $this->string('social_youtube', '');
+        if ($old !== '') {
+            if (str_starts_with($old, '@')) {
+                return $old;
+            }
+            $url = $this->youtubeUrl();
+            if ($url !== '') {
+                return self::suggestSocialHandle('youtube', $url);
+            }
+        }
+        $url = $this->youtubeUrl();
+        if ($url !== '') {
+            return self::suggestSocialHandle('youtube', $url);
+        }
+
+        return '';
+    }
+
+    public function capacityDescription(): string
+    {
+        $capacity = $this->capacityPerSession();
+
+        return "{$capacity} kursi privat per sesi";
+    }
+
+    public function startingPriceDescription(): string
+    {
+        $price = number_format($this->startingPrice(), 0, ',', '.');
+
+        return "Mulai Rp {$price}";
+    }
+
+    public function cinemaFactsText(): string
+    {
+        return $this->capacityDescription().' · '.$this->startingPriceDescription();
     }
 
     public function socialInstagram(): string
     {
-        return $this->string('social_instagram', '@synemax.cinema');
+        return $this->instagramLabel();
     }
 
     public function socialYoutube(): string
     {
-        return $this->string('social_youtube', '');
+        return $this->youtubeLabel();
     }
 
     public function socialTiktok(): string
     {
-        return $this->string('social_tiktok', '');
+        return $this->tiktokLabel();
+    }
+
+    public static function cleanSocialUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+        if (! str_starts_with($url, 'http://') && ! str_starts_with($url, 'https://')) {
+            $url = 'https://'.ltrim($url, '/');
+        }
+        $parsed = parse_url($url);
+        if (! isset($parsed['scheme']) || ! isset($parsed['host'])) {
+            return $url;
+        }
+        $cleanUrl = 'https://'.$parsed['host'].($parsed['path'] ?? '');
+        if (isset($parsed['query'])) {
+            parse_str($parsed['query'], $queryParams);
+            $stripKeys = [
+                'utm_source',
+                'utm_medium',
+                'utm_campaign',
+                'utm_term',
+                'utm_content',
+                'igsh',
+                '_r',
+                '_t',
+                'si',
+                'feature',
+                'fbclid',
+                'ref',
+                'ref_src',
+            ];
+            foreach ($stripKeys as $k) {
+                unset($queryParams[$k]);
+            }
+            if (count($queryParams) > 0) {
+                $cleanUrl .= '?'.http_build_query($queryParams);
+            }
+        }
+
+        return $cleanUrl;
+    }
+
+    public static function suggestSocialHandle(string $platform, string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+        if (! str_starts_with($url, 'http://') && ! str_starts_with($url, 'https://')) {
+            $url = 'https://'.ltrim($url, '/');
+        }
+        $parsed = parse_url($url);
+        $path = trim($parsed['path'] ?? '', '/');
+        if ($platform === 'instagram' || $platform === 'tiktok') {
+            $parts = explode('/', $path);
+            $handle = $parts[0] ?? '';
+            $handle = ltrim($handle, '@');
+
+            return $handle !== '' ? '@'.$handle : '@synemax';
+        }
+        if ($platform === 'youtube') {
+            $parts = explode('/', $path);
+            $handle = $parts[0] ?? '';
+
+            return $handle !== '' ? (str_starts_with($handle, '@') ? $handle : '@'.$handle) : 'SynemaX Cinema';
+        }
+        if ($platform === 'maps') {
+            return 'Lihat di Google Maps';
+        }
+
+        return '';
     }
 
     public function footerText(): string
     {
-        return $this->string('footer_text', '© '.date('Y').' SynemaX Home Cinema. Bioskop mini privat desa dengan teknologi modern.');
+        return $this->string('footer_text', '© {tahun} SynemaX Cinema. Hak cipta dilindungi.');
+    }
+
+    public function formattedFooterText(): string
+    {
+        $raw = trim($this->string('footer_text', ''));
+        if ($raw === '') {
+            $raw = '© {tahun} SynemaX. Hak cipta dilindungi.';
+        }
+
+        $year = date('Y');
+        $rendered = str_replace(['{tahun}', '{year}'], $year, $raw);
+
+        if (! str_starts_with($rendered, '©') && ! str_starts_with($rendered, '&copy;')) {
+            $rendered = '© '.$rendered;
+        }
+
+        return $rendered;
     }
 
     public function showFloatingWhatsapp(): bool
@@ -594,5 +905,10 @@ class CinemaSettings
                 'url' => '/cek-booking',
             ],
         ];
+    }
+
+    public static function __callStatic(string $method, array $parameters): mixed
+    {
+        return app(self::class)->$method(...$parameters);
     }
 }

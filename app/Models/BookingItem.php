@@ -46,4 +46,9 @@ class BookingItem extends Model
     {
         return $this->belongsTo(MenuItem::class);
     }
+
+    public function getSubtotalAttribute(): int
+    {
+        return (int) $this->price_snapshot * (int) $this->qty;
+    }
 }

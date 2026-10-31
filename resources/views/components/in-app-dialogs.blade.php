@@ -12,7 +12,7 @@
     >
         <template x-for="toast in toasts" :key="toast.id">
             <div
-                class="pointer-events-auto flex items-start gap-3 rounded-2xl border p-4 shadow-xl backdrop-blur-md transition-all duration-200 transform"
+                class="pointer-events-auto flex items-start gap-3 rounded-2xl border p-4 shadow-xl transition-all duration-200 transform"
                 :class="{
                     'bg-emerald-950/90 dark:bg-emerald-950/95 border-emerald-500/40 text-emerald-100': toast.type === 'success',
                     'bg-red-950/90 dark:bg-red-950/95 border-red-500/40 text-red-100': toast.type === 'error',
@@ -52,6 +52,17 @@
                 {{-- Toast Message Text --}}
                 <div class="min-w-0 flex-1 text-xs sm:text-sm font-semibold leading-snug" x-text="toast.message"></div>
 
+                {{-- Undo Button if available --}}
+                <template x-if="toast.undoRoute">
+                    <button
+                        type="button"
+                        @click="submitUndo(toast.undoRoute)"
+                        class="shrink-0 rounded-lg bg-amber-500/25 hover:bg-amber-500/40 text-amber-300 border border-amber-400/40 px-2.5 py-1 text-xs font-bold transition shadow-xs"
+                    >
+                        Urungkan (8s)
+                    </button>
+                </template>
+
                 {{-- Close Button --}}
                 <button
                     type="button"
@@ -89,7 +100,7 @@
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
             @click="closeConfirm()"
-            class="fixed inset-0 bg-black/75 backdrop-blur-sm"
+            class="fixed inset-0 bg-black/80"
         ></div>
 
         {{-- Modal Content Card --}}
@@ -150,7 +161,7 @@
         aria-modal="true"
         aria-label="Sesi Habis"
     >
-        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm"></div>
+        <div class="fixed inset-0 bg-black/80"></div>
         <div class="relative w-full max-w-sm rounded-3xl border border-border bg-surface p-6 shadow-2xl text-center space-y-4">
             <div class="mx-auto grid size-12 place-items-center rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
                 <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -176,7 +187,7 @@
 function inAppDialogsComponent() {
     return {
         toasts: [],
-        addToast(type, message, duration) {
+        addToast(type, message, duration, undoRoute = null) {
             const id = Date.now() + Math.random().toString(36).substr(2, 4);
             const autoDismiss = duration !== undefined ? duration : (type === 'error' ? 8000 : 4000);
             
@@ -184,7 +195,7 @@ function inAppDialogsComponent() {
                 this.toasts.shift();
             }
 
-            const toast = { id, type, message };
+            const toast = { id, type, message, undoRoute };
             this.toasts.push(toast);
 
             if (autoDismiss > 0) {
@@ -192,6 +203,18 @@ function inAppDialogsComponent() {
                     this.removeToast(id);
                 }, autoDismiss);
             }
+        },
+        submitUndo(url) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = url;
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = '_token';
+            csrf.value = document.querySelector('meta[name="csrf-token"]')?.content || '';
+            form.appendChild(csrf);
+            document.body.appendChild(form);
+            form.submit();
         },
         removeToast(id) {
             this.toasts = this.toasts.filter(t => t.id !== id);
@@ -260,7 +283,9 @@ function inAppDialogsComponent() {
                 this.sessionExpiredOpen = true;
             });
 
-            @if (session('status'))
+            @if (session('undo_route'))
+                this.addToast('info', @js((string) session('status')), 8000, @js((string) session('undo_route')));
+            @elseif (session('status'))
                 this.addToast('success', @js((string) session('status')));
             @endif
             @if (session('error'))

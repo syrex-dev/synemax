@@ -103,7 +103,7 @@ class PublicCinemaController extends Controller
     {
         $genre = $request->query('genre');
         $tahun = $request->query('tahun');
-        $search = $request->query('q');
+        $search = $request->query('cari') ?: $request->query('q');
 
         $query = Film::query()->where('is_active', true);
 
@@ -119,18 +119,22 @@ class PublicCinemaController extends Controller
             $query->where('title', 'like', '%'.$search.'%');
         }
 
-        $films = $query->orderBy('title')->get();
+        $films = $query->orderBy('title')->paginate(24)->withQueryString();
 
-        $allActiveFilms = Film::query()->where('is_active', true)->get(['id', 'genre', 'release_year']);
-
-        $genres = $allActiveFilms->pluck('genre')
+        $genres = Film::query()
+            ->where('is_active', true)
+            ->whereNotNull('genre')
+            ->pluck('genre')
             ->flatMap(fn ($g) => array_map('trim', explode(',', (string) $g)))
             ->unique()
             ->filter()
             ->sort()
             ->values();
 
-        $years = $allActiveFilms->pluck('release_year')
+        $years = Film::query()
+            ->where('is_active', true)
+            ->whereNotNull('release_year')
+            ->pluck('release_year')
             ->filter()
             ->unique()
             ->sortDesc()
@@ -138,8 +142,8 @@ class PublicCinemaController extends Controller
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
-                'count' => $films->count(),
-                'films' => $films->map(fn (Film $f) => [
+                'count' => $films->total(),
+                'films' => collect($films->items())->map(fn (Film $f) => [
                     'id' => $f->id,
                     'title' => $f->title,
                     'slug' => $f->slug,
@@ -277,10 +281,10 @@ class PublicCinemaController extends Controller
         $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
 
         $bookingCutoffMinutes = $settings->integer('booking_cutoff_minutes', 30);
+        $candidateDate = null;
 
         if ($date === null) {
             // Find the first date from today onwards that still has bookable sessions
-            $candidateDate = null;
             for ($offset = 0; $offset < 14; $offset++) {
                 $checkDate = $today->addDays($offset);
                 $daySessions = Session::query()
@@ -317,11 +321,8 @@ class PublicCinemaController extends Controller
             ->whereBetween('holiday_date', [$today->toDateString(), $today->addDays(13)->toDateString()])
             ->pluck('name', 'holiday_date');
 
-        $sessionPrice = match ($dayType) {
-            'libur' => $settings->integer('holiday_price', 6000),
-            'weekend' => $settings->integer('weekend_price', 6000),
-            default => $settings->integer('weekday_price', 5000),
-        };
+        $sessionPrice = $settings->ticketPriceForDayType($dayType);
+        $hasAnyAvailableDate = $candidateDate !== null;
 
         $closedReason = BlockedDate::query()
             ->where('blocked_date', $targetDate->toDateString())
@@ -345,6 +346,7 @@ class PublicCinemaController extends Controller
             'dates' => $dates,
             'holidayDates' => $holidayDates,
             'sessionPrice' => $sessionPrice,
+            'hasAnyAvailableDate' => $hasAnyAvailableDate,
             'sessions' => $sessions,
             'closedReason' => $closedReason,
             'holiday' => $holiday,

@@ -24,6 +24,7 @@ class Promo extends Model
         'terms_conditions',
         'is_active',
         'sort_order',
+        'is_sample',
     ];
 
     protected $casts = [
@@ -31,6 +32,7 @@ class Promo extends Model
         'end_date' => 'date',
         'is_active' => 'boolean',
         'sort_order' => 'integer',
+        'is_sample' => 'boolean',
     ];
 
     protected static function booted(): void

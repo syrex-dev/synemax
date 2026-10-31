@@ -17,33 +17,35 @@
             <p class="mt-1 text-xs text-text-muted">Kapasitas maksimal 6 kursi per sesi. Status kursi diperbarui otomatis saat ada pemesanan baru.</p>
         </div>
 
-        {{-- Pemilih Tanggal (Horizontal Scrollable Pills ala XXI / CGV) --}}
-        <nav class="mt-6 flex snap-x gap-2.5 overflow-x-auto pb-3 scrollbar-none" aria-label="Pilih tanggal nonton">
-            @foreach ($dates as $availableDate)
-                @php
-                    $dateKey = $availableDate->toDateString();
-                    $isSelected = $dateKey === $date->toDateString();
-                @endphp
-                <a href="{{ route('schedule.date', ['date' => $dateKey]) }}"
-                   @if ($isSelected) aria-current="date" @endif
-                   class="min-w-28 shrink-0 snap-start rounded-2xl border p-3.5 text-center transition-all duration-200 {{ $isSelected ? 'border-amber-400 bg-gradient-to-b from-amber-500/25 via-surface to-surface text-amber-600 dark:text-amber-300 shadow-[0_0_20px_rgba(212,175,55,0.25)]' : 'border-border dark:border-white/10 bg-surface-2 dark:bg-surface text-text-muted hover:border-amber-400/50 hover:text-text' }}">
-                    <span class="block text-[11px] font-bold uppercase tracking-wider {{ $isSelected ? 'text-amber-600 dark:text-amber-400' : 'text-text-muted' }}">
-                        {{ $dateKey === $today ? 'Hari ini' : $availableDate->locale('id')->translatedFormat('l') }}
-                    </span>
-                    <span class="mt-1 block font-tabular text-lg font-black {{ $isSelected ? 'text-amber-950 dark:text-white' : 'text-text' }}">
-                        {{ format_tanggal_pendek_id($availableDate) }}
-                    </span>
-                    @if ($holidayDates->has($dateKey))
-                        <span class="mt-1.5 inline-block rounded-md bg-amber-400/20 px-2 py-0.5 text-[10px] font-black uppercase text-amber-600 dark:text-amber-300 border border-amber-400/30">
-                            Libur
+        {{-- Pemilih Tanggal (Horizontal Scrollable Pills dengan Fade Tepi) --}}
+        <div class="relative -mx-4 px-4 sm:mx-0 sm:px-0">
+            <nav class="mt-6 flex snap-x gap-2 overflow-x-auto pb-3 scrollbar-none scroll-smooth" style="touch-action: pan-y pinch-zoom; -webkit-overflow-scrolling: touch;" aria-label="Pilih tanggal nonton">
+                @foreach ($dates as $availableDate)
+                    @php
+                        $dateKey = $availableDate->toDateString();
+                        $isSelected = $dateKey === $date->toDateString();
+                    @endphp
+                    <a href="{{ route('schedule.date', ['date' => $dateKey]) }}"
+                       @if ($isSelected) aria-current="date" @endif
+                       class="min-w-24 shrink-0 snap-start rounded-xl border p-2.5 text-center transition-colors {{ $isSelected ? 'border-amber-500 bg-amber-500/15 text-text font-bold' : 'border-border bg-surface text-text-muted hover:border-amber-400/50 hover:text-text' }}">
+                        <span class="block text-[11px] font-bold uppercase tracking-wider {{ $isSelected ? 'text-amber-700 dark:text-amber-400' : 'text-text-muted' }}">
+                            {{ $dateKey === $today ? 'Hari ini' : $availableDate->locale('id')->translatedFormat('l') }}
                         </span>
-                    @endif
-                </a>
-            @endforeach
-        </nav>
+                        <span class="mt-0.5 block font-tabular text-base font-black {{ $isSelected ? 'text-text' : 'text-text' }}">
+                            {{ format_tanggal_pendek_id($availableDate) }}
+                        </span>
+                        @if ($holidayDates->has($dateKey))
+                            <span class="mt-1 inline-block rounded bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-black uppercase text-amber-700 dark:text-amber-300 border border-amber-400/30">
+                                Libur
+                            </span>
+                        @endif
+                    </a>
+                @endforeach
+            </nav>
+        </div>
 
         {{-- Judul Tanggal Terpilih --}}
-        <div id="sessions" class="scroll-mt-8 mt-6 flex items-baseline justify-between gap-3 border-b border-border dark:border-white/10 pb-2">
+        <div id="sessions" class="scroll-mt-8 mt-6 flex items-baseline justify-between gap-3 border-b border-border pb-2">
             <div>
                 <h2 class="text-lg font-black text-text">{{ format_hari_tanggal_id($date) }}</h2>
             </div>
@@ -61,8 +63,32 @@
                 <p class="mt-1 text-xs text-danger-text/90">{{ $closedReason }}</p>
             </div>
         @elseif ($sessions->isEmpty())
-            <div class="mt-6 rounded-2xl border border-border dark:border-white/10 bg-surface-2 dark:bg-surface p-6 text-center text-sm text-text-muted">
-                Belum ada sesi penayangan untuk tanggal ini. Silakan pilih tanggal lain di atas.
+            {{-- Empty State Ramah: Jadwal Sedang Disiapkan --}}
+            <div class="mt-6 rounded-2xl border border-border bg-surface p-8 text-center space-y-4">
+                <div class="max-w-md mx-auto space-y-1.5">
+                    <p class="text-base font-bold text-text">Jadwal sedang disiapkan</p>
+                    <p class="text-xs text-text-muted leading-relaxed">
+                        Sesi penayangan untuk tanggal ini belum dibuka atau sedang dalam penyesuaian jadwal operator. Anda dapat menanyakan ketersediaan studio langsung ke admin atau memeriksa booking Anda.
+                    </p>
+                </div>
+                <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    @if (setting('whatsapp_number'))
+                        <a
+                            href="https://wa.me/{{ preg_replace('/[^0-9]/', '', setting('whatsapp_number')) }}?text={{ urlencode('Halo ' . setting('site_name', 'SynemaX') . ', saya ingin bertanya mengenai ketersediaan jadwal penayangan pada ' . format_hari_tanggal_id($date) . '.') }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 text-xs font-bold shadow-xs"
+                        >
+                            <span>Tanya Admin via WA</span>
+                        </a>
+                    @endif
+                    <a
+                        href="{{ route('booking.lookup.form') }}"
+                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-xs font-bold text-text hover:bg-surface-2"
+                    >
+                        <span>Cek Booking Saya</span>
+                    </a>
+                </div>
             </div>
         @else
             @php
@@ -72,7 +98,7 @@
 
             <div class="mt-6 space-y-3.5 pb-24">
                 @if ($upcomingSessions->isEmpty())
-                    <div class="rounded-2xl border border-dashed border-border dark:border-white/10 bg-surface-2/40 dark:bg-surface/20 p-5 text-center text-xs text-text-muted">
+                    <div class="rounded-2xl border border-dashed border-border bg-surface-2 p-5 text-center text-xs text-text-muted">
                         Semua sesi penayangan untuk hari ini telah selesai atau sedang berlangsung. Silakan cek bagian sesi yang sudah lewat di bawah atau pilih tanggal lain di atas.
                     </div>
                 @else
@@ -86,7 +112,7 @@
                             $startTime = format_jam_id($session->start_time, false);
                             $endTime = format_jam_id($session->end_time, true);
                         @endphp
-                        <article class="rounded-2xl border border-border dark:border-white/10 bg-surface dark:bg-gradient-to-r dark:from-surface dark:via-surface dark:to-surface-2 p-4 sm:p-5 transition hover:border-amber-400/40 shadow-sm">
+                        <article class="rounded-2xl border border-border bg-surface p-4 sm:p-5 transition hover:border-amber-500 shadow-2xs">
                             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                 <div class="flex min-w-0 items-start gap-4">
                                     {{-- Kotak Waktu Sesi ala XXI Clock --}}
@@ -237,12 +263,16 @@
         @endif
     </main>
 
-    {{-- Bottom Bar Mobile untuk Aksi Cepat --}}
-    <div class="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-surface/95 px-4 pt-3 backdrop-blur-md lg:hidden" style="padding-bottom: max(env(safe-area-inset-bottom), .75rem)">
-        <a href="#sessions" class="btn-gold-cinema mx-auto flex min-h-12 max-w-4xl items-center justify-between gap-4 rounded-xl px-4 text-black shadow-lg">
+    {{-- Bottom Bar Mobile untuk Aksi Cepat (Maks 56px, solid surface, tanpa backdrop-blur) --}}
+    <style>
+        :root { --bottom-bar-h: 60px; }
+        @media (min-width: 1024px) { :root { --bottom-bar-h: 0px; } }
+    </style>
+    <div class="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface px-4 py-2 lg:hidden shadow-lg" style="padding-bottom: max(env(safe-area-inset-bottom), 0.5rem)">
+        <a href="#sessions" class="btn-gold-cinema mx-auto flex h-11 max-w-4xl items-center justify-between gap-4 rounded-xl px-4 text-slate-950 shadow-xs">
             <div>
-                <span class="block text-[11px] font-semibold opacity-90">Tiket studio mulai</span>
-                <span class="block font-tabular text-sm font-extrabold">Rp {{ number_format($sessionPrice, 0, ',', '.') }} per orang</span>
+                <span class="block text-[10px] font-semibold opacity-90 leading-none">Tiket studio mulai</span>
+                <span class="block font-tabular text-xs font-black leading-tight">Rp {{ number_format($sessionPrice, 0, ',', '.') }} per orang</span>
             </div>
             <span class="text-xs font-black">Pilih jam tayang</span>
         </a>

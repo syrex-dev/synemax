@@ -23,11 +23,13 @@ class NewsArticle extends Model
         'status_publikasi',
         'tanggal_terbit',
         'is_pinned',
+        'is_sample',
     ];
 
     protected $casts = [
         'tanggal_terbit' => 'datetime',
         'is_pinned' => 'boolean',
+        'is_sample' => 'boolean',
     ];
 
     public function coverUrl(): ?string

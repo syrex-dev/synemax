@@ -34,48 +34,13 @@ class ImagePlaceholderGenerator
         imagealphablending($image, true);
         imagesavealpha($image, true);
 
-        // Color palette definitions
-        [$rStart, $gStart, $bStart, $rEnd, $gEnd, $bEnd] = match ($colorScheme) {
-            'blue' => [10, 16, 32, 22, 48, 96],
-            'purple' => [20, 12, 32, 72, 24, 88],
-            default => [15, 23, 42, 88, 48, 12], // Slate 900 to Deep Amber
-        };
+        // Solid neutral background (Zinc 900 / Slate 900 neutral dark tile)
+        $bgColor = imagecolorallocate($image, 24, 24, 27); // #18181b
+        imagefilledrectangle($image, 0, 0, $width, $height, $bgColor);
 
-        // Draw rich vertical gradient
-        for ($y = 0; $y < $height; $y++) {
-            $factor = $y / max(1, $height - 1);
-            $r = (int) ($rStart + ($rEnd - $rStart) * $factor);
-            $g = (int) ($gStart + ($gEnd - $gStart) * $factor);
-            $b = (int) ($bStart + ($bEnd - $bStart) * $factor);
-            $color = imagecolorallocate($image, $r, $g, $b);
-            imageline($image, 0, $y, $width, $y, $color);
-        }
-
-        // Geometric Decorative Elements (Cinema Light Beams & Geometric Shapes)
-        $accentGold = imagecolorallocate($image, 245, 158, 11);
-        $accentAmber = imagecolorallocate($image, 217, 119, 6);
-        $accentSubtle = imagecolorallocatealpha($image, 245, 158, 11, 105); // Semi-transparent
-        $accentFaint = imagecolorallocatealpha($image, 255, 255, 255, 118);
-
-        // Top-left and bottom-right geometric accent polygons
-        imagefilledpolygon($image, [
-            0, 0,
-            (int) ($width * 0.28), 0,
-            0, (int) ($height * 0.45),
-        ], $accentSubtle);
-
-        imagefilledpolygon($image, [
-            $width, $height,
-            (int) ($width * 0.72), $height,
-            $width, (int) ($height * 0.55),
-        ], $accentSubtle);
-
-        // Subtle geometric diagonal lines
-        for ($i = 0; $i < 3; $i++) {
-            $offset = $i * 18;
-            imageline($image, 0, (int) ($height * 0.35) + $offset, (int) ($width * 0.25) + $offset, 0, $accentFaint);
-            imageline($image, (int) ($width * 0.75) - $offset, $height, $width, (int) ($height * 0.65) - $offset, $accentFaint);
-        }
+        // Clean 1px subtle neutral border
+        $borderColor = imagecolorallocate($image, 39, 39, 42); // #27272a
+        imagerectangle($image, 0, 0, $width - 1, $height - 1, $borderColor);
 
         // Typography Setup
         $fontPath = resource_path('fonts/Inter.ttf');
@@ -99,13 +64,13 @@ class ImagePlaceholderGenerator
             $pillX = (int) (($width - $pillW) / 2);
             $pillY = (int) ($height * 0.28);
 
-            $badgeBg = imagecolorallocatealpha($image, 217, 119, 6, 25);
-            $badgeBorder = imagecolorallocate($image, 245, 158, 11);
+            $badgeBg = imagecolorallocate($image, 39, 39, 42); // Zinc 800
+            $badgeBorder = imagecolorallocate($image, 63, 63, 70); // Zinc 700
             imagefilledrectangle($image, $pillX, $pillY, $pillX + $pillW, $pillY + $pillH, $badgeBg);
             imagerectangle($image, $pillX, $pillY, $pillX + $pillW, $pillY + $pillH, $badgeBorder);
 
-            // Badge Text
-            $catColor = imagecolorallocate($image, 254, 240, 138); // Amber 200
+            // Badge Text (Neutral Silver Zinc 300)
+            $catColor = imagecolorallocate($image, 212, 212, 216);
             $catTextX = $pillX + $pillPadX;
             $catTextY = $pillY + $pillPadY + $catHeight;
             imagettftext($image, $catFontSize, 0, $catTextX, $catTextY, $catColor, $fontPath, $catCategoryText);

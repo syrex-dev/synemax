@@ -140,7 +140,7 @@ class DashboardController extends Controller
                 'level' => 'info',
                 'urgency_score' => 5,
                 'title' => $filmsWithoutPosterCount.' film belum memiliki poster',
-                'url' => route('admin.films.index'),
+                'url' => route('admin.films.index', ['filter' => 'tanpa_poster']),
             ]);
         }
         if ($slidesWithoutTargetCount > 0) {
