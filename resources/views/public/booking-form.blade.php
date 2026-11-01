@@ -24,7 +24,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
             <div>
                 <a href="{{ route('schedule.date', ['date' => $session->session_date]) }}"
-                   class="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold text-amber-500 hover:text-amber-400">
+                   class="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold text-[#B45309] dark:text-amber-400 hover:underline">
                     <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
@@ -33,7 +33,7 @@
                 <h1 class="mt-1 text-2xl font-black tracking-tight text-text sm:text-3xl">Amankan kursimu</h1>
                 <p class="mt-0.5 text-xs text-text-muted">{{ $session->startsAt()->locale('id')->translatedFormat('l, d F Y') }}</p>
             </div>
-            <div class="inline-flex items-center gap-1.5 rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-2 font-tabular text-sm font-black text-amber-400 shadow-sm">
+            <div class="inline-flex items-center gap-1.5 badge-accent-soft rounded-xl px-4 py-2 font-tabular text-sm font-black shadow-none">
                 <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -83,8 +83,18 @@
                   activeCategory: @js($snackCategories->first()['id'] ?? null),
                   cart: @js(old('snacks', [])),
                   filmSearch: '',
-                  genreFilter: 'Semua',
-                  yearFilter: 'Semua',
+                  genre: '',
+                  tahun: '',
+                  setFilter(g, y) {
+                      if (g !== undefined) this.genre = g;
+                      if (y !== undefined) this.tahun = y;
+                  },
+                  filmOptions: @js($films->map(fn($f) => [
+                      'id' => $f->id,
+                      'title' => $f->title,
+                      'genre' => $f->genre,
+                      'year' => (string) $f->release_year,
+                  ])),
                   filmDetail: null,
                   noteItemId: null,
                   noteValue: '',
@@ -247,17 +257,17 @@
                           this.isPromoValid = true;
                           this.promoApplied = 'XXIPREMIERE';
                           this.promoDiscount = Math.round(this.ticketTotal * 0.1);
-                          this.promoMessage = 'Voucher XXI Premiere Berhasil: Diskon 10% Tiket!';
+                          this.promoMessage = 'Voucher XXI Premiere Berhasil: Diskon 10% Tiket.';
                       } else if (code === 'SYNEMAX5K') {
                           this.isPromoValid = true;
                           this.promoApplied = 'SYNEMAX5K';
                           this.promoDiscount = Math.min(this.total, 5000);
-                          this.promoMessage = 'Voucher SynemaX Berhasil: Potongan Rp 5.000!';
+                          this.promoMessage = 'Voucher SynemaX Berhasil: Potongan Rp 5.000.';
                       } else if (code === 'DISKON50') {
                           this.isPromoValid = true;
                           this.promoApplied = 'DISKON50';
                           this.promoDiscount = Math.round(this.total * 0.5);
-                          this.promoMessage = 'Promo Spesial: Diskon 50% Seluruh Pesanan!';
+                          this.promoMessage = 'Promo Spesial: Diskon 50% Seluruh Pesanan.';
                       } else {
                           this.isPromoValid = false;
                           this.promoApplied = null;
@@ -319,7 +329,7 @@
                   },
 
                   get filteredFilmCount() {
-                      return this.filmOptions.filter((film) => this.matchesFilm(film.title, film.genre)).length;
+                      return this.filmOptions.filter((film) => this.matchesFilm(film.title, film.genre, film.year)).length;
                   },
 
                   get paxIsValid() {
@@ -344,11 +354,12 @@
                       return null;
                   },
 
-                  matchesFilm(title, genre, year) {
+                  matchesFilm(title, filmGenre, filmYear) {
                       const query = this.filmSearch.trim().toLocaleLowerCase('id');
-                      const matchesQuery = !query || `${title} ${genre}`.toLocaleLowerCase('id').includes(query);
-                      const matchesGenre = this.genreFilter === 'Semua' || this.genreFilter === genre;
-                      const matchesYear = this.yearFilter === 'Semua' || String(year || '') === String(this.yearFilter);
+                      const matchesQuery = !query || `${title} ${filmGenre}`.toLocaleLowerCase('id').includes(query);
+                      const matchesGenre = !this.genre || this.genre === 'Semua' ||
+                          (filmGenre || '').split(',').map(g => g.trim().toLocaleLowerCase('id')).includes(this.genre.toLocaleLowerCase('id'));
+                      const matchesYear = !this.tahun || this.tahun === 'Semua' || String(filmYear || '') === String(this.tahun);
                       return matchesQuery && matchesGenre && matchesYear;
                   },
 
@@ -524,21 +535,39 @@
             </template>
 
             {{-- Wizard Progress Bar ala Bioskop Modern --}}
-            <div class="mt-4">
+            <div class="sm:hidden mt-4">
+                <div class="mb-1.5 flex items-center justify-between text-xs">
+                    <span class="font-bold text-text" x-text="'Langkah ' + step + ' dari 5 · ' + (step === 2 ? 'Paket' : (step === 3 ? 'Film' : (step === 4 ? 'Jajan' : (step === 5 ? 'Ringkasan' : 'Jadwal'))))"></span>
+                    <span class="font-tabular font-bold text-text-muted" x-text="((step / 5) * 100) + '%'"></span>
+                </div>
+                <div class="h-2 w-full overflow-hidden rounded-full progress-track">
+                    <div class="h-full rounded-full progress-fill transition-all duration-300" :style="'width: ' + ((step / 5) * 100) + '%'"></div>
+                </div>
+            </div>
+
+            <div class="hidden sm:block mt-4">
                 <div class="mb-2 flex items-center justify-between text-xs text-text-muted">
-                    <span class="font-bold text-amber-400">Pemesanan Tiket Studio</span>
+                    <span class="font-bold text-text">Pemesanan Tiket Studio</span>
                     <span class="font-tabular font-medium" x-text="'Langkah ' + step + ' dari 5'">Langkah 2 dari 5</span>
                 </div>
-                <ol class="grid grid-cols-5 gap-1.5 text-center" aria-label="Tahapan pemesanan">
+                <ol class="grid grid-cols-5 gap-2 text-center" aria-label="Tahapan pemesanan">
                     @foreach ($wizardSteps as $stepNum => $stepLabel)
-                        <li class="rounded-xl border p-2 transition-all"
+                        <li class="flex flex-col items-center justify-center rounded-xl border p-2 transition-all min-h-[52px]"
                             :class="step === {{ $stepNum }}
-                                ? 'border-amber-400 bg-amber-500/10 text-amber-400 font-bold shadow-[0_0_12px_rgba(212,175,55,0.2)]'
+                                ? 'badge-accent-solid font-black'
                                 : (step > {{ $stepNum }}
-                                    ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-medium'
-                                    : 'border-border bg-surface text-text-muted')">
-                            <span class="block font-tabular text-[10px] font-black">{{ $stepNum }}</span>
-                            <span class="block truncate text-[10px]">{{ $stepLabel }}</span>
+                                    ? 'badge-success-solid font-bold'
+                                    : 'border-slate-300 bg-surface text-slate-600 dark:border-slate-700 dark:text-slate-400 font-medium')"
+                            :aria-current="step === {{ $stepNum }} ? 'step' : null">
+                            <span class="flex items-center justify-center gap-1">
+                                <template x-if="step > {{ $stepNum }}">
+                                    <svg class="size-3.5 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </template>
+                                <span class="font-tabular text-[11px] font-black" x-show="step <= {{ $stepNum }}">{{ $stepNum }}</span>
+                            </span>
+                            <span class="block truncate text-[11px] mt-0.5">{{ $stepLabel }}</span>
                         </li>
                     @endforeach
                 </ol>
@@ -554,17 +583,19 @@
                 <div>
                     <div class="flex items-baseline justify-between gap-2">
                         <h2 class="text-lg font-black text-text">Pilih paket nonton</h2>
-                        <span class="text-xs text-text-muted">Langkah 2 dari 5</span>
+                        <span class="hidden sm:inline text-xs text-text-muted">Langkah 2 dari 5</span>
                     </div>
-                    <p class="mt-0.5 text-xs text-text-muted">Tentukan jalur penayangan: kumpulkan kuorum 4 penonton (Reguler), atau langsung pasti tayang (Couple & Private).</p>
+                    <p class="mt-0.5 text-xs text-text-muted">Tentukan jalur penayangan: kumpulkan minimal penonton (Reguler), atau langsung pasti tayang (Couple & Private).</p>
                 </div>
 
-                {{-- Penjelasan Singkat Aturan Kuorum & Paket --}}
-                <div class="rounded-xl border border-amber-400/30 bg-amber-500/5 p-3.5 text-xs text-text-muted flex items-start gap-2.5">
-                    <span class="text-amber-400 font-black text-base shrink-0">ℹ️</span>
+                {{-- Penjelasan Singkat Aturan Minimal Penonton & Paket --}}
+                <div class="rounded-xl border border-border bg-surface-2 p-3.5 text-xs text-text-muted flex items-start gap-2.5">
+                    <svg class="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     <div>
                         <span class="font-bold text-text">Aturan Tayang Studio:</span>
-                        <p class="mt-0.5">Sesi tayang bila satu film mencapai kuorum 4 penonton (Reguler), atau langsung pasti tayang dengan paket Couple (2 orang) & Private (seluruh studio).</p>
+                        <p class="mt-0.5">Sesi tayang bila satu film mencapai minimal penonton {{ \App\Services\CinemaSettings::minimumViewers() }} orang (Reguler), atau langsung pasti tayang dengan paket Couple (2 orang) & Private (seluruh studio).</p>
                     </div>
                 </div>
 
@@ -573,20 +604,20 @@
                     {{-- Paket 1: Reguler --}}
                     <div @click="selectPackage('reguler')"
                          class="cursor-pointer rounded-2xl border p-4 transition flex flex-col justify-between relative"
-                         :class="package === 'reguler' ? 'border-amber-400 bg-amber-500/10 shadow-sm' : (!canReguler ? 'opacity-40 cursor-not-allowed border-border bg-surface' : 'border-border bg-surface hover:border-amber-400/50')">
+                         :class="package === 'reguler' ? 'border-amber-500 bg-amber-500/10' : (!canReguler ? 'opacity-40 cursor-not-allowed border-border bg-surface' : 'border-border bg-surface hover:border-amber-400')">
                         <div>
                             <div class="flex items-center justify-between">
-                                <span class="rounded bg-slate-800 border border-slate-700 px-2 py-0.5 text-[10px] font-bold text-slate-300">
-                                    Perlu 4 penonton
+                                <span class="rounded bg-surface-2 border border-border px-2 py-0.5 text-[10px] font-bold text-text">
+                                    Perlu {{ \App\Services\CinemaSettings::minimumViewers() }} penonton
                                 </span>
                                 <input type="radio" name="package_choice" value="reguler" x-model="package" class="sr-only">
                             </div>
                             <h3 class="mt-2 text-base font-black text-text">Reguler (Per orang)</h3>
-                            <p class="mt-0.5 font-tabular text-sm font-black text-amber-400">
+                            <p class="mt-0.5 font-tabular text-sm font-black text-amber-700 dark:text-amber-400">
                                 Rp {{ number_format($unitPrice, 0, ',', '.') }}<span class="text-[11px] font-normal text-text-muted">/kursi</span>
                             </p>
                             <p class="mt-2 text-[11px] leading-relaxed text-text-muted">
-                                1–6 orang. Tayang jika film pilihan mencapai kuorum 4 kursi.
+                                1–6 orang. Tayang jika film pilihan mencapai minimal {{ \App\Services\CinemaSettings::minimumViewers() }} penonton.
                             </p>
                         </div>
                         <div class="mt-3 border-t border-border pt-2 text-[11px] text-text-muted" x-show="package === 'reguler'">
@@ -597,16 +628,16 @@
                     {{-- Paket 2: Couple --}}
                     <div @click="selectPackage('couple')"
                          class="cursor-pointer rounded-2xl border p-4 transition flex flex-col justify-between relative"
-                         :class="package === 'couple' ? 'border-amber-400 bg-amber-500/10 shadow-sm' : (!canCouple ? 'opacity-40 cursor-not-allowed border-border bg-surface' : 'border-border bg-surface hover:border-amber-400/50')">
+                         :class="package === 'couple' ? 'border-amber-500 bg-amber-500/10' : (!canCouple ? 'opacity-40 cursor-not-allowed border-border bg-surface' : 'border-border bg-surface hover:border-amber-400')">
                         <div>
                             <div class="flex items-center justify-between">
-                                <span class="rounded bg-emerald-500/20 border border-emerald-500/40 px-2 py-0.5 text-[10px] font-black text-emerald-400">
+                                <span class="badge-success-soft rounded px-2 py-0.5 text-[10px] font-black">
                                     Pasti tayang
                                 </span>
                                 <input type="radio" name="package_choice" value="couple" x-model="package" :disabled="!canCouple" {{ ! $canCouple ? 'disabled' : '' }} aria-describedby="couple-desc" class="sr-only">
                             </div>
                             <h3 class="mt-2 text-base font-black text-text">Couple</h3>
-                            <p class="mt-0.5 font-tabular text-sm font-black text-amber-400">
+                            <p class="mt-0.5 font-tabular text-sm font-black text-amber-700 dark:text-amber-400">
                                 Rp {{ number_format($couplePrice, 0, ',', '.') }}<span class="text-[11px] font-normal text-text-muted"> (2 orang)</span>
                             </p>
                             <p class="mt-2 text-[11px] leading-relaxed text-text-muted">
@@ -614,7 +645,10 @@
                             </p>
                         </div>
                         <div class="mt-3 border-t border-border pt-2">
-                            <span x-show="canCouple" class="text-[11px] font-bold text-emerald-400">✓ Tersedia</span>
+                            <span x-show="canCouple" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+                                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                <span>Tersedia</span>
+                            </span>
                             <span id="couple-desc" x-show="!canCouple" class="text-[10px] leading-tight text-danger-text block" x-text="coupleReason || 'Tidak tersedia'">
                                 {{ $coupleDisabledReason ?? 'Pilih slot lain atau hubungi admin.' }}
                             </span>
@@ -624,16 +658,16 @@
                     {{-- Paket 3: Private (Memenuhi assertSee('Sewa studio privat')) --}}
                     <div @click="selectPackage('private')"
                          class="cursor-pointer rounded-2xl border p-4 transition flex flex-col justify-between relative"
-                         :class="package === 'private' ? 'border-amber-400 bg-amber-500/10 shadow-sm' : (!canPrivate ? 'opacity-40 cursor-not-allowed border-border bg-surface' : 'border-border bg-surface hover:border-amber-400/50')">
+                         :class="package === 'private' ? 'border-amber-500 bg-amber-500/10' : (!canPrivate ? 'opacity-40 cursor-not-allowed border-border bg-surface' : 'border-border bg-surface hover:border-amber-400')">
                         <div>
                             <div class="flex items-center justify-between">
-                                <span class="rounded bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 text-[10px] font-black text-amber-400">
+                                <span class="badge-accent-soft rounded px-2 py-0.5 text-[10px] font-black">
                                     Pasti tayang
                                 </span>
                                 <input type="radio" name="package_choice" value="private" x-model="package" :disabled="!canPrivate" {{ ! $canPrivate ? 'disabled' : '' }} aria-describedby="private-desc" class="sr-only">
                             </div>
                             <h3 class="mt-2 text-base font-black text-text">Sewa studio privat</h3>
-                            <p class="mt-0.5 font-tabular text-sm font-black text-amber-400">
+                            <p class="mt-0.5 font-tabular text-sm font-black text-amber-700 dark:text-amber-400">
                                 Rp {{ number_format($privatePrice, 0, ',', '.') }}<span class="text-[11px] font-normal text-text-muted"> (seluruh studio)</span>
                             </p>
                             <p class="mt-2 text-[11px] leading-relaxed text-text-muted">
@@ -641,7 +675,10 @@
                             </p>
                         </div>
                         <div class="mt-3 border-t border-border pt-2">
-                            <span x-show="canPrivate" class="text-[11px] font-bold text-emerald-400">✓ Studio kosong</span>
+                            <span x-show="canPrivate" class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+                                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                                <span>Studio kosong</span>
+                            </span>
                             <span id="private-desc" x-show="!canPrivate" class="text-[10px] leading-tight text-danger-text block" x-text="privateReason || 'Tidak tersedia'">
                                 {{ $privateDisabledReason ?? 'Sudah ada pemesan di sesi ini.' }}
                             </span>
@@ -649,35 +686,35 @@
                     </div>
                 </div>
 
-                {{-- DENAH KURSI MINI BIOSKOP DENGAN LAYAR MELENGKUNG --}}
-                <div class="rounded-2xl border border-white/10 bg-gradient-to-b from-[#111726] to-[#0A0E18] p-5 shadow-inner">
+                {{-- DENAH KURSI MINI BIOSKOP --}}
+                <div class="rounded-xl border border-border bg-surface-2 dark:bg-[#0E131F] p-5">
                     <div class="flex items-center justify-between mb-4">
-                        <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Denah Kursi Studio Mini</span>
-                        <span class="text-xs text-slate-300 font-medium"
+                        <span class="text-xs font-bold uppercase tracking-wider text-text">Denah Kursi Studio Mini</span>
+                        <span class="text-xs text-text-muted font-medium"
                               x-text="package === 'private' ? 'Seluruh 6 kursi studio otomatis terkunci' : (package === 'couple' ? 'Pilih 2 kursi bersebelahan' : `Pilih ${pax} kursi`)"></span>
                     </div>
 
-                    {{-- Proyektor Screen Melengkung --}}
+                    {{-- Proyektor Screen --}}
                     <div class="mx-auto max-w-sm text-center mb-6">
-                        <div class="curved-cinema-screen flex items-center justify-center">
-                            <span class="text-[10px] font-black tracking-[0.35em] text-amber-300 uppercase">LAYAR / SCREEN</span>
+                        <div class="curved-cinema-screen flex items-center justify-center border border-border bg-surface">
+                            <span class="text-[10px] font-black tracking-[0.35em] text-text-muted uppercase">LAYAR / SCREEN</span>
                         </div>
-                        <p class="text-[10px] text-slate-400 mt-1">Arah Pandangan Proyektor</p>
+                        <p class="text-[10px] text-text-muted mt-1">Arah Pandangan Proyektor</p>
                     </div>
 
                     {{-- Layout 6 Kursi Mini Studio (2 Baris x 3 Kolom) --}}
                     <div class="mx-auto max-w-xs space-y-3.5">
                         {{-- Baris A --}}
                         <div class="flex items-center justify-center gap-3">
-                            <span class="w-4 text-xs font-bold text-slate-400">A</span>
+                            <span class="w-4 text-xs font-bold text-text-muted">A</span>
                             <template x-for="(seat, idx) in seats.slice(0, 3)" :key="seat.id">
                                 <button type="button"
                                         @click="toggleSeat(seat.id, idx)"
                                         :disabled="isSeatOccupied(idx) || package === 'private'"
-                                        class="seat-item flex size-14 flex-col items-center justify-center rounded-xl font-tabular text-xs font-black shadow-md transition"
+                                        class="seat-item flex size-14 flex-col items-center justify-center rounded-xl font-tabular text-xs font-black transition"
                                         :class="isSeatOccupied(idx)
-                                            ? 'seat-occupied'
-                                            : (selectedSeats.includes(seat.id) ? 'seat-selected' : 'seat-available')">
+                                            ? 'bg-surface-sunken text-text-muted opacity-50 cursor-not-allowed border border-border'
+                                            : (selectedSeats.includes(seat.id) ? 'badge-accent-solid font-black' : 'bg-surface border border-border-input text-text hover:border-amber-400')">
                                     <svg class="size-4 mb-0.5 opacity-80" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M4 18v3h3v-3h10v3h3v-3h1a1 1 0 001-1v-5a3 3 0 00-3-3h-1V6a3 3 0 00-3-3H9a3 3 0 00-3 3v3H5a3 3 0 00-3 3v5a1 1 0 001 1h1z" />
                                     </svg>
@@ -688,15 +725,15 @@
 
                         {{-- Baris B --}}
                         <div class="flex items-center justify-center gap-3">
-                            <span class="w-4 text-xs font-bold text-slate-400">B</span>
+                            <span class="w-4 text-xs font-bold text-text-muted">B</span>
                             <template x-for="(seat, idx) in seats.slice(3, 6)" :key="seat.id">
                                 <button type="button"
                                         @click="toggleSeat(seat.id, idx + 3)"
                                         :disabled="isSeatOccupied(idx + 3) || package === 'private'"
-                                        class="seat-item flex size-14 flex-col items-center justify-center rounded-xl font-tabular text-xs font-black shadow-md transition"
+                                        class="seat-item flex size-14 flex-col items-center justify-center rounded-xl font-tabular text-xs font-black transition"
                                         :class="isSeatOccupied(idx + 3)
-                                            ? 'seat-occupied'
-                                            : (selectedSeats.includes(seat.id) ? 'seat-selected' : 'seat-available')">
+                                            ? 'bg-surface-sunken text-text-muted opacity-50 cursor-not-allowed border border-border'
+                                            : (selectedSeats.includes(seat.id) ? 'badge-accent-solid font-black' : 'bg-surface border border-border-input text-text hover:border-amber-400')">
                                     <svg class="size-4 mb-0.5 opacity-80" viewBox="0 0 24 24" fill="currentColor">
                                         <path d="M4 18v3h3v-3h10v3h3v-3h1a1 1 0 001-1v-5a3 3 0 00-3-3h-1V6a3 3 0 00-3-3H9a3 3 0 00-3 3v3H5a3 3 0 00-3 3v5a1 1 0 001 1h1z" />
                                     </svg>
@@ -707,18 +744,18 @@
                     </div>
 
                     {{-- Legenda Denah Kursi --}}
-                    <div class="mt-6 flex flex-wrap items-center justify-center gap-4 border-t border-white/10 pt-3 text-xs text-slate-300">
+                    <div class="mt-6 flex flex-wrap items-center justify-center gap-4 border-t border-border pt-3 text-xs text-text-muted">
                         <div class="flex items-center gap-1.5">
-                            <span class="size-3.5 rounded border border-white/20 bg-slate-800"></span>
-                            <span>Tersedia</span>
+                            <span class="size-3.5 rounded border border-border-input bg-surface"></span>
+                            <span class="text-text">Tersedia</span>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <span class="size-3.5 rounded bg-amber-400"></span>
-                            <span class="text-amber-300 font-bold">Dipilih</span>
+                            <span class="size-3.5 rounded badge-accent-solid"></span>
+                            <span class="text-text font-bold">Dipilih</span>
                         </div>
                         <div class="flex items-center gap-1.5">
-                            <span class="size-3.5 rounded bg-slate-900 border border-white/5 opacity-50"></span>
-                            <span class="text-slate-500">Terisi</span>
+                            <span class="size-3.5 rounded bg-surface-sunken border border-border opacity-50"></span>
+                            <span>Terisi</span>
                         </div>
                     </div>
                 </div>
@@ -759,13 +796,13 @@
                 <div>
                     <div class="flex items-baseline justify-between gap-2">
                         <h2 class="text-lg font-black text-text">Pilih film tontonan</h2>
-                        <span class="text-xs text-text-muted">Langkah 3 dari 5</span>
+                        <span class="hidden sm:inline text-xs text-text-muted">Langkah 3 dari 5</span>
                     </div>
                     <p class="mt-0.5 text-xs text-text-muted">
                         @if ($isConfirmed)
                             Sesi ini telah terkonfirmasi pasti tayang. Semua penonton bergabung menonton film terkunci.
                         @else
-                            Pilih film calon yang Anda inginkan. Perhatikan jumlah peminat saat ini untuk mempercepat kuorum!
+                            Pilih film yang ingin kamu tonton. Angka di bawah poster menunjukkan peminat sesi ini.
                         @endif
                     </p>
                 </div>
@@ -799,43 +836,26 @@
                                placeholder="Cari judul atau genre film..."
                                class="min-h-11 w-full rounded-xl border border-border-input bg-surface px-4 text-sm text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400">
 
-                        <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none" aria-label="Filter genre film">
-                            @php($genres = $films->pluck('genre')->unique()->values())
-                            @foreach (['Semua', ...$genres->all()] as $genre)
-                                <button type="button"
-                                        @click="genreFilter = @js($genre)"
-                                        class="min-h-8 shrink-0 rounded-lg border px-3 text-xs font-bold transition"
-                                        :class="genreFilter === @js($genre) ? 'border-amber-400 bg-amber-500 text-black' : 'border-border-input bg-surface text-text hover:border-amber-400'">
-                                    {{ $genre }}
-                                </button>
-                            @endforeach
-                        </div>
+                    {{-- Search & Filter Genre/Year Menggunakan Komponen Bersama --}}
+                    <div class="space-y-3">
+                        <input id="film-search"
+                               x-model="filmSearch"
+                               type="search"
+                               autocomplete="off"
+                               placeholder="Cari judul atau genre film..."
+                               class="min-h-11 w-full rounded-xl border border-border-input bg-surface px-4 text-sm text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400">
 
-                        @php($years = $films->pluck('release_year')->filter()->unique()->sortDesc()->values())
-                        @if ($years->count() > 1)
-                            <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none" aria-label="Filter tahun rilis film">
-                                <button type="button"
-                                        @click="yearFilter = 'Semua'"
-                                        class="min-h-7 shrink-0 rounded-md border px-2.5 text-[11px] font-semibold transition"
-                                        :class="yearFilter === 'Semua' ? 'border-amber-400 bg-amber-500/20 text-amber-500' : 'border-border bg-surface text-text-muted hover:border-amber-400/60'">
-                                    Semua Tahun
-                                </button>
-                                @foreach ($years as $yr)
-                                    <button type="button"
-                                            @click="yearFilter = @js((string) $yr)"
-                                            class="min-h-7 shrink-0 rounded-md border px-2.5 text-[11px] font-semibold transition"
-                                            :class="yearFilter === @js((string) $yr) ? 'border-amber-400 bg-amber-500/20 text-amber-500' : 'border-border bg-surface text-text-muted hover:border-amber-400/60'">
-                                        {{ $yr }}
-                                    </button>
-                                @endforeach
-                            </div>
-                        @endif
+                        @php
+                            $canonicalGenres = \App\Models\Film::CANONICAL_GENRES;
+                            $filmYears = $films->pluck('release_year')->filter()->unique()->sortDesc()->values()->all();
+                        @endphp
+                        <x-public.film-filter-bar :genres="$canonicalGenres" :years="$filmYears" />
 
                         {{-- Grid Pilihan Film --}}
                         <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                             @foreach ($films as $film)
                                 @php($tally = $candidateTallies->get($film->id)['seats'] ?? 0)
-                                <article x-show="matchesFilm(@js($film->title), @js($film->genre), @js($film->release_year))"
+                                <article x-show="matchesFilm(@js($film->title), @js($film->genre), @js((string) $film->release_year))"
                                          class="flex flex-col justify-between rounded-xl border bg-surface p-2.5 transition"
                                          :class="filmId === '{{ $film->id }}'
                                              ? 'border-amber-400 shadow-md ring-1 ring-amber-400'
@@ -843,6 +863,7 @@
                                     <button type="button"
                                             @click="filmDetail = @js(['id' => $film->id, 'title' => $film->title, 'genre' => $film->genre, 'duration' => $film->duration_minutes, 'rating' => $film->age_rating, 'synopsis' => $film->synopsis, 'trailer' => $film->trailer_url])"
                                             class="flex w-full flex-col text-left focus:outline-none">
+                                        {{-- Poster Container (Tile polos tanpa judul bila kosong, label peminat di bawah) --}}
                                         <div class="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-surface-2">
                                             @if ($film->poster_path)
                                                 <img src="{{ Storage::url($film->poster_path) }}"
@@ -850,30 +871,33 @@
                                                      loading="lazy"
                                                      class="size-full object-cover">
                                             @else
-                                                <div class="flex size-full items-center justify-center p-2 text-center text-xs font-bold text-text-muted">
-                                                    {{ $film->title }}
+                                                <div class="flex size-full items-center justify-center bg-surface-sunken">
+                                                    <svg class="size-8 text-text-muted/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+                                                    </svg>
                                                 </div>
                                             @endif
                                             <span class="absolute right-1.5 top-1.5 rounded bg-black/80 px-1.5 py-0.5 text-[9px] font-black text-amber-400 border border-amber-400/30">
                                                 {{ $film->age_rating }}
                                             </span>
+                                        </div>
+                                        <div class="mt-2 space-y-1">
+                                            <h3 class="line-clamp-2 text-xs font-bold text-text sm:text-sm">{{ $film->title }}</h3>
+                                            <p class="line-clamp-1 text-[11px] text-text-muted">{{ $film->genre }}, {{ $film->duration_minutes }}m</p>
 
-                                            {{-- Chip Peminat Film Calon --}}
-                                            <div class="absolute bottom-1.5 inset-x-1.5">
+                                            {{-- Chip Peminat Film Calon di baris teks di bawah poster, TIDAK menutupi poster --}}
+                                            <div class="pt-0.5">
                                                 @if ($tally > 0)
-                                                    <span class="inline-flex w-full items-center justify-center rounded bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-black text-black shadow">
-                                                        🔥 {{ $tally }} peminat
+                                                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                                                        <span class="size-1.5 rounded-full bg-amber-500"></span>
+                                                        <span>{{ $tally }} peminat</span>
                                                     </span>
                                                 @else
-                                                    <span class="inline-flex w-full items-center justify-center rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-slate-300">
-                                                        Belum ada peminat
+                                                    <span class="inline-flex items-center gap-1 text-[11px] font-medium text-text-muted">
+                                                        <span>Belum ada peminat</span>
                                                     </span>
                                                 @endif
                                             </div>
-                                        </div>
-                                        <div class="mt-2">
-                                            <h3 class="line-clamp-2 text-xs font-bold text-text sm:text-sm">{{ $film->title }}</h3>
-                                            <p class="mt-0.5 line-clamp-1 text-[11px] text-text-muted">{{ $film->genre }}, {{ $film->duration_minutes }}m</p>
                                         </div>
                                     </button>
 
@@ -896,10 +920,11 @@
                             @endforeach
                         </div>
 
-                        <p x-cloak x-show="filmOptions.length > 0 && filteredFilmCount === 0 && (filmSearch.trim() !== '' || genreFilter !== 'Semua')"
+                        <p x-cloak x-show="filmOptions.length > 0 && filteredFilmCount === 0 && (filmSearch.trim() !== '' || genre !== '' || tahun !== '')"
                            class="mt-4 rounded-xl border border-border bg-surface p-4 text-center text-xs text-text-muted">
-                            Film yang cocok belum ada. Coba kata kunci lain atau pilih kategori Semua.
+                            Film yang cocok belum ada. Coba kata kunci lain atau pilih Semua Genre.
                         </p>
+                    </div>
                     </div>
                 @endif
             </section>
@@ -909,13 +934,13 @@
                 <section x-show="step === 4" x-cloak class="mt-6 space-y-4">
                     <div class="flex items-start justify-between gap-3">
                         <div>
-                            <span class="text-xs font-bold uppercase tracking-wider text-amber-500">Concession Stand</span>
+                            <span class="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Jajanan Studio</span>
                             <h2 class="mt-0.5 text-lg font-black text-text">Mau pesan jajan?</h2>
                             <p class="mt-0.5 text-xs text-text-muted">Popcorn hangat, minuman dingin, dan snack lezat diantar ke kursi studio.</p>
                         </div>
                         <button type="button"
                                 @click="skipSnacks()"
-                                class="inline-flex min-h-10 items-center justify-center rounded-xl border border-border px-3.5 text-xs font-bold text-text-muted hover:border-amber-400 hover:text-amber-400">
+                                class="inline-flex min-h-10 items-center justify-center rounded-xl border border-border px-3.5 text-xs font-bold text-text-muted hover:border-amber-400 hover:text-amber-500">
                             Lewati jajan
                         </button>
                     </div>
@@ -926,7 +951,7 @@
                             <button type="button"
                                     @click="activeCategory = {{ $category['id'] }}"
                                     class="min-h-9 shrink-0 rounded-xl px-4 text-xs font-bold transition"
-                                    :class="activeCategory === {{ $category['id'] }} ? 'bg-amber-500 text-black shadow-xs' : 'border border-border-input bg-surface text-text hover:border-amber-400'">
+                                    :class="activeCategory === {{ $category['id'] }} ? 'badge-accent-solid' : 'border border-border-input bg-surface text-text hover:border-amber-400'">
                                 {{ $category['name'] }}
                             </button>
                         @endforeach
@@ -937,16 +962,18 @@
                         @foreach ($snackCategories as $category)
                             <div x-show="activeCategory === {{ $category['id'] }}" class="grid gap-3 sm:grid-cols-2">
                                 @forelse ($category['items'] as $item)
-                                    <div class="flex flex-col justify-between rounded-2xl border border-border bg-surface p-4 shadow-sm transition hover:border-amber-400/40">
+                                    <div class="flex flex-col justify-between rounded-xl border border-border bg-surface p-4 shadow-none transition hover:border-amber-400">
                                         <div class="flex items-start justify-between gap-2">
                                             <div>
                                                 <h3 class="text-sm font-black text-text">{{ $item['name'] }}</h3>
-                                                <p class="mt-1 font-tabular text-sm font-black text-amber-400">
+                                                <p class="mt-1 font-tabular text-sm font-black text-amber-700 dark:text-amber-400">
                                                     Rp {{ number_format($item['price'], 0, ',', '.') }}
                                                 </p>
                                             </div>
-                                            <span class="flex size-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
-                                                🍿
+                                            <span class="flex size-8 items-center justify-center rounded-lg bg-surface-2 text-text-muted">
+                                                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                                </svg>
                                             </span>
                                         </div>
 
@@ -1046,39 +1073,40 @@
                 </div>
 
                 {{-- Ringkasan Tagihan Final --}}
-                <div class="rounded-2xl border border-white/10 bg-gradient-to-br from-[#111726] to-[#0A0E18] p-5 shadow-md">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-amber-400">Rincian Pembayaran</h3>
-                    <dl class="mt-3 space-y-2 text-xs divide-y divide-white/5">
-                        <div class="flex justify-between py-1.5 text-slate-300">
+                <div class="rounded-xl border border-border bg-surface-2 dark:bg-[#0E131F] p-5">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-text">Rincian Pembayaran</h3>
+                    <dl class="mt-3 space-y-2 text-xs divide-y divide-border">
+                        <div class="flex justify-between py-1.5 text-text-muted">
                             <span>Paket (<span x-text="package === 'private' ? 'Sewa Studio Privat' : (package === 'couple' ? 'Paket Couple (2 Kursi)' : pax + ' Kursi Reguler')"></span>)</span>
-                            <span class="font-tabular font-bold text-white" x-text="`Rp ${new Intl.NumberFormat('id-ID').format(ticketTotal)}`"></span>
+                            <span class="font-tabular font-bold text-text" x-text="`Rp ${new Intl.NumberFormat('id-ID').format(ticketTotal)}`"></span>
                         </div>
-                        <div x-show="snackCount > 0" class="flex justify-between py-1.5 text-slate-300">
+                        <div x-show="snackCount > 0" class="flex justify-between py-1.5 text-text-muted">
                             <span>Pesanan Jajan (<span x-text="snackCount"></span> item)</span>
-                            <span class="font-tabular font-bold text-white" x-text="`Rp ${new Intl.NumberFormat('id-ID').format(snackTotal)}`"></span>
+                            <span class="font-tabular font-bold text-text" x-text="`Rp ${new Intl.NumberFormat('id-ID').format(snackTotal)}`"></span>
                         </div>
-                        <div x-show="promoDiscount > 0" class="flex justify-between py-1.5 text-emerald-400 font-bold">
+                        <div x-show="promoDiscount > 0" class="flex justify-between py-1.5 text-emerald-700 dark:text-emerald-400 font-bold">
                             <span>Diskon Voucher (<span x-text="promoApplied"></span>)</span>
                             <span class="font-tabular" x-text="`-Rp ${new Intl.NumberFormat('id-ID').format(promoDiscount)}`"></span>
                         </div>
-                        <div class="flex justify-between pt-3 text-base font-black text-white">
+                        <div class="flex justify-between pt-3 text-base font-black text-text">
                             <span>Total Tagihan</span>
-                            <span class="font-tabular text-amber-400" x-text="`Rp ${new Intl.NumberFormat('id-ID').format(grandTotal)}`"></span>
+                            <span class="font-tabular text-amber-700 dark:text-amber-400" x-text="`Rp ${new Intl.NumberFormat('id-ID').format(grandTotal)}`"></span>
                         </div>
                     </dl>
                 </div>
             </section>
 
             {{-- FIXED LIVE-UPDATE ACTION BAR DI BAWAH (MOBILE & DESKTOP) --}}
-            <div class="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 backdrop-blur-xl p-3.5 shadow-2xl"
+            <style>:root { --bottom-bar-h: 72px; }</style>
+            <div class="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface p-3.5 shadow-md"
                  style="padding-bottom: max(env(safe-area-inset-bottom), .85rem)">
                 <div class="mx-auto flex max-w-xl items-center justify-between gap-3">
                     <div>
                         <span class="text-[10px] font-bold uppercase tracking-wider text-text-muted">Total Pembayaran</span>
                         <div class="flex items-baseline gap-2">
-                            <span class="font-tabular text-lg sm:text-xl font-black text-amber-400"
+                            <span class="font-tabular text-lg sm:text-xl font-black text-amber-700 dark:text-amber-400"
                                   x-text="`Rp ${new Intl.NumberFormat('id-ID').format(grandTotal)}`"></span>
-                            <span x-show="promoDiscount > 0" class="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400">
+                            <span x-show="promoDiscount > 0" class="badge-success-soft rounded px-1.5 py-0.5 text-[10px] font-bold">
                                 Hemat Rp <span x-text="new Intl.NumberFormat('id-ID').format(promoDiscount)"></span>
                             </span>
                         </div>
@@ -1160,7 +1188,7 @@
                             <h3 class="mt-2 text-lg font-black text-text" x-text="filmDetail?.title"></h3>
                             <p class="text-xs text-text-muted" x-text="`${filmDetail?.genre} · ${filmDetail?.duration} Menit`"></p>
                         </div>
-                        <button type="button" @click="filmDetail = null" class="text-text-muted hover:text-text p-1">✕</button>
+                        <button type="button" @click="filmDetail = null" class="text-text-muted hover:text-text p-1 rounded-lg hover:bg-surface-2" aria-label="Tutup"><svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
                     </div>
                     <p class="mt-3 text-xs leading-relaxed text-text-muted" x-text="filmDetail?.synopsis || 'Sinopsis belum tersedia.'"></p>
                     <div class="mt-5 flex gap-2">

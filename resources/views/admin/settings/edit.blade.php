@@ -6,8 +6,8 @@
     <div x-data="{ activeTab: '{{ $currentTab ?? 'identitas' }}' }">
         <x-admin.page-header
             eyebrow="Konfigurasi Sistem"
-            title="Pengaturan Bioskop"
-            subtitle="Pengaturan Home Cinema: kelola identitas, logo, navbar, operasional, tarif tiket, FAQ, dan SEO tanpa mengubah kode."
+            title="Pengaturan Home Cinema"
+            subtitle="Pengaturan bioskop SynemaX: kelola identitas, logo, navbar, operasional, tarif tiket, FAQ, dan SEO tanpa mengubah kode."
         />
 
         {{-- Tab Navigation Bar --}}
@@ -168,7 +168,10 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <h2 class="text-base font-bold text-text">Daftar Menu Navigasi Publik</h2>
-                            <p class="text-xs text-text-muted">Atur urutan, ubah label teks, dan sembunyikan menu tertentu di navbar publik.</p>
+                            <p class="text-xs text-text-muted">Atur urutan, ubah label teks, posisi di HP (maksimal 4 item di Bar Bawah), dan sembunyikan menu tertentu di navbar publik.</p>
+                            @error('menu')
+                                <p class="mt-2 text-xs font-bold text-danger">{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
 
@@ -180,6 +183,7 @@
                                     <th>Menu / Halaman</th>
                                     <th>Label di Navbar</th>
                                     <th>Tautan Tujuan</th>
+                                    <th class="w-36">Tampil di HP</th>
                                     <th class="w-24 text-center">Tampilkan</th>
                                 </tr>
                             </thead>
@@ -204,6 +208,16 @@
                                             <input type="hidden" name="menu[{{ $idx }}][url]" value="{{ $item['url'] }}">
                                             <input type="hidden" name="menu[{{ $idx }}][route]" value="{{ $item['route'] ?? '' }}">
                                             {{ $item['url'] }}
+                                        </td>
+                                        <td>
+                                            <x-ui.select
+                                                name="menu[{{ $idx }}][mobile_position]"
+                                                :value="$item['mobile_position'] ?? 'menu'"
+                                                :options="[
+                                                    'bottom_bar' => 'Bar bawah',
+                                                    'menu' => 'Menu'
+                                                ]"
+                                            />
                                         </td>
                                         <td class="text-center">
                                             <x-form.switch
@@ -475,19 +489,17 @@
                                 <input id="qris_merchant_name" name="qris_merchant_name" type="text" value="{{ old('qris_merchant_name', $settings->qrisMerchantName()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm">
                             </div>
                             <div>
-                                <label for="qris_image" class="block text-xs font-bold uppercase tracking-wider text-text">File Gambar QRIS (PNG/JPG, maks 2 MB)</label>
-                                <input id="qris_image" name="qris_image" type="file" accept="image/png,image/jpeg,image/webp" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-amber-500 file:text-slate-950 file:font-bold">
-                                @if ($qrisRatioWarning)
-                                    <div class="mt-2 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-500">
-                                        <svg class="mt-0.5 size-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                        </svg>
-                                        <div>
-                                            <p class="font-bold">Perhatian Rasio Gambar QRIS</p>
-                                            <p class="mt-0.5 text-text">QRIS sebaiknya persegi dan rapi; pangkas bagian lain.</p>
-                                        </div>
-                                    </div>
-                                @endif
+                                <x-admin.image-upload
+                                    name="qris_image"
+                                    label="File Gambar QRIS"
+                                    hint="JPG/PNG maks 2 MB, sebaiknya persegi"
+                                    :currentValue="$hasQrisImage ? route('payment.qris') : null"
+                                    :recommendedWidth="500"
+                                    :recommendedHeight="500"
+                                    maxSizeMb="2"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    :libraryImages="$libraryImages"
+                                />
                             </div>
                         </div>
                     </div>
@@ -534,6 +546,53 @@
                             value="1"
                             :checked="old('snacks_enabled', $settings->integer('snacks_enabled', 1) === 1)"
                         />
+                    </div>
+                </div>
+
+                {{-- Pengaturan Cetak E-Tiket --}}
+                <div class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-4"
+                     x-data="{
+                        arriveMinutes: {{ Js::from(old('ticket_arrive_minutes', $settings->ticketArriveMinutes())) }},
+                        studioName: {{ Js::from(old('ticket_studio_name', $settings->ticketStudioName())) }},
+                        ticketNotes: {{ Js::from(old('ticket_notes', $settings->ticketNotes())) }}
+                     }">
+                    <div>
+                        <h2 class="text-base font-bold text-text">Pengaturan Cetak E-Tiket</h2>
+                        <p class="text-xs text-text-muted mt-0.5">Atur instruksi dan teks studio yang tercetak pada e-tiket penonton.</p>
+                    </div>
+
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="ticket_arrive_minutes" class="block text-xs font-bold uppercase tracking-wider text-text">Hadir Sebelum Mulai (Menit)</label>
+                            <input id="ticket_arrive_minutes" name="ticket_arrive_minutes" type="number" min="0" max="120" required x-model.number="arriveMinutes" class="mt-1.5 min-h-[44px] w-full rounded-xl border border-border-input bg-surface-2 px-3 text-sm text-text focus:border-amber-400 focus:outline-none">
+                            <p class="mt-1 text-[11px] text-text-muted">Misal 15 menit. Tercetak sebagai batas waktu kedatangan penonton.</p>
+                        </div>
+                        <div>
+                            <label for="ticket_studio_name" class="block text-xs font-bold uppercase tracking-wider text-text">Nama Studio Default</label>
+                            <input id="ticket_studio_name" name="ticket_studio_name" type="text" maxlength="50" required x-model="studioName" class="mt-1.5 min-h-[44px] w-full rounded-xl border border-border-input bg-surface-2 px-3 text-sm text-text focus:border-amber-400 focus:outline-none">
+                            <p class="mt-1 text-[11px] text-text-muted">Misal Studio 1 atau Studio Utama.</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="ticket_notes" class="block text-xs font-bold uppercase tracking-wider text-text">Catatan Tambahan di Tiket (Maks 160 Karakter)</label>
+                        <textarea id="ticket_notes" name="ticket_notes" maxlength="160" rows="2" x-model="ticketNotes" class="mt-1.5 w-full rounded-xl border border-border-input bg-surface-2 p-3 text-sm text-text focus:border-amber-400 focus:outline-none"></textarea>
+                    </div>
+
+                    {{-- Pratinjau Mini Tiket --}}
+                    <div class="pt-2 border-t border-border">
+                        <span class="block text-xs font-bold uppercase tracking-wider text-text mb-2">Pratinjau Langsung: Format Tiket</span>
+                        <div class="max-w-md rounded-xl border border-slate-200 bg-white text-slate-900 p-4 shadow-sm text-xs space-y-2">
+                            <div class="flex items-center justify-between pb-2 border-b border-dashed border-slate-200">
+                                <span class="font-bold text-slate-800" x-text="studioName || 'Studio 1'"></span>
+                                <span class="rounded bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">PASTI TAYANG</span>
+                            </div>
+                            <div class="space-y-1 text-slate-600">
+                                <p>Jadwal: <strong class="text-slate-900">19.00 WIB</strong></p>
+                                <p>Hadir: <strong class="text-slate-900" x-text="`Paling lambat ${arriveMinutes || 15} menit sebelum film diputar`"></strong></p>
+                                <p class="text-[11px] italic text-slate-500 pt-1" x-text="ticketNotes || 'Tunjukkan e-tiket ini kepada petugas di pintu masuk bioskop.'"></p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -631,44 +690,173 @@
                 @method('PUT')
                 <input type="hidden" name="_tab" value="kontak">
 
-                <div class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-5">
-                    <h2 class="text-base font-bold text-text">Informasi Kontak & Media Sosial</h2>
+                <div class="rounded-2xl border border-border bg-surface p-6 shadow-none space-y-6"
+                     x-data="{
+                        email: @js(old('contact_email', $settings->contactEmail())),
+                        address: @js(old('contact_address', $settings->contactAddress())),
+                        instagramUrl: @js(old('instagram_url', $settings->instagramUrl())),
+                        instagramLabel: @js(old('instagram_label', $settings->instagramLabel())),
+                        tiktokUrl: @js(old('tiktok_url', $settings->tiktokUrl())),
+                        tiktokLabel: @js(old('tiktok_label', $settings->tiktokLabel())),
+                        youtubeUrl: @js(old('youtube_url', $settings->youtubeUrl())),
+                        youtubeLabel: @js(old('youtube_label', $settings->youtubeLabel())),
+                        mapsUrl: @js(old('maps_url', $settings->mapsUrl())),
+                        mapsLabel: @js(old('maps_label', $settings->mapsLabel())),
+                        footerText: @js(old('footer_text', $settings->footerText())),
+
+                        autoHandle(platform) {
+                            if (platform === 'instagram' && this.instagramUrl && !this.instagramLabel) {
+                                try {
+                                    const p = new URL(this.instagramUrl).pathname.split('/').filter(Boolean)[0];
+                                    if (p) this.instagramLabel = '@' + p.replace(/^@/, '');
+                                } catch(e) {
+                                    const parts = this.instagramUrl.split('/').filter(Boolean);
+                                    if (parts.length > 0) this.instagramLabel = '@' + parts[parts.length - 1].replace(/^@/, '');
+                                }
+                            }
+                            if (platform === 'tiktok' && this.tiktokUrl && !this.tiktokLabel) {
+                                try {
+                                    const p = new URL(this.tiktokUrl).pathname.split('/').filter(Boolean)[0];
+                                    if (p) this.tiktokLabel = '@' + p.replace(/^@/, '');
+                                } catch(e) {
+                                    const parts = this.tiktokUrl.split('/').filter(Boolean);
+                                    if (parts.length > 0) this.tiktokLabel = '@' + parts[parts.length - 1].replace(/^@/, '');
+                                }
+                            }
+                            if (platform === 'youtube' && this.youtubeUrl && !this.youtubeLabel) {
+                                try {
+                                    const p = new URL(this.youtubeUrl).pathname.split('/').filter(Boolean)[0];
+                                    if (p) this.youtubeLabel = p.startsWith('@') ? p : 'SynemaX Cinema';
+                                } catch(e) {}
+                            }
+                            if (platform === 'maps' && this.mapsUrl && !this.mapsLabel) {
+                                this.mapsLabel = 'Lihat di Google Maps';
+                            }
+                        }
+                     }">
+                    <div>
+                        <h2 class="text-base font-bold text-text">Informasi Kontak & Media Sosial</h2>
+                        <p class="mt-0.5 text-xs text-text-muted">Kelola kontak bioskop dan tautan media sosial. Tautan publik hanya tampil bila URL diisi dan parameter pelacak dibersihkan otomatis.</p>
+                    </div>
 
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
                             <label for="contact_email" class="block text-xs font-bold uppercase tracking-wider text-text">Alamat Email</label>
-                            <input id="contact_email" name="contact_email" type="email" value="{{ old('contact_email', $settings->contactEmail()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm">
+                            <input id="contact_email" name="contact_email" type="email" x-model="email" class="mt-1.5 min-h-[44px] w-full rounded-xl border border-border-input bg-surface-2 px-3 text-sm text-text focus:border-amber-400 focus:outline-none">
                         </div>
                         <div>
-                            <label for="contact_maps_url" class="block text-xs font-bold uppercase tracking-wider text-text">Tautan Google Maps</label>
-                            <input id="contact_maps_url" name="contact_maps_url" type="url" value="{{ old('contact_maps_url', $settings->contactMapsUrl()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm">
+                            <label for="contact_address" class="block text-xs font-bold uppercase tracking-wider text-text">Alamat Bioskop Fisik</label>
+                            <input id="contact_address" name="contact_address" type="text" x-model="address" class="mt-1.5 min-h-[44px] w-full rounded-xl border border-border-input bg-surface-2 px-3 text-sm text-text focus:border-amber-400 focus:outline-none">
                         </div>
                     </div>
 
-                    <div>
-                        <label for="contact_address" class="block text-xs font-bold uppercase tracking-wider text-text">Alamat Bioskop Fisik</label>
-                        <textarea id="contact_address" name="contact_address" rows="2" class="mt-1.5 w-full rounded-xl border p-3 text-sm">{{ old('contact_address', $settings->contactAddress()) }}</textarea>
+                    {{-- Form Dua Kolom per Platform Media Sosial --}}
+                    <div class="pt-3 border-t border-border space-y-4">
+                        <span class="block text-xs font-bold uppercase tracking-wider text-text">Platform Media Sosial & Peta</span>
+
+                        {{-- Instagram --}}
+                        <div class="space-y-1 sm:space-y-0 sm:grid sm:grid-cols-12 sm:items-center sm:gap-3 rounded-xl border border-border bg-surface-2/40 p-3">
+                            <div class="sm:col-span-2">
+                                <span class="text-xs font-bold text-text">Instagram</span>
+                            </div>
+                            <div class="sm:col-span-4">
+                                <label for="instagram_label" class="sr-only">Nama Tampil Instagram</label>
+                                <input id="instagram_label" name="instagram_label" type="text" x-model="instagramLabel" maxlength="30" placeholder="Nama tampil (misal: @synemax)" class="min-h-11 w-full rounded-lg border border-border-input bg-surface px-3 text-xs text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none">
+                            </div>
+                            <div class="sm:col-span-6">
+                                <label for="instagram_url" class="sr-only">URL Instagram</label>
+                                <input id="instagram_url" name="instagram_url" type="url" x-model="instagramUrl" @blur="autoHandle('instagram')" placeholder="https://instagram.com/synemax" class="min-h-11 w-full rounded-lg border border-border-input bg-surface px-3 text-xs text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none">
+                            </div>
+                        </div>
+
+                        {{-- TikTok --}}
+                        <div class="space-y-1 sm:space-y-0 sm:grid sm:grid-cols-12 sm:items-center sm:gap-3 rounded-xl border border-border bg-surface-2/40 p-3">
+                            <div class="sm:col-span-2">
+                                <span class="text-xs font-bold text-text">TikTok</span>
+                            </div>
+                            <div class="sm:col-span-4">
+                                <label for="tiktok_label" class="sr-only">Nama Tampil TikTok</label>
+                                <input id="tiktok_label" name="tiktok_label" type="text" x-model="tiktokLabel" maxlength="30" placeholder="Nama tampil (misal: @synemax)" class="min-h-11 w-full rounded-lg border border-border-input bg-surface px-3 text-xs text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none">
+                            </div>
+                            <div class="sm:col-span-6">
+                                <label for="tiktok_url" class="sr-only">URL TikTok</label>
+                                <input id="tiktok_url" name="tiktok_url" type="url" x-model="tiktokUrl" @blur="autoHandle('tiktok')" placeholder="https://tiktok.com/@synemax" class="min-h-11 w-full rounded-lg border border-border-input bg-surface px-3 text-xs text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none">
+                            </div>
+                        </div>
+
+                        {{-- YouTube --}}
+                        <div class="space-y-1 sm:space-y-0 sm:grid sm:grid-cols-12 sm:items-center sm:gap-3 rounded-xl border border-border bg-surface-2/40 p-3">
+                            <div class="sm:col-span-2">
+                                <span class="text-xs font-bold text-text">YouTube</span>
+                            </div>
+                            <div class="sm:col-span-4">
+                                <label for="youtube_label" class="sr-only">Nama Tampil YouTube</label>
+                                <input id="youtube_label" name="youtube_label" type="text" x-model="youtubeLabel" maxlength="30" placeholder="Nama tampil (misal: SynemaX Cinema)" class="min-h-11 w-full rounded-lg border border-border-input bg-surface px-3 text-xs text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none">
+                            </div>
+                            <div class="sm:col-span-6">
+                                <label for="youtube_url" class="sr-only">URL YouTube</label>
+                                <input id="youtube_url" name="youtube_url" type="url" x-model="youtubeUrl" @blur="autoHandle('youtube')" placeholder="https://youtube.com/@synemax" class="min-h-11 w-full rounded-lg border border-border-input bg-surface px-3 text-xs text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none">
+                            </div>
+                        </div>
+
+                        {{-- Google Maps --}}
+                        <div class="space-y-1 sm:space-y-0 sm:grid sm:grid-cols-12 sm:items-center sm:gap-3 rounded-xl border border-border bg-surface-2/40 p-3">
+                            <div class="sm:col-span-2">
+                                <span class="text-xs font-bold text-text">Google Maps</span>
+                            </div>
+                            <div class="sm:col-span-4">
+                                <label for="maps_label" class="sr-only">Nama Tampil Maps</label>
+                                <input id="maps_label" name="maps_label" type="text" x-model="mapsLabel" maxlength="30" placeholder="Nama tampil (misal: Lihat di Google Maps)" class="min-h-11 w-full rounded-lg border border-border-input bg-surface px-3 text-xs text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none">
+                            </div>
+                            <div class="sm:col-span-6">
+                                <label for="maps_url" class="sr-only">URL Google Maps</label>
+                                <input id="maps_url" name="maps_url" type="url" x-model="mapsUrl" @blur="autoHandle('maps')" placeholder="https://maps.google.com/..." class="min-h-11 w-full rounded-lg border border-border-input bg-surface px-3 text-xs text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none">
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="grid gap-4 sm:grid-cols-3 pt-3 border-t border-border">
-                        <div>
-                            <label for="social_instagram" class="block text-xs font-bold uppercase tracking-wider text-text">Instagram</label>
-                            <input id="social_instagram" name="social_instagram" type="text" placeholder="@synemax.cinema" value="{{ old('social_instagram', $settings->socialInstagram()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm">
-                        </div>
-                        <div>
-                            <label for="social_tiktok" class="block text-xs font-bold uppercase tracking-wider text-text">TikTok</label>
-                            <input id="social_tiktok" name="social_tiktok" type="text" placeholder="@synemax" value="{{ old('social_tiktok', $settings->socialTiktok()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm">
-                        </div>
-                        <div>
-                            <label for="social_youtube" class="block text-xs font-bold uppercase tracking-wider text-text">YouTube</label>
-                            <input id="social_youtube" name="social_youtube" type="text" placeholder="SynemaX Official" value="{{ old('social_youtube', $settings->socialYoutube()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm">
+                    {{-- Pratinjau Langsung "Tampilan di footer" --}}
+                    <div class="pt-4 border-t border-border">
+                        <span class="block text-xs font-bold uppercase tracking-wider text-text mb-2">Pratinjau Langsung: Tampilan di Footer</span>
+                        <div class="rounded-xl border border-border bg-surface-2 p-4 text-xs space-y-2">
+                            <template x-if="email">
+                                <div class="flex items-center gap-2 text-text">
+                                    <span class="font-bold">Email:</span>
+                                    <span class="text-text-muted" x-text="email"></span>
+                                </div>
+                            </template>
+                            <template x-if="instagramUrl">
+                                <div class="flex items-center gap-2 text-text">
+                                    <span class="font-bold">Instagram:</span>
+                                    <span class="text-text-muted" x-text="instagramLabel || '@synemax'"></span>
+                                </div>
+                            </template>
+                            <template x-if="tiktokUrl">
+                                <div class="flex items-center gap-2 text-text">
+                                    <span class="font-bold">TikTok:</span>
+                                    <span class="text-text-muted" x-text="tiktokLabel || '@synemax'"></span>
+                                </div>
+                            </template>
+                            <template x-if="youtubeUrl">
+                                <div class="flex items-center gap-2 text-text">
+                                    <span class="font-bold">YouTube:</span>
+                                    <span class="text-text-muted" x-text="youtubeLabel || 'SynemaX Cinema'"></span>
+                                </div>
+                            </template>
+                            <template x-if="mapsUrl">
+                                <div class="flex items-center gap-2 text-text">
+                                    <span class="font-bold">Peta:</span>
+                                    <span class="text-text-muted" x-text="mapsLabel || 'Lihat di Google Maps'"></span>
+                                </div>
+                            </template>
                         </div>
                     </div>
 
                     <div class="pt-3 border-t border-border space-y-4">
                         <div>
                             <label for="footer_text" class="block text-xs font-bold uppercase tracking-wider text-text">Teks Hak Cipta Footer</label>
-                            <input id="footer_text" name="footer_text" type="text" value="{{ old('footer_text', $settings->footerText()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm">
+                            <input id="footer_text" name="footer_text" type="text" x-model="footerText" class="mt-1.5 min-h-[44px] w-full rounded-xl border border-border-input bg-surface-2 px-3 text-sm text-text focus:border-amber-400 focus:outline-none">
+                            <p class="mt-1 text-[11px] text-text-muted">Gunakan token <code>{tahun}</code> untuk menyisipkan tahun berjalan otomatis (contoh: <em>&copy; {tahun} SynemaX Cinema. Hak cipta dilindungi.</em>).</p>
                         </div>
                         <div class="flex items-center">
                             <x-form.switch
@@ -681,7 +869,7 @@
                 </div>
 
                 <div class="flex justify-end gap-3">
-                    <button type="submit" class="inline-flex min-h-[44px] items-center rounded-xl bg-amber-500 px-6 font-bold text-slate-950 shadow-sm hover:bg-amber-400">
+                    <button type="submit" class="btn-gold-cinema inline-flex min-h-[44px] items-center rounded-xl px-6 font-bold text-sm shadow-none">
                         Simpan Perubahan Kontak
                     </button>
                 </div>
@@ -722,7 +910,7 @@
             {{-- Operasi Lanjutan: Bersihkan Cache & Reset Defaults --}}
             <div class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-5">
                 <h2 class="text-base font-bold text-text">Operasi Pemeliharaan & Reset</h2>
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div class="rounded-xl border border-border p-4 bg-surface-2 space-y-2">
                         <h3 class="text-sm font-bold text-text">Bersihkan Cache Sistem</h3>
                         <p class="text-xs text-text-muted leading-relaxed">Gunakan jika perubahan pengaturan, gambar baru, atau tampilan navbar belum langsung terlihat di publik.</p>
@@ -732,6 +920,34 @@
                                 Bersihkan Cache Sekarang
                             </button>
                         </form>
+                    </div>
+
+                    {{-- Hapus Data Contoh --}}
+                    <div class="rounded-xl border border-amber-500/30 p-4 bg-amber-500/5 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-bold text-amber-600 dark:text-amber-400">Hapus Data Contoh</h3>
+                            <span class="rounded bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">{{ $sampleCounts['total'] ?? 0 }} item</span>
+                        </div>
+                        <p class="text-xs text-text-muted leading-relaxed">
+                            Hapus seluruh data contoh awal ({{ $sampleCounts['films'] ?? 0 }} film, {{ $sampleCounts['promos'] ?? 0 }} promo, {{ $sampleCounts['banners'] ?? 0 }} hero, {{ $sampleCounts['nobar'] ?? 0 }} nobar, {{ $sampleCounts['news'] ?? 0 }} kabar) sebelum merilis situs ke publik.
+                        </p>
+                        @if (($sampleCounts['total'] ?? 0) > 0)
+                            <form method="POST" action="{{ route('admin.settings.delete_sample') }}"
+                                  data-confirm="Hapus seluruh {{ $sampleCounts['total'] }} data contoh ({{ $sampleCounts['films'] }} film, {{ $sampleCounts['promos'] }} promo, {{ $sampleCounts['banners'] }} banner hero, {{ $sampleCounts['nobar'] }} nobar, {{ $sampleCounts['news'] }} kabar) beserta file gambarnya? Data booking dan pengaturan asli Anda tetap aman."
+                                  data-confirm-title="Hapus Seluruh Data Contoh"
+                                  data-confirm-action="Hapus Sekarang"
+                                  data-confirm-is-danger="true"
+                                  novalidate>
+                                @csrf
+                                <button type="submit" class="mt-2 inline-flex min-h-[38px] items-center rounded-xl bg-amber-600 px-4 text-xs font-bold text-white hover:bg-amber-500">
+                                    Hapus {{ $sampleCounts['total'] }} Data Contoh
+                                </button>
+                            </form>
+                        @else
+                            <button type="button" disabled class="mt-2 inline-flex min-h-[38px] items-center rounded-xl border border-border bg-surface-2 px-4 text-xs font-semibold text-text-muted cursor-not-allowed">
+                                Tidak ada data contoh
+                            </button>
+                        @endif
                     </div>
 
                     <div class="rounded-xl border border-danger/30 p-4 bg-danger-surface space-y-2">

@@ -73,9 +73,9 @@
                             />
                         </div>
                         <div>
-                            <label for="slug" class="text-sm font-semibold">Slug URL (opsional, otomatis dibuat)</label>
+                            <label for="slug" class="text-sm font-semibold">Alamat Halaman (URL, otomatis dibuat jika kosong)</label>
                             <input id="slug" name="slug" value="{{ old('slug', $article->slug) }}" placeholder="jadwal-spesial-akhir-pekan" class="mt-1.5 min-h-12 w-full rounded-xl border border-border bg-bg px-3.5 font-mono text-sm text-text">
-                            <p class="mt-1 text-[11px] text-text-muted">Biarkan kosong agar sistem membuat slug otomatis dari judul.</p>
+                            <p class="mt-1 text-[11px] text-text-muted">Biarkan kosong agar sistem membuat alamat halaman otomatis dari judul.</p>
                         </div>
                     </div>
 
@@ -168,8 +168,8 @@
                                 :required="true"
                                 :value="old('status_publikasi', $article->status_publikasi ?: 'terbit')"
                                 :options="[
-                                    'terbit' => 'Terbit (Publik)',
-                                    'draft' => 'Draft (Hanya Admin)',
+                                    'terbit' => 'Tampil di situs (Publik)',
+                                    'draft' => 'Disembunyikan (Hanya Admin)',
                                 ]"
                             />
                         </div>

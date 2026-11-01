@@ -71,17 +71,17 @@
             {{-- Daftar Kartu Artikel --}}
             <div class="mt-6">
                 @if ($articles->isEmpty())
-                    <div class="rounded-3xl border border-dashed border-border dark:border-white/15 bg-surface-2/60 dark:bg-surface/40 p-12 text-center backdrop-blur-sm">
-                        <span class="inline-flex size-14 items-center justify-center rounded-2xl bg-amber-500/10 text-2xl text-amber-500 dark:text-amber-400 mb-3">
-                            📰
+                    <div class="rounded-xl border border-dashed border-border bg-surface-2/60 p-12 text-center">
+                        <span class="inline-flex size-14 items-center justify-center rounded-lg bg-surface border border-border text-amber-500 dark:text-amber-400 mb-3">
+                            <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z"/></svg>
                         </span>
-                        <h2 class="text-base font-black text-text">Belum ada artikel</h2>
+                        <h2 class="text-base font-bold text-text">Belum ada artikel</h2>
                         <p class="mt-1 text-xs text-text-muted max-w-md mx-auto">Kabar untuk kategori ini belum tersedia. Silakan cek kembali nanti.</p>
                     </div>
                 @else
                     <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         @foreach ($articles as $item)
-                            <article class="flex flex-col justify-between rounded-3xl border border-border dark:border-white/10 bg-surface dark:bg-gradient-to-b dark:from-surface dark:via-[#0B0F19] dark:to-surface p-4 sm:p-5 shadow-xl transition-all duration-300 hover:border-amber-400/50 hover:-translate-y-1 group">
+                            <article class="flex flex-col justify-between rounded-xl border border-border bg-surface p-4 sm:p-5 transition-all duration-200 hover:border-amber-400/50 group">
                                 <div>
                                     @if ($item->cover_path)
                                         <div class="relative mb-4">
@@ -186,12 +186,13 @@
                     </section>
 
                     {{-- Paket Sewa Studio Privat 6 Kursi --}}
-                    <section class="rounded-3xl border border-amber-400/30 bg-gradient-to-br from-amber-500/10 via-surface to-surface dark:from-amber-500/10 dark:via-[#0E131F] dark:to-[#07090E] p-6 sm:p-7 shadow-xl flex flex-col justify-between">
+                    <section class="rounded-xl border border-amber-500/30 bg-surface p-6 sm:p-7 flex flex-col justify-between">
                         <div>
                             <div class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
-                                <span>👑 Eksklusif Rombongan</span>
+                                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.504-1.125-1.125-1.125h-.871a2.25 2.25 0 00-1.591.659l-.439.44a.75.75 0 01-1.06 0l-.44-.44a2.25 2.25 0 00-1.59-.659h-.872c-.621 0-1.125.504-1.125 1.125V18.75m12 0a2.25 2.25 0 002.25-2.25V8.25A2.25 2.25 0 0018 6H6a2.25 2.25 0 00-2.25 2.25v8.25A2.25 2.25 0 006 18.75m12 0H6"/></svg>
+                                <span>Eksklusif Rombongan</span>
                             </div>
-                            <h2 class="mt-1.5 text-xl font-black text-text">Sewa studio privat (6 kursi)</h2>
+                            <h2 class="mt-1.5 text-xl font-bold text-text">Sewa studio privat (6 kursi)</h2>
                             <p class="mt-1 text-xs text-text-muted">Kunci seluruh 6 kursi khusus rombongan keluarga atau sahabat tanpa ada penonton lain.</p>
 
                             <div class="mt-5 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">

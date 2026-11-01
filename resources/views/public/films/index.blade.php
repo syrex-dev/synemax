@@ -29,52 +29,30 @@
         </div>
     </div>
 
-    {{-- Interactive Alpine Filter Section --}}
+    {{-- Interactive Film Filter & Search Section --}}
     <section
         x-data="{
-            genre: new URLSearchParams(window.location.search).get('genre') || '{{ $selectedGenre }}' || '',
-            tahun: new URLSearchParams(window.location.search).get('tahun') || '{{ $selectedYear }}' || '',
-            search: new URLSearchParams(window.location.search).get('q') || '{{ $searchQuery }}' || '',
-            allFilms: {{ Js::from($films->map(fn($f) => [
-                'id' => $f->id,
-                'title' => $f->title,
-                'slug' => $f->slug,
-                'genre' => $f->genre,
-                'release_year' => $f->release_year ?: ($f->release_date ? $f->release_date->format('Y') : null),
-                'duration_minutes' => $f->duration_minutes,
-                'age_rating' => $f->age_rating,
-                'poster_url' => $f->posterUrl(),
-                'url' => route('films.show', $f->slug ?: $f->id),
-            ])) }},
-            get filteredFilms() {
-                return this.allFilms.filter(f => {
-                    const matchGenre = !this.genre || (f.genre && f.genre.toLowerCase().split(',').map(s => s.trim()).includes(this.genre.toLowerCase()));
-                    const matchTahun = !this.tahun || String(f.release_year) === String(this.tahun);
-                    const matchSearch = !this.search || (f.title && f.title.toLowerCase().includes(this.search.toLowerCase()));
-                    return matchGenre && matchTahun && matchSearch;
-                });
-            },
-            updateUrl() {
-                const url = new URL(window.location);
-                if (this.genre) url.searchParams.set('genre', this.genre); else url.searchParams.delete('genre');
-                if (this.tahun) url.searchParams.set('tahun', this.tahun); else url.searchParams.delete('tahun');
-                if (this.search) url.searchParams.set('q', this.search); else url.searchParams.delete('q');
-                window.history.replaceState({}, '', url);
-            },
+            genre: '{{ $selectedGenre }}',
+            tahun: '{{ $selectedYear }}',
+            search: '{{ $searchQuery }}',
             setFilter(g, y) {
-                if (g !== undefined) this.genre = g;
-                if (y !== undefined) this.tahun = y;
-                this.updateUrl();
+                const url = new URL(window.location.origin + window.location.pathname);
+                const targetGenre = g !== undefined ? g : this.genre;
+                const targetTahun = y !== undefined ? y : this.tahun;
+                if (targetGenre) url.searchParams.set('genre', targetGenre);
+                if (targetTahun) url.searchParams.set('tahun', targetTahun);
+                if (this.search) url.searchParams.set('cari', this.search);
+                window.location.href = url.toString();
             },
             setSearch(s) {
-                this.search = s;
-                this.updateUrl();
+                const url = new URL(window.location.origin + window.location.pathname);
+                if (this.genre) url.searchParams.set('genre', this.genre);
+                if (this.tahun) url.searchParams.set('tahun', this.tahun);
+                if (s) url.searchParams.set('cari', s);
+                window.location.href = url.toString();
             },
             resetFilters() {
-                this.genre = '';
-                this.tahun = '';
-                this.search = '';
-                this.updateUrl();
+                window.location.href = '{{ route('films.index') }}';
             },
             resetFilter() {
                 this.resetFilters();
@@ -82,15 +60,21 @@
         }"
         class="space-y-6"
     >
-        {{-- Search Input Bar --}}
-        <div class="relative w-full">
+        {{-- Search Input Form --}}
+        <form action="{{ route('films.index') }}" method="GET" class="relative w-full">
+            @if ($selectedGenre)
+                <input type="hidden" name="genre" value="{{ $selectedGenre }}">
+            @endif
+            @if ($selectedYear)
+                <input type="hidden" name="tahun" value="{{ $selectedYear }}">
+            @endif
             <svg class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
                 type="text"
+                name="cari"
                 x-model="search"
-                @input.debounce.300ms="updateUrl()"
                 placeholder="Cari judul film favoritmu..."
                 aria-label="Cari judul film"
                 class="w-full rounded-2xl border border-slate-300 dark:border-white/10 bg-surface pl-10 pr-10 py-2.5 text-xs sm:text-sm font-medium text-text placeholder:text-text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500 shadow-sm"
@@ -105,83 +89,99 @@
             >
                 <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
-        </div>
+        </form>
 
-        {{-- Unified Accessible Film Filter Bar (Chip Scroll with desktop arrows + Custom Accessible Year Dropdown) --}}
+        {{-- Unified Accessible Film Filter Bar --}}
         <x-public.film-filter-bar :genres="$genres" :years="$years" />
 
-        {{-- Results Counter & Empty State --}}
+        {{-- Results Counter --}}
         <div class="flex items-center justify-between text-xs font-semibold text-text-muted px-1">
-            <span>Menampilkan <strong class="text-text" x-text="filteredFilms.length"></strong> film</span>
+            <span>Menampilkan <strong class="text-text">{{ $films->total() }}</strong> film</span>
+            @if ($films->hasPages())
+                <span>Halaman <strong class="text-text">{{ $films->currentPage() }}</strong> dari <strong class="text-text">{{ $films->lastPage() }}</strong></span>
+            @endif
         </div>
 
-        {{-- Film Grid (Poster 2:3 Ratio with Single Age Rating Badge) --}}
+        {{-- Film Grid (Server-Rendered 24 items per page) --}}
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
-            <template x-for="film in filteredFilms" :key="film.id">
+            @forelse ($films as $film)
                 <a
-                    :href="film.url"
+                    href="{{ route('films.show', $film->slug ?: $film->id) }}"
                     class="group relative flex flex-col rounded-2xl overflow-hidden border border-slate-300 dark:border-white/10 bg-surface dark:bg-[#0B101B] shadow-sm hover:shadow-xl hover:border-amber-500 transition-all duration-200"
                 >
                     {{-- Poster Image 2:3 with single Age Rating Badge --}}
                     <div class="relative w-full aspect-[2/3] overflow-hidden bg-slate-900">
-                        <template x-if="film.poster_url">
+                        @if ($film->posterUrl())
                             <img
-                                :src="film.poster_url"
-                                :alt="film.title"
+                                src="{{ $film->posterUrl() }}"
+                                alt="{{ $film->title }}"
                                 loading="lazy"
                                 class="size-full object-cover transition-transform duration-300 group-hover:scale-105"
                             >
-                        </template>
-
-                        {{-- Fallback Gradient Poster When Poster is Null --}}
-                        <template x-if="!film.poster_url">
+                        @else
+                            {{-- Fallback Gradient Poster When Poster is Null --}}
                             <div class="flex size-full flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-amber-950/40 p-3 text-center">
                                 <svg class="size-8 text-amber-500/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
                                 </svg>
-                                <span class="mt-2 text-xs font-black text-amber-200/80 line-clamp-2" x-text="film.title"></span>
+                                <span class="mt-2 text-xs font-black text-amber-200/80 line-clamp-2">{{ $film->title }}</span>
                             </div>
-                        </template>
+                        @endif
 
                         {{-- Single Clean Age Rating Badge (Top-Right) --}}
-                        <template x-if="film.age_rating">
-                            <span class="absolute top-2 right-2 rounded-md bg-black/75 px-1.5 py-0.5 text-[10px] font-black uppercase text-amber-400 backdrop-blur-md border border-white/15" x-text="film.age_rating"></span>
-                        </template>
+                        @if ($film->age_rating)
+                            <span class="absolute top-2 right-2 rounded-md bg-black/75 px-1.5 py-0.5 text-[10px] font-black uppercase text-amber-400 backdrop-blur-md border border-white/15">
+                                {{ $film->age_rating }}
+                            </span>
+                        @endif
                     </div>
 
                     {{-- Title, Genre & Year Details --}}
                     <div class="flex flex-1 flex-col p-3 sm:p-3.5">
-                        <h3 class="text-xs sm:text-sm font-black text-text line-clamp-1 group-hover:text-amber-500 transition" x-text="film.title"></h3>
+                        <h3 class="text-xs sm:text-sm font-black text-text line-clamp-1 group-hover:text-amber-500 transition">{{ $film->title }}</h3>
                         <div class="mt-1 flex items-center justify-between gap-1 text-[11px] font-semibold text-text-muted">
-                            <span class="truncate" x-text="film.genre || 'Film'"></span>
-                            <span x-show="film.release_year" class="shrink-0" x-text="film.release_year"></span>
+                            <span class="truncate">{{ $film->genre ?: 'Film' }}</span>
+                            @if ($film->release_year)
+                                <span class="shrink-0">{{ $film->release_year }}</span>
+                            @endif
                         </div>
-                        <template x-if="film.duration_minutes">
+                        @if ($film->duration_minutes)
                             <div class="mt-2 pt-2 border-t border-slate-200 dark:border-white/5 flex items-center gap-1 text-[10px] text-text-subtle">
                                 <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                <span x-text="film.duration_minutes + ' menit'"></span>
+                                <span>{{ $film->duration_minutes }} menit</span>
                             </div>
-                        </template>
+                        @endif
                     </div>
                 </a>
-            </template>
+            @empty
+                {{-- Empty State --}}
+                <div class="col-span-full rounded-2xl border border-dashed border-slate-300 dark:border-white/15 bg-surface dark:bg-[#0B101B] p-12 text-center">
+                    <svg class="mx-auto size-12 text-text-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                    </svg>
+                    <h3 class="mt-3 text-base font-bold text-text">Belum ada film untuk filter ini</h3>
+                    <p class="mt-1 text-xs text-text-muted">Coba ubah kata kunci pencarian, genre, atau tahun rilis.</p>
+                    <a
+                        href="{{ route('films.index') }}"
+                        class="mt-4 inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2 text-xs font-bold transition shadow-xs"
+                    >
+                        Reset Semua Filter
+                    </a>
+                </div>
+            @endforelse
         </div>
 
-        {{-- Empty State --}}
-        <div x-show="filteredFilms.length === 0" class="rounded-2xl border border-dashed border-slate-300 dark:border-white/15 bg-surface dark:bg-[#0B101B] p-12 text-center">
-            <svg class="mx-auto size-12 text-text-subtle" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-            </svg>
-            <h3 class="mt-3 text-base font-bold text-text">Belum ada film untuk filter ini</h3>
-            <p class="mt-1 text-xs text-text-muted">Coba ubah kata kunci pencarian, genre, atau tahun rilis.</p>
-            <button
-                type="button"
-                @click="resetFilters()"
-                class="mt-4 inline-flex items-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2 text-xs font-bold transition shadow-xs"
-            >
-                Reset Semua Filter
-            </button>
-        </div>
+        {{-- Server Pagination Links --}}
+        @if ($films->hasPages())
+            <div class="mt-8 pt-4 border-t border-slate-200 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <span class="text-xs font-semibold text-text-muted">
+                    Menampilkan {{ $films->firstItem() }}–{{ $films->lastItem() }} dari {{ $films->total() }} film
+                </span>
+                <div class="flex items-center gap-2">
+                    {{ $films->links() }}
+                </div>
+            </div>
+        @endif
     </section>
 </div>
 @endsection

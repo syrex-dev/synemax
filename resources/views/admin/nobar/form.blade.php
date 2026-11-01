@@ -67,7 +67,7 @@
                             <input id="kompetisi" name="kompetisi" value="{{ old('kompetisi', $event->kompetisi) }}" placeholder="Contoh: Liga Akhir Pekan, Turnamen Komunitas" class="mt-1.5 min-h-12 w-full rounded-xl border border-border bg-bg px-3.5 text-sm text-text">
                         </div>
                         <div>
-                            <label for="slug" class="text-sm font-semibold">Slug URL (opsional, otomatis dibuat)</label>
+                            <label for="slug" class="text-sm font-semibold">Alamat Halaman (URL, otomatis dibuat jika kosong)</label>
                             <input id="slug" name="slug" value="{{ old('slug', $event->slug) }}" placeholder="nobar-tim-biru-vs-merah" class="mt-1.5 min-h-12 w-full rounded-xl border border-border bg-bg px-3.5 font-mono text-sm text-text">
                         </div>
                     </div>
@@ -232,8 +232,8 @@
                             label="Status Publikasi"
                             :value="old('status_publikasi', $event->status_publikasi)"
                             :options="[
-                                'terbit' => 'Terbit (Tampil ke Publik)',
-                                'draft' => 'Draft (Disimpan Privat)',
+                                'terbit' => 'Tampil di situs (Publik)',
+                                'draft' => 'Disembunyikan (Draft)',
                             ]"
                         />
                     </div>

@@ -105,6 +105,7 @@
 
 :root {
     color-scheme: light;
+    --bottom-bar-h: 0px;
     /* Kanvas & Permukaan Bioskop Terang (Luxury Champagne / Warm Slate) */
     --surface-canvas: #F8FAFC;
     --surface-default: #FFFFFF;
@@ -170,6 +171,46 @@
     --focus-ring: #D97706;
     --overlay: rgba(15, 23, 42, 0.75);
     --shadow-panel-token: 0 10px 30px -5px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+
+    /* Semantic Color Tokens (Bagian 3) */
+    --token-accent-solid-bg: #F59E0B;
+    --token-accent-solid-text: #1C1917;
+    --token-accent-soft-bg: #FEF3C7;
+    --token-accent-soft-text: #78350F;
+    --token-accent-soft-border: #FCD34D;
+
+    --token-success-solid-bg: #15803D;
+    --token-success-solid-text: #FFFFFF;
+    --token-success-soft-bg: #DCFCE7;
+    --token-success-soft-text: #14532D;
+    --token-success-soft-border: #86EFAC;
+
+    --token-warning-solid-bg: #D97706;
+    --token-warning-solid-text: #FFFFFF;
+    --token-warning-soft-bg: #FEF3C7;
+    --token-warning-soft-text: #78350F;
+    --token-warning-soft-border: #FCD34D;
+
+    --token-danger-solid-bg: #B91C1C;
+    --token-danger-solid-text: #FFFFFF;
+    --token-danger-soft-bg: #FEE2E2;
+    --token-danger-soft-text: #7F1D1D;
+    --token-danger-soft-border: #FCA5A5;
+
+    --token-info-solid-bg: #0369A1;
+    --token-info-solid-text: #FFFFFF;
+    --token-info-soft-bg: #DBEAFE;
+    --token-info-soft-text: #1E3A8A;
+    --token-info-soft-border: #93C5FD;
+
+    --token-neutral-solid-bg: #334155;
+    --token-neutral-solid-text: #FFFFFF;
+    --token-neutral-soft-bg: #F1F5F9;
+    --token-neutral-soft-text: #334155;
+    --token-neutral-soft-border: #CBD5E1;
+
+    --token-progress-track: #E2E8F0;
+    --token-progress-fill: #F59E0B;
 }
 
 :root.dark {
@@ -241,6 +282,127 @@
     --focus-ring: #D4AF37;
     --overlay: rgba(3, 4, 7, 0.88);
     --shadow-panel-token: 0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 35px -5px rgba(212, 175, 55, 0.12);
+
+    /* Semantic Color Tokens (Bagian 3) */
+    --token-accent-solid-bg: #F59E0B;
+    --token-accent-solid-text: #0F172A;
+    --token-accent-soft-bg: #261B06;
+    --token-accent-soft-text: #FDE68A;
+    --token-accent-soft-border: #78350F;
+
+    --token-success-solid-bg: #16A34A;
+    --token-success-solid-text: #FFFFFF;
+    --token-success-soft-bg: #052E16;
+    --token-success-soft-text: #86EFAC;
+    --token-success-soft-border: #15803D;
+
+    --token-warning-solid-bg: #F59E0B;
+    --token-warning-solid-text: #0F172A;
+    --token-warning-soft-bg: #261B06;
+    --token-warning-soft-text: #FDE68A;
+    --token-warning-soft-border: #78350F;
+
+    --token-danger-solid-bg: #DC2626;
+    --token-danger-solid-text: #FFFFFF;
+    --token-danger-soft-bg: #450A0A;
+    --token-danger-soft-text: #FCA5A5;
+    --token-danger-soft-border: #991B1B;
+
+    --token-info-solid-bg: #0284C7;
+    --token-info-solid-text: #FFFFFF;
+    --token-info-soft-bg: #082F49;
+    --token-info-soft-text: #7DD3FC;
+    --token-info-soft-border: #0369A1;
+
+    --token-neutral-solid-bg: #475569;
+    --token-neutral-solid-text: #FFFFFF;
+    --token-neutral-soft-bg: #1E293B;
+    --token-neutral-soft-text: #CBD5E1;
+    --token-neutral-soft-border: #334155;
+
+    --token-progress-track: #1E293B;
+    --token-progress-fill: #F59E0B;
+}
+
+html {
+    background-color: var(--surface-canvas);
+    color-scheme: light;
+}
+
+html {
+    background-color: var(--surface-canvas);
+    color-scheme: light;
+}
+
+html.dark {
+    background-color: var(--surface-canvas);
+    color-scheme: dark;
+}
+
+body {
+    background-color: var(--surface-canvas);
+}
+
+/* Utility Badges & Indicators dari Token Semantik (Bagian 3) */
+.badge-accent-solid {
+    background-color: var(--token-accent-solid-bg);
+    color: var(--token-accent-solid-text);
+}
+.badge-accent-soft {
+    background-color: var(--token-accent-soft-bg);
+    color: var(--token-accent-soft-text);
+    border: 1px solid var(--token-accent-soft-border);
+}
+.badge-success-solid {
+    background-color: var(--token-success-solid-bg);
+    color: var(--token-success-solid-text);
+}
+.badge-success-soft {
+    background-color: var(--token-success-soft-bg);
+    color: var(--token-success-soft-text);
+    border: 1px solid var(--token-success-soft-border);
+}
+.badge-warning-solid {
+    background-color: var(--token-warning-solid-bg);
+    color: var(--token-warning-solid-text);
+}
+.badge-warning-soft {
+    background-color: var(--token-warning-soft-bg);
+    color: var(--token-warning-soft-text);
+    border: 1px solid var(--token-warning-soft-border);
+}
+.badge-danger-solid {
+    background-color: var(--token-danger-solid-bg);
+    color: var(--token-danger-solid-text);
+}
+.badge-danger-soft {
+    background-color: var(--token-danger-soft-bg);
+    color: var(--token-danger-soft-text);
+    border: 1px solid var(--token-danger-soft-border);
+}
+.badge-info-solid {
+    background-color: var(--token-info-solid-bg);
+    color: var(--token-info-solid-text);
+}
+.badge-info-soft {
+    background-color: var(--token-info-soft-bg);
+    color: var(--token-info-soft-text);
+    border: 1px solid var(--token-info-soft-border);
+}
+.badge-neutral-solid {
+    background-color: var(--token-neutral-solid-bg);
+    color: var(--token-neutral-solid-text);
+}
+.badge-neutral-soft {
+    background-color: var(--token-neutral-soft-bg);
+    color: var(--token-neutral-soft-text);
+    border: 1px solid var(--token-neutral-soft-border);
+}
+.progress-track {
+    background-color: var(--token-progress-track);
+}
+.progress-fill {
+    background-color: var(--token-progress-fill);
 }
 
 html {

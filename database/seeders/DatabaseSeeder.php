@@ -15,6 +15,7 @@ use App\Support\ImagePlaceholderGenerator;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -388,7 +389,16 @@ class DatabaseSeeder extends Seeder
     private function seedAdmin(): void
     {
         $email = (string) env('ADMIN_EMAIL', 'admin@synemax.com');
-        $password = (string) env('ADMIN_PASSWORD', 'PasswordAdmin123');
+        $envPassword = env('ADMIN_PASSWORD');
+
+        if ($envPassword !== null && $envPassword !== '') {
+            $password = (string) $envPassword;
+        } else {
+            $password = Str::random(16);
+            if ($this->command) {
+                $this->command->warn("PERINGATAN KEAMANAN: ADMIN_PASSWORD tidak disetel di .env. Dibuat password acak satu kali: {$password}");
+            }
+        }
 
         User::updateOrCreate(
             ['email' => $email],

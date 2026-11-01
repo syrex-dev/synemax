@@ -14,22 +14,30 @@ class PromoController extends Controller
     public function index(Request $request): View
     {
         $status = $request->query('status');
+        $showTrash = $request->boolean('trash') || $status === 'trash';
 
         $query = Promo::query();
 
-        if ($status === 'aktif') {
-            $query->current();
+        if ($showTrash) {
+            $query->onlyTrashed()->where('deleted_at', '>=', now()->subDays(30))->latest('deleted_at');
+        } elseif ($status === 'aktif') {
+            $query->current()->ordered();
         } elseif ($status === 'berakhir') {
-            $query->whereNotNull('end_date')->where('end_date', '<', now()->toDateString());
+            $query->whereNotNull('end_date')->where('end_date', '<', now()->toDateString())->ordered();
         } elseif ($status === 'draft') {
-            $query->where('is_active', false);
+            $query->where('is_active', false)->ordered();
+        } else {
+            $query->ordered();
         }
 
-        $promos = $query->ordered()->paginate(15)->withQueryString();
+        $promos = $query->paginate(15)->withQueryString();
+        $trashedCount = Promo::onlyTrashed()->where('deleted_at', '>=', now()->subDays(30))->count();
 
         return view('admin.promos.index', [
             'promos' => $promos,
             'currentStatus' => $status,
+            'showTrash' => $showTrash,
+            'trashedCount' => $trashedCount,
         ]);
     }
 
@@ -123,9 +131,22 @@ class PromoController extends Controller
 
     public function destroy(Promo $promo): RedirectResponse
     {
+        $promoId = $promo->id;
+        $title = $promo->title;
         $promo->delete();
 
-        return redirect()->route('admin.promos.index')->with('status', 'Promo berhasil dihapus.');
+        return redirect()->route('admin.promos.index')
+            ->with('status', 'Promo "'.$title.'" berhasil dihapus.')
+            ->with('undo_route', route('admin.promos.restore', $promoId));
+    }
+
+    public function restore(int $id): RedirectResponse
+    {
+        $promo = Promo::withTrashed()->findOrFail($id);
+        $promo->restore();
+
+        return redirect()->route('admin.promos.index')
+            ->with('status', 'Promo "'.$promo->title.'" berhasil dipulihkan.');
     }
 
     public function toggleStatus(Promo $promo): RedirectResponse

@@ -16,28 +16,36 @@ class NewsController extends Controller
     {
         $kategori = $request->query('kategori');
         $status = $request->query('status');
+        $showTrash = $request->boolean('trash') || $status === 'trash';
 
         $query = NewsArticle::query();
 
-        if (in_array($kategori, ['Berita', 'Pengumuman'], true)) {
-            $query->where('kategori', $kategori);
+        if ($showTrash) {
+            $query->onlyTrashed()->where('deleted_at', '>=', now()->subDays(30))->latest('deleted_at');
+        } else {
+            if (in_array($kategori, ['Berita', 'Pengumuman'], true)) {
+                $query->where('kategori', $kategori);
+            }
+
+            if ($status === 'draft') {
+                $query->where('status_publikasi', 'draft');
+            } elseif ($status === 'terbit') {
+                $query->where('status_publikasi', 'terbit');
+            }
+
+            $query->orderByDesc('is_pinned')
+                ->orderByRaw('COALESCE(tanggal_terbit, created_at) DESC');
         }
 
-        if ($status === 'draft') {
-            $query->where('status_publikasi', 'draft');
-        } elseif ($status === 'terbit') {
-            $query->where('status_publikasi', 'terbit');
-        }
-
-        $articles = $query->orderByDesc('is_pinned')
-            ->orderByRaw('COALESCE(tanggal_terbit, created_at) DESC')
-            ->paginate(15)
-            ->withQueryString();
+        $articles = $query->paginate(15)->withQueryString();
+        $trashedCount = NewsArticle::onlyTrashed()->where('deleted_at', '>=', now()->subDays(30))->count();
 
         return view('admin.articles.index', [
             'articles' => $articles,
             'currentCategory' => $kategori,
             'currentStatus' => $status,
+            'showTrash' => $showTrash,
+            'trashedCount' => $trashedCount,
         ]);
     }
 
@@ -93,13 +101,24 @@ class NewsController extends Controller
             ->with('status', 'Artikel "'.$article->judul.'" berhasil diperbarui.');
     }
 
-    public function destroy(NewsArticle $article, MediaUploadService $media): RedirectResponse
+    public function destroy(NewsArticle $article): RedirectResponse
     {
-        $media->deleteImage($article->cover_path);
+        $articleId = $article->id;
+        $title = $article->judul;
         $article->delete();
 
         return redirect()->route('admin.articles.index')
-            ->with('status', 'Artikel berhasil dihapus.');
+            ->with('status', 'Artikel "'.$title.'" berhasil dihapus.')
+            ->with('undo_route', route('admin.articles.restore', $articleId));
+    }
+
+    public function restore(int $id): RedirectResponse
+    {
+        $article = NewsArticle::withTrashed()->findOrFail($id);
+        $article->restore();
+
+        return redirect()->route('admin.articles.index')
+            ->with('status', 'Artikel "'.$article->judul.'" berhasil dipulihkan.');
     }
 
     /**

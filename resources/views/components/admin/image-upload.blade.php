@@ -62,7 +62,11 @@
                         const ratioDiff = Math.abs(actualRatio - expectedRatio) / expectedRatio;
 
                         if (ratioDiff > 0.05) {
-                            this.clientError = `Rasio gambar ${actualW}×${actualH} berbeda dari rekomendasi {{ $recommendedWidth }}×{{ $recommendedHeight }} px. Gambar mungkin terpotong.`;
+                            @if ($recommendedWidth === $recommendedHeight)
+                                this.clientError = `Rasio gambar ${actualW}×${actualH} tidak persegi. Gambar QRIS sebaiknya persegi (1:1) dan rapi agar mudah dipindai.`;
+                            @else
+                                this.clientError = `Rasio gambar ${actualW}×${actualH} berbeda dari rekomendasi {{ $recommendedWidth }}×{{ $recommendedHeight }} px. Gambar mungkin terpotong.`;
+                            @endif
                         }
                     };
                     img.src = e.target.result;
@@ -160,7 +164,10 @@
     </div>
 
     {{-- Client Warning / Error --}}
-    <div x-show="clientError" x-cloak class="rounded-xl border border-warning/40 bg-warning/10 p-2.5 text-xs font-medium text-warning">
+    <div x-show="clientError" x-cloak class="rounded-xl border border-amber-600/40 bg-amber-500/15 dark:bg-amber-500/20 p-3 text-xs font-semibold text-[#78350F] dark:text-[#FEF08A] flex items-start gap-2 shadow-xs">
+        <svg class="size-4 shrink-0 mt-0.5 text-[#78350F] dark:text-[#FEF08A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
         <span x-text="clientError"></span>
     </div>
 

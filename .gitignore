@@ -26,4 +26,8 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 /scratch
+.env.qa
+database/qa.sqlite*
+database/*.bak*
+tests/qa_*
 

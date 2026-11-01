@@ -7,7 +7,13 @@
         <div><p class="text-xs font-bold uppercase tracking-[0.2em] text-accent">Pelanggan</p><h1 class="mt-2 text-3xl font-black">Kelola booking</h1></div>
         <a href="{{ route('admin.dashboard') }}" class="text-sm text-accent hover:underline">← Kembali ke ringkasan</a>
     </div>
-    <form method="GET" action="{{ route('admin.bookings.index') }}" class="mt-6 grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-[1fr_1fr_1.5fr_auto_auto] sm:items-end">
+
+    {{-- Live Quick Search --}}
+    <div class="mt-6">
+        <x-admin.live-booking-search />
+    </div>
+
+    <form method="GET" action="{{ route('admin.bookings.index') }}" class="mt-4 grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-[1fr_1fr_1.5fr_auto_auto] sm:items-end">
         @if (request()->filled('session_id'))
             <input type="hidden" name="session_id" value="{{ request('session_id') }}">
         @endif
@@ -85,14 +91,14 @@
                     <div>
                         <div class="flex flex-wrap items-center gap-2">
                             <h2 class="font-bold text-text">{{ $booking->customer_name }}</h2>
-                            <span class="rounded-full px-2.5 py-0.5 text-xs font-bold {{ $statusStyles[$booking->status] ?? 'bg-surface-2 text-text-muted' }}">{{ $statusLabels[$booking->status] ?? $booking->status }}</span>
+                            <x-ui.status :status="$booking->status" />
                             @if ($booking->payment_proof_path)
                                 <span class="rounded-full bg-success/15 px-2 py-0.5 text-xs font-bold text-success">Bukti diunggah</span>
                             @elseif ($booking->isOnlinePayment() && $booking->status === 'menunggu_pembayaran')
                                 <span class="rounded-full bg-warning/10 px-2 py-0.5 text-xs text-warning">Belum ada bukti</span>
                             @endif
                             @if ($booking->customerProfile?->no_show_count >= 2)
-                                <span class="rounded-full bg-danger/10 px-2 py-1 text-xs font-semibold text-danger">Peringatan no-show {{ $booking->customerProfile->no_show_count }}×</span>
+                                <span class="rounded-full bg-danger/10 px-2 py-1 text-xs font-semibold text-danger">Peringatan tidak datang {{ $booking->customerProfile->no_show_count }}×</span>
                             @endif
                         </div>
                         <p class="mt-1 font-mono text-sm font-black text-accent">{{ $booking->code }}</p>
@@ -105,7 +111,7 @@
                 </div>
 
                 <div class="mt-4 grid gap-2 border-t border-border pt-4 text-sm sm:grid-cols-2">
-                    <p><span class="text-text-muted">WhatsApp:</span> {{ $booking->whatsapp }}</p>
+                    <p><span class="text-text-muted">WhatsApp:</span> {{ format_phone_id($booking->whatsapp) }}</p>
                     <p><span class="text-text-muted">Jadwal:</span> {{ \Carbon\Carbon::parse($booking->session->session_date)->locale('id')->translatedFormat('D, d M Y') }} · {{ str_replace(':', '.', substr((string) $booking->session->start_time, 0, 5)) }} WIB</p>
                     <p><span class="text-text-muted">Metode bayar:</span> <strong class="uppercase text-text">{{ ['di_tempat' => 'Di tempat', 'qris' => 'QRIS', 'transfer' => 'Transfer'][$booking->payment_method] ?? $booking->payment_method }}</strong></p>
                     @if ($booking->status === 'menunggu_pembayaran' && $booking->payment_expires_at)
@@ -117,7 +123,10 @@
                     <a href="{{ route('admin.bookings.show', $booking) }}" class="inline-flex min-h-11 items-center justify-center rounded-lg border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-2">Detail & jajan</a>
                     <a href="https://wa.me/{{ $booking->whatsapp }}?text={{ rawurlencode($whatsAppMessage) }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center justify-center rounded-lg bg-success px-4 text-sm font-bold text-success-contrast hover:opacity-90">Chat WhatsApp</a>
                     @if ($booking->payment_proof_path)
-                        <a href="{{ route('admin.bookings.proof', $booking) }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold hover:bg-surface-2">Lihat bukti bayar ↗</a>
+                        <a href="{{ route('admin.bookings.proof', $booking) }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-border px-4 text-sm font-semibold hover:bg-surface-2">
+                            <span>Lihat bukti bayar</span>
+                            <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/></svg>
+                        </a>
                     @endif
                     @if ($booking->customerProfile)
                         <form method="POST" action="{{ route('admin.customers.toggle-block', $booking->customerProfile) }}" data-confirm="{{ $booking->customerProfile->is_blocked ? 'Buka blokir nomor WhatsApp ini?' : 'Blokir nomor WhatsApp ini dari booking baru?' }}" data-confirm-title="{{ $booking->customerProfile->is_blocked ? 'Buka Blokir Nomor' : 'Blokir Nomor' }}" data-confirm-action="{{ $booking->customerProfile->is_blocked ? 'Buka Blokir' : 'Blokir' }}" data-confirm-is-danger="{{ $booking->customerProfile->is_blocked ? 'false' : 'true' }}" novalidate>@csrf @method('PATCH')
@@ -177,10 +186,10 @@
                                 <input type="hidden" name="action" value="hadir">
                                 <button class="min-h-11 w-full rounded-lg bg-success px-4 text-sm font-bold text-success-contrast sm:w-auto">Tandai hadir</button>
                             </form>
-                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Tandai pemesan tidak hadir? Ini akan menambah catatan no-show pelanggan." data-confirm-title="Tandai No-Show" data-confirm-action="Tandai Tidak Hadir" data-confirm-is-danger="true" novalidate>
+                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Tandai pemesan tidak hadir? Ini akan menambah catatan tidak datang pada profil pelanggan." data-confirm-title="Tandai Tidak Datang" data-confirm-action="Tandai Tidak Datang" data-confirm-is-danger="true" novalidate>
                                 @csrf @method('PATCH')
                                 <input type="hidden" name="action" value="tidak_hadir">
-                                <button class="min-h-11 w-full rounded-lg border border-warning px-4 text-sm font-semibold text-warning sm:w-auto">Tidak hadir (no-show)</button>
+                                <button class="min-h-11 w-full rounded-lg border border-warning px-4 text-sm font-semibold text-warning sm:w-auto">Tandai tidak datang</button>
                             </form>
                             <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Batalkan booking ini?" data-confirm-title="Batalkan Booking" data-confirm-action="Batalkan" data-confirm-is-danger="true" novalidate>
                                 @csrf @method('PATCH')

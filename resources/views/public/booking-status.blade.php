@@ -26,10 +26,10 @@
                  }
              }">
 
-        {{-- Header Halaman ala XXI Ticket Finder Booth --}}
+        {{-- Header Halaman Cek Booking --}}
         <header class="mb-6 text-center sm:text-left">
-            <span class="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/15 px-3 py-1 text-xs font-black uppercase tracking-wider text-amber-300">
-                <svg class="size-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <span class="inline-flex items-center gap-1.5 badge-accent-soft rounded-full px-3 py-1 text-xs font-bold">
+                <svg class="size-3.5 text-current" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                 </svg>
                 Pencarian tiket
@@ -42,13 +42,13 @@
 
         {{-- Flash Messages --}}
         @if (session('status'))
-            <div role="status" class="mb-5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-xs font-bold text-emerald-400 shadow-sm">
+            <div role="status" class="mb-5 rounded-xl badge-success-soft p-4 text-xs font-bold">
                 {{ session('status') }}
             </div>
         @endif
 
         @if ($errors->any())
-            <div role="alert" class="mb-5 rounded-2xl border border-danger/40 bg-danger-surface p-4 text-xs font-semibold text-danger-text space-y-1.5 shadow-sm">
+            <div role="alert" class="mb-5 rounded-xl border border-danger/40 bg-danger-surface p-4 text-xs font-semibold text-danger-text space-y-1.5">
                 @foreach ($errors->all() as $error)
                     <p class="font-bold">{{ $error }}</p>
                 @endforeach
@@ -60,12 +60,12 @@
             </div>
         @endif
 
-        {{-- Form Pencarian Tiket Mewah --}}
-        <form method="POST" action="{{ route('booking.lookup') }}" class="space-y-5 rounded-3xl border border-border dark:border-white/10 bg-surface dark:bg-gradient-to-b dark:from-surface dark:via-[#0C111D] dark:to-[#07090E] p-6 sm:p-8 shadow-2xl">
+        {{-- Form Pencarian Tiket --}}
+        <form method="POST" action="{{ route('booking.lookup') }}" class="space-y-5 rounded-xl border border-border bg-surface p-6 sm:p-8">
             @csrf
 
             <div>
-                <label for="code" class="block text-xs font-black uppercase tracking-wider text-amber-500">
+                <label for="code" class="block text-xs font-bold uppercase tracking-wider text-text">
                     Kode booking
                 </label>
                 <div class="relative mt-2">
@@ -87,7 +87,7 @@
             </div>
 
             <div>
-                <label for="whatsapp" class="block text-xs font-black uppercase tracking-wider text-amber-500">
+                <label for="whatsapp" class="block text-xs font-bold uppercase tracking-wider text-text">
                     Nomor WhatsApp
                 </label>
                 <div class="relative mt-2">
@@ -100,7 +100,7 @@
                            autocomplete="tel"
                            aria-describedby="whatsapp-help @if ($errors->has('whatsapp')) whatsapp-error @endif"
                            placeholder="Contoh: 081234567890"
-                           class="min-h-12 w-full rounded-xl border border-border-input dark:border-white/15 bg-surface-2 dark:bg-black/40 px-4 font-tabular text-sm font-bold text-text dark:text-white placeholder:text-text-muted focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400">
+                           class="min-h-12 w-full rounded-xl border border-border-input bg-surface-2 px-4 font-tabular text-sm font-bold text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400">
                 </div>
                 <p id="whatsapp-help" class="mt-1.5 text-[11px] text-text-muted">Nomor WhatsApp aktif pemesan untuk verifikasi keamanan.</p>
                 @if ($errors->has('whatsapp'))
@@ -110,7 +110,7 @@
 
             <div class="pt-2">
                 <button type="submit"
-                        class="btn-gold-cinema inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-5 text-sm font-black shadow-lg">
+                        class="btn-gold-cinema inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-5 text-sm font-black shadow-none">
                     <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
@@ -120,18 +120,18 @@
         </form>
 
         {{-- Riwayat Booking di Perangkat Ini (Booking Saya) --}}
-        <section x-show="savedCodes.length > 0" x-cloak class="mt-6 rounded-3xl border border-border dark:border-white/10 bg-surface-2/60 dark:bg-surface/60 p-5 sm:p-6 shadow-md backdrop-blur-sm">
+        <section x-show="savedCodes.length > 0" x-cloak class="mt-6 rounded-xl border border-border bg-surface-2 p-5 sm:p-6">
             <div class="flex items-center gap-2">
-                <span class="size-2 rounded-full bg-amber-400 animate-pulse"></span>
-                <h2 class="text-xs font-black uppercase tracking-wider text-amber-500 dark:text-amber-400">Booking saya di perangkat ini</h2>
+                <span class="size-2 rounded-full bg-amber-500"></span>
+                <h2 class="text-xs font-bold uppercase tracking-wider text-text">Booking saya di perangkat ini</h2>
             </div>
             <p class="mt-1 text-xs text-text-muted">Sentuh salah satu kode untuk mengisi form di atas:</p>
             <div class="mt-3.5 flex flex-wrap gap-2">
                 <template x-for="c in savedCodes" :key="c">
                     <button type="button"
                             @click="selectCode(c)"
-                            class="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border dark:border-white/10 bg-surface dark:bg-black/40 px-3.5 py-1.5 font-tabular text-xs font-black tracking-wider text-amber-600 dark:text-amber-300 hover:border-amber-400 hover:bg-amber-500/10 transition shadow-sm">
-                        <svg class="size-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            class="inline-flex min-h-10 items-center gap-2 rounded-xl border border-border-input bg-surface px-3.5 py-1.5 font-tabular text-xs font-bold tracking-wider text-text hover:border-amber-400 transition shadow-none">
+                        <svg class="size-3 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                         </svg>
                         <span x-text="c"></span>

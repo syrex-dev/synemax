@@ -14,16 +14,24 @@ use Illuminate\View\View;
 
 class BannerController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $banners = Banner::query()
-            ->ofType('hero')
-            ->orderBy('sort_order', 'asc')
-            ->orderBy('id', 'desc')
-            ->paginate(20);
+        $showTrash = $request->boolean('trash');
+        $query = Banner::query()->ofType('hero');
+
+        if ($showTrash) {
+            $query->onlyTrashed()->where('deleted_at', '>=', now()->subDays(30))->latest('deleted_at');
+        } else {
+            $query->orderBy('sort_order', 'asc')->orderBy('id', 'desc');
+        }
+
+        $banners = $query->paginate(20)->withQueryString();
+        $trashedCount = Banner::onlyTrashed()->ofType('hero')->where('deleted_at', '>=', now()->subDays(30))->count();
 
         return view('admin.banners.index', [
             'banners' => $banners,
+            'showTrash' => $showTrash,
+            'trashedCount' => $trashedCount,
         ]);
     }
 
@@ -131,9 +139,22 @@ class BannerController extends Controller
 
     public function destroy(Banner $banner): RedirectResponse
     {
+        $bannerId = $banner->id;
+        $title = $banner->title;
         $banner->delete();
 
-        return redirect()->route('admin.banners.index')->with('status', 'Banner hero berhasil dihapus.');
+        return redirect()->route('admin.banners.index')
+            ->with('status', 'Banner hero "'.$title.'" berhasil dihapus.')
+            ->with('undo_route', route('admin.banners.restore', $bannerId));
+    }
+
+    public function restore(int $id): RedirectResponse
+    {
+        $banner = Banner::withTrashed()->findOrFail($id);
+        $banner->restore();
+
+        return redirect()->route('admin.banners.index')
+            ->with('status', 'Banner hero "'.$banner->title.'" berhasil dipulihkan.');
     }
 
     public function toggleStatus(Banner $banner): RedirectResponse

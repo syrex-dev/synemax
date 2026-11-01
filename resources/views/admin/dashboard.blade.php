@@ -98,6 +98,11 @@
         </div>
     </div>
 
+    {{-- Pencarian Cepat Booking (Live Search) --}}
+    <div class="no-print">
+        <x-admin.live-booking-search />
+    </div>
+
     {{-- ============================================================== --}}
     {{-- 2. STATISTIK UTAMA (4 Kartu Kompak)                           --}}
     {{-- ============================================================== --}}
@@ -167,7 +172,10 @@
                         {{ $totalActionsCount }} Hal
                     </span>
                 @else
-                    <span class="text-emerald-500 text-xs font-bold">✓ Aman</span>
+                    <span class="inline-flex items-center gap-1 text-emerald-500 text-xs font-bold">
+                        <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+                        <span>Aman</span>
+                    </span>
                 @endif
             </div>
             <div class="mt-2 flex items-baseline justify-between">
@@ -565,7 +573,7 @@
             {{-- ============================================================== --}}
             <div class="rounded-2xl border border-slate-300 dark:border-white/10 bg-surface shadow-sm p-4 sm:p-5 space-y-4">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-base sm:text-lg font-bold text-text">Perlu Tindakan</h2>
+                    <h2 class="text-base sm:text-lg font-bold text-text">Persiapan Situs & Perlu Tindakan</h2>
                     @if ($totalActionsCount > 0)
                         <span class="px-2 py-0.5 rounded-full text-xs font-black bg-amber-500/15 text-amber-600 dark:text-amber-400">
                             {{ $totalActionsCount }}

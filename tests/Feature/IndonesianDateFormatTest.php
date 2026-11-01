@@ -34,4 +34,11 @@ class IndonesianDateFormatTest extends TestCase
         $this->assertSame('Rabu, 28 Oktober 2026', format_hari_tanggal_id('2026-10-28'));
         $this->assertSame('Minggu, 1 November 2026', format_hari_tanggal_id('2026-11-01'));
     }
+
+    public function test_format_rentang_jam_id(): void
+    {
+        $this->assertSame('10.00 - 11.45 WIB', format_rentang_jam_id('10:00:00', '11:45:00'));
+        $this->assertSame('19.00 - 20.30 WIB', format_rentang_jam_id('19:00', '20:30'));
+        $this->assertSame('10.00 - 11.45', format_rentang_jam_id('10:00:00', '11:45:00', false));
+    }
 }

@@ -38,6 +38,7 @@ class NobarEvent extends Model
         'is_pinned',
         'status_acara',
         'alasan_status',
+        'is_sample',
     ];
 
     protected $casts = [
@@ -47,6 +48,7 @@ class NobarEvent extends Model
         'poster_height' => 'integer',
         'is_free' => 'boolean',
         'is_pinned' => 'boolean',
+        'is_sample' => 'boolean',
     ];
 
     public function endsAt(): Carbon

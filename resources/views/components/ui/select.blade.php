@@ -303,7 +303,7 @@
                 x-transition:leave="transition-opacity ease-in duration-150"
                 x-transition:leave-start="opacity-100"
                 x-transition:leave-end="opacity-0"
-                class="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9998] sm:hidden"
+                class="fixed inset-0 bg-black/50 z-[9998] sm:hidden"
             ></div>
 
             {{-- Mobile Bottom Sheet (< 640px) --}}
@@ -315,7 +315,7 @@
                 x-transition:leave="transition ease-in duration-150"
                 x-transition:leave-start="translate-y-0"
                 x-transition:leave-end="translate-y-full"
-                class="fixed inset-x-0 bottom-0 z-[9999] rounded-t-3xl border-t border-border bg-surface p-4 shadow-2xl sm:hidden max-h-[85vh] flex flex-col"
+                class="fixed inset-x-0 bottom-0 z-[9999] rounded-t-3xl border-t border-border bg-surface p-4 shadow-2xl sm:hidden max-h-[85dvh] flex flex-col"
             >
                 <div class="flex items-center justify-between pb-3 mb-2 border-b border-border shrink-0">
                     <span class="text-xs font-bold uppercase tracking-wider text-text">{{ $label ?? 'Pilih Opsi' }}</span>

@@ -59,11 +59,11 @@
         {{-- Daftar Acara Nobar --}}
         <div class="mt-8">
             @if ($events->isEmpty())
-                <div class="rounded-3xl border border-dashed border-border dark:border-white/15 bg-surface-2/60 dark:bg-surface/40 p-12 text-center backdrop-blur-sm">
-                    <span class="inline-flex size-14 items-center justify-center rounded-2xl bg-amber-500/10 text-2xl text-amber-500 dark:text-amber-400 mb-3">
-                        ⚽
+                <div class="rounded-xl border border-dashed border-border bg-surface-2/60 p-12 text-center">
+                    <span class="inline-flex size-14 items-center justify-center rounded-lg bg-surface border border-border text-amber-500 dark:text-amber-400 mb-3">
+                        <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.504-1.125-1.125-1.125h-.871a2.25 2.25 0 00-1.591.659l-.439.44a.75.75 0 01-1.06 0l-.44-.44a2.25 2.25 0 00-1.59-.659h-.872c-.621 0-1.125.504-1.125 1.125V18.75m12 0a2.25 2.25 0 002.25-2.25V8.25A2.25 2.25 0 0018 6H6a2.25 2.25 0 00-2.25 2.25v8.25A2.25 2.25 0 006 18.75m12 0H6"/></svg>
                     </span>
-                    <h2 class="text-base font-black text-text">Belum ada jadwal nobar</h2>
+                    <h2 class="text-base font-bold text-text">Belum ada jadwal nobar</h2>
                     <p class="mt-1 text-xs text-text-muted max-w-md mx-auto">Jadwal pertandingan berikutnya sedang dipersiapkan. Pantau terus halaman ini atau cek film bioskop kami.</p>
                     <a href="{{ route('schedule.index') }}" class="mt-5 btn-gold-cinema inline-flex min-h-11 items-center rounded-xl px-6 text-xs font-bold shadow-md">
                         Lihat jadwal film
@@ -72,7 +72,7 @@
             @else
                 <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($events as $item)
-                        <article class="flex flex-col justify-between rounded-3xl border border-border dark:border-white/10 bg-surface dark:bg-gradient-to-b dark:from-surface dark:via-[#0B0F19] dark:to-surface p-4 sm:p-5 shadow-xl transition-all duration-300 hover:border-amber-400/50 hover:-translate-y-1 group">
+                        <article class="flex flex-col justify-between rounded-xl border border-border bg-surface p-4 sm:p-5 transition-all duration-200 hover:border-amber-400/50 group">
                             <div>
                                 @if ($item->hasPoster())
                                     <div class="relative mb-4">
