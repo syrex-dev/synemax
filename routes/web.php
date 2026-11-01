@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FilmController;
 use App\Http\Controllers\Admin\FilmImportController;
 use App\Http\Controllers\Admin\FilmPosterController;
+use App\Http\Controllers\Admin\GenreController;
 use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\NobarController;
 use App\Http\Controllers\Admin\PromoController;
@@ -22,12 +23,8 @@ use App\Http\Controllers\PublicCinemaController;
 use App\Http\Controllers\PublicInfoController;
 use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\StyleguideController;
-use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Str;
 
 Route::get('/', [PublicCinemaController::class, 'index'])->name('home');
 Route::get('/jadwal', [PublicCinemaController::class, 'schedule'])->name('schedule.index');
@@ -136,6 +133,15 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::delete('/age-ratings/{ageRating}', [AgeRatingController::class, 'destroy'])->name('age_ratings.destroy');
     Route::patch('/age-ratings/{ageRating}/toggle', [AgeRatingController::class, 'toggle'])->name('age_ratings.toggle');
     Route::post('/age-ratings/reorder', [AgeRatingController::class, 'reorder'])->name('age_ratings.reorder');
+
+    // Genres CRUD
+    Route::get('/genres', [GenreController::class, 'index'])->name('genres.index');
+    Route::post('/genres', [GenreController::class, 'store'])->name('genres.store');
+    Route::put('/genres/{genre}', [GenreController::class, 'update'])->name('genres.update');
+    Route::post('/genres/{genre}/merge', [GenreController::class, 'merge'])->name('genres.merge');
+    Route::delete('/genres/{genre}', [GenreController::class, 'destroy'])->name('genres.destroy');
+    Route::patch('/genres/{genre}/toggle', [GenreController::class, 'toggle'])->name('genres.toggle');
+    Route::post('/genres/reorder', [GenreController::class, 'reorder'])->name('genres.reorder');
     Route::get('/jadwal', [ScheduleController::class, 'index'])->name('schedule.index');
     Route::post('/jadwal/generate', [ScheduleController::class, 'generate'])->name('schedule.generate');
     Route::post('/jadwal/template', [ScheduleController::class, 'storeTemplate'])->name('schedule.templates.store');
@@ -237,20 +243,3 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 });
 
 require __DIR__.'/auth.php';
-
-if (app()->environment('local', 'testing')) {
-    Route::get('/qa-admin-login', function () {
-        $user = User::firstOrCreate(
-            ['email' => 'qa-runner@synemax.test'],
-            [
-                'name' => 'QA Runner',
-                'password' => Hash::make('qa-random-runner-key-'.Str::random(16)),
-                'is_admin' => true,
-            ]
-        );
-        $user->update(['is_admin' => true]);
-        Auth::login($user);
-
-        return redirect()->route('admin.dashboard');
-    })->name('qa.login');
-}

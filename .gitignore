@@ -35,4 +35,9 @@ database/*.bak*
 *.sqlite*
 *.bak*
 tests/qa_*
+tests/*audit*
+tests/*.mjs
+tests/*fixtures*.json
+tests/check_*.php
+tests/inspect_*.php
 

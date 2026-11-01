@@ -84,6 +84,17 @@
              }
          }">
 
+        {{-- Navigasi Cepat Kembali ke Beranda --}}
+        <div class="mb-4">
+            <a href="{{ route('home') }}"
+               class="inline-flex items-center gap-1.5 text-xs font-semibold text-text-muted hover:text-text transition no-underline">
+                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                <span>← Beranda</span>
+            </a>
+        </div>
+
         {{-- Flash Pesan / Alert Status --}}
         @if (session('status'))
             <div role="status" class="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-xs font-bold text-emerald-400">
@@ -351,25 +362,28 @@
                     </form>
                 </div>
 
-                {{-- Tautan Aksi Sekunder --}}
-                <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-4">
-                    @if ($whatsAppUrl)
-                        <a href="{{ $whatsAppUrl }}"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/5 px-4 text-xs font-bold text-slate-300 hover:border-amber-400 hover:text-white">
-                            <svg class="size-4 text-emerald-400" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2z"/>
-                            </svg>
-                            <span>Kirim bukti lewat WhatsApp</span>
-                        </a>
-                    @endif
+                {{-- Kelompok Aksi & Bantuan WhatsApp --}}
+                <div class="mt-6 space-y-3 max-w-[400px] mx-auto w-full border-t border-white/10 pt-5">
+                    <x-ui.whatsapp-button variant="inline" :booking="$booking" label="Kirim bukti lewat WhatsApp" message="Halo admin SynemaX, saya mau konfirmasi pembayaran booking {{ $booking->code }} ({{ $booking->film?->title }})." />
 
-                    <button type="button"
-                            @click="cancelModal = true"
-                            class="text-xs text-slate-400 hover:text-red-400 hover:underline">
-                        Batalkan booking
-                    </button>
+                    <div class="grid grid-cols-2 gap-3">
+                        <a href="{{ route('home') }}"
+                           class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 text-xs font-bold text-slate-300 hover:border-amber-400 hover:text-white transition shadow-none">
+                            Kembali ke Beranda
+                        </a>
+                        <a href="{{ route('schedule.date', ['date' => $booking->session->session_date]) }}"
+                           class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 text-xs font-bold text-slate-300 hover:border-amber-400 hover:text-white transition shadow-none">
+                            Pesan sesi lain
+                        </a>
+                    </div>
+
+                    <div class="pt-3 text-center">
+                        <button type="button"
+                                @click="cancelModal = true"
+                                class="text-xs text-slate-400 hover:text-red-400 hover:underline">
+                            Batalkan booking ini
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

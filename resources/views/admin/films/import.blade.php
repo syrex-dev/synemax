@@ -220,7 +220,7 @@
                                     {{ Str::limit($batch->batch_uuid, 8, '') }}
                                 </td>
                                 <td class="col-nowrap text-xs text-text-muted">
-                                    {{ $batch->created_at->translatedFormat('d M Y, H:i') }}
+                                    {{ $batch->created_at->translatedFormat('j M Y, H.i') }}
                                 </td>
                                 <td class="col-nowrap text-xs text-text font-medium">
                                     {{ $batch->csv_filename ?: 'berkas.csv' }}

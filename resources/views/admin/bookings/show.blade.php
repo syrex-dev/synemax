@@ -503,17 +503,9 @@
 
                     @php($waBookingMsg = 'Halo '.$booking->customer_name.', admin SynemaX menghubungi terkait booking '.$booking->code.'.'.($booking->notes ? "\nCatatan pemesan: ".$booking->notes : ''))
 
-                    <a
-                        href="https://wa.me/{{ $booking->whatsapp }}?text={{ rawurlencode($waBookingMsg) }}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="mt-2 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-500 transition shadow-none"
-                    >
-                        <svg class="size-4" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.585 1.961.947 3.226.947 3.181 0 5.768-2.587 5.768-5.768.001-3.18-2.585-5.766-5.767-5.766zm9.969 5.768c0 5.503-4.467 9.97-9.97 9.97-1.745 0-3.385-.45-4.819-1.238l-4.711 1.235 1.258-4.599c-.879-1.499-1.398-3.238-1.398-5.098 0-5.503 4.467-9.97 9.97-9.97 5.503 0 9.97 4.467 9.97 9.97z"/>
-                        </svg>
-                        <span>Chat WhatsApp</span>
-                    </a>
+                    <div class="mt-2 w-full">
+                        <x-ui.whatsapp-button variant="admin" :phone="$booking->whatsapp" :message="$waBookingMsg" label="WhatsApp pemesan" />
+                    </div>
                 </div>
             </div>
 

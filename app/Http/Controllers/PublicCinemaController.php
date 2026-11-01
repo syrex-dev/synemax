@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Banner;
 use App\Models\BlockedDate;
 use App\Models\Film;
+use App\Models\Genre;
 use App\Models\Holiday;
 use App\Models\NobarEvent;
 use App\Models\Promo;
@@ -52,13 +53,8 @@ class PublicCinemaController extends Controller
         $films = $filmsQuery->take($filmsLimit)->get();
         $allActiveFilms = Film::query()->where('is_active', true)->get(['id', 'genre', 'release_year']);
 
-        // Collect unique genres
-        $genres = $allActiveFilms->pluck('genre')
-            ->flatMap(fn ($g) => array_map('trim', explode(',', (string) $g)))
-            ->unique()
-            ->filter()
-            ->sort()
-            ->values();
+        // Single source of truth from genres table
+        $genres = Genre::allActiveNames();
 
         // Collect unique release years
         $years = $allActiveFilms->pluck('release_year')
@@ -121,7 +117,7 @@ class PublicCinemaController extends Controller
 
         $films = $query->orderBy('title')->paginate(24)->withQueryString();
 
-        $genres = Film::CANONICAL_GENRES;
+        $genres = Genre::allActiveNames();
 
         $years = Film::query()
             ->where('is_active', true)

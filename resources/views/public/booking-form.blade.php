@@ -836,20 +836,12 @@
                                placeholder="Cari judul atau genre film..."
                                class="min-h-11 w-full rounded-xl border border-border-input bg-surface px-4 text-sm text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400">
 
-                    {{-- Search & Filter Genre/Year Menggunakan Komponen Bersama --}}
-                    <div class="space-y-3">
-                        <input id="film-search"
-                               x-model="filmSearch"
-                               type="search"
-                               autocomplete="off"
-                               placeholder="Cari judul atau genre film..."
-                               class="min-h-11 w-full rounded-xl border border-border-input bg-surface px-4 text-sm text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400">
-
                         @php
-                            $canonicalGenres = \App\Models\Film::CANONICAL_GENRES;
+                            $canonicalGenres = \App\Models\Genre::allActiveNames();
                             $filmYears = $films->pluck('release_year')->filter()->unique()->sortDesc()->values()->all();
                         @endphp
                         <x-public.film-filter-bar :genres="$canonicalGenres" :years="$filmYears" />
+                    </div>
 
                         {{-- Grid Pilihan Film --}}
                         <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -883,7 +875,7 @@
                                         </div>
                                         <div class="mt-2 space-y-1">
                                             <h3 class="line-clamp-2 text-xs font-bold text-text sm:text-sm">{{ $film->title }}</h3>
-                                            <p class="line-clamp-1 text-[11px] text-text-muted">{{ $film->genre }}, {{ $film->duration_minutes }}m</p>
+                                            <p class="line-clamp-2 text-[11px] text-text-muted leading-tight" title="{{ $film->genre }}">{{ $film->formattedGenresText(3) }}, {{ $film->duration_minutes }}m</p>
 
                                             {{-- Chip Peminat Film Calon di baris teks di bawah poster, TIDAK menutupi poster --}}
                                             <div class="pt-0.5">
@@ -911,7 +903,7 @@
                                         <button type="button"
                                                 @click="chooseFilm({{ $film->id }})"
                                                 :disabled="!getFilmStatus({{ $film->id }}).allowed"
-                                                class="inline-flex min-h-10 w-full items-center justify-center rounded-lg px-2 text-xs font-bold transition disabled:opacity-40 disabled:cursor-not-allowed"
+                                                class="inline-flex min-h-10 w-full items-center justify-center rounded-lg px-2 text-xs font-bold transition disabled:cursor-not-allowed"
                                                 :class="filmId === '{{ $film->id }}' ? 'btn-gold-cinema' : 'border border-border-input bg-surface text-text hover:border-amber-400'">
                                             <span x-text="filmId === '{{ $film->id }}' ? 'Film dipilih' : 'Pilih film'">Pilih film</span>
                                         </button>
@@ -1107,7 +1099,7 @@
                  style="padding-bottom: max(env(safe-area-inset-bottom), .85rem)">
                 <div class="mx-auto flex max-w-xl items-center justify-between gap-3">
                     <div>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-text-muted">Total Pembayaran</span>
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-text-muted block">Total</span>
                         <div class="flex items-baseline gap-2">
                             <span class="font-tabular text-lg sm:text-xl font-black text-amber-700 dark:text-amber-400"
                                   x-text="`Rp ${new Intl.NumberFormat('id-ID').format(grandTotal)}`"></span>
@@ -1132,18 +1124,20 @@
                             Lanjut ke Pilih Film
                         </button>
 
-                        <button type="button"
-                                x-show="step === 3"
-                                @click="nextStep()"
-                                :disabled="!filmId || !getFilmStatus(filmId).allowed"
-                                class="btn-gold-cinema inline-flex min-h-11 items-center justify-center rounded-xl px-5 text-xs font-black shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
-                            <span x-text="hasSnacks ? 'Lanjut ke Menu Jajan' : 'Lanjut ke Pembayaran'"></span>
-                        </button>
+                        <div x-show="step === 3" class="flex flex-col items-end">
+                            <span x-show="!filmId" class="text-[10px] text-text-muted mb-0.5">Pilih satu film dulu</span>
+                            <button type="button"
+                                    @click="nextStep()"
+                                    :disabled="!filmId || !getFilmStatus(filmId).allowed"
+                                    class="btn-gold-cinema inline-flex min-h-11 items-center justify-center rounded-xl px-5 text-xs font-black shadow-none disabled:cursor-not-allowed">
+                                <span x-text="hasSnacks ? 'Lanjut ke Menu Jajan' : 'Lanjut ke Pembayaran'"></span>
+                            </button>
+                        </div>
 
                         <button type="button"
                                 x-show="step === 4"
                                 @click="nextStep()"
-                                class="btn-gold-cinema inline-flex min-h-11 items-center justify-center rounded-xl px-5 text-xs font-black shadow-md">
+                                class="btn-gold-cinema inline-flex min-h-11 items-center justify-center rounded-xl px-5 text-xs font-black shadow-none">
                             Lanjut ke Pembayaran
                         </button>
 

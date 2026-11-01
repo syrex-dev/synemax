@@ -1,18 +1,32 @@
 {{-- Universal In-App Notification (Toast) & Confirmation Modal Component --}}
 <div x-data="inAppDialogsComponent()" class="relative z-[9999]">
     {{-- ============================================================== --}}
+    {{-- 0. OFFLINE BANNER (Pita tipis di atas halaman bila offline)    --}}
+    {{-- ============================================================== --}}
+    <div x-show="!isOnline" x-cloak
+         class="fixed top-0 inset-x-0 z-[10001] bg-amber-600 dark:bg-amber-700 text-white text-center py-1.5 px-3 text-xs font-bold tracking-wide shadow-sm flex items-center justify-center gap-1.5 transition-all">
+        <svg class="size-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 4.243a9 9 0 01-2.829-2.829m0 0l2.829-2.829m-2.829 2.829L3 21M3 3l18 18" />
+        </svg>
+        <span>Tidak ada koneksi internet</span>
+    </div>
+
+    {{-- ============================================================== --}}
     {{-- 1. TOAST NOTIFICATION CONTAINER                                 --}}
-    {{-- Positioned top-right on desktop, bottom above nav on mobile    --}}
+    {{-- Positioned TOP on mobile & desktop, max 2 stacked, max-h 72px   --}}
     {{-- ============================================================== --}}
     <div
-        class="fixed z-[9999] flex flex-col gap-2.5 pointer-events-none transition-all duration-300
-               top-4 right-4 max-w-sm w-[calc(100vw-2rem)] sm:w-96
-               max-sm:top-auto max-sm:bottom-20 max-sm:inset-x-4 max-sm:max-w-none"
+        class="fixed z-[9999] flex flex-col gap-2 pointer-events-none transition-all duration-300
+               top-[calc(env(safe-area-inset-top,0px)+8px)] left-3 right-3 max-w-none
+               sm:top-4 sm:right-4 sm:left-auto sm:max-w-sm sm:w-96"
         aria-live="polite"
     >
         <template x-for="toast in toasts" :key="toast.id">
             <div
-                class="pointer-events-auto flex items-start gap-3 rounded-2xl border p-4 shadow-xl transition-all duration-200 transform"
+                @click="removeToast(toast.id)"
+                @touchstart="touchStartY = $event.touches[0].clientY"
+                @touchend="if (touchStartY - $event.changedTouches[0].clientY > 25) removeToast(toast.id)"
+                class="pointer-events-auto flex items-start gap-3 rounded-2xl border p-3.5 shadow-xl transition-all duration-200 transform max-h-[72px] overflow-hidden select-none motion-reduce:transition-none cursor-pointer"
                 :class="{
                     'bg-emerald-950/90 dark:bg-emerald-950/95 border-emerald-500/40 text-emerald-100': toast.type === 'success',
                     'bg-red-950/90 dark:bg-red-950/95 border-red-500/40 text-red-100': toast.type === 'error',
@@ -198,12 +212,16 @@
 <script>
 function inAppDialogsComponent() {
     return {
+        isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+        touchStartY: 0,
         toasts: [],
         addToast(type, message, duration, undoRoute = null, linkUrl = null, linkLabel = 'Lihat') {
             const id = Date.now() + Math.random().toString(36).substr(2, 4);
-            const autoDismiss = duration !== undefined ? duration : (type === 'error' ? 8000 : 5000);
+            // Durasi baku: error 8 detik, sukses/info 4 detik
+            const autoDismiss = duration !== undefined ? duration : (type === 'error' ? 8000 : 4000);
             
-            if (this.toasts.length >= 3) {
+            // Maksimal 2 toast bertumpuk
+            if (this.toasts.length >= 2) {
                 this.toasts.shift();
             }
 
@@ -382,8 +400,27 @@ function inAppDialogsComponent() {
                 }
             });
 
+            // Offline / Online Event Listeners
+            window.addEventListener('online', () => {
+                this.isOnline = true;
+            });
+            window.addEventListener('offline', () => {
+                this.isOnline = false;
+            });
+
+            // Intercept window.fetch: pisahkan request latar dari aksi pengguna
             const originalFetch = window.fetch;
+            let lastNetworkToastTime = 0;
+
             window.fetch = async (...args) => {
+                const requestUrl = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
+                const isBackground = requestUrl.includes('/status') ||
+                                     requestUrl.includes('/polling') ||
+                                     requestUrl.includes('status.json') ||
+                                     requestUrl.includes('/density') ||
+                                     requestUrl.includes('/live_search') ||
+                                     args[1]?.headers?.['X-Background-Request'] === 'true';
+
                 try {
                     const response = await originalFetch(...args);
                     if (response.status === 419) {
@@ -391,8 +428,29 @@ function inAppDialogsComponent() {
                     }
                     return response;
                 } catch (err) {
-                    this.addToast('error', 'Koneksi jaringan bermasalah. Periksa koneksi internet Anda.', 5000);
-                    throw err;
+                    // Kegagalan background polling/prefetch tidak pernah memunculkan toast
+                    if (isBackground || err.name === 'AbortError') {
+                        console.warn('[Background Fetch Silenced]', requestUrl, err);
+                        throw err;
+                    }
+
+                    // Aksi pengguna: coba ulang 1 kali sebelum menampilkan toast
+                    try {
+                        await new Promise(r => setTimeout(r, 800));
+                        const retryResponse = await originalFetch(...args);
+                        if (retryResponse.status === 419) {
+                            this.sessionExpiredOpen = true;
+                        }
+                        return retryResponse;
+                    } catch (retryErr) {
+                        const now = Date.now();
+                        // Deduplikasi: 1 toast jaringan per waktu, jeda 30 detik
+                        if (now - lastNetworkToastTime > 30000 && this.isOnline) {
+                            lastNetworkToastTime = now;
+                            this.addToast('error', 'Koneksi jaringan bermasalah. Periksa koneksi internet Anda.', 8000);
+                        }
+                        throw retryErr;
+                    }
                 }
             };
         }

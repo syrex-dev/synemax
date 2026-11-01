@@ -1,7 +1,9 @@
 import { chromium } from 'playwright-core';
 
 const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const BASE_URL = process.env.BASE_URL || 'http://synemax.test';
+const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:8001';
+const QA_EMAIL = process.env.QA_EMAIL || 'qa_admin@synemax.test';
+const QA_PASSWORD = process.env.QA_PASSWORD || 'QaPassword123!';
 
 // Luminance calculation helper in JS
 function calculateLuminance(r, g, b) {
@@ -28,10 +30,14 @@ async function runThemeAudit() {
   const page = await context.newPage();
   page.setDefaultTimeout(30000);
 
-  // 1. Authenticate using local QA login route
-  console.log('\nLogin ke admin...');
-  await page.goto(`${BASE_URL}/qa-admin-login`, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1000);
+  // 1. Authenticate using standard /login
+  console.log('\nLogin ke admin via /login...');
+  await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
+  await page.fill('input#email', QA_EMAIL);
+  await page.fill('input#password', QA_PASSWORD);
+  await page.click('button[type="submit"]');
+  await page.waitForURL('**/admin**', { timeout: 15000 });
+  console.log('Berhasil login sebagai admin.');
 
   const pagesToAudit = [
     { name: 'Dashboard', path: '/admin' },
@@ -42,6 +48,7 @@ async function runThemeAudit() {
     { name: 'Impor Film', path: '/admin/films/impor' },
     { name: 'Poster Massal', path: '/admin/films/posters' },
     { name: 'Klasifikasi Usia', path: '/admin/age-ratings' },
+    { name: 'Genre Film', path: '/admin/genres' },
     { name: 'Promo (Daftar)', path: '/admin/promos' },
     { name: 'Promo (Form)', path: '/admin/promos/buat' },
     { name: 'Hero (Daftar)', path: '/admin/banners' },
@@ -124,12 +131,13 @@ async function runThemeAudit() {
         const style = window.getComputedStyle(el);
         if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') continue;
 
-        // Allowlist for dark mode (Ticket card, QR, video iframe, allowlist markers)
+        // Allowlist for dark mode (Ticket card, QR, video iframe, allowlist markers, dev toolbars)
         if (
           el.closest('.ticket-paper-card') ||
           el.closest('[data-allow-light-in-dark]') ||
           el.closest('#ticket-preview') ||
           el.closest('.qr-code-container') ||
+          el.closest('[x-data*="copyToClipboard"]') ||
           el.tagName === 'IFRAME' ||
           el.tagName === 'CANVAS' ||
           el.tagName === 'IMG' ||

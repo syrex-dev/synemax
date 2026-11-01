@@ -329,6 +329,32 @@
             <input type="hidden" name="excluded_rows[]" :value="idx">
         </template>
 
+        {{-- Banner Ringkasan Genre Baru yang Akan Dibuat --}}
+        @if (!empty($newGenresList))
+            <div class="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-xs text-text flex items-start gap-3">
+                <div class="p-1.5 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div class="space-y-1.5">
+                    <p class="font-bold text-text">
+                        {{ count($newGenresList) }} genre baru akan dibuat otomatis di database:
+                    </p>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        @foreach ($newGenresList as $ng)
+                            <span class="inline-flex items-center rounded-md bg-amber-500/25 px-2.5 py-1 text-xs font-bold text-amber-800 dark:text-amber-300 border border-amber-500/40">
+                                {{ $ng }}
+                            </span>
+                        @endforeach
+                    </div>
+                    <p class="text-[11px] text-text-muted">
+                        Genre baru akan otomatis tersimpan ke tabel genre saat impor dieksekusi. Genre yang dibuat batch tidak ikut terhapus saat pembatalan impor; Anda dapat mengelolanya di halaman Kelola Genre.
+                    </p>
+                </div>
+            </div>
+        @endif
+
         {{-- Filter Bar & Tombol Impor N Film --}}
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div class="flex items-center flex-wrap gap-2">
@@ -376,16 +402,206 @@
             </div>
         </div>
 
-        {{-- Tabel Pratinjau Interaktif --}}
-        <div class="rounded-2xl border border-border bg-surface shadow-token overflow-x-auto max-h-[640px] relative">
+        {{-- ============================================================== --}}
+        {{-- VIEW MOBILE: KARTU BERTUMPUK DI BAWAH 1024px                   --}}
+        {{-- ============================================================== --}}
+        <div class="block lg:hidden space-y-4">
+            @foreach ($rows as $index => $row)
+                @php
+                    $rowStatus = $row['status'];
+                    $isBaru = in_array($rowStatus, ['baru', 'valid'], true);
+                    $isDup = in_array($rowStatus, ['duplikat', 'duplicate'], true);
+                    $isMasalah = in_array($rowStatus, ['masalah', 'invalid', 'error'], true);
+                    $cellErrors = $row['cell_errors'] ?? [];
+                    $rowNewGenres = $row['new_genres'] ?? [];
+                @endphp
+                <div
+                    x-show="filterStatus === 'all' || (filterStatus === 'baru' && {{ $isBaru ? 'true' : 'false' }}) || (filterStatus === 'duplikat' && {{ $isDup ? 'true' : 'false' }}) || (filterStatus === 'masalah' && {{ $isMasalah ? 'true' : 'false' }})"
+                    :class="isExcluded({{ $index }}) ? 'opacity-40 bg-surface-2/20' : 'bg-surface'"
+                    class="rounded-2xl border border-border p-4 shadow-xs space-y-3"
+                    x-data="{
+                        chips: @js(array_values(array_filter(array_map('trim', explode(',', (string) $row['genre']))))),
+                        inputVal: '',
+                        addChip(val) {
+                            const clean = (val || this.inputVal).trim();
+                            if (!clean) return;
+                            const parts = clean.split(/[,;\n]+/).map(p => p.trim()).filter(Boolean);
+                            for (let p of parts) {
+                                if (!this.chips.map(c => c.toLowerCase()).includes(p.toLowerCase())) {
+                                    this.chips.push(p);
+                                }
+                            }
+                            this.inputVal = '';
+                        },
+                        removeChip(idx) {
+                            this.chips.splice(idx, 1);
+                        },
+                        replaceChip(oldVal, newVal) {
+                            const idx = this.chips.findIndex(c => c.toLowerCase() === oldVal.toLowerCase());
+                            if (idx !== -1) {
+                                this.chips.splice(idx, 1, newVal);
+                            }
+                        }
+                    }"
+                >
+                    {{-- Header Kartu --}}
+                    <div class="flex items-center justify-between border-b border-border pb-2.5">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                :checked="!isExcluded({{ $index }})"
+                                @change="toggleRow({{ $index }})"
+                                aria-label="Sertakan baris {{ $index + 1 }}"
+                                class="rounded border-border text-amber-500 focus:ring-amber-500"
+                            >
+                            <span class="font-bold text-xs text-text">Baris #{{ $index + 1 }}</span>
+                        </label>
+                        <div>
+                            @if ($isBaru)
+                                <span class="inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                    Baru
+                                </span>
+                            @elseif ($isDup)
+                                <span class="inline-flex items-center rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                    Duplikat
+                                </span>
+                            @else
+                                <span class="inline-flex items-center rounded-md bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                                    Ada Masalah
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Judul Film --}}
+                    <div>
+                        <label class="block text-[11px] font-bold text-text mb-1">Judul Film</label>
+                        <textarea
+                            name="rows[{{ $index }}][title]"
+                            rows="2"
+                            class="w-full min-h-[38px] max-h-24 overflow-y-auto resize-y rounded-lg border {{ isset($cellErrors['title']) ? 'border-rose-500 ring-1 ring-rose-500' : 'border-border' }} bg-surface px-2.5 py-1 text-xs font-bold text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                        >{{ $row['title'] }}</textarea>
+                        @if (isset($cellErrors['title']))
+                            <p class="text-[10px] text-rose-500 mt-0.5 font-semibold">{{ $cellErrors['title'] }}</p>
+                        @endif
+                    </div>
+
+                    {{-- Genre Chips --}}
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-bold text-text">Genre (Chip Pembungkus)</label>
+                        <input type="hidden" name="rows[{{ $index }}][genre]" :value="chips.join(', ')">
+                        
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <template x-for="(chip, chipIdx) in chips" :key="chipIdx">
+                                <span class="inline-flex items-center gap-1 rounded-md bg-surface-2 px-2 py-0.5 text-[11px] font-bold text-text border border-border">
+                                    <span x-text="chip"></span>
+                                    <button type="button" @click="removeChip(chipIdx)" class="text-text-muted hover:text-rose-500 text-xs leading-none">&times;</button>
+                                </span>
+                            </template>
+                        </div>
+
+                        {{-- Genre Typo Warnings / New Genre badges --}}
+                        @if (!empty($rowNewGenres))
+                            <div class="space-y-1 pt-1">
+                                @foreach ($rowNewGenres as $rng)
+                                    <div class="flex items-center gap-1.5 flex-wrap text-[10px] p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-text">
+                                        <span class="font-bold text-amber-600 dark:text-amber-400">Genre baru: {{ $rng['name'] }}</span>
+                                        @if (!empty($rng['typo_warning']))
+                                            <span class="text-text-muted">(Mirip '{{ $rng['typo_warning']['similar_to'] }}')</span>
+                                            <button
+                                                type="button"
+                                                @click="replaceChip('{{ $rng['name'] }}', '{{ $rng['typo_warning']['similar_to'] }}')"
+                                                class="px-1.5 py-0.5 rounded bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
+                                            >
+                                                Pakai {{ $rng['typo_warning']['similar_to'] }}
+                                            </button>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        <div class="pt-1">
+                            <input
+                                type="text"
+                                x-model="inputVal"
+                                @keydown.enter.prevent="addChip()"
+                                @keydown.comma.prevent="addChip()"
+                                placeholder="+ Tambah genre (Enter/koma)..."
+                                class="w-full rounded-lg border border-border bg-surface px-2.5 py-1 text-xs text-text placeholder:text-text-muted focus:border-amber-500 focus:outline-none"
+                            >
+                        </div>
+                    </div>
+
+                    {{-- 3-Col Meta: Durasi, Klasifikasi, Tahun --}}
+                    <div class="grid grid-cols-3 gap-2 pt-1 border-t border-border">
+                        <div>
+                            <label class="block text-[10px] font-semibold text-text-muted">Durasi (m)</label>
+                            <input
+                                type="number"
+                                name="rows[{{ $index }}][duration_minutes]"
+                                value="{{ $row['duration_minutes'] }}"
+                                class="w-full text-center rounded-lg border {{ isset($cellErrors['duration_minutes']) ? 'border-rose-500 ring-1 ring-rose-500' : 'border-border' }} bg-surface px-1 py-1 text-xs text-text"
+                            >
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-text-muted">Klasifikasi</label>
+                            <x-ui.select
+                                name="rows[{{ $index }}][age_rating]"
+                                size="sm"
+                                :value="$row['age_rating']"
+                                :options="\App\Models\AgeRating::optionsArray($row['age_rating'])"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-text-muted">Tahun</label>
+                            <input
+                                type="number"
+                                name="rows[{{ $index }}][release_year]"
+                                value="{{ $row['release_year'] }}"
+                                placeholder="{{ date('Y') }}"
+                                class="w-full text-center rounded-lg border border-border bg-surface px-1 py-1 text-xs text-text"
+                            >
+                        </div>
+                    </div>
+
+                    {{-- Sinopsis --}}
+                    <div>
+                        <label class="block text-[11px] font-bold text-text mb-1">Sinopsis</label>
+                        <textarea
+                            name="rows[{{ $index }}][synopsis]"
+                            rows="2"
+                            class="w-full min-h-[50px] max-h-24 overflow-y-auto resize-y rounded-lg border border-border bg-surface px-2.5 py-1 text-xs text-text focus:border-amber-500 resize-y"
+                        >{{ $row['synopsis'] }}</textarea>
+                    </div>
+
+                    {{-- Errors & Warnings in full --}}
+                    @if (!empty($row['errors']) || !empty($row['warnings']))
+                        <div class="p-2.5 rounded-xl border border-rose-500/20 bg-rose-500/5 space-y-1 text-xs">
+                            @foreach ((array) ($row['errors'] ?? []) as $err)
+                                <p class="text-rose-600 dark:text-rose-400 font-semibold break-words leading-relaxed">&bull; {{ $err }}</p>
+                            @endforeach
+                            @foreach ((array) ($row['warnings'] ?? []) as $warn)
+                                <p class="text-amber-600 dark:text-amber-400 text-[11px] break-words leading-relaxed">&bull; {{ $warn }}</p>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+
+        {{-- ============================================================== --}}
+        {{-- VIEW DESKTOP: TABEL LEBAR DENGAN STICKY JUDUL (>= 1024px)       --}}
+        {{-- ============================================================== --}}
+        <div class="hidden lg:block rounded-2xl border border-border bg-surface shadow-token overflow-x-auto max-h-[640px] relative">
             <table class="w-full text-left text-xs border-collapse">
-                <thead class="sticky top-0 bg-surface-2/95 backdrop-blur-sm z-10 border-b border-border text-[11px] font-bold text-text uppercase tracking-wider">
+                <thead class="sticky top-0 bg-surface-2/95 backdrop-blur-sm z-20 border-b border-border text-[11px] font-bold text-text uppercase tracking-wider">
                     <tr>
                         <th class="p-3 w-10 text-center">Pilih</th>
                         <th class="p-3 w-12 text-center">No</th>
-                        <th class="p-3 w-32">Status</th>
-                        <th class="p-3 min-w-[200px]">Judul Film</th>
-                        <th class="p-3 min-w-[160px]">Genre</th>
+                        <th class="p-3 w-28">Status</th>
+                        <th class="p-3 min-w-[220px] sticky left-0 bg-surface-2 z-30 border-r border-border shadow-xs">Judul Film</th>
+                        <th class="p-3 min-w-[240px]">Genre</th>
                         <th class="p-3 w-24 text-center">Durasi (m)</th>
                         <th class="p-3 w-28 text-center">Klasifikasi</th>
                         <th class="p-3 w-24 text-center">Tahun</th>
@@ -401,12 +617,36 @@
                             $isDup = in_array($rowStatus, ['duplikat', 'duplicate'], true);
                             $isMasalah = in_array($rowStatus, ['masalah', 'invalid', 'error'], true);
                             $cellErrors = $row['cell_errors'] ?? [];
-                            $unknownGenres = $row['unknown_genres'] ?? [];
+                            $rowNewGenres = $row['new_genres'] ?? [];
                         @endphp
                         <tr
                             x-show="filterStatus === 'all' || (filterStatus === 'baru' && {{ $isBaru ? 'true' : 'false' }}) || (filterStatus === 'duplikat' && {{ $isDup ? 'true' : 'false' }}) || (filterStatus === 'masalah' && {{ $isMasalah ? 'true' : 'false' }})"
                             :class="isExcluded({{ $index }}) ? 'opacity-40 bg-surface-2/20' : ''"
                             class="hover:bg-surface-2/40 transition-colors"
+                            x-data="{
+                                chips: @js(array_values(array_filter(array_map('trim', explode(',', (string) $row['genre']))))),
+                                inputVal: '',
+                                addChip(val) {
+                                    const clean = (val || this.inputVal).trim();
+                                    if (!clean) return;
+                                    const parts = clean.split(/[,;\n]+/).map(p => p.trim()).filter(Boolean);
+                                    for (let p of parts) {
+                                        if (!this.chips.map(c => c.toLowerCase()).includes(p.toLowerCase())) {
+                                            this.chips.push(p);
+                                        }
+                                    }
+                                    this.inputVal = '';
+                                },
+                                removeChip(idx) {
+                                    this.chips.splice(idx, 1);
+                                },
+                                replaceChip(oldVal, newVal) {
+                                    const idx = this.chips.findIndex(c => c.toLowerCase() === oldVal.toLowerCase());
+                                    if (idx !== -1) {
+                                        this.chips.splice(idx, 1, newVal);
+                                    }
+                                }
+                            }"
                         >
                             {{-- Checkbox Include / Exclude --}}
                             <td class="p-3 text-center">
@@ -427,83 +667,87 @@
                             {{-- Status Chip (Baru / Duplikat / Ada Masalah) --}}
                             <td class="p-3">
                                 @if ($isBaru)
-                                    <span class="inline-flex items-center rounded-md bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success border border-success/30">
+                                    <span class="inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                                         Baru
                                     </span>
                                 @elseif ($isDup)
-                                    <span class="inline-flex items-center rounded-md bg-warning/15 px-2 py-0.5 text-[10px] font-bold text-warning border border-warning/30" title="Film sudah ada di database">
+                                    <span class="inline-flex items-center rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/30" title="Film sudah ada di database">
                                         Duplikat
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center rounded-md bg-danger/15 px-2 py-0.5 text-[10px] font-bold text-danger border border-danger/30" title="{{ implode('; ', (array) ($row['errors'] ?? [])) }}">
+                                    <span class="inline-flex items-center rounded-md bg-rose-500/15 px-2 py-0.5 text-[10px] font-bold text-rose-600 dark:text-rose-400 border border-rose-500/30" title="{{ implode('; ', (array) ($row['errors'] ?? [])) }}">
                                         Ada Masalah
                                     </span>
                                 @endif
 
                                 @if (!empty($row['errors']))
-                                    <p class="text-[10px] text-danger mt-1 font-semibold leading-tight">
+                                    <p class="text-[10px] text-rose-600 dark:text-rose-400 mt-1 font-semibold leading-tight break-words">
                                         {{ implode('; ', (array) $row['errors']) }}
                                     </p>
                                 @endif
                                 @if (!empty($row['warnings']))
-                                    <p class="text-[10px] text-warning mt-0.5 leading-tight">
+                                    <p class="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5 leading-tight break-words">
                                         {{ implode('; ', (array) $row['warnings']) }}
                                     </p>
                                 @endif
                             </td>
 
-                            {{-- Judul (Editable) --}}
-                            <td class="p-3">
-                                <input
-                                    type="text"
+                            {{-- Judul (Sticky Column on Desktop, Resizable & Scrollable) --}}
+                            <td class="p-3 sticky left-0 bg-surface z-10 border-r border-border shadow-xs">
+                                <textarea
                                     name="rows[{{ $index }}][title]"
-                                    value="{{ $row['title'] }}"
-                                    class="w-full rounded-lg border {{ isset($cellErrors['title']) ? 'border-danger ring-1 ring-danger' : 'border-border' }} bg-surface px-2.5 py-1 text-xs font-bold text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                                >
+                                    rows="2"
+                                    class="w-full min-h-[38px] max-h-24 overflow-y-auto resize-y rounded-lg border {{ isset($cellErrors['title']) ? 'border-rose-500 ring-1 ring-rose-500' : 'border-border' }} bg-surface px-2.5 py-1 text-xs font-bold text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                                >{{ $row['title'] }}</textarea>
                                 @if (isset($cellErrors['title']))
-                                    <p class="text-[10px] text-danger mt-0.5">{{ $cellErrors['title'] }}</p>
+                                    <p class="text-[10px] text-rose-500 mt-0.5 font-semibold">{{ $cellErrors['title'] }}</p>
                                 @endif
                             </td>
 
-                            {{-- Genre (Editable + Unknown Mapping Helper) --}}
-                            <td class="p-3">
-                                <input
-                                    type="text"
-                                    id="row-genre-{{ $index }}"
-                                    name="rows[{{ $index }}][genre]"
-                                    value="{{ $row['genre'] }}"
-                                    class="w-full rounded-lg border {{ isset($cellErrors['genre']) ? 'border-danger ring-1 ring-danger' : 'border-border' }} bg-surface px-2 py-1 text-xs text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                                >
-                                @if (!empty($unknownGenres))
-                                    <div class="mt-1.5 space-y-1">
-                                        @foreach ($unknownGenres as $ug)
-                                            <div class="p-1.5 rounded-lg border border-warning/30 bg-warning/10 text-[10px] text-text space-y-1">
-                                                <p>
-                                                    <span class="font-bold text-warning">'{{ $ug['raw'] }}'</span> tidak dikenal.
-                                                </p>
-                                                <div class="flex items-center gap-1.5 flex-wrap">
+                            {{-- Genre (Chips Wrapping + Chip Input + Typo Suggestion) --}}
+                            <td class="p-3 min-w-[240px]">
+                                <input type="hidden" name="rows[{{ $index }}][genre]" :value="chips.join(', ')">
+
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <template x-for="(chip, chipIdx) in chips" :key="chipIdx">
+                                        <span class="inline-flex items-center gap-1 rounded-md bg-surface-2 px-2 py-0.5 text-[11px] font-bold text-text border border-border">
+                                            <span x-text="chip"></span>
+                                            <button type="button" @click="removeChip(chipIdx)" class="text-text-muted hover:text-rose-500 text-xs leading-none">&times;</button>
+                                        </span>
+                                    </template>
+                                </div>
+
+                                {{-- Genre Typo Warnings / New Genre badges --}}
+                                @if (!empty($rowNewGenres))
+                                    <div class="space-y-1 pt-1.5">
+                                        @foreach ($rowNewGenres as $rng)
+                                            <div class="flex items-center gap-1.5 flex-wrap text-[10px] p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-text">
+                                                <span class="font-bold text-amber-600 dark:text-amber-400">Genre baru: {{ $rng['name'] }}</span>
+                                                @if (!empty($rng['typo_warning']))
+                                                    <span class="text-text-muted">(Mirip '{{ $rng['typo_warning']['similar_to'] }}')</span>
                                                     <button
                                                         type="button"
-                                                        @click="mapGenre({{ $index }}, '{{ addslashes($ug['raw']) }}', '{{ $ug['suggestion'] }}')"
-                                                        class="px-2 py-0.5 rounded bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
+                                                        @click="replaceChip('{{ $rng['name'] }}', '{{ $rng['typo_warning']['similar_to'] }}')"
+                                                        class="px-1.5 py-0.5 rounded bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
                                                     >
-                                                        Petakan ke {{ $ug['suggestion'] }}
+                                                        Pakai {{ $rng['typo_warning']['similar_to'] }}
                                                     </button>
-                                                    <button
-                                                        type="button"
-                                                        @click="removeGenre({{ $index }}, '{{ addslashes($ug['raw']) }}')"
-                                                        class="px-1.5 py-0.5 rounded border border-border text-text-muted hover:text-danger"
-                                                    >
-                                                        Hapus
-                                                    </button>
-                                                </div>
+                                                @endif
                                             </div>
                                         @endforeach
                                     </div>
                                 @endif
-                                @if (isset($cellErrors['genre']) && empty($unknownGenres))
-                                    <p class="text-[10px] text-danger mt-0.5">{{ $cellErrors['genre'] }}</p>
-                                @endif
+
+                                <div class="pt-1.5">
+                                    <input
+                                        type="text"
+                                        x-model="inputVal"
+                                        @keydown.enter.prevent="addChip()"
+                                        @keydown.comma.prevent="addChip()"
+                                        placeholder="+ Tambah genre..."
+                                        class="w-full rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text placeholder:text-text-muted focus:border-amber-500 focus:outline-none"
+                                    >
+                                </div>
                             </td>
 
                             {{-- Durasi (Editable) --}}
@@ -512,10 +756,10 @@
                                     type="number"
                                     name="rows[{{ $index }}][duration_minutes]"
                                     value="{{ $row['duration_minutes'] }}"
-                                    class="w-16 text-center rounded-lg border {{ isset($cellErrors['duration_minutes']) ? 'border-danger ring-1 ring-danger' : 'border-border' }} bg-surface px-1.5 py-1 text-xs text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                                    class="w-16 text-center rounded-lg border {{ isset($cellErrors['duration_minutes']) ? 'border-rose-500 ring-1 ring-rose-500' : 'border-border' }} bg-surface px-1.5 py-1 text-xs text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                                 >
                                 @if (isset($cellErrors['duration_minutes']))
-                                    <p class="text-[10px] text-danger mt-0.5">{{ $cellErrors['duration_minutes'] }}</p>
+                                    <p class="text-[10px] text-rose-500 mt-0.5 font-semibold">{{ $cellErrors['duration_minutes'] }}</p>
                                 @endif
                             </td>
 
@@ -528,7 +772,7 @@
                                     :options="\App\Models\AgeRating::optionsArray($row['age_rating'])"
                                 />
                                 @if (isset($cellErrors['age_rating']))
-                                    <div class="mt-1 text-[10px] text-danger text-left space-y-0.5">
+                                    <div class="mt-1 text-[10px] text-rose-500 text-left space-y-0.5 font-semibold">
                                         <p>{{ $cellErrors['age_rating'] }}</p>
                                         <a href="{{ route('admin.age_ratings.index') }}" target="_blank" class="inline-flex items-center gap-1 font-bold text-amber-500 hover:text-amber-400 underline">
                                             <span>+ Tambah Klasifikasi</span>
@@ -545,14 +789,14 @@
                                     name="rows[{{ $index }}][release_year]"
                                     value="{{ $row['release_year'] }}"
                                     placeholder="{{ date('Y') }}"
-                                    class="w-16 text-center rounded-lg border {{ isset($cellErrors['release_year']) ? 'border-danger ring-1 ring-danger' : 'border-border' }} bg-surface px-1.5 py-1 text-xs text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                                    class="w-16 text-center rounded-lg border {{ isset($cellErrors['release_year']) ? 'border-rose-500 ring-1 ring-rose-500' : 'border-border' }} bg-surface px-1.5 py-1 text-xs text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                                 >
                             </td>
 
                             {{-- Poster --}}
                             <td class="p-3">
                                 @if (!empty($row['matched_poster']))
-                                    <span class="inline-flex items-center gap-1 font-mono text-[11px] text-success font-semibold" title="{{ $row['matched_poster'] }}">
+                                    <span class="inline-flex items-center gap-1 font-mono text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold" title="{{ $row['matched_poster'] }}">
                                         <svg class="size-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                         <span class="truncate max-w-[120px]">{{ $row['matched_poster'] }}</span>
                                     </span>
@@ -563,13 +807,13 @@
                                 @endif
                             </td>
 
-                            {{-- Sinopsis --}}
-                            <td class="p-3">
+                            {{-- Sinopsis (Scrollable and Resizable Textarea) --}}
+                            <td class="p-3 min-w-[240px]">
                                 <textarea
                                     name="rows[{{ $index }}][synopsis]"
-                                    rows="1"
+                                    rows="2"
                                     placeholder="Sinopsis (opsional)..."
-                                    class="w-full rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500 resize-y"
+                                    class="w-full min-h-[50px] max-h-24 overflow-y-auto resize-y rounded-lg border border-border bg-surface px-2.5 py-1 text-xs text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                                 >{{ $row['synopsis'] }}</textarea>
                                 @if (!empty($row['needs_synopsis']))
                                     <span class="inline-flex items-center rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-600 dark:text-amber-400 mt-1">

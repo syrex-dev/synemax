@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AgeRating;
 use App\Models\Film;
+use App\Models\Genre;
 use App\Models\ImportBatch;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -166,83 +167,115 @@ class FilmBulkImporter
         }
 
         $tokens = preg_split('/[,;\/|]+/', $raw);
-        $canonical = Film::CANONICAL_GENRES;
-        $lowerCanonicalMap = [];
-        foreach ($canonical as $cg) {
-            $lowerCanonicalMap[strtolower($cg)] = $cg;
+        $canonical = Genre::allActiveNames();
+        if (empty($canonical)) {
+            $canonical = ['Aksi', 'Animasi', 'Drama', 'Fantasi', 'Horor', 'Keluarga', 'Komedi', 'Misteri', 'Petualangan', 'Romantis', 'Sci-Fi', 'Thriller'];
         }
 
-        // Aliases & common English translations / typos
-        $aliasMap = [
-            'action' => 'Aksi',
-            'aksi' => 'Aksi',
-            'animation' => 'Animasi',
-            'animasi' => 'Animasi',
-            'anime' => 'Animasi',
-            'kartun' => 'Animasi',
-            'drama' => 'Drama',
-            'fantasy' => 'Fantasi',
-            'fantasi' => 'Fantasi',
-            'horror' => 'Horor',
-            'horor' => 'Horor',
-            'horer' => 'Horor',
-            'family' => 'Keluarga',
-            'keluarga' => 'Keluarga',
-            'comedy' => 'Komedi',
-            'komedi' => 'Komedi',
-            'komik' => 'Komedi',
-            'komidi' => 'Komedi',
-            'mystery' => 'Misteri',
-            'misteri' => 'Misteri',
-            'mistis' => 'Misteri',
-            'adventure' => 'Petualangan',
-            'petualangan' => 'Petualangan',
-            'petualang' => 'Petualangan',
-            'roman' => 'Romantis',
-            'romance' => 'Romantis',
-            'romantis' => 'Romantis',
-            'romantik' => 'Romantis',
-            'sci-fi' => 'Sci-Fi',
-            'scifi' => 'Sci-Fi',
-            'science fiction' => 'Sci-Fi',
-            'fiksi ilmiah' => 'Sci-Fi',
-            'thriller' => 'Thriller',
-            'triler' => 'Thriller',
-            'tegang' => 'Thriller',
-        ];
+        $lowerCanonicalMap = [];
+        foreach ($canonical as $cg) {
+            $lowerCanonicalMap[Genre::normalizeName($cg)] = $cg;
+        }
 
         $matched = [];
+        $newGenres = [];
         $unknown = [];
         $warnings = [];
+        $hasInvalidSymbols = false;
 
         foreach ($tokens as $token) {
-            $tokenClean = trim((string) $token);
-            $tokenLower = strtolower($tokenClean);
-            if ($tokenLower === '') {
+            $stripped = trim(strip_tags((string) $token));
+            $cleanToken = (string) preg_replace('/\s+/', ' ', $stripped);
+
+            if ($cleanToken === '') {
                 continue;
             }
 
-            if (isset($aliasMap[$tokenLower])) {
-                $matched[] = $aliasMap[$tokenLower];
-            } elseif (isset($lowerCanonicalMap[$tokenLower])) {
-                $matched[] = $lowerCanonicalMap[$tokenLower];
-            } else {
-                // Find closest suggestion using Levenshtein distance
-                $closestSuggestion = null;
-                $lowestDistance = PHP_INT_MAX;
-                foreach ($canonical as $cg) {
-                    $dist = levenshtein($tokenLower, strtolower($cg));
-                    if ($dist < $lowestDistance) {
-                        $lowestDistance = $dist;
-                        $closestSuggestion = $cg;
-                    }
-                }
-                $unknown[] = [
-                    'raw' => $tokenClean,
-                    'suggestion' => $closestSuggestion ?: 'Drama',
-                ];
-                $warnings[] = "Genre '{$tokenClean}' tidak dikenal. Saran terdekat: '{$closestSuggestion}'.";
+            // Reject if token contains ONLY symbols (no letters or numbers)
+            if (! preg_match('/[\p{L}\p{N}]/u', $cleanToken)) {
+                $hasInvalidSymbols = true;
+                $warnings[] = "Genre '{$cleanToken}' tidak valid karena hanya berisi simbol.";
+
+                continue;
             }
+
+            // Remove unwanted characters from new genre names
+            $cleanSanitized = (string) preg_replace('/[^\p{L}\p{N}\s\-]/u', '', $cleanToken);
+            if ($cleanSanitized === '') {
+                $hasInvalidSymbols = true;
+                $warnings[] = "Genre '{$cleanToken}' tidak valid.";
+
+                continue;
+            }
+
+            // 1. Check English/standard alias map
+            $aliasMapped = Genre::mapAlias($cleanSanitized);
+            if ($aliasMapped) {
+                $matched[] = $aliasMapped;
+
+                continue;
+            }
+
+            // 2. Check existing active canonical genres
+            $norm = Genre::normalizeName($cleanSanitized);
+            if (isset($lowerCanonicalMap[$norm])) {
+                $matched[] = $lowerCanonicalMap[$norm];
+
+                continue;
+            }
+
+            // 3. Not existing: It is a NEW GENRE!
+            $displayName = Genre::formatDisplayName($cleanSanitized);
+            if (! $displayName) {
+                $hasInvalidSymbols = true;
+                $warnings[] = "Genre '{$cleanToken}' tidak valid.";
+
+                continue;
+            }
+
+            // Check typo distance (Levenshtein edit distance <= 2)
+            $similarGenre = null;
+            $lowestDistance = PHP_INT_MAX;
+            foreach ($canonical as $cg) {
+                $dist = levenshtein(strtolower($displayName), strtolower($cg));
+                if ($dist < $lowestDistance) {
+                    $lowestDistance = $dist;
+                    $similarGenre = $cg;
+                }
+            }
+
+            $typoWarning = null;
+            if ($lowestDistance <= 2 && $similarGenre) {
+                $typoWarning = [
+                    'raw' => $cleanToken,
+                    'new_name' => $displayName,
+                    'similar_to' => $similarGenre,
+                    'distance' => $lowestDistance,
+                ];
+                $warnings[] = "Genre baru '{$displayName}' mirip dengan genre '{$similarGenre}'.";
+            }
+
+            $newGenres[] = [
+                'name' => $displayName,
+                'raw' => $cleanToken,
+                'typo_warning' => $typoWarning,
+                'suggestion' => $similarGenre ?: 'Drama',
+            ];
+
+            // For backwards compatibility with any test expecting unknown array:
+            $unknown[] = [
+                'raw' => $cleanToken,
+                'new_name' => $displayName,
+                'suggestion' => $similarGenre ?: 'Drama',
+            ];
+
+            $matched[] = $displayName;
+        }
+
+        // Limit to max 6 genres per film
+        if (count($matched) > 6) {
+            $warnings[] = 'Maksimal 6 genre per film. Genre setelah ke-6 diabaikan.';
+            $matched = array_slice($matched, 0, 6);
         }
 
         $uniqueMatched = array_values(array_unique($matched));
@@ -251,8 +284,10 @@ class FilmBulkImporter
             'raw' => $raw,
             'normalized' => implode(', ', $uniqueMatched),
             'matched' => $uniqueMatched,
+            'new_genres' => $newGenres,
             'unknown' => $unknown,
             'warnings' => $warnings,
+            'has_invalid_symbols' => $hasInvalidSymbols,
         ];
     }
 
@@ -351,17 +386,19 @@ class FilmBulkImporter
                 $errors[] = 'Genre film wajib diisi.';
                 $cellErrors['genre'] = 'Genre wajib diisi.';
                 $normalizedGenres = '';
+            } elseif ($genreAnalysis['has_invalid_symbols'] && empty($genreAnalysis['matched'])) {
+                $errors[] = 'Genre film tidak valid (hanya memuat simbol atau kosong).';
+                $cellErrors['genre'] = 'Format genre tidak valid.';
+                $normalizedGenres = '';
             } else {
                 $normalizedGenres = $genreAnalysis['normalized'];
-                if (! empty($genreAnalysis['unknown'])) {
+                if ($normalizedGenres === '') {
+                    $errors[] = 'Genre film tidak valid atau kosong.';
+                    $cellErrors['genre'] = 'Genre film wajib diisi.';
+                } else {
                     foreach ($genreAnalysis['warnings'] as $gw) {
                         $warnings[] = $gw;
                     }
-                    $cellErrors['genre'] = 'Memuat genre tidak baku ('.implode(', ', array_column($genreAnalysis['unknown'], 'raw')).').';
-                }
-                if ($normalizedGenres === '') {
-                    $errors[] = 'Tidak ada genre baku yang cocok.';
-                    $cellErrors['genre'] = 'Pilih atau petakan ke genre baku.';
                 }
             }
 
@@ -411,15 +448,11 @@ class FilmBulkImporter
             }
 
             // Determine status
-            // We support Indonesian labels ('baru', 'duplikat', 'masalah') as primary status,
-            // with aliases for backwards compatibility with legacy tests
+            // New genres remain status 'baru'!
             if (! empty($errors)) {
                 $status = 'masalah';
             } elseif ($isDuplicate) {
                 $status = 'duplikat';
-            } elseif (! empty($genreAnalysis['unknown'])) {
-                $status = 'masalah';
-                $errors[] = 'Terdapat genre tak dikenal yang perlu dipetakan ke genre baku.';
             } else {
                 $status = 'baru';
             }
@@ -432,6 +465,8 @@ class FilmBulkImporter
                 'duration_minutes' => $duration,
                 'genre' => $normalizedGenres ?: $rawGenre,
                 'raw_genre' => $rawGenre,
+                'new_genres' => $genreAnalysis['new_genres'] ?? [],
+                'genre_analysis' => $genreAnalysis,
                 'unknown_genres' => $genreAnalysis['unknown'] ?? [],
                 'age_rating' => $normalizedAge,
                 'release_year' => $releaseYear,
@@ -467,7 +502,10 @@ class FilmBulkImporter
         }
 
         $tokens = preg_split('/[,;\/|]+/', $raw);
-        $canonical = Film::CANONICAL_GENRES;
+        $canonical = Genre::allActiveNames();
+        if (empty($canonical)) {
+            $canonical = ['Aksi', 'Animasi', 'Drama', 'Fantasi', 'Horor', 'Keluarga', 'Komedi', 'Misteri', 'Petualangan', 'Romantis', 'Sci-Fi', 'Thriller'];
+        }
         $lowerMap = [];
         foreach ($canonical as $cg) {
             $lowerMap[strtolower($cg)] = $cg;
@@ -999,6 +1037,19 @@ class FilmBulkImporter
                     ];
 
                     continue;
+                }
+
+                // Ensure all genres are idempotently created in the genres table
+                $genreTokens = array_filter(array_map('trim', explode(',', (string) $genre)));
+                $savedGenres = [];
+                foreach ($genreTokens as $gt) {
+                    $gModel = Genre::findOrCreateByName($gt);
+                    if ($gModel) {
+                        $savedGenres[] = $gModel->name;
+                    }
+                }
+                if (! empty($savedGenres)) {
+                    $genre = implode(', ', array_values(array_unique($savedGenres)));
                 }
 
                 $releaseYear = ! empty($row['release_year']) ? (int) $row['release_year'] : null;

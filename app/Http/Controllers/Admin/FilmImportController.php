@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Film;
+use App\Models\Genre;
 use App\Models\ImportBatch;
 use App\Services\FilmBulkImporter;
 use Illuminate\Http\JsonResponse;
@@ -180,6 +181,15 @@ class FilmImportController extends Controller
             'has_poster' => $matchedPostersCount,
         ];
 
+        $allNewGenres = [];
+        foreach ($analyzedRows as $r) {
+            if (! empty($r['new_genres'])) {
+                foreach ($r['new_genres'] as $ng) {
+                    $allNewGenres[$ng['name']] = true;
+                }
+            }
+        }
+
         return view('admin.films.import-preview', [
             'batchId' => $batchId,
             'batchToken' => $batchId,
@@ -190,7 +200,8 @@ class FilmImportController extends Controller
             'duplicateStrategy' => $request->input('duplicate_strategy', 'skip'),
             'totalPosters' => count($extractedPosters),
             'unmatchedPosters' => $unmatchedPosters,
-            'canonicalGenres' => Film::CANONICAL_GENRES,
+            'canonicalGenres' => Genre::allActiveNames(),
+            'newGenresList' => array_keys($allNewGenres),
             'extractedPosters' => $extractedPosters,
         ]);
     }
@@ -250,7 +261,7 @@ class FilmImportController extends Controller
             'duplicateStrategy' => 'skip',
             'totalPosters' => count($extractedPosters),
             'unmatchedPosters' => $unmatchedPosters,
-            'canonicalGenres' => Film::CANONICAL_GENRES,
+            'canonicalGenres' => Genre::allActiveNames(),
             'extractedPosters' => $extractedPosters,
             'autoResume' => true,
             'initialChunk' => $initialChunk,

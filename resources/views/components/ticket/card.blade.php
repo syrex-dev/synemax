@@ -170,7 +170,7 @@
         @else
             {{-- Status: Aktif (QR inline SVG 150px / 36mm cetak + Monospace 20px) --}}
             <div class="flex flex-col items-center justify-center space-y-2">
-                <div class="size-[150px] border border-slate-200 rounded p-1 bg-white flex items-center justify-center print:size-[36mm] [&>svg]:w-full [&>svg]:h-full [&>svg]:block">
+                <div data-ticket-qr class="size-[150px] border border-slate-200 rounded p-1 bg-white flex items-center justify-center print:size-[36mm] [&>svg]:w-full [&>svg]:h-full [&>svg]:block">
                     {!! generate_inline_qr_svg($booking->code, 150, 1) !!}
                 </div>
                 
@@ -237,23 +237,8 @@
 
         {{-- Metode & Status Bayar --}}
         @php
-            $isActuallyConfirmed = in_array($booking->status, ['terkonfirmasi', 'hadir', 'selesai'], true);
-            if ($isCancelled) {
-                $statusBayarLabel = $booking->refund_needed ? 'Dibatalkan (Perlu Refund)' : 'Dibatalkan';
-                $statusBayarColor = 'text-red-700';
-            } elseif ($isActuallyConfirmed) {
-                $statusBayarLabel = 'Lunas';
-                $statusBayarColor = 'text-emerald-700';
-            } elseif ($booking->payment_method === 'di_tempat') {
-                $statusBayarLabel = 'Bayar di tempat';
-                $statusBayarColor = 'text-amber-800';
-            } elseif ($booking->status === 'menunggu_konfirmasi') {
-                $statusBayarLabel = 'Menunggu konfirmasi';
-                $statusBayarColor = 'text-amber-700';
-            } else {
-                $statusBayarLabel = 'Belum dibayar';
-                $statusBayarColor = 'text-slate-600';
-            }
+            $statusBayarLabel = $booking->paymentStatusLabel();
+            $statusBayarColor = $booking->paymentStatusColor();
         @endphp
         <div class="flex justify-between text-[11px] text-slate-500 pt-0.5">
             <span>

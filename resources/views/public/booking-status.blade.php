@@ -26,6 +26,17 @@
                  }
              }">
 
+        {{-- Navigasi Cepat Kembali ke Beranda --}}
+        <div class="mb-4">
+            <a href="{{ route('home') }}"
+               class="inline-flex items-center gap-1.5 text-xs font-semibold text-text-muted hover:text-text transition no-underline">
+                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                <span>← Beranda</span>
+            </a>
+        </div>
+
         {{-- Header Halaman Cek Booking --}}
         <header class="mb-6 text-center sm:text-left">
             <span class="inline-flex items-center gap-1.5 badge-accent-soft rounded-full px-3 py-1 text-xs font-bold">
@@ -140,8 +151,13 @@
             </div>
         </section>
 
-        <div class="mt-8 text-center text-xs text-text-muted">
-            <p>Ingin melihat sesi film lain? <a href="{{ route('home') }}" class="font-bold text-accent-link hover:underline">Kembali ke beranda</a></p>
+        {{-- Bantuan WhatsApp & Navigasi --}}
+        <div class="mt-8 max-w-[400px] mx-auto w-full space-y-3">
+            <x-ui.whatsapp-button variant="inline" />
+            <a href="{{ route('home') }}"
+               class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-amber-400 transition shadow-none">
+                Kembali ke Beranda
+            </a>
         </div>
     </section>
 @endsection

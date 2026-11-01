@@ -113,8 +113,8 @@ class TicketPdfAndInlineQrTest extends TestCase
         $responseBefore->assertSee('Bayar di tempat');
         $responseBefore->assertDontSee('Lunas');
 
-        // 2. After admin confirmation (status: terkonfirmasi)
-        $booking->update(['status' => 'terkonfirmasi']);
+        // 2. After payment settled at venue (status: hadir)
+        $booking->update(['status' => 'hadir']);
 
         $responseAfter = $this->actingAs($this->admin)->get(route('admin.bookings.ticket', $booking));
         $responseAfter->assertOk();

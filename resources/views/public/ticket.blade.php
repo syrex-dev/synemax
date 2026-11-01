@@ -4,7 +4,7 @@
 @section('meta')
     <meta name="description" content="Tiket digital resmi SynemaX untuk booking {{ $booking->code }}.">
     <meta property="og:title" content="Tiket SynemaX: {{ $booking->code }}">
-    <meta property="og:description" content="{{ $booking->film?->title ?? 'Film Sesi' }}, {{ $booking->session->startsAt()->locale('id')->translatedFormat('D, d M Y') }}, {{ substr((string) $booking->session->start_time, 0, 5) }} WIB">
+    <meta property="og:description" content="{{ $booking->film?->title ?? 'Film Sesi' }}, {{ format_tanggal_id($booking->session->session_date) }}, {{ format_jam_id($booking->session->start_time) }}">
 @endsection
 
 @push('styles')
@@ -144,6 +144,17 @@
                  window.print();
              }
          }">
+
+        {{-- Navigasi Cepat Kembali ke Beranda (No-Print) --}}
+        <div class="mb-4 no-print">
+            <a href="{{ route('home') }}"
+               class="inline-flex items-center gap-1.5 text-xs font-semibold text-text-muted hover:text-text transition no-underline">
+                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                <span>← Beranda</span>
+            </a>
+        </div>
 
         {{-- Flash Pesan --}}
         @if (session('status'))
@@ -460,78 +471,80 @@
 
         {{-- ==================== TOMBOL AKSI TIKET (NO-PRINT) ==================== --}}
         <div class="mt-6 space-y-3 no-print action-buttons max-w-[400px] mx-auto w-full">
-            {{-- 1. Satu Tombol Utama Menurut Kondisi --}}
+            {{-- Keterangan / Guidance Status Tiket --}}
+            <p class="text-xs text-text-muted text-center leading-relaxed">
+                {{ $booking->ticketGuidanceText() }}
+            </p>
+
+            {{-- 1. Aksi Utama Menurut Status (Tinggi 48px, Solid Amber, Tanpa Gradasi) --}}
             @if ($canPrint)
                 <button type="button"
                         @click="printTicket()"
-                        class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 px-5 text-sm font-bold border border-amber-500/30 transition">
+                        class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 px-5 text-sm font-bold border border-amber-500/30 transition shadow-none">
                     <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24-1.076-.667-2.197-1.28-3.183A9.972 9.972 0 0112 3a9.972 9.972 0 016.56 2.646c-.613.986-1.04 2.107-1.28 3.183m-10.56 0A9.96 9.96 0 003 12c0 2.478.9 4.747 2.395 6.486M17.28 13.829A9.96 9.96 0 0121 12c0-2.478-.9-4.747-2.395-6.486m0 0a9.98 9.98 0 00-2.165-2.004M6.72 13.829a9.974 9.974 0 00-2.165 2.004M12 15a3 3 0 100-6 3 3 0 000 6z" />
                     </svg>
                     <span>Simpan tiket (PDF)</span>
                 </button>
-            @elseif ($isCancelled)
-                <p class="text-xs text-text-muted text-center leading-relaxed">
-                    Booking ini telah dibatalkan dan tiket tidak dapat digunakan.
-                </p>
-                <a href="{{ route('schedule.date', ['date' => $booking->session->session_date]) }}"
-                   class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 px-5 text-sm font-bold border border-amber-500/30 transition">
-                    Lihat Jadwal Lain
+            @elseif ($isWaitingQuorum && $ajakTemanUrl)
+                <a href="{{ $ajakTemanUrl }}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 px-5 text-sm font-bold border border-amber-500/30 transition shadow-none">
+                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"/>
+                    </svg>
+                    <span>Ajak teman</span>
                 </a>
-            @elseif ($isWaitingQuorum)
-                <p class="text-xs text-text-muted text-center leading-relaxed">
-                    E-tiket aktif dan dapat disimpan setelah sesi dipastikan tayang.
-                </p>
+            @elseif ($isCancelled || $isCompleted)
+                <a href="{{ route('schedule.date', ['date' => $booking->session->session_date]) }}"
+                   class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 px-5 text-sm font-bold border border-amber-500/30 transition shadow-none">
+                    <span>Pesan sesi lain</span>
+                </a>
             @elseif ($booking->isOnlinePayment() && $booking->status === 'menunggu_pembayaran')
                 <a href="{{ route('booking.payment', ['code' => $booking->code]) }}"
-                   class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 px-5 text-sm font-bold border border-amber-500/30 transition">
-                    Lanjutkan Pembayaran
+                   class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 px-5 text-sm font-bold border border-amber-500/30 transition shadow-none">
+                    <span>Lanjutkan Pembayaran</span>
                 </a>
-            @else
-                <p class="text-xs text-text-muted text-center leading-relaxed">
-                    Tiket aktif setelah pembayaran dan sesi terkonfirmasi.
-                </p>
             @endif
 
-            {{-- 2. Maksimal Dua Tautan Sekunder: Ubah jajan & Hubungi admin via WhatsApp --}}
-            <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
-                @if ($snackWhatsAppUrl && $booking->items->isNotEmpty() && ! $isCancelled && ! $isCompleted)
-                    <a href="{{ $snackWhatsAppUrl }}"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       class="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-amber-400 transition">
-                        Ubah jajan
-                    </a>
-                @endif
+            {{-- 2. "Ubah jajan" Sekunder Outline (bila masih diperbolehkan) --}}
+            @if ($snackWhatsAppUrl && $booking->items->isNotEmpty() && ! $isCancelled && ! $isCompleted)
+                <a href="{{ $snackWhatsAppUrl }}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-amber-400 transition shadow-none">
+                    Ubah jajan
+                </a>
+            @endif
 
-                @if ($whatsAppUrl)
-                    <a href="{{ $whatsAppUrl }}"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       aria-label="Konfirmasi via WhatsApp"
-                       class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-emerald-600/40 bg-emerald-500/10 px-4 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-600 hover:text-white transition">
-                        <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a.75.75 0 01-.974-.948l.582-1.745C3.766 16.71 3 14.475 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z"/>
-                        </svg>
-                        <span>Hubungi admin</span>
-                        <span class="sr-only">Konfirmasi via WhatsApp</span>
-                    </a>
-                @endif
-            </div>
+            {{-- 3. Tombol WhatsApp Bantuan (Solid Green #15803D, Unified Component) --}}
+            <x-ui.whatsapp-button variant="inline" :booking="$booking" label="Hubungi admin via WhatsApp">
+                <span class="sr-only">Konfirmasi via WhatsApp</span>
+            </x-ui.whatsapp-button>
 
-            {{-- 3. "Booking lagi" sebagai tautan teks HANYA untuk booking selesai/dibatalkan --}}
-            @if ($isCompleted || $isCancelled)
-                <div class="pt-2 text-center">
+            {{-- 4. Dua Tombol Outline Sejajar (atau Satu Tombol Beranda jika Batal/Selesai) --}}
+            @if ($isCancelled || $isCompleted)
+                <a href="{{ route('home') }}"
+                   class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-amber-400 transition shadow-none">
+                    Kembali ke Beranda
+                </a>
+            @else
+                <div class="grid grid-cols-2 gap-3">
+                    <a href="{{ route('home') }}"
+                       class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-amber-400 transition shadow-none">
+                        Kembali ke Beranda
+                    </a>
                     <a href="{{ route('schedule.date', ['date' => $booking->session->session_date]) }}"
-                       class="text-xs font-semibold text-text-muted hover:text-text hover:underline transition">
-                        Booking lagi
+                       class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-amber-400 transition shadow-none">
+                        Pesan sesi lain
                     </a>
                 </div>
             @endif
 
-            {{-- Batalkan booking jika masih diperbolehkan --}}
+            {{-- 5. Tautan Teks Kecil "Batalkan booking ini" (Terpisah 24px) --}}
             @if ($canCancel)
-                <div class="pt-2 text-center">
+                <div class="pt-6 text-center">
                     <button type="button"
                             @click="cancelModal = true"
                             class="text-xs text-text-muted hover:text-red-500 hover:underline transition">

@@ -191,7 +191,7 @@
                         <div class="flex flex-1 flex-col p-3 sm:p-3.5">
                             <h3 class="text-xs sm:text-sm font-black text-text line-clamp-1 group-hover:text-amber-500 transition">{{ $film->title }}</h3>
                             <div class="mt-1 flex items-center justify-between gap-1 text-[11px] font-semibold text-text-muted">
-                                <span class="truncate">{{ $film->genre ?: 'Film' }}</span>
+                                <span class="line-clamp-2 leading-tight" title="{{ $film->genre }}">{{ $film->formattedGenresText(3) }}</span>
                                 @if ($film->release_year)
                                     <span class="shrink-0">{{ $film->release_year }}</span>
                                 @endif

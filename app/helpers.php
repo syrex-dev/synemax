@@ -315,3 +315,33 @@ if (! function_exists('generate_inline_qr_svg')) {
         return $svg;
     }
 }
+
+if (! function_exists('format_cinema_time')) {
+    /**
+     * Standardized cinema time format: e.g. "19.30 WIB" or "19.30"
+     */
+    function format_cinema_time(mixed $time, bool $withWib = true): string
+    {
+        return format_jam_id($time, $withWib);
+    }
+}
+
+if (! function_exists('format_cinema_date')) {
+    /**
+     * Standardized cinema date format: e.g. "1 November 2026" or "Min, 1 Nov 2026" (no leading zeros on day).
+     */
+    function format_cinema_date(mixed $date, bool $withDay = false): string
+    {
+        if (empty($date)) {
+            return '-';
+        }
+
+        $carbon = $date instanceof CarbonInterface
+            ? $date
+            : Carbon::parse($date, config('app.timezone'));
+
+        return $withDay
+            ? $carbon->locale('id')->translatedFormat('D, j M Y')
+            : $carbon->locale('id')->translatedFormat('j F Y');
+    }
+}

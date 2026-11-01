@@ -1,16 +1,29 @@
 <?php
 
+use Illuminate\Contracts\Console\Kernel;
+
 require __DIR__.'/../vendor/autoload.php';
 $app = require_once __DIR__.'/../bootstrap/app.php';
+
+$argvList = $argv ?? ($_SERVER['argv'] ?? []);
+if (in_array('--env=qa', $argvList, true) || getenv('APP_ENV') === 'qa') {
+    $app->loadEnvironmentFrom('.env.qa');
+}
+
 $kernel = $app->make(Kernel::class);
 $kernel->bootstrap();
+
+$dbPath = config('database.connections.sqlite.database');
+if (str_ends_with(str_replace('\\', '/', (string) $dbPath), 'database/database.sqlite') || app()->environment('production')) {
+    fwrite(STDERR, "SAFETY ERROR: Refusing to run audit seeding script on owner database ($dbPath)!\n");
+    exit(1);
+}
 
 use App\Models\Booking;
 use App\Models\Film;
 use App\Models\MenuCategory;
 use App\Models\MenuItem;
 use App\Models\Session;
-use Illuminate\Contracts\Console\Kernel;
 
 $film = Film::query()->firstOrCreate(
     ['slug' => 'film-audit-pdf'],
@@ -83,7 +96,7 @@ foreach ($scenarios as $s) {
             'snack_total' => $s['snack_count'] * 15000,
             'total_price' => 50000 + ($s['snack_count'] * 15000),
             'status' => 'terkonfirmasi',
-            'payment_method' => 'di_tempat',
+            'payment_method' => 'qris',
             'notes' => 'Catatan uji booking '.$s['snack_count'].' item',
         ]
     );
@@ -107,7 +120,7 @@ foreach ($scenarios as $s) {
         'id' => $booking->id,
         'code' => $booking->code,
         'snack_count' => $s['snack_count'],
-        'ticket_url' => "http://synemax.test/admin/booking/{$booking->id}/tiket",
+        'ticket_url' => config('app.url')."/admin/booking/{$booking->id}/tiket",
     ];
 }
 
@@ -135,7 +148,7 @@ $fixturesData = [
     'pending_cod' => [
         'id' => $pendingBooking->id,
         'code' => $pendingBooking->code,
-        'ticket_url' => "http://synemax.test/admin/booking/{$pendingBooking->id}/tiket",
+        'ticket_url' => config('app.url')."/admin/booking/{$pendingBooking->id}/tiket",
     ],
 ];
 

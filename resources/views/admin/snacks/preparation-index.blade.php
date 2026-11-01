@@ -7,7 +7,7 @@
     <div class="mt-6 space-y-3">
         @forelse ($sessions as $session)
             <a href="{{ route('admin.snacks.preparation.show', $session) }}" class="flex min-h-20 items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4 hover:border-accent/40">
-                <div><p class="font-bold">{{ $session->startsAt()->locale('id')->translatedFormat('D, d M Y') }} · {{ substr((string) $session->start_time, 0, 5) }} WIB</p><p class="mt-1 text-xs text-text-muted">{{ $session->film?->title ?? 'Film belum dipilih' }} · {{ $session->snack_booking_count }} booking jajan</p></div>
+                <div><p class="font-bold">{{ format_tanggal_id($session->session_date) }} · {{ format_jam_id($session->start_time) }}</p><p class="mt-1 text-xs text-text-muted">{{ $session->film?->title ?? 'Film belum dipilih' }} · {{ $session->snack_booking_count }} booking jajan</p></div>
                 <span class="text-sm font-bold text-accent">Lihat →</span>
             </a>
         @empty

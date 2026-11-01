@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\BookingStatusPresenter;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -147,5 +148,20 @@ class Booking extends Model
         return $this->hasMany(SnackOrderEdit::class)
             ->orderByDesc('created_at')
             ->orderByDesc('id');
+    }
+
+    public function paymentStatusLabel(): string
+    {
+        return BookingStatusPresenter::paymentStatusLabel($this);
+    }
+
+    public function paymentStatusColor(): string
+    {
+        return BookingStatusPresenter::paymentStatusColor($this);
+    }
+
+    public function ticketGuidanceText(): string
+    {
+        return BookingStatusPresenter::ticketGuidanceText($this);
     }
 }

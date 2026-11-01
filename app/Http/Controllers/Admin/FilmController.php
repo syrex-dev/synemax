@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Film;
+use App\Models\Genre;
 use App\Models\Session;
 use App\Services\PosterProcessor;
 use Illuminate\Http\RedirectResponse;
@@ -76,7 +77,7 @@ class FilmController extends Controller
             'trashedCount' => $trashedCount,
             'undoBatchId' => $undoBatchId,
             'undoBatchCount' => $undoBatchCount,
-            'canonicalGenres' => Film::CANONICAL_GENRES,
+            'canonicalGenres' => Genre::allActiveNames(),
         ]);
     }
 
@@ -302,14 +303,35 @@ class FilmController extends Controller
 
     private function validatedData(Request $request): array
     {
-        // Support both genres array (multi-select) and direct string input
+        // Support both genres array (multi-select/checkboxes) and new_genres chip input
+        $selected = [];
         if ($request->has('genres') && is_array($request->input('genres'))) {
             $selected = array_filter(array_map('trim', (array) $request->input('genres')));
-            if (! empty($request->input('custom_genre'))) {
-                $custom = array_filter(array_map('trim', explode(',', (string) $request->input('custom_genre'))));
-                $selected = array_unique(array_merge($selected, $custom));
+        }
+
+        $newGenresInput = $request->input('new_genres');
+        $newTokens = [];
+        if (is_array($newGenresInput)) {
+            $newTokens = array_filter(array_map('trim', $newGenresInput));
+        } elseif (is_string($newGenresInput) && trim($newGenresInput) !== '') {
+            $newTokens = array_filter(array_map('trim', explode(',', $newGenresInput)));
+        }
+
+        if (! empty($request->input('custom_genre'))) {
+            $customTokens = array_filter(array_map('trim', explode(',', (string) $request->input('custom_genre'))));
+            $newTokens = array_merge($newTokens, $customTokens);
+        }
+
+        foreach ($newTokens as $newG) {
+            $createdGenre = Genre::findOrCreateByName($newG);
+            if ($createdGenre) {
+                $selected[] = $createdGenre->name;
             }
-            $request->merge(['genre' => implode(', ', $selected)]);
+        }
+
+        if (! empty($selected)) {
+            $uniqueGenres = array_values(array_unique(array_filter($selected)));
+            $request->merge(['genre' => implode(', ', $uniqueGenres)]);
         }
 
         if ($request->filled('trailer_url')) {

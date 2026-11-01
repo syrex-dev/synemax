@@ -60,7 +60,7 @@
                             {{-- Active Period Chip --}}
                             @if ($promo->end_date)
                                 <span class="absolute bottom-3 left-3 rounded-xl bg-black/75 backdrop-blur-md px-2.5 py-1 text-[11px] font-bold text-amber-300 border border-white/15">
-                                    s.d. {{ \Carbon\Carbon::parse($promo->end_date)->translatedFormat('d M Y') }}
+                                    s.d. {{ \Carbon\Carbon::parse($promo->end_date)->translatedFormat('j M Y') }}
                                 </span>
                             @endif
                         </div>

@@ -537,21 +537,20 @@
             @yield('content')
         </main>
 
-        {{-- Floating WhatsApp Action Button --}}
-        @if (setting('show_floating_whatsapp', true) && setting('whatsapp_number'))
-            <a
-                x-show="!menuSheetOpen"
-                x-cloak
-                href="https://wa.me/{{ preg_replace('/[^0-9]/', '', setting('whatsapp_number')) }}?text={{ urlencode('Halo ' . setting('site_name', 'SynemaX') . ', saya ingin bertanya seputar pemesanan tiket & jadwal bioskop.') }}"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="fixed right-4 z-40 flex size-12 sm:w-auto sm:px-4 sm:h-12 items-center justify-center gap-2 rounded-full bg-emerald-700 hover:bg-emerald-600 text-white shadow-xl transition-all duration-200 border border-emerald-500/30"
-                style="bottom: calc(16px + env(safe-area-inset-bottom, 0px) + var(--bottom-bar-h, 0px));"
-                aria-label="Hubungi WhatsApp"
-            >
-                <svg class="size-5 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.303-.058.116-.087.188-.173.289l-.26.302c-.087.087-.179.182-.077.357.101.174.449.741.963 1.199.662.59 1.221.774 1.394.861.173.087.275.072.376-.043.101-.116.433-.506.549-.68.116-.173.231-.144.39-.086.159.058 1.011.477 1.184.564.173.087.289.13.332.202.043.072.043.419-.101.824z"/></svg>
-                <span class="text-xs font-bold hidden sm:inline">Tanya Kami</span>
-            </a>
+        {{-- Floating WhatsApp Action Button (Hidden on pages with inline button & when menu open) --}}
+        @php
+            $hasInlineWhatsApp = in_array(request()->route()?->getName(), [
+                'booking.ticket',
+                'booking.lookup',
+                'booking.lookup.form',
+                'booking.payment',
+                'booking.success',
+            ], true);
+        @endphp
+        @if (! $hasInlineWhatsApp)
+            <div x-show="!menuSheetOpen" x-cloak>
+                <x-ui.whatsapp-button variant="floating" />
+            </div>
         @endif
 
         {{-- Universal Public Footer across all public pages with navbar --}}

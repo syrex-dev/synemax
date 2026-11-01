@@ -119,7 +119,7 @@
 
                 <div class="mt-4 grid gap-2 border-t border-border pt-4 text-sm sm:grid-cols-2">
                     <p><span class="text-text-muted">WhatsApp:</span> {{ format_phone_id($booking->whatsapp) }}</p>
-                    <p><span class="text-text-muted">Jadwal:</span> {{ \Carbon\Carbon::parse($booking->session->session_date)->locale('id')->translatedFormat('D, d M Y') }} · {{ str_replace(':', '.', substr((string) $booking->session->start_time, 0, 5)) }} WIB</p>
+                    <p><span class="text-text-muted">Jadwal:</span> {{ format_tanggal_id($booking->session->session_date) }} · {{ format_jam_id($booking->session->start_time) }}</p>
                     <p><span class="text-text-muted">Metode bayar:</span> <strong class="uppercase text-text">{{ ['di_tempat' => 'Di tempat', 'qris' => 'QRIS', 'transfer' => 'Transfer'][$booking->payment_method] ?? $booking->payment_method }}</strong></p>
                     @if ($booking->status === 'menunggu_pembayaran' && $booking->payment_expires_at)
                         <p class="sm:col-span-2 text-xs text-warning font-semibold">Batas bayar: {{ $booking->payment_expires_at->locale('id')->diffForHumans() }} ({{ $booking->payment_expires_at->format('H.i') }} WIB)</p>
@@ -142,8 +142,8 @@
                 </div>
 
                 <div class="mt-4 grid gap-2 sm:flex sm:flex-wrap">
-                    <a href="{{ route('admin.bookings.show', $booking) }}" class="inline-flex min-h-11 items-center justify-center rounded-lg border border-accent px-4 text-sm font-semibold text-accent hover:bg-surface-2">Detail & jajan</a>
-                    <a href="https://wa.me/{{ $booking->whatsapp }}?text={{ rawurlencode($whatsAppMessage) }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center justify-center rounded-lg bg-success px-4 text-sm font-bold text-success-contrast hover:opacity-90">Chat WhatsApp</a>
+                    <a href="{{ route('admin.bookings.show', $booking) }}" class="inline-flex min-h-10 items-center justify-center rounded-lg border border-accent px-4 text-xs font-semibold text-accent hover:bg-surface-2">Detail & jajan</a>
+                    <x-ui.whatsapp-button variant="admin" :phone="$booking->whatsapp" :message="$whatsAppMessage" label="WhatsApp pemesan" />
                     @if ($booking->payment_proof_path)
                         <a href="{{ route('admin.bookings.proof', $booking) }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-border px-4 text-sm font-semibold hover:bg-surface-2">
                             <span>Lihat bukti bayar</span>

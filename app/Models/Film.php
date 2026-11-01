@@ -35,20 +35,15 @@ class Film extends Model
 {
     use SoftDeletes;
 
-    public const CANONICAL_GENRES = [
-        'Aksi',
-        'Animasi',
-        'Drama',
-        'Fantasi',
-        'Horor',
-        'Keluarga',
-        'Komedi',
-        'Misteri',
-        'Petualangan',
-        'Romantis',
-        'Sci-Fi',
-        'Thriller',
-    ];
+    /**
+     * Dynamic canonical genres from database.
+     *
+     * @return array<int, string>
+     */
+    public static function canonicalGenres(): array
+    {
+        return Genre::allActiveNames();
+    }
 
     /**
      * Return array of clean individual genres.
@@ -62,6 +57,25 @@ class Film extends Model
         }
 
         return array_values(array_filter(array_map('trim', explode(',', (string) $this->genre))));
+    }
+
+    /**
+     * Formatted genre string for card display: max N genres + remainder count.
+     */
+    public function formattedGenresText(int $max = 3): string
+    {
+        $list = $this->genresList();
+        if (empty($list)) {
+            return '-';
+        }
+        if (count($list) <= $max) {
+            return implode(', ', $list);
+        }
+
+        $shown = array_slice($list, 0, $max);
+        $remaining = count($list) - $max;
+
+        return implode(', ', $shown).' +'.$remaining;
     }
 
     /**

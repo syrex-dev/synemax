@@ -130,33 +130,111 @@
                     <label class="block text-xs font-bold uppercase tracking-wider text-text">
                         Genre Film <span class="text-danger">*</span> (Pilih satu atau lebih)
                     </label>
+                    @php
+                        $currentGenres = old('genres', $film->genresList());
+                        $allActiveGenres = \App\Models\Genre::cachedActive();
+                        $genreNamesInDb = $allActiveGenres->pluck('name')->all();
+                        $extraFilmGenres = array_diff((array) $currentGenres, $genreNamesInDb);
+                    @endphp
                     <div class="mt-2.5 flex flex-wrap gap-2">
-                        @php($currentGenres = old('genres', $film->genresList()))
-                        @foreach (\App\Models\Film::CANONICAL_GENRES as $canonGenre)
+                        @foreach ($allActiveGenres as $canonGenre)
                             <label class="choice-chip text-xs">
                                 <input
                                     type="checkbox"
                                     name="genres[]"
-                                    value="{{ $canonGenre }}"
+                                    value="{{ $canonGenre->name }}"
                                     class="rounded text-amber-500 focus:ring-amber-500 size-4"
-                                    @checked(in_array($canonGenre, (array) $currentGenres, true))
+                                    @checked(in_array($canonGenre->name, (array) $currentGenres, true))
                                 >
-                                <span class="font-bold">{{ $canonGenre }}</span>
+                                <span class="font-bold">{{ $canonGenre->name }}</span>
+                            </label>
+                        @endforeach
+                        @foreach ($extraFilmGenres as $extraG)
+                            <label class="choice-chip text-xs">
+                                <input
+                                    type="checkbox"
+                                    name="genres[]"
+                                    value="{{ $extraG }}"
+                                    class="rounded text-amber-500 focus:ring-amber-500 size-4"
+                                    checked
+                                >
+                                <span class="font-bold">{{ $extraG }}</span>
                             </label>
                         @endforeach
                     </div>
-                    <div class="mt-3 flex flex-wrap items-center gap-2">
-                        <label for="custom_genre" class="text-xs text-text-muted shrink-0">Genre tambahan (opsional):</label>
-                        <input
-                            id="custom_genre"
-                            name="custom_genre"
-                            value="{{ old('custom_genre') }}"
-                            placeholder="Pisahkan dengan koma jika lebih dari satu"
-                            class="min-h-[38px] w-full max-w-sm rounded-xl border border-border bg-surface text-text px-3 text-xs"
-                        >
+
+                    {{-- Chip Input: Tambah Genre Baru --}}
+                    <div
+                        x-data="{
+                            chips: [],
+                            inputVal: '',
+                            suggestions: @js(\App\Models\Genre::allActiveNames()),
+                            filteredSuggestions() {
+                                if (!this.inputVal.trim()) return [];
+                                const q = this.inputVal.toLowerCase().trim();
+                                return this.suggestions.filter(s => s.toLowerCase().includes(q) && !this.chips.map(c => c.toLowerCase()).includes(s.toLowerCase()));
+                            },
+                            addChip(val) {
+                                const clean = (val || this.inputVal).trim();
+                                if (!clean) return;
+                                const parts = clean.split(/[,;\n]+/).map(p => p.trim()).filter(Boolean);
+                                for (let p of parts) {
+                                    if (!this.chips.map(c => c.toLowerCase()).includes(p.toLowerCase())) {
+                                        this.chips.push(p);
+                                    }
+                                }
+                                this.inputVal = '';
+                            },
+                            removeChip(idx) {
+                                this.chips.splice(idx, 1);
+                            }
+                        }"
+                        class="mt-3.5 space-y-2 rounded-xl border border-border bg-surface-2/40 p-3"
+                    >
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                            <label class="text-xs font-bold text-text">Tambah Genre Baru</label>
+                            <span class="text-[11px] text-text-muted">Ketik genre baru lalu tekan Enter atau koma (dibuat otomatis di database saat film disimpan).</span>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <template x-for="(chip, index) in chips" :key="index">
+                                <span class="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 px-2.5 py-1 text-xs font-bold">
+                                    <span x-text="chip"></span>
+                                    <button type="button" @click="removeChip(index)" class="text-text-muted hover:text-danger leading-none" aria-label="Hapus chip">&times;</button>
+                                    <input type="hidden" name="new_genres[]" :value="chip">
+                                </span>
+                            </template>
+                            <div class="relative flex-1 min-w-[200px]">
+                                <input
+                                    type="text"
+                                    x-model="inputVal"
+                                    @keydown.enter.prevent="addChip()"
+                                    @keydown.comma.prevent="addChip()"
+                                    @keydown.backspace="if(!inputVal && chips.length) removeChip(chips.length - 1)"
+                                    placeholder="Ketik genre baru, tekan Enter..."
+                                    class="min-h-[38px] w-full rounded-lg border border-border-input bg-surface px-3 py-1 text-xs text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                >
+                                <div
+                                    x-show="filteredSuggestions().length > 0"
+                                    x-cloak
+                                    @click.away="inputVal = ''"
+                                    class="absolute left-0 top-full z-20 mt-1 max-h-36 w-full overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-lg text-xs"
+                                >
+                                    <template x-for="sug in filteredSuggestions()" :key="sug">
+                                        <button
+                                            type="button"
+                                            @click="addChip(sug)"
+                                            class="w-full text-left rounded px-2 py-1 text-text hover:bg-amber-500 hover:text-slate-950 font-medium transition"
+                                            x-text="sug"
+                                        ></button>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
                     @error('genre')
-                        <p class="mt-1.5 text-xs text-red-500 font-semibold">{{ $message }}</p>
+                        <p class="mt-1.5 text-xs text-danger font-semibold">{{ $message }}</p>
                     @enderror
                 </div>
 

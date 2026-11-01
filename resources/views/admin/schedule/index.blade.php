@@ -110,11 +110,11 @@
                         $isTomorrow = $dateString === \Carbon\Carbon::parse($todayDate)->addDay()->toDateString();
                         
                         if ($isToday) {
-                            $dayHeading = 'Hari ini (' . $dayCarbon->translatedFormat('D, d M Y') . ')';
+                            $dayHeading = 'Hari ini (' . $dayCarbon->translatedFormat('D, j M Y') . ')';
                         } elseif ($isTomorrow) {
-                            $dayHeading = 'Besok (' . $dayCarbon->translatedFormat('D, d M Y') . ')';
+                            $dayHeading = 'Besok (' . $dayCarbon->translatedFormat('D, j M Y') . ')';
                         } else {
-                            $dayHeading = $dayCarbon->translatedFormat('l, d M Y');
+                            $dayHeading = $dayCarbon->translatedFormat('l, j M Y');
                         }
                         
                         $isBeyondSeven = $dayIndex >= 7;
@@ -150,7 +150,7 @@
                                      x-cloak 
                                      class="absolute right-0 top-11 z-20 w-52 rounded-xl border border-border bg-surface p-1.5 shadow-xl text-xs font-semibold">
                                     <form method="POST" action="{{ route('admin.schedule.day.toggle') }}" 
-                                          data-confirm="Buka kembali seluruh sesi pada tanggal {{ $dayCarbon->translatedFormat('d M Y') }}?"
+                                          data-confirm="Buka kembali seluruh sesi pada tanggal {{ $dayCarbon->translatedFormat('j M Y') }}?"
                                           data-confirm-title="Buka Seluruh Hari"
                                           data-confirm-action="Buka Sesi"
                                           novalidate>
@@ -164,7 +164,7 @@
                                     </form>
 
                                     <form method="POST" action="{{ route('admin.schedule.day.toggle') }}" 
-                                          data-confirm="Tutup seluruh sesi pada tanggal {{ $dayCarbon->translatedFormat('d M Y') }}? Sesi yang memiliki booking aktif akan dibatalkan."
+                                          data-confirm="Tutup seluruh sesi pada tanggal {{ $dayCarbon->translatedFormat('j M Y') }}? Sesi yang memiliki booking aktif akan dibatalkan."
                                           data-confirm-title="Tutup Seluruh Hari"
                                           data-confirm-action="Tutup Seluruh Sesi"
                                           data-confirm-is-danger="true"
@@ -382,7 +382,7 @@
                                          class="border-t border-border bg-surface-2/70 px-4 py-4 text-xs space-y-4 cursor-default"
                                          @click.stop>
                                         <div class="flex items-center justify-between font-bold text-text border-b border-border pb-2">
-                                            <span class="text-sm">Detail Sesi: {{ $startTimeId }} · {{ $dayCarbon->translatedFormat('D, d M Y') }}</span>
+                                            <span class="text-sm">Detail Sesi: {{ $startTimeId }} · {{ $dayCarbon->translatedFormat('D, j M Y') }}</span>
                                             <span class="text-text-muted font-normal">{{ $session->occupiedBookings->count() }} Booking Aktif</span>
                                         </div>
 
@@ -774,9 +774,9 @@
             <div class="mt-4 space-y-2">
                 @forelse ($holidays as $holiday)
                     <div class="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-3 py-2.5 text-sm">
-                        <span>{{ \Carbon\Carbon::parse($holiday->holiday_date)->locale('id')->translatedFormat('d M Y') }} · {{ $holiday->name }}</span>
+                        <span>{{ \Carbon\Carbon::parse($holiday->holiday_date)->locale('id')->translatedFormat('j M Y') }} · {{ $holiday->name }}</span>
                         <form method="POST" action="{{ route('admin.schedule.holidays.destroy', $holiday) }}" 
-                              data-confirm="Hapus hari libur {{ $holiday->name }} ({{ \Carbon\Carbon::parse($holiday->holiday_date)->locale('id')->translatedFormat('d M Y') }})?"
+                              data-confirm="Hapus hari libur {{ $holiday->name }} ({{ \Carbon\Carbon::parse($holiday->holiday_date)->locale('id')->translatedFormat('j M Y') }})?"
                               data-confirm-title="Hapus Hari Libur"
                               data-confirm-action="Hapus"
                               data-confirm-is-danger="true"
@@ -815,9 +815,9 @@
             <div class="mt-4 space-y-2">
                 @forelse ($blockedDates as $blocked)
                     <div class="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-3 py-2.5 text-sm">
-                        <span>{{ \Carbon\Carbon::parse($blocked->blocked_date)->locale('id')->translatedFormat('d M Y') }} · {{ $blocked->scope_key === 'ALL' ? 'Seharian' : $blocked->scope_key }} — {{ $blocked->reason }}</span>
+                        <span>{{ \Carbon\Carbon::parse($blocked->blocked_date)->locale('id')->translatedFormat('j M Y') }} · {{ $blocked->scope_key === 'ALL' ? 'Seharian' : $blocked->scope_key }} — {{ $blocked->reason }}</span>
                         <form method="POST" action="{{ route('admin.schedule.blocked.destroy', $blocked) }}" 
-                              data-confirm="Buka kembali penutupan pada {{ \Carbon\Carbon::parse($blocked->blocked_date)->locale('id')->translatedFormat('d M Y') }}?"
+                              data-confirm="Buka kembali penutupan pada {{ \Carbon\Carbon::parse($blocked->blocked_date)->locale('id')->translatedFormat('j M Y') }}?"
                               data-confirm-title="Buka Tanggal/Sesi"
                               data-confirm-action="Buka"
                               novalidate>

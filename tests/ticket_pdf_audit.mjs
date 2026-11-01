@@ -4,7 +4,9 @@ import { chromium } from 'playwright-core';
 import jsQR from 'jsqr';
 
 const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const BASE_URL = process.env.BASE_URL || 'http://synemax.test';
+const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:8001';
+const QA_EMAIL = process.env.QA_EMAIL || 'qa_admin@synemax.test';
+const QA_PASSWORD = process.env.QA_PASSWORD || 'QaPassword123!';
 
 function countPdfPages(pdfBuffer) {
   const binaryString = pdfBuffer.toString('binary');
@@ -31,9 +33,13 @@ async function runTicketPdfAudit() {
   page.setDefaultTimeout(30000);
 
   // 1. Login to admin
-  console.log('\n[1/3] Login ke admin...');
-  await page.goto(`${BASE_URL}/qa-admin-login`, { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1000);
+  console.log('\n[1/3] Login ke admin via /login...');
+  await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' });
+  await page.fill('input#email', QA_EMAIL);
+  await page.fill('input#password', QA_PASSWORD);
+  await page.click('button[type="submit"]');
+  await page.waitForURL('**/admin**', { timeout: 15000 });
+  console.log('Berhasil login sebagai admin.');
 
   // Load fixtures
   const fixturesPath = path.resolve('tests/ticket_audit_fixtures.json');
@@ -94,7 +100,7 @@ async function runTicketPdfAudit() {
 
         // A. Decode Inline SVG QR Code
         const qrSvg = await page.evaluate(() => {
-          const svg = document.querySelector('#printable-ticket svg');
+          const svg = document.querySelector('#printable-ticket [data-ticket-qr] svg') || document.querySelector('#printable-ticket svg');
           return svg ? new XMLSerializer().serializeToString(svg) : null;
         });
 

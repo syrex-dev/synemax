@@ -1,33 +1,33 @@
 {
     "scenarios": [
         {
-            "id": 36,
+            "id": 12,
             "code": "TKT-AUDIT-0SNACK",
             "snack_count": 0,
-            "ticket_url": "http:\/\/synemax.test\/admin\/booking\/36\/tiket"
+            "ticket_url": "http:\/\/127.0.0.1:8001\/admin\/booking\/12\/tiket"
         },
         {
-            "id": 37,
+            "id": 13,
             "code": "TKT-AUDIT-3SNACK",
             "snack_count": 3,
-            "ticket_url": "http:\/\/synemax.test\/admin\/booking\/37\/tiket"
+            "ticket_url": "http:\/\/127.0.0.1:8001\/admin\/booking\/13\/tiket"
         },
         {
-            "id": 38,
+            "id": 14,
             "code": "TKT-AUDIT-6SNACK",
             "snack_count": 6,
-            "ticket_url": "http:\/\/synemax.test\/admin\/booking\/38\/tiket"
+            "ticket_url": "http:\/\/127.0.0.1:8001\/admin\/booking\/14\/tiket"
         },
         {
-            "id": 39,
+            "id": 15,
             "code": "TKT-AUDIT-12SNACK",
             "snack_count": 12,
-            "ticket_url": "http:\/\/synemax.test\/admin\/booking\/39\/tiket"
+            "ticket_url": "http:\/\/127.0.0.1:8001\/admin\/booking\/15\/tiket"
         }
     ],
     "pending_cod": {
-        "id": 40,
+        "id": 16,
         "code": "TKT-AUDIT-PENDING-COD",
-        "ticket_url": "http:\/\/synemax.test\/admin\/booking\/40\/tiket"
+        "ticket_url": "http:\/\/127.0.0.1:8001\/admin\/booking\/16\/tiket"
     }
 }

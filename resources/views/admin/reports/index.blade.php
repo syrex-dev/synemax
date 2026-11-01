@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="flex flex-wrap items-end justify-between gap-4">
-        <div><p class="text-xs font-bold uppercase tracking-[0.2em] text-accent">Angka studio</p><h1 class="mt-2 text-3xl font-black">Laporan</h1><p class="mt-1 text-sm text-text-muted">{{ $startDate->locale('id')->translatedFormat('d M Y') }} – {{ $endDate->locale('id')->translatedFormat('d M Y') }}</p></div>
+        <div><p class="text-xs font-bold uppercase tracking-[0.2em] text-accent">Angka studio</p><h1 class="mt-2 text-3xl font-black">Laporan</h1><p class="mt-1 text-sm text-text-muted">{{ $startDate->locale('id')->translatedFormat('j M Y') }} – {{ $endDate->locale('id')->translatedFormat('j M Y') }}</p></div>
         <a href="{{ route('admin.reports.export', ['period' => $period, 'date' => $referenceDate->toDateString()]) }}" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-accent/40 px-4 text-sm font-semibold text-accent hover:bg-accent/10">Unduh CSV</a>
     </div>
     <form method="GET" action="{{ route('admin.reports.index') }}" class="mt-6 grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
@@ -98,7 +98,7 @@
                     <th scope="col" class="py-2 text-right">Total</th>
                 </x-slot:head>
                     @forelse ($dailySummary as $day)
-                        <tr class="border-b border-border last:border-0"><td class="py-3">{{ \Carbon\Carbon::parse($day->report_date)->locale('id')->translatedFormat('D, d M Y') }}</td><td class="py-3">{{ (int) $day->viewers }}</td><td class="py-3 text-right">Rp {{ number_format((int) $day->ticket_revenue, 0, ',', '.') }}</td><td class="py-3 text-right">Rp {{ number_format((int) $day->snack_revenue, 0, ',', '.') }}</td><td class="py-3 text-right">Rp {{ number_format((int) $day->revenue, 0, ',', '.') }}</td></tr>
+                        <tr class="border-b border-border last:border-0"><td class="py-3">{{ \Carbon\Carbon::parse($day->report_date)->locale('id')->translatedFormat('D, j M Y') }}</td><td class="py-3">{{ (int) $day->viewers }}</td><td class="py-3 text-right">Rp {{ number_format((int) $day->ticket_revenue, 0, ',', '.') }}</td><td class="py-3 text-right">Rp {{ number_format((int) $day->snack_revenue, 0, ',', '.') }}</td><td class="py-3 text-right">Rp {{ number_format((int) $day->revenue, 0, ',', '.') }}</td></tr>
                     @empty<tr><td colspan="5" class="py-4 text-text-muted">Belum ada pendapatan di periode ini.</td></tr>
                     @endforelse
             </x-admin.table>
@@ -106,7 +106,7 @@
         <div class="mt-4 space-y-3 md:hidden">
             @forelse ($dailySummary as $day)
                 <article class="rounded-lg border border-border bg-bg p-4">
-                    <h3 class="font-semibold">{{ \Carbon\Carbon::parse($day->report_date)->locale('id')->translatedFormat('D, d M Y') }}</h3>
+                    <h3 class="font-semibold">{{ \Carbon\Carbon::parse($day->report_date)->locale('id')->translatedFormat('D, j M Y') }}</h3>
                     <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
                         <div><dt class="text-text-muted">Kursi terpesan</dt><dd class="mt-1 font-semibold">{{ (int) $day->viewers }}</dd></div>
                         <div><dt class="text-text-muted">Tiket</dt><dd class="mt-1 font-semibold">Rp {{ number_format((int) $day->ticket_revenue, 0, ',', '.') }}</dd></div>
