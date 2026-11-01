@@ -901,60 +901,60 @@
                     </div>
                 @else
                     {{-- KARTU FILM TERPILIH (TERPISAH DARI DAFTAR FILM LAINNYA) --}}
-                    <div x-show="currentFilm !== null" class="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-b from-[#141A28] via-[#0E1320] to-[#080B12] p-4 sm:p-6 shadow-xl">
+                    <div x-show="currentFilm !== null" class="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-surface dark:bg-gradient-to-b dark:from-[#141A28] dark:via-[#0E1320] dark:to-[#080B12] p-5 sm:p-6 shadow-md dark:shadow-xl">
                         {{-- Ambient Gold Light in the background --}}
                         <div class="pointer-events-none absolute -right-16 -top-16 size-48 rounded-full bg-amber-500/10 blur-3xl"></div>
 
                         {{-- Top Badge Row --}}
-                        <div class="flex items-center justify-between border-b border-white/10 pb-3">
-                            <span class="inline-flex items-center gap-2 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 text-xs font-bold text-emerald-400">
+                        <div class="flex items-center justify-between border-b border-border/60 dark:border-white/10 pb-3">
+                            <span class="inline-flex items-center gap-2 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                                 <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
                                 </svg>
                                 <span>Film Terpilih Kamu</span>
                             </span>
                             <span class="text-xs text-text-muted font-medium flex items-center gap-1.5">
-                                <span class="size-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span class="size-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                 <span>Sesi Siap Putar</span>
                             </span>
                         </div>
 
-                        {{-- Main Body: Poster + Full Info (Banyak Ruang Bernapas, Tidak Berdesakan) --}}
-                        <div class="mt-4 flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
-                            {{-- Poster Thumbnail (Proposional 2:3, tajam, dan elegan) --}}
-                            <div class="relative aspect-[2/3] w-28 sm:w-36 shrink-0 self-start overflow-hidden rounded-xl bg-surface-sunken border border-white/10 shadow-2xl group cursor-pointer"
+                        {{-- Main Body: Centered Poster Showcase Layout (Ketengahin Poster, Tidak di Pinggir) --}}
+                        <div class="mt-5 flex flex-col items-center text-center">
+                            {{-- Poster Thumbnail (Centered, Proposional 2:3, Stand-out Cinema Style) --}}
+                            <div class="relative aspect-[2/3] w-32 sm:w-40 shrink-0 overflow-hidden rounded-2xl bg-surface-sunken border border-border dark:border-white/10 shadow-xl group cursor-pointer transition-transform duration-300 hover:scale-[1.02]"
                                  @click="if (currentFilm && (currentFilm.youtube_id || currentFilm.trailer_url)) openTrailer(currentFilm)">
                                 <template x-if="currentFilm && currentFilm.poster">
-                                    <img :src="currentFilm.poster" :alt="currentFilm.title" class="size-full object-cover transition-transform duration-300 group-hover:scale-105">
+                                    <img :src="currentFilm.poster" :alt="currentFilm.title" class="size-full object-cover">
                                 </template>
                                 <template x-if="!currentFilm || !currentFilm.poster">
                                     <div class="flex size-full items-center justify-center bg-surface-sunken">
-                                        <svg class="size-10 text-text-muted/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg class="size-12 text-text-muted/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
                                         </svg>
                                     </div>
                                 </template>
 
                                 {{-- Age Rating Badge --}}
-                                <span class="absolute top-2 left-2 rounded-md bg-black/80 backdrop-blur px-2 py-0.5 text-[10px] font-black text-amber-400 border border-amber-400/30 shadow"
+                                <span class="absolute top-2.5 left-2.5 rounded-md bg-black/80 backdrop-blur px-2 py-0.5 text-[10px] font-black text-amber-400 border border-amber-400/30 shadow"
                                       x-text="currentFilm ? currentFilm.rating : 'SU'"></span>
 
                                 {{-- Play Trailer Overlay Icon --}}
                                 <template x-if="currentFilm && (currentFilm.youtube_id || currentFilm.trailer_url)">
                                     <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                        <span class="size-10 rounded-full bg-amber-500 text-black flex items-center justify-center shadow-lg transform group-hover:scale-110 transition">
+                                        <span class="size-11 rounded-full bg-amber-500 text-black flex items-center justify-center shadow-lg transform group-hover:scale-110 transition">
                                             <svg class="size-5 fill-current ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                                         </span>
                                     </div>
                                 </template>
                             </div>
 
-                            {{-- Info Film (Spacious, Font Jelas, Hirarki Rapi) --}}
-                            <div class="flex-1 min-w-0 space-y-2">
+                            {{-- Info Film (Centered, Rapi, Luas) --}}
+                            <div class="mt-4 w-full max-w-lg space-y-2">
                                 <h3 class="text-xl sm:text-2xl font-black text-text tracking-tight leading-snug" x-text="currentFilm?.title"></h3>
                                 
-                                <div class="flex flex-wrap items-center gap-2 text-xs">
-                                    <span class="inline-flex items-center rounded-md bg-amber-500/10 border border-amber-500/25 px-2.5 py-0.5 text-xs font-bold text-amber-400" x-text="currentFilm?.genre"></span>
+                                <div class="flex flex-wrap items-center justify-center gap-2 text-xs">
+                                    <span class="inline-flex items-center rounded-lg bg-amber-500/10 border border-amber-500/25 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400" x-text="currentFilm?.genre"></span>
                                     <span class="inline-flex items-center gap-1 text-xs text-text-muted font-medium">
                                         <svg class="size-3.5 text-text-muted/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -966,9 +966,9 @@
                                     </template>
                                 </div>
 
-                                <div class="pt-1">
+                                <div class="flex justify-center pt-1">
                                     <template x-if="currentFilm && currentFilm.tally > 0">
-                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-0.5 text-xs font-bold text-amber-400">
+                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">
                                             <span class="size-2 rounded-full bg-amber-500 animate-pulse"></span>
                                             <span x-text="`${currentFilm.tally} peminat di sesi ini`"></span>
                                         </span>
@@ -983,23 +983,23 @@
                                     </template>
                                 </div>
 
-                                <p class="text-xs sm:text-sm text-text-muted line-clamp-3 sm:line-clamp-4 leading-relaxed pt-1" x-text="currentFilm?.synopsis || 'Sinopsis film belum ditambahkan.'"></p>
+                                <p class="text-xs sm:text-sm text-text-muted line-clamp-3 sm:line-clamp-4 leading-relaxed pt-1 text-center" x-text="currentFilm?.synopsis || 'Sinopsis film belum ditambahkan.'"></p>
                             </div>
                         </div>
 
-                        {{-- Action Row di Bawah (Full-Width, Sangat Luas & Rapi) --}}
-                        <div class="mt-5 pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
+                        {{-- Action Row di Bawah (Centered, Seimbang & Rapi) --}}
+                        <div class="mt-5 pt-4 border-t border-border/60 dark:border-white/10 flex flex-wrap items-center justify-center gap-3">
                             <template x-if="currentFilm && (currentFilm.youtube_id || currentFilm.trailer_url)">
                                 <button type="button"
                                         @click="openTrailer(currentFilm)"
-                                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/15 hover:bg-amber-500/25 px-4 sm:px-5 text-xs sm:text-sm font-bold text-amber-400 transition active:scale-95 shadow-sm">
+                                        class="inline-flex min-h-11 flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 px-5 text-xs sm:text-sm font-bold text-amber-600 dark:text-amber-400 transition active:scale-95 shadow-sm">
                                     <svg class="size-4 fill-current text-amber-500" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                                     <span>Lihat Trailer</span>
                                 </button>
                             </template>
                             <button type="button"
                                     @click="showFilmCatalog = !showFilmCatalog"
-                                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 px-4 sm:px-5 text-xs sm:text-sm font-bold text-text hover:border-amber-400/50 transition active:scale-95">
+                                    class="inline-flex min-h-11 flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl border border-border-input bg-surface-2 hover:bg-surface px-5 text-xs sm:text-sm font-bold text-text hover:border-amber-400 transition active:scale-95">
                                 <svg class="size-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
                                 </svg>
@@ -1332,17 +1332,14 @@
 
             {{-- FIXED LIVE-UPDATE ACTION BAR DI BAWAH (MOBILE & DESKTOP) --}}
             <style>:root { --bottom-bar-h: 88px; }</style>
-            <aside class="fixed inset-x-0 bottom-0 z-50 border-t border-amber-500/25 bg-[#080B12]/95 backdrop-blur-xl px-4 py-3 shadow-[0_-10px_35px_rgba(0,0,0,0.7)]"
-                   style="position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; z-index: 50 !important; padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.75rem);">
-                {{-- Ambient Top Glow Line --}}
-                <div class="pointer-events-none absolute -top-px inset-x-0 h-px bg-gradient-to-r from-transparent via-amber-400/50 to-transparent"></div>
-
+            <aside class="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white dark:bg-[#0E131F] px-4 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.15)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.7)]"
+                   style="position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; z-index: 50 !important; background-color: var(--surface-default, #ffffff) !important; padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.75rem);">
                 <div class="mx-auto flex max-w-xl items-center justify-between gap-3 sm:gap-4">
-                    {{-- Total Price Column (Always 1 line, no wrapping, clean layout) --}}
+                    {{-- Total Price Column (Always 1 line, no wrapping, solid opaque background) --}}
                     <div class="shrink-0 flex flex-col justify-center pr-1 whitespace-nowrap min-w-0">
                         <span class="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-text-muted leading-tight block">TOTAL</span>
                         <div class="flex items-baseline gap-1.5 mt-0.5">
-                            <span class="font-tabular text-base sm:text-2xl font-black text-amber-500 dark:text-amber-400 leading-tight whitespace-nowrap tracking-tight"
+                            <span class="font-tabular text-base sm:text-2xl font-black text-amber-600 dark:text-amber-400 leading-tight whitespace-nowrap tracking-tight"
                                   x-text="`Rp ${new Intl.NumberFormat('id-ID').format(grandTotal)}`">Rp 0</span>
                             <span x-show="promoDiscount > 0" class="badge-success-soft rounded px-1.5 py-0.5 text-[9px] font-bold shrink-0 whitespace-nowrap">
                                 Hemat Rp <span x-text="new Intl.NumberFormat('id-ID').format(promoDiscount)"></span>
@@ -1356,7 +1353,7 @@
                         <button type="button"
                                 x-show="step > 2"
                                 @click="previousStep()"
-                                class="inline-flex min-h-11 w-11 sm:w-auto sm:px-4 items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-amber-400/50 text-text transition active:scale-95 shrink-0"
+                                class="inline-flex min-h-11 w-11 sm:w-auto sm:px-4 items-center justify-center gap-1.5 rounded-xl border border-border-input bg-surface-2 hover:bg-surface text-text hover:border-amber-400 transition active:scale-95 shrink-0"
                                 title="Kembali ke langkah sebelumnya"
                                 aria-label="Kembali ke langkah sebelumnya">
                             <svg class="size-4 shrink-0 text-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
