@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Genre;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class GenreController extends Controller
@@ -15,6 +16,13 @@ class GenreController extends Controller
      */
     public function index(): View
     {
+        if (! Schema::hasTable('genres')) {
+            return view('admin.genres.index', [
+                'genres' => collect(),
+                'activeCount' => 0,
+            ])->with('error', 'Tabel genre belum dimigrasi di database ini. Jalankan php artisan migrate untuk mengaktifkan.');
+        }
+
         $genres = Genre::query()
             ->orderBy('sort_order')
             ->orderBy('name')

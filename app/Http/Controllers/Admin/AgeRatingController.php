@@ -8,6 +8,7 @@ use App\Models\Film;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -18,6 +19,13 @@ class AgeRatingController extends Controller
      */
     public function index(): View
     {
+        if (! Schema::hasTable('age_ratings')) {
+            return view('admin.age-ratings.index', [
+                'ageRatings' => collect(),
+                'activeCount' => 0,
+            ])->with('error', 'Tabel klasifikasi usia belum dimigrasi di database ini. Jalankan php artisan migrate untuk mengaktifkan.');
+        }
+
         $ageRatings = AgeRating::query()
             ->withCount('films')
             ->orderBy('sort_order')
