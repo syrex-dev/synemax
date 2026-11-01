@@ -661,7 +661,7 @@
                                     <input type="radio" name="package" value="couple" class="sr-only" checked>
                                     <div>
                                         <p class="text-xs font-bold text-text">Paket Couple (2 Kursi)</p>
-                                        <p class="text-[10px] text-text-muted">Langsung pasti tayang!</p>
+                                        <p class="text-[10px] text-text-muted">Langsung pasti tayang.</p>
                                     </div>
                                 </div>
                                 <div class="text-right">
@@ -677,7 +677,7 @@
                                     <input type="radio" name="package" value="private" class="sr-only" {{ ! $canUpgradeCouple ? 'checked' : '' }}>
                                     <div>
                                         <p class="text-xs font-bold text-text">Sewa Studio Privat (6 Kursi)</p>
-                                        <p class="text-[10px] text-text-muted">Kunci seluruh 6 kursi studio!</p>
+                                        <p class="text-[10px] text-text-muted">Kunci seluruh 6 kursi studio.</p>
                                     </div>
                                 </div>
                                 <div class="text-right">

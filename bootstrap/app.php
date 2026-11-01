@@ -4,7 +4,9 @@ use App\Http\Middleware\EnsureAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Exceptions\PostTooLargeException;
 use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -21,4 +23,25 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(function (PostTooLargeException $e, Request $request) {
+            $maxUpload = ini_get('upload_max_filesize') ?: '5M';
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => "Berkas unggahan melebihi batas server (maksimal {$maxUpload}).",
+                ], 413);
+            }
+
+            return back()->withInput()->with('error', "Berkas unggahan melebihi batas server (maksimal {$maxUpload}). Silakan pilih berkas yang lebih kecil.");
+        });
+
+        $exceptions->render(function (TokenMismatchException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Sesi kedaluwarsa. Silakan muat ulang halaman.',
+                ], 419);
+            }
+
+            return back()->withInput()->with('error', 'Sesi Anda telah kedaluwarsa. Silakan kirim ulang formulir.');
+        });
     })->create();

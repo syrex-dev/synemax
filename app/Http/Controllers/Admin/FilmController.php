@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class FilmController extends Controller
@@ -47,6 +48,7 @@ class FilmController extends Controller
         }
 
         $allCount = Film::count();
+        $activeCount = Film::where('is_active', true)->count();
         $inactiveCount = Film::where('is_active', false)->count();
         $noPosterCount = Film::where(fn ($q) => $q->whereNull('poster_path')->orWhere('poster_path', ''))->count();
         $needsCompletionCount = Film::where(fn ($q) => $q->whereNull('synopsis')->orWhere('synopsis', '')->orWhere('synopsis', 'like', 'Sinopsis belum tersedia%'))->count();
@@ -66,6 +68,7 @@ class FilmController extends Controller
             'search' => $search,
             'batchId' => $batchId,
             'allCount' => $allCount,
+            'activeCount' => $activeCount,
             'inactiveCount' => $inactiveCount,
             'noPosterCount' => $noPosterCount,
             'needsCompletionCount' => $needsCompletionCount,
@@ -91,9 +94,12 @@ class FilmController extends Controller
             $data['poster_path'] = $posterProcessor->storeAsWebp($poster);
         }
 
-        Film::query()->create($data);
+        $film = Film::query()->create($data);
 
-        return redirect()->route('admin.films.index')->with('status', 'Film berhasil ditambahkan.');
+        return redirect()->route('admin.films.index')
+            ->with('status', 'Film "'.$film->title.'" berhasil ditambahkan.')
+            ->with('status_link_url', url('/film/'.$film->slug))
+            ->with('status_link_label', 'Lihat');
     }
 
     public function edit(Film $film): View
@@ -107,6 +113,9 @@ class FilmController extends Controller
         $poster = $request->file('poster');
         $oldPoster = null;
         unset($data['poster']);
+
+        // Editing sample film removes sample tag
+        $data['is_sample'] = false;
 
         if ($poster !== null) {
             $oldPoster = $film->poster_path;
@@ -126,7 +135,10 @@ class FilmController extends Controller
             Storage::disk('public')->delete($oldPoster);
         }
 
-        return redirect()->route('admin.films.index')->with('status', 'Perubahan film berhasil disimpan.');
+        return redirect()->route('admin.films.index')
+            ->with('status', 'Perubahan film "'.$film->title.'" berhasil disimpan.')
+            ->with('status_link_url', url('/film/'.$film->slug))
+            ->with('status_link_label', 'Lihat');
     }
 
     public function destroy(Film $film): RedirectResponse
@@ -238,24 +250,24 @@ class FilmController extends Controller
                     $film->delete();
                     $count++;
                 } elseif ($action === 'activate') {
-                    $film->update(['is_active' => true]);
+                    $film->update(['is_active' => true, 'is_sample' => false]);
                     $count++;
                 } elseif ($action === 'deactivate') {
                     $this->closeUpcomingSessions($film);
-                    $film->update(['is_active' => false]);
+                    $film->update(['is_active' => false, 'is_sample' => false]);
                     $count++;
                 } elseif ($action === 'set_rating' && ! empty($validated['age_rating'])) {
-                    $film->update(['age_rating' => $validated['age_rating']]);
+                    $film->update(['age_rating' => $validated['age_rating'], 'is_sample' => false]);
                     $count++;
                 } elseif ($action === 'replace_genre' && ! empty($validated['genre'])) {
-                    $film->update(['genre' => trim($validated['genre'])]);
+                    $film->update(['genre' => trim($validated['genre']), 'is_sample' => false]);
                     $count++;
                 } elseif ($action === 'add_genre' && ! empty($validated['genre'])) {
                     $newGenre = trim($validated['genre']);
                     $existingGenres = array_filter(array_map('trim', explode(',', (string) $film->genre)));
                     if (! in_array(strtolower($newGenre), array_map('strtolower', $existingGenres), true)) {
                         $existingGenres[] = $newGenre;
-                        $film->update(['genre' => implode(', ', $existingGenres)]);
+                        $film->update(['genre' => implode(', ', $existingGenres), 'is_sample' => false]);
                     }
                     $count++;
                 }
@@ -299,32 +311,48 @@ class FilmController extends Controller
             $request->merge(['genre' => implode(', ', $selected)]);
         }
 
+        if ($request->filled('trailer_url')) {
+            $ytId = extract_youtube_id($request->input('trailer_url'));
+            if (! $ytId) {
+                throw ValidationException::withMessages([
+                    'trailer_url' => 'Tautan YouTube tidak dikenali. Masukkan tautan youtube.com atau youtu.be yang valid.',
+                ]);
+            }
+        }
+
         return $request->validate([
             'title' => ['required', 'string', 'max:180'],
             'slug' => ['nullable', 'string', 'max:180'],
-            'duration_minutes' => ['required', 'integer', 'between:1,600'],
+            'duration_minutes' => ['required', 'integer', 'between:1,400'],
             'release_year' => ['nullable', 'integer', 'between:1900,2100'],
             'genre' => ['required', 'string', 'max:150'],
             'age_rating' => ['required', 'in:SU,13+,17+'],
             'synopsis' => ['required', 'string', 'max:3000'],
             'trailer_url' => ['nullable', 'url', 'max:255'],
+            'director' => ['nullable', 'string', 'max:180'],
+            'casts' => ['nullable', 'string', 'max:1000'],
+            'language' => ['nullable', 'string', 'max:100'],
             'license_notes' => ['nullable', 'string', 'max:3000'],
             'is_active' => ['required', 'boolean'],
             'poster' => [
                 'nullable',
                 'image',
                 'mimes:jpg,jpeg,png,webp',
-                'max:4096',
+                'max:5120',
                 'dimensions:max_width=3000,max_height=4500',
             ],
         ], [
             'title.required' => 'Judul film wajib diisi.',
-            'duration_minutes.between' => 'Durasi film harus antara 1 sampai 600 menit.',
+            'duration_minutes.required' => 'Durasi film wajib diisi.',
+            'duration_minutes.between' => 'Durasi film harus antara 1 sampai 400 menit.',
+            'genre.required' => 'Genre film wajib dipilih minimal satu.',
+            'synopsis.required' => 'Sinopsis lengkap film wajib diisi.',
+            'age_rating.required' => 'Klasifikasi usia wajib dipilih.',
             'age_rating.in' => 'Pilih rating SU, 13+, atau 17+.',
             'trailer_url.url' => 'Masukkan tautan trailer yang valid.',
             'poster.image' => 'Poster harus berupa file gambar.',
             'poster.mimes' => 'Poster harus JPG, PNG, atau WebP.',
-            'poster.max' => 'Ukuran poster maksimal 4 MB.',
+            'poster.max' => 'Ukuran poster maksimal 5 MB.',
             'poster.dimensions' => 'Ukuran gambar poster maksimal 3000 × 4500 piksel.',
         ]);
     }

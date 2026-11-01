@@ -34,14 +34,15 @@ class FilmImportController extends Controller
     /**
      * Download CSV template for bulk film import.
      */
-    public function downloadTemplate(): StreamedResponse
+    public function downloadTemplate(Request $request): StreamedResponse
     {
+        $delimiter = $request->query('delimiter') === 'comma' ? ',' : ';';
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="template_impor_film_synemax.csv"',
         ];
 
-        return response()->stream(function () {
+        return response()->stream(function () use ($delimiter) {
             $handle = fopen('php://output', 'w');
             // Write UTF-8 BOM
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
@@ -57,7 +58,7 @@ class FilmImportController extends Controller
                 'poster',
                 'trailer',
                 'tampil',
-            ]);
+            ], $delimiter);
 
             // Exactly 2 sample rows per requirement B1
             fputcsv($handle, [
@@ -70,7 +71,7 @@ class FilmImportController extends Controller
                 'inception.jpg',
                 'https://www.youtube.com/watch?v=YoHD9XEInc0',
                 'tidak',
-            ]);
+            ], $delimiter);
             fputcsv($handle, [
                 'Petualangan Sherina 2',
                 'Petualangan; Komedi; Keluarga',
@@ -79,9 +80,9 @@ class FilmImportController extends Controller
                 'SU',
                 'Sherina dan Sadam kembali bertemu di hutan Kalimantan untuk petualangan baru.',
                 'sherina2.jpg',
-                'https://www.youtube.com/watch?v=sample',
+                'https://www.youtube.com/watch?v=kYJdFk9Gj0E',
                 'tidak',
-            ]);
+            ], $delimiter);
 
             fclose($handle);
         }, 200, $headers);
@@ -419,9 +420,12 @@ class FilmImportController extends Controller
     /**
      * Export all films in catalog in canonical CSV format.
      */
-    public function exportCatalog(FilmBulkImporter $importer): StreamedResponse
+    public function exportCatalog(Request $request, FilmBulkImporter $importer): StreamedResponse
     {
-        return $importer->exportAllFilmsCsv();
+        $delimiter = $request->query('delimiter') === 'comma' ? ',' : ';';
+        $includeTrashed = $request->boolean('include_trashed', false);
+
+        return $importer->exportAllFilmsCsv($delimiter, $includeTrashed);
     }
 
     /**

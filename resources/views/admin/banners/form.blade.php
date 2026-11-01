@@ -26,7 +26,33 @@
             @endif
         </x-admin.page-header>
 
-        <form method="POST" action="{{ $isEdit ? route('admin.banners.update', $banner) : route('admin.banners.store') }}" enctype="multipart/form-data" class="mt-6 space-y-6">
+        {{-- Alert Error Ringkasan Utama (Inline di atas form) --}}
+        @if ($errors->any())
+            <div id="form-error-summary" class="mt-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-xs text-red-600 dark:text-red-400 space-y-2" role="alert">
+                <div class="flex items-center gap-2 font-bold text-sm">
+                    <svg class="size-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>Slide hero belum tersimpan: periksa {{ $errors->count() }} kolom berikut</span>
+                </div>
+                <ul class="list-disc list-inside space-y-1 text-text pl-1">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div class="mt-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-5 text-xs text-red-600 dark:text-red-400 font-bold flex items-center gap-2" role="alert">
+                <svg class="size-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{{ session('error') }}</span>
+            </div>
+        @endif
+
+        <form method="POST" action="{{ $isEdit ? route('admin.banners.update', $banner) : route('admin.banners.store') }}" enctype="multipart/form-data" class="mt-6 space-y-6" novalidate data-track-dirty="true">
             @csrf
             @if ($isEdit)
                 @method('PUT')
@@ -40,7 +66,10 @@
                     <label for="title" class="block text-xs font-bold uppercase tracking-wider text-text">
                         Judul Internal Slide <span class="text-danger">*</span>
                     </label>
-                    <input id="title" name="title" type="text" required value="{{ old('title', $banner->title) }}" placeholder="Contoh: Promo Spesial Weekend Oktober" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm">
+                    <input id="title" name="title" type="text" required value="{{ old('title', $banner->title) }}" placeholder="Contoh: Promo Spesial Weekend Oktober" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm @error('title') border-red-500 ring-1 ring-red-500 @enderror" @error('title') aria-invalid="true" @enderror>
+                    @error('title')
+                        <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
                     <p class="mt-1 text-[11px] text-text-muted">Judul ini digunakan untuk pengelolaan internal admin dan teks alternatif (alt text) aksesibilitas.</p>
                 </div>
 
@@ -110,32 +139,45 @@
 
                 {{-- Image Uploads --}}
                 <div class="grid gap-6 sm:grid-cols-2 pt-2 border-t border-border">
-                    <x-admin.image-upload
-                        name="image"
-                        label="Gambar Desktop Layar Lebar (1600 × 680 px)"
-                        hint="Rasio 2,35:1 (1600 × 680 px), JPG/PNG/WebP, maks 3 MB. Gambar visual murni tanpa teks bertumpuk."
-                        :currentValue="$banner->image_path"
-                        :recommendedWidth="1600"
-                        :recommendedHeight="680"
-                        :required="!$isEdit"
-                        maxSizeMb="3"
-                    />
+                    <div>
+                        <x-admin.image-upload
+                            name="image"
+                            label="Gambar Desktop Layar Lebar (1600 × 680 px)"
+                            hint="Rasio 2,35:1 (1600 × 680 px), JPG/PNG/WebP, maks 3 MB. Gambar visual murni tanpa teks bertumpuk."
+                            :currentValue="$banner->image_path"
+                            :recommendedWidth="1600"
+                            :recommendedHeight="680"
+                            :required="!$isEdit"
+                            maxSizeMb="3"
+                        />
+                        @error('image')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                    <x-admin.image-upload
-                        name="mobile_image"
-                        label="Gambar Mobile Vertikal (Opsional, 1200 × 900 px)"
-                        hint="Rasio 4:3 (1200 × 900 px), jika kosong akan menggunakan gambar desktop dengan object-fit cover."
-                        :currentValue="$banner->mobile_image_path"
-                        :recommendedWidth="1200"
-                        :recommendedHeight="900"
-                        maxSizeMb="3"
-                    />
+                    <div>
+                        <x-admin.image-upload
+                            name="mobile_image"
+                            label="Gambar Mobile Vertikal (Opsional, 1200 × 900 px)"
+                            hint="Rasio 4:3 (1200 × 900 px), jika kosong akan menggunakan gambar desktop dengan object-fit cover."
+                            :currentValue="$banner->mobile_image_path"
+                            :recommendedWidth="1200"
+                            :recommendedHeight="900"
+                            maxSizeMb="3"
+                        />
+                        @error('mobile_image')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
+                    </div>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2 pt-3 border-t border-border">
                     <div>
                         <label for="sort_order" class="block text-xs font-bold uppercase tracking-wider text-text">Nomor Urutan Tampil</label>
-                        <input id="sort_order" name="sort_order" type="number" min="0" value="{{ old('sort_order', $banner->sort_order ?? 0) }}" class="mt-1.5 min-h-[44px] w-full sm:w-48 rounded-xl border px-3 text-sm">
+                        <input id="sort_order" name="sort_order" type="number" min="0" value="{{ old('sort_order', $banner->sort_order ?? 0) }}" class="mt-1.5 min-h-[44px] w-full sm:w-48 rounded-xl border px-3 text-sm @error('sort_order') border-red-500 ring-1 ring-red-500 @enderror" @error('sort_order') aria-invalid="true" @enderror>
+                        @error('sort_order')
+                            <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                        @enderror
                     </div>
                     <div class="flex items-center pt-5">
                         <x-form.switch
@@ -158,4 +200,17 @@
             </div>
         </form>
     </div>
+
+    {{-- Script Autofokus ke Kolom Salah Pertama Saat Gagal Validasi --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const firstInvalidInput = document.querySelector('form input[aria-invalid="true"], form textarea[aria-invalid="true"], form select[aria-invalid="true"], form .border-red-500');
+            if (firstInvalidInput) {
+                firstInvalidInput.focus();
+            } else {
+                const summary = document.getElementById('form-error-summary');
+                if (summary) summary.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    </script>
 @endsection

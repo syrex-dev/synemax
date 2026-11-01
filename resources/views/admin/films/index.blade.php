@@ -10,6 +10,7 @@
             selectAllFiltered: false,
             ratingModalOpen: false,
             genreModalOpen: false,
+            exportModalOpen: false,
             showUndoToast: {{ $undoBatchId ? 'true' : 'false' }},
             undoCountdown: 8,
             undoTimer: null,
@@ -78,13 +79,14 @@
         @endif
 
         <x-admin.page-header
-            eyebrow="Katalog"
+            eyebrow="Kelola film"
             title="Katalog Film"
-            subtitle="Kelola film bioskop mini, info rating usia, durasi, poster, dan impor massal."
+            subtitle="{{ number_format($allCount, 0, ',', '.') }} film, {{ number_format($activeCount, 0, ',', '.') }} tampil di katalog bioskop."
         >
             <div class="flex items-center flex-wrap gap-2">
-                <a
-                    href="{{ route('admin.films.export') }}"
+                <button
+                    type="button"
+                    @click="exportModalOpen = true"
                     class="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-slate-300 dark:border-white/20 bg-surface px-3.5 py-2 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition-colors shadow-xs"
                     title="Unduh seluruh data film dalam format CSV untuk diedit di spreadsheet"
                 >
@@ -92,7 +94,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                     <span>Ekspor CSV</span>
-                </a>
+                </button>
                 <a
                     href="{{ route('admin.films.posters.index') }}"
                     class="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-slate-300 dark:border-white/20 bg-surface px-3.5 py-2 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition-colors shadow-xs"
@@ -127,32 +129,32 @@
                         href="{{ route('admin.films.index') }}"
                         class="rounded-xl px-3 py-1.5 text-xs font-bold transition-colors {{ empty($filter) && !$showTrash ? 'bg-amber-500 text-slate-950' : 'text-text-muted hover:text-text bg-surface-2' }}"
                     >
-                        Semua Film ({{ $allCount }})
+                        Semua Film ({{ number_format($allCount, 0, ',', '.') }})
                     </a>
                     <a
                         href="{{ route('admin.films.index', ['filter' => 'belum_tampil']) }}"
                         class="rounded-xl px-3 py-1.5 text-xs font-bold transition-colors {{ $filter === 'belum_tampil' ? 'bg-amber-500 text-slate-950' : 'text-text-muted hover:text-text bg-surface-2' }}"
                     >
-                        Belum Tampil ({{ $inactiveCount }})
+                        Belum Tampil ({{ number_format($inactiveCount, 0, ',', '.') }})
                     </a>
                     <a
                         href="{{ route('admin.films.index', ['filter' => 'tanpa_poster']) }}"
                         class="rounded-xl px-3 py-1.5 text-xs font-bold transition-colors {{ $filter === 'tanpa_poster' ? 'bg-amber-500 text-slate-950' : 'text-text-muted hover:text-text bg-surface-2' }}"
                     >
-                        Tanpa Poster ({{ $noPosterCount }})
+                        Tanpa Poster ({{ number_format($noPosterCount, 0, ',', '.') }})
                     </a>
                     <a
                         href="{{ route('admin.films.index', ['filter' => 'perlu_dilengkapi']) }}"
                         class="rounded-xl px-3 py-1.5 text-xs font-bold transition-colors {{ $filter === 'perlu_dilengkapi' ? 'bg-amber-500 text-slate-950' : 'text-text-muted hover:text-text bg-surface-2' }}"
                     >
-                        Perlu Dilengkapi ({{ $needsCompletionCount }})
+                        Perlu Dilengkapi ({{ number_format($needsCompletionCount, 0, ',', '.') }})
                     </a>
                     @if ($batchId)
                         <a
                             href="{{ route('admin.films.index', ['batch_id' => $batchId]) }}"
                             class="rounded-xl px-3 py-1.5 text-xs font-bold transition-colors bg-amber-500 text-slate-950"
                         >
-                            Batch Impor ({{ $films->total() }})
+                            Batch Impor ({{ number_format($films->total(), 0, ',', '.') }})
                         </a>
                     @endif
                     @if ($trashedCount > 0 || $showTrash)
@@ -160,7 +162,7 @@
                             href="{{ route('admin.films.index', ['trash' => 1]) }}"
                             class="rounded-xl px-3 py-1.5 text-xs font-bold transition-colors {{ $showTrash ? 'bg-amber-500 text-slate-950' : 'text-text-muted hover:text-text bg-surface-2' }}"
                         >
-                            Sampah ({{ $trashedCount }})
+                            Sampah ({{ number_format($trashedCount, 0, ',', '.') }})
                         </a>
                     @endif
                 </div>
@@ -669,6 +671,106 @@
                             class="px-5 py-2 rounded-xl bg-amber-500 text-xs font-bold text-slate-950 hover:bg-amber-400 transition"
                         >
                             Terapkan Genre
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {{-- Modal Ekspor CSV --}}
+        <div
+            x-show="exportModalOpen"
+            x-cloak
+            class="fixed inset-0 z-50 flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Ekspor Data Film CSV"
+            @keydown.escape.window="exportModalOpen = false"
+        >
+            <div
+                x-show="exportModalOpen"
+                x-transition:enter="transition-opacity ease-out duration-200"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="transition-opacity ease-in duration-150"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                class="fixed inset-0 bg-black/60 backdrop-blur-xs"
+                @click="exportModalOpen = false"
+            ></div>
+
+            <div
+                x-show="exportModalOpen"
+                x-transition:enter="transition ease-out duration-200 transform"
+                x-transition:enter-start="opacity-0 scale-95"
+                x-transition:enter-end="opacity-100 scale-100"
+                x-transition:leave="transition ease-in duration-150 transform"
+                x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-95"
+                class="relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl z-10 space-y-4"
+                @click.stop
+            >
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h3 class="text-base font-bold text-text">Ekspor Katalog Film (CSV)</h3>
+                        <p class="text-xs text-text-muted mt-0.5">
+                            Unduh seluruh film di katalog ({{ $allCount }} film) ke dalam format CSV.
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        @click="exportModalOpen = false"
+                        class="text-text-muted hover:text-text p-1 -mr-1"
+                        aria-label="Tutup jendela ekspor"
+                    >
+                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <form method="GET" action="{{ route('admin.films.export') }}" class="space-y-4">
+                    <div>
+                        <x-ui.select
+                            name="delimiter"
+                            id="export_delimiter"
+                            label="Pemisah Kolom CSV"
+                            :value="';'"
+                            :options="[
+                                ';' => 'Titik koma (Excel Indonesia / Bawaan)',
+                                ',' => 'Koma (Format Standar Internasional)',
+                            ]"
+                        />
+                        <p class="mt-1 text-[11px] text-text-muted">
+                            Pemisah titik koma dengan UTF-8 BOM membuka rapi per kolom di Excel Indonesia tanpa berantakan ke kolom A.
+                        </p>
+                    </div>
+
+                    <div class="pt-2 border-t border-border">
+                        <label class="choice-chip text-xs">
+                            <input
+                                type="checkbox"
+                                name="include_trashed"
+                                value="1"
+                                class="rounded text-amber-500 focus:ring-amber-500 size-4"
+                            >
+                            <span class="font-bold">Sertakan film di kotak sampah (dihapus lunak)</span>
+                        </label>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2 pt-3 border-t border-border">
+                        <button
+                            type="button"
+                            @click="exportModalOpen = false"
+                            class="px-4 py-2 rounded-xl border border-border text-xs font-semibold text-text-muted hover:text-text"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="submit"
+                            @click="setTimeout(() => { exportModalOpen = false; }, 500)"
+                            class="px-5 py-2 rounded-xl bg-amber-500 text-xs font-bold text-slate-950 hover:bg-amber-400 transition inline-flex items-center gap-1.5"
+                        >
+                            <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            <span>Unduh Berkas CSV</span>
                         </button>
                     </div>
                 </form>

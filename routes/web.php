@@ -114,6 +114,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/films/posters', [FilmPosterController::class, 'upload'])->name('films.posters.upload');
     Route::post('/films/posters/assign', [FilmPosterController::class, 'assign'])->name('films.posters.assign');
     Route::delete('/films/posters/{filename}', [FilmPosterController::class, 'destroy'])->name('films.posters.destroy');
+    Route::redirect('/films/create', '/admin/films/buat');
     Route::get('/films/buat', [FilmController::class, 'create'])->name('films.create');
     Route::post('/films', [FilmController::class, 'store'])->name('films.store');
     Route::get('/films/{film}/ubah', [FilmController::class, 'edit'])->name('films.edit');
@@ -173,6 +174,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
     // Admin Banner Hero
     Route::get('/banners', [BannerController::class, 'index'])->name('banners.index');
+    Route::redirect('/banners/create', '/admin/banners/buat');
     Route::get('/banners/buat', [BannerController::class, 'create'])->name('banners.create');
     Route::post('/banners', [BannerController::class, 'store'])->name('banners.store');
     Route::get('/banners/{banner}/ubah', [BannerController::class, 'edit'])->name('banners.edit');
@@ -184,6 +186,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
     // Admin Promo
     Route::get('/promos', [PromoController::class, 'index'])->name('promos.index');
+    Route::redirect('/promos/create', '/admin/promos/buat');
     Route::get('/promos/buat', [PromoController::class, 'create'])->name('promos.create');
     Route::post('/promos', [PromoController::class, 'store'])->name('promos.store');
     Route::get('/promos/{promo}/ubah', [PromoController::class, 'edit'])->name('promos.edit');

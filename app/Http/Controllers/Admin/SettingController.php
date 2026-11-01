@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
+use App\Models\Booking;
 use App\Models\Film;
 use App\Models\NewsArticle;
 use App\Models\NobarEvent;
@@ -199,6 +200,7 @@ class SettingController extends Controller
     {
         $items = $request->input('menu', []);
         $cleanMenu = [];
+        $bottomBarCount = 0;
 
         foreach ($items as $item) {
             $key = $item['key'] ?? '';
@@ -206,14 +208,28 @@ class SettingController extends Controller
                 continue;
             }
 
+            $mobilePos = ($item['mobile_position'] ?? 'menu') === 'bottom_bar' ? 'bottom_bar' : 'menu';
+            $isVisible = ! empty($item['is_visible']);
+
+            if ($mobilePos === 'bottom_bar' && $isVisible) {
+                $bottomBarCount++;
+            }
+
             $cleanMenu[] = [
                 'key' => $key,
                 'label' => $item['label'] ?? ucfirst($key),
                 'url' => $item['url'] ?? '/',
                 'route' => $item['route'] ?? '',
-                'is_visible' => ! empty($item['is_visible']),
+                'mobile_position' => $mobilePos,
+                'is_visible' => $isVisible,
                 'order' => (int) ($item['order'] ?? 1),
             ];
+        }
+
+        if ($bottomBarCount > 4) {
+            throw ValidationException::withMessages([
+                'menu' => 'Maksimal 4 item untuk Bar Bawah HP (1 slot sisanya untuk Menu).',
+            ]);
         }
 
         // Sort by order
@@ -626,9 +642,21 @@ class SettingController extends Controller
             'news' => 0,
         ];
 
-        // Delete Sample Films
+        // Delete Sample Films (Guard: jangan hapus film yang pernah diedit atau terkait sesi/booking)
         $films = Film::where('is_sample', true)->get();
         foreach ($films as $film) {
+            // Guard 1: Jangan hapus jika film pernah diedit setelah dibuat
+            if ($film->updated_at && $film->created_at && $film->updated_at->gt($film->created_at->addSeconds(5))) {
+                continue;
+            }
+
+            // Guard 2: Jangan hapus jika terkait booking langsung atau melalui sesi
+            $hasBookings = Booking::where('film_id', $film->id)->exists()
+                || $film->sessions()->whereHas('bookings')->exists();
+            if ($hasBookings) {
+                continue;
+            }
+
             if ($film->poster_path && Storage::disk('public')->exists($film->poster_path)) {
                 Storage::disk('public')->delete($film->poster_path);
             }

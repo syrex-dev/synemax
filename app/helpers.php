@@ -190,3 +190,103 @@ if (! function_exists('cinema_starting_price_text')) {
         return cinema_facts()['price'];
     }
 }
+
+if (! function_exists('assert_qa_database_guard')) {
+    /**
+     * Guard ensuring QA / Benchmark scripts NEVER write to the owner's primary database.sqlite.
+     * Throws an exception immediately if the active database is the production/primary database.sqlite.
+     */
+    function assert_qa_database_guard(): void
+    {
+        $dbConnection = config('database.default');
+        $dbPath = config("database.connections.{$dbConnection}.database");
+
+        $realMainDb = realpath(database_path('database.sqlite'));
+        $currentDb = realpath($dbPath) ?: (string) $dbPath;
+
+        if ($currentDb === $realMainDb || basename((string) $dbPath) === 'database.sqlite') {
+            throw new RuntimeException('QA GUARD BLOCKED: Skrip QA / Benchmark TIDAK BOLEH menulis ke database.sqlite utama! Gunakan database/qa.sqlite.');
+        }
+    }
+}
+
+if (! function_exists('extract_youtube_id')) {
+    /**
+     * Extracts an 11-character YouTube video ID from supported URL patterns.
+     * Rejects domains outside youtube.com / youtu.be and playlists without video ID.
+     */
+    function extract_youtube_id(?string $url): ?string
+    {
+        if (empty($url)) {
+            return null;
+        }
+
+        $trimmed = trim($url);
+        $parts = parse_url($trimmed);
+        if (! isset($parts['host'])) {
+            return null;
+        }
+
+        $host = strtolower($parts['host']);
+        $validHosts = [
+            'youtube.com',
+            'www.youtube.com',
+            'm.youtube.com',
+            'youtu.be',
+            'www.youtu.be',
+            'youtube-nocookie.com',
+            'www.youtube-nocookie.com',
+        ];
+
+        if (! in_array($host, $validHosts, true)) {
+            return null;
+        }
+
+        $id = null;
+        $path = $parts['path'] ?? '';
+
+        if (str_ends_with($host, 'youtu.be')) {
+            $id = trim($path, '/');
+        } elseif (isset($parts['query'])) {
+            parse_str($parts['query'], $query);
+            if (isset($query['v']) && is_string($query['v'])) {
+                $id = $query['v'];
+            }
+        }
+
+        if (! $id && preg_match('#^/(?:shorts|embed|live|v)/([A-Za-z0-9_-]{11})#', $path, $matches)) {
+            $id = $matches[1];
+        }
+
+        if ($id && preg_match('/^[A-Za-z0-9_-]{11}$/', $id)) {
+            return $id;
+        }
+
+        return null;
+    }
+}
+
+if (! function_exists('format_durasi_id')) {
+    /**
+     * Format duration in hours and minutes: e.g. "1j 35m", "2j", "45m"
+     */
+    function format_durasi_id(mixed $minutes): string
+    {
+        $m = (int) $minutes;
+        if ($m <= 0) {
+            return '-';
+        }
+
+        $hours = intdiv($m, 60);
+        $rem = $m % 60;
+
+        if ($hours > 0 && $rem > 0) {
+            return "{$hours}j {$rem}m";
+        }
+        if ($hours > 0) {
+            return "{$hours}j";
+        }
+
+        return "{$rem}m";
+    }
+}

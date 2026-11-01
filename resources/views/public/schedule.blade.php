@@ -262,19 +262,4 @@
             </div>
         @endif
     </main>
-
-    {{-- Bottom Bar Mobile untuk Aksi Cepat (Maks 56px, solid surface, tanpa backdrop-blur) --}}
-    <style>
-        :root { --bottom-bar-h: 60px; }
-        @media (min-width: 1024px) { :root { --bottom-bar-h: 0px; } }
-    </style>
-    <div class="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface px-4 py-2 lg:hidden shadow-lg" style="padding-bottom: max(env(safe-area-inset-bottom), 0.5rem)">
-        <a href="#sessions" class="btn-gold-cinema mx-auto flex h-11 max-w-4xl items-center justify-between gap-4 rounded-xl px-4 text-slate-950 shadow-xs">
-            <div>
-                <span class="block text-[10px] font-semibold opacity-90 leading-none">Tiket studio mulai</span>
-                <span class="block font-tabular text-xs font-black leading-tight">Rp {{ number_format($sessionPrice, 0, ',', '.') }} per orang</span>
-            </div>
-            <span class="text-xs font-black">Pilih jam tayang</span>
-        </a>
-    </div>
 @endsection

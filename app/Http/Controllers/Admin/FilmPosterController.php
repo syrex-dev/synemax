@@ -192,7 +192,7 @@ class FilmPosterController extends Controller
             }
 
             if ($matchedFilm) {
-                $matchedFilm->update(['poster_path' => $storedPath]);
+                $matchedFilm->update(['poster_path' => $storedPath, 'is_sample' => false]);
                 // Remove from local list so other posters don't match the same film
                 $filmsWithoutPoster = $filmsWithoutPoster->reject(fn ($f) => $f->id === $matchedFilm->id);
                 $matchedCount++;
@@ -254,7 +254,7 @@ class FilmPosterController extends Controller
         Storage::disk('public')->copy($sourcePath, $permanentPath);
         Storage::disk('public')->delete($sourcePath);
 
-        $film->update(['poster_path' => $permanentPath]);
+        $film->update(['poster_path' => $permanentPath, 'is_sample' => false]);
 
         return redirect()->route('admin.films.posters.index')
             ->with('status', "Poster berhasil dipasangkan ke film \"{$film->title}\".");

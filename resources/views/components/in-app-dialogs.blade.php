@@ -52,6 +52,18 @@
                 {{-- Toast Message Text --}}
                 <div class="min-w-0 flex-1 text-xs sm:text-sm font-semibold leading-snug" x-text="toast.message"></div>
 
+                {{-- Action Link if available (e.g. "Lihat") --}}
+                <template x-if="toast.linkUrl">
+                    <a
+                        :href="toast.linkUrl"
+                        class="shrink-0 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 px-2.5 py-1 text-xs font-bold transition shadow-xs inline-flex items-center gap-1"
+                        target="_blank"
+                    >
+                        <span x-text="toast.linkLabel || 'Lihat'"></span>
+                        <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    </a>
+                </template>
+
                 {{-- Undo Button if available --}}
                 <template x-if="toast.undoRoute">
                     <button
@@ -187,15 +199,15 @@
 function inAppDialogsComponent() {
     return {
         toasts: [],
-        addToast(type, message, duration, undoRoute = null) {
+        addToast(type, message, duration, undoRoute = null, linkUrl = null, linkLabel = 'Lihat') {
             const id = Date.now() + Math.random().toString(36).substr(2, 4);
-            const autoDismiss = duration !== undefined ? duration : (type === 'error' ? 8000 : 4000);
+            const autoDismiss = duration !== undefined ? duration : (type === 'error' ? 8000 : 5000);
             
             if (this.toasts.length >= 3) {
                 this.toasts.shift();
             }
 
-            const toast = { id, type, message, undoRoute };
+            const toast = { id, type, message, undoRoute, linkUrl, linkLabel };
             this.toasts.push(toast);
 
             if (autoDismiss > 0) {
@@ -285,6 +297,8 @@ function inAppDialogsComponent() {
 
             @if (session('undo_route'))
                 this.addToast('info', @js((string) session('status')), 8000, @js((string) session('undo_route')));
+            @elseif (session('status_link_url'))
+                this.addToast('success', @js((string) session('status')), 8000, null, @js((string) session('status_link_url')), @js((string) session('status_link_label', 'Lihat')));
             @elseif (session('status'))
                 this.addToast('success', @js((string) session('status')));
             @endif
@@ -347,6 +361,24 @@ function inAppDialogsComponent() {
                 const form = e.target.closest('form[data-track-dirty="true"]');
                 if (form) {
                     form.classList.add('is-dirty');
+                }
+            });
+
+            document.addEventListener('submit', (e) => {
+                const form = e.target.closest('form');
+                if (!form) return;
+                if (form.classList.contains('is-submitting')) {
+                    e.preventDefault();
+                    return false;
+                }
+                form.classList.add('is-submitting');
+                form.classList.remove('is-dirty');
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    setTimeout(() => {
+                        submitBtn.setAttribute('disabled', 'disabled');
+                        submitBtn.classList.add('opacity-60', 'cursor-not-allowed');
+                    }, 20);
                 }
             });
 

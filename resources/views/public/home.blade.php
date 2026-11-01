@@ -149,7 +149,7 @@
                     <h2 class="text-xl sm:text-2xl font-black text-text tracking-tight">Katalog Film</h2>
                     <p class="mt-0.5 text-xs text-text-muted line-clamp-1 sm:line-clamp-none">Pilihan film on-demand berkualitas untuk diputar di studio</p>
                 </div>
-                <a href="{{ route('films.index') }}" class="shrink-0 whitespace-nowrap text-xs sm:text-sm font-bold text-accent hover:underline">
+                <a href="{{ route('films.index') }}" class="shrink-0 whitespace-nowrap text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-400 hover:underline">
                     <span class="sm:hidden">Semua &gt;</span>
                     <span class="hidden sm:inline">Lihat semua film &gt;</span>
                 </a>
@@ -229,7 +229,7 @@
                         <h2 class="text-xl sm:text-2xl font-black text-text tracking-tight">Promo & Penawaran</h2>
                         <p class="mt-0.5 text-xs text-text-muted line-clamp-1 sm:line-clamp-none">Penawaran hemat dan paket spesial menonton di SynemaX</p>
                     </div>
-                    <a href="{{ route('promos.index') }}" class="shrink-0 whitespace-nowrap text-xs sm:text-sm font-bold text-accent hover:underline">
+                    <a href="{{ route('promos.index') }}" class="shrink-0 whitespace-nowrap text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-400 hover:underline">
                         <span class="sm:hidden">Semua &gt;</span>
                         <span class="hidden sm:inline">Lihat semua &gt;</span>
                     </a>
@@ -290,7 +290,7 @@
                         <h2 class="text-xl sm:text-2xl font-black text-text tracking-tight">Makanan & Minuman</h2>
                         <p class="mt-0.5 text-xs text-text-muted line-clamp-1 sm:line-clamp-none">Popcorn hangat, minuman segar, dan camilan lezat menemani nontonmu</p>
                     </div>
-                    <a href="{{ route('booking.lookup.form') }}" class="shrink-0 whitespace-nowrap text-xs sm:text-sm font-bold text-accent hover:underline">
+                    <a href="{{ route('booking.lookup.form') }}" class="shrink-0 whitespace-nowrap text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-400 hover:underline">
                         <span class="sm:hidden">Pesan &gt;</span>
                         <span class="hidden sm:inline">Pesan camilan &gt;</span>
                     </a>
@@ -354,7 +354,7 @@
                         <h2 class="text-xl sm:text-2xl font-black text-text tracking-tight">Nobar Mendatang</h2>
                         <p class="mt-0.5 text-xs text-text-muted line-clamp-1 sm:line-clamp-none">Siaran langsung pertandingan seru komunitas di layar bioskop</p>
                     </div>
-                    <a href="{{ route('nobar.index') }}" class="shrink-0 whitespace-nowrap text-xs sm:text-sm font-bold text-accent hover:underline">
+                    <a href="{{ route('nobar.index') }}" class="shrink-0 whitespace-nowrap text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-400 hover:underline">
                         <span class="sm:hidden">Semua &gt;</span>
                         <span class="hidden sm:inline">Semua acara &gt;</span>
                     </a>

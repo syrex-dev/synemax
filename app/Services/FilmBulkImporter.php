@@ -401,6 +401,14 @@ class FilmBulkImporter
             $rawActive = strtolower(trim((string) ($row['is_active'] ?? '0')));
             $isActive = in_array($rawActive, ['1', 'ya', 'yes', 'true', 'aktif', 'on'], true);
 
+            // 9. Trailer URL validation (non-blocking warning)
+            $rawTrailer = trim((string) ($row['trailer_url'] ?? ''));
+            if ($rawTrailer !== '') {
+                if (! extract_youtube_id($rawTrailer)) {
+                    $warnings[] = 'Tautan YouTube tidak standar.';
+                }
+            }
+
             // Determine status
             // We support Indonesian labels ('baru', 'duplikat', 'masalah') as primary status,
             // with aliases for backwards compatibility with legacy tests
@@ -1005,6 +1013,7 @@ class FilmBulkImporter
                             'trailer_url' => $row['trailer_url'] ?? $existing->trailer_url,
                             'is_active' => isset($row['is_active']) ? (bool) $row['is_active'] : $existing->is_active,
                             'import_batch_id' => $batchId,
+                            'is_sample' => false,
                         ]);
 
                         $chunkImported++;
@@ -1149,15 +1158,16 @@ class FilmBulkImporter
 
     /**
      * Export all active and inactive films in canonical CSV format with injection protection.
+     * Default delimiter is semicolon (;) with UTF-8 BOM for Indonesian Excel compatibility.
      */
-    public function exportAllFilmsCsv(): StreamedResponse
+    public function exportAllFilmsCsv(string $delimiter = ';', bool $includeTrashed = false): StreamedResponse
     {
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="katalog_film_synemax_'.date('Ymd_His').'.csv"',
         ];
 
-        return response()->stream(function () {
+        return response()->stream(function () use ($delimiter, $includeTrashed) {
             $handle = fopen('php://output', 'w');
             // Write UTF-8 BOM for Indonesian Excel compatibility
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
@@ -1172,25 +1182,28 @@ class FilmBulkImporter
                 'poster',
                 'trailer',
                 'tampil',
-            ]);
+            ], $delimiter);
 
-            Film::query()
-                ->orderBy('title')
-                ->chunk(100, function ($films) use ($handle) {
-                    foreach ($films as $film) {
-                        fputcsv($handle, [
-                            $this->sanitizeCsvCell($film->title),
-                            $this->sanitizeCsvCell($film->genre),
-                            $film->release_year ?: ($film->release_date ? $film->release_date->format('Y') : ''),
-                            $film->duration_minutes,
-                            $this->sanitizeCsvCell($film->age_rating),
-                            $this->sanitizeCsvCell($film->synopsis),
-                            $film->poster_path ? basename($film->poster_path) : '',
-                            $this->sanitizeCsvCell($film->trailer_url ?? ''),
-                            $film->is_active ? 'ya' : 'tidak',
-                        ]);
-                    }
-                });
+            $query = Film::query()->orderBy('title');
+            if ($includeTrashed) {
+                $query->withTrashed();
+            }
+
+            $query->chunk(100, function ($films) use ($handle, $delimiter) {
+                foreach ($films as $film) {
+                    fputcsv($handle, [
+                        $this->sanitizeCsvCell($film->title),
+                        $this->sanitizeCsvCell($film->genre),
+                        $film->release_year ?: ($film->release_date ? $film->release_date->format('Y') : ''),
+                        $film->duration_minutes,
+                        $this->sanitizeCsvCell($film->age_rating),
+                        $this->sanitizeCsvCell($film->synopsis),
+                        $film->poster_path ? basename($film->poster_path) : '',
+                        $this->sanitizeCsvCell($film->trailer_url ?? ''),
+                        $film->is_active ? 'ya' : 'tidak',
+                    ], $delimiter);
+                }
+            });
 
             fclose($handle);
         }, 200, $headers);

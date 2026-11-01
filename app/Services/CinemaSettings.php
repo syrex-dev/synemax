@@ -145,7 +145,7 @@ class CinemaSettings
 
     public function qrisMerchantName(): string
     {
-        return $this->string('qris_merchant_name', 'SynemaX Home Cinema');
+        return $this->string('qris_merchant_name', 'SynemaX');
     }
 
     public function qrisPaymentNotes(): string
@@ -256,7 +256,7 @@ class CinemaSettings
 
     public function siteTagline(): string
     {
-        return $this->string('site_tagline', 'Studio Home Cinema Privat Desa');
+        return $this->string('site_tagline', 'Studio Bioskop Mini Privat');
     }
 
     public function siteLogo(): ?string
@@ -330,19 +330,23 @@ class CinemaSettings
                 if (! isset($item['key']) && isset($item['id'])) {
                     $item['key'] = $item['id'];
                 }
+                if (! isset($item['mobile_position'])) {
+                    $key = $item['key'] ?? '';
+                    $item['mobile_position'] = in_array($key, ['home', 'schedule', 'film', 'lookup', 'booking_lookup'], true) ? 'bottom_bar' : 'menu';
+                }
 
                 return $item;
             }, $items);
         }
 
         return [
-            ['key' => 'home', 'label' => 'Beranda', 'url' => '/', 'route' => 'home', 'is_visible' => true, 'order' => 1],
-            ['key' => 'schedule', 'label' => 'Jadwal', 'url' => '/jadwal', 'route' => 'schedule.index', 'is_visible' => true, 'order' => 2],
-            ['key' => 'film', 'label' => 'Film', 'url' => '/film', 'route' => 'films.index', 'is_visible' => true, 'order' => 3],
-            ['key' => 'nobar', 'label' => 'Nobar', 'url' => '/nobar', 'route' => 'nobar.index', 'is_visible' => true, 'order' => 4],
-            ['key' => 'promo', 'label' => 'Promo', 'url' => '/promo', 'route' => 'promos.index', 'is_visible' => true, 'order' => 5],
-            ['key' => 'articles', 'label' => 'Kabar', 'url' => '/kabar', 'route' => 'articles.index', 'is_visible' => true, 'order' => 6],
-            ['key' => 'lookup', 'label' => 'Cek booking', 'url' => '/cek-booking', 'route' => 'booking.lookup.form', 'is_visible' => true, 'order' => 7],
+            ['key' => 'home', 'label' => 'Beranda', 'url' => '/', 'route' => 'home', 'mobile_position' => 'bottom_bar', 'is_visible' => true, 'order' => 1],
+            ['key' => 'schedule', 'label' => 'Jadwal', 'url' => '/jadwal', 'route' => 'schedule.index', 'mobile_position' => 'bottom_bar', 'is_visible' => true, 'order' => 2],
+            ['key' => 'film', 'label' => 'Film', 'url' => '/film', 'route' => 'films.index', 'mobile_position' => 'bottom_bar', 'is_visible' => true, 'order' => 3],
+            ['key' => 'nobar', 'label' => 'Nobar', 'url' => '/nobar', 'route' => 'nobar.index', 'mobile_position' => 'menu', 'is_visible' => true, 'order' => 4],
+            ['key' => 'promo', 'label' => 'Promo', 'url' => '/promo', 'route' => 'promos.index', 'mobile_position' => 'menu', 'is_visible' => true, 'order' => 5],
+            ['key' => 'articles', 'label' => 'Kabar', 'url' => '/kabar', 'route' => 'articles.index', 'mobile_position' => 'menu', 'is_visible' => true, 'order' => 6],
+            ['key' => 'lookup', 'label' => 'Cek booking', 'url' => '/cek-booking', 'route' => 'booking.lookup.form', 'mobile_position' => 'bottom_bar', 'is_visible' => true, 'order' => 7],
         ];
     }
 
@@ -736,6 +740,27 @@ class CinemaSettings
         return '';
     }
 
+    /**
+     * @return array<string, array{url: string, label: string}>
+     */
+    public function socialSettings(): array
+    {
+        return [
+            'instagram' => [
+                'url' => $this->instagramUrl(),
+                'label' => $this->instagramLabel(),
+            ],
+            'tiktok' => [
+                'url' => $this->tiktokUrl(),
+                'label' => $this->tiktokLabel(),
+            ],
+            'youtube' => [
+                'url' => $this->youtubeUrl(),
+                'label' => $this->youtubeLabel(),
+            ],
+        ];
+    }
+
     public function capacityDescription(): string
     {
         $capacity = $this->capacityPerSession();
@@ -873,7 +898,7 @@ class CinemaSettings
     // === TAB 7: SEO ===
     public function seoTitleTemplate(): string
     {
-        return $this->string('seo_title_template', '%title% | SynemaX Studio Home Cinema');
+        return $this->string('seo_title_template', '%title% | SynemaX');
     }
 
     public function seoDefaultDescription(): string

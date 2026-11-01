@@ -26,6 +26,9 @@ use Illuminate\Support\Str;
     'is_coming_soon',
     'is_sample',
     'import_batch_id',
+    'director',
+    'casts',
+    'language',
 ])]
 class Film extends Model
 {

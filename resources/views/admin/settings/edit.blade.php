@@ -6,8 +6,8 @@
     <div x-data="{ activeTab: '{{ $currentTab ?? 'identitas' }}' }">
         <x-admin.page-header
             eyebrow="Konfigurasi Sistem"
-            title="Pengaturan Bioskop"
-            subtitle="Pengaturan Home Cinema: kelola identitas, logo, navbar, operasional, tarif tiket, FAQ, dan SEO tanpa mengubah kode."
+            title="Pengaturan Home Cinema"
+            subtitle="Pengaturan bioskop SynemaX: kelola identitas, logo, navbar, operasional, tarif tiket, FAQ, dan SEO tanpa mengubah kode."
         />
 
         {{-- Tab Navigation Bar --}}
@@ -168,7 +168,10 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <h2 class="text-base font-bold text-text">Daftar Menu Navigasi Publik</h2>
-                            <p class="text-xs text-text-muted">Atur urutan, ubah label teks, dan sembunyikan menu tertentu di navbar publik.</p>
+                            <p class="text-xs text-text-muted">Atur urutan, ubah label teks, posisi di HP (maksimal 4 item di Bar Bawah), dan sembunyikan menu tertentu di navbar publik.</p>
+                            @error('menu')
+                                <p class="mt-2 text-xs font-bold text-danger">{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
 
@@ -180,6 +183,7 @@
                                     <th>Menu / Halaman</th>
                                     <th>Label di Navbar</th>
                                     <th>Tautan Tujuan</th>
+                                    <th class="w-36">Tampil di HP</th>
                                     <th class="w-24 text-center">Tampilkan</th>
                                 </tr>
                             </thead>
@@ -204,6 +208,16 @@
                                             <input type="hidden" name="menu[{{ $idx }}][url]" value="{{ $item['url'] }}">
                                             <input type="hidden" name="menu[{{ $idx }}][route]" value="{{ $item['route'] ?? '' }}">
                                             {{ $item['url'] }}
+                                        </td>
+                                        <td>
+                                            <x-ui.select
+                                                name="menu[{{ $idx }}][mobile_position]"
+                                                :value="$item['mobile_position'] ?? 'menu'"
+                                                :options="[
+                                                    'bottom_bar' => 'Bar bawah',
+                                                    'menu' => 'Menu'
+                                                ]"
+                                            />
                                         </td>
                                         <td class="text-center">
                                             <x-form.switch
@@ -475,19 +489,17 @@
                                 <input id="qris_merchant_name" name="qris_merchant_name" type="text" value="{{ old('qris_merchant_name', $settings->qrisMerchantName()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm">
                             </div>
                             <div>
-                                <label for="qris_image" class="block text-xs font-bold uppercase tracking-wider text-text">File Gambar QRIS (PNG/JPG, maks 2 MB)</label>
-                                <input id="qris_image" name="qris_image" type="file" accept="image/png,image/jpeg,image/webp" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-amber-500 file:text-slate-950 file:font-bold">
-                                @if ($qrisRatioWarning)
-                                    <div class="mt-2 flex items-start gap-3 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-500">
-                                        <svg class="mt-0.5 size-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                        </svg>
-                                        <div>
-                                            <p class="font-bold">Perhatian Rasio Gambar QRIS</p>
-                                            <p class="mt-0.5 text-text">QRIS sebaiknya persegi dan rapi; pangkas bagian lain.</p>
-                                        </div>
-                                    </div>
-                                @endif
+                                <x-admin.image-upload
+                                    name="qris_image"
+                                    label="File Gambar QRIS"
+                                    hint="JPG/PNG maks 2 MB, sebaiknya persegi"
+                                    :currentValue="$hasQrisImage ? route('payment.qris') : null"
+                                    :recommendedWidth="500"
+                                    :recommendedHeight="500"
+                                    maxSizeMb="2"
+                                    accept="image/png,image/jpeg,image/webp"
+                                    :libraryImages="$libraryImages"
+                                />
                             </div>
                         </div>
                     </div>

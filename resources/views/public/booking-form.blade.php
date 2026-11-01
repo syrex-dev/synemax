@@ -83,8 +83,18 @@
                   activeCategory: @js($snackCategories->first()['id'] ?? null),
                   cart: @js(old('snacks', [])),
                   filmSearch: '',
-                  genreFilter: 'Semua',
-                  yearFilter: 'Semua',
+                  genre: '',
+                  tahun: '',
+                  setFilter(g, y) {
+                      if (g !== undefined) this.genre = g;
+                      if (y !== undefined) this.tahun = y;
+                  },
+                  filmOptions: @js($films->map(fn($f) => [
+                      'id' => $f->id,
+                      'title' => $f->title,
+                      'genre' => $f->genre,
+                      'year' => (string) $f->release_year,
+                  ])),
                   filmDetail: null,
                   noteItemId: null,
                   noteValue: '',
@@ -247,17 +257,17 @@
                           this.isPromoValid = true;
                           this.promoApplied = 'XXIPREMIERE';
                           this.promoDiscount = Math.round(this.ticketTotal * 0.1);
-                          this.promoMessage = 'Voucher XXI Premiere Berhasil: Diskon 10% Tiket!';
+                          this.promoMessage = 'Voucher XXI Premiere Berhasil: Diskon 10% Tiket.';
                       } else if (code === 'SYNEMAX5K') {
                           this.isPromoValid = true;
                           this.promoApplied = 'SYNEMAX5K';
                           this.promoDiscount = Math.min(this.total, 5000);
-                          this.promoMessage = 'Voucher SynemaX Berhasil: Potongan Rp 5.000!';
+                          this.promoMessage = 'Voucher SynemaX Berhasil: Potongan Rp 5.000.';
                       } else if (code === 'DISKON50') {
                           this.isPromoValid = true;
                           this.promoApplied = 'DISKON50';
                           this.promoDiscount = Math.round(this.total * 0.5);
-                          this.promoMessage = 'Promo Spesial: Diskon 50% Seluruh Pesanan!';
+                          this.promoMessage = 'Promo Spesial: Diskon 50% Seluruh Pesanan.';
                       } else {
                           this.isPromoValid = false;
                           this.promoApplied = null;
@@ -319,7 +329,7 @@
                   },
 
                   get filteredFilmCount() {
-                      return this.filmOptions.filter((film) => this.matchesFilm(film.title, film.genre)).length;
+                      return this.filmOptions.filter((film) => this.matchesFilm(film.title, film.genre, film.year)).length;
                   },
 
                   get paxIsValid() {
@@ -344,11 +354,12 @@
                       return null;
                   },
 
-                  matchesFilm(title, genre, year) {
+                  matchesFilm(title, filmGenre, filmYear) {
                       const query = this.filmSearch.trim().toLocaleLowerCase('id');
-                      const matchesQuery = !query || `${title} ${genre}`.toLocaleLowerCase('id').includes(query);
-                      const matchesGenre = this.genreFilter === 'Semua' || this.genreFilter === genre;
-                      const matchesYear = this.yearFilter === 'Semua' || String(year || '') === String(this.yearFilter);
+                      const matchesQuery = !query || `${title} ${filmGenre}`.toLocaleLowerCase('id').includes(query);
+                      const matchesGenre = !this.genre || this.genre === 'Semua' ||
+                          (filmGenre || '').split(',').map(g => g.trim().toLocaleLowerCase('id')).includes(this.genre.toLocaleLowerCase('id'));
+                      const matchesYear = !this.tahun || this.tahun === 'Semua' || String(filmYear || '') === String(this.tahun);
                       return matchesQuery && matchesGenre && matchesYear;
                   },
 
@@ -572,7 +583,7 @@
                 <div>
                     <div class="flex items-baseline justify-between gap-2">
                         <h2 class="text-lg font-black text-text">Pilih paket nonton</h2>
-                        <span class="text-xs text-text-muted">Langkah 2 dari 5</span>
+                        <span class="hidden sm:inline text-xs text-text-muted">Langkah 2 dari 5</span>
                     </div>
                     <p class="mt-0.5 text-xs text-text-muted">Tentukan jalur penayangan: kumpulkan minimal penonton (Reguler), atau langsung pasti tayang (Couple & Private).</p>
                 </div>
@@ -785,13 +796,13 @@
                 <div>
                     <div class="flex items-baseline justify-between gap-2">
                         <h2 class="text-lg font-black text-text">Pilih film tontonan</h2>
-                        <span class="text-xs text-text-muted">Langkah 3 dari 5</span>
+                        <span class="hidden sm:inline text-xs text-text-muted">Langkah 3 dari 5</span>
                     </div>
                     <p class="mt-0.5 text-xs text-text-muted">
                         @if ($isConfirmed)
                             Sesi ini telah terkonfirmasi pasti tayang. Semua penonton bergabung menonton film terkunci.
                         @else
-                            Pilih film calon yang Anda inginkan. Perhatikan jumlah peminat saat ini untuk mempercepat kuorum!
+                            Pilih film yang ingin kamu tonton. Angka di bawah poster menunjukkan peminat sesi ini.
                         @endif
                     </p>
                 </div>
@@ -825,43 +836,26 @@
                                placeholder="Cari judul atau genre film..."
                                class="min-h-11 w-full rounded-xl border border-border-input bg-surface px-4 text-sm text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400">
 
-                        <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none" aria-label="Filter genre film">
-                            @php($genres = $films->pluck('genre')->unique()->values())
-                            @foreach (['Semua', ...$genres->all()] as $genre)
-                                <button type="button"
-                                        @click="genreFilter = @js($genre)"
-                                        class="min-h-8 shrink-0 rounded-lg border px-3 text-xs font-bold transition"
-                                        :class="genreFilter === @js($genre) ? 'border-amber-400 bg-amber-500 text-black' : 'border-border-input bg-surface text-text hover:border-amber-400'">
-                                    {{ $genre }}
-                                </button>
-                            @endforeach
-                        </div>
+                    {{-- Search & Filter Genre/Year Menggunakan Komponen Bersama --}}
+                    <div class="space-y-3">
+                        <input id="film-search"
+                               x-model="filmSearch"
+                               type="search"
+                               autocomplete="off"
+                               placeholder="Cari judul atau genre film..."
+                               class="min-h-11 w-full rounded-xl border border-border-input bg-surface px-4 text-sm text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400">
 
-                        @php($years = $films->pluck('release_year')->filter()->unique()->sortDesc()->values())
-                        @if ($years->count() > 1)
-                            <div class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none" aria-label="Filter tahun rilis film">
-                                <button type="button"
-                                        @click="yearFilter = 'Semua'"
-                                        class="min-h-7 shrink-0 rounded-md border px-2.5 text-[11px] font-semibold transition"
-                                        :class="yearFilter === 'Semua' ? 'border-amber-400 bg-amber-500/20 text-amber-500' : 'border-border bg-surface text-text-muted hover:border-amber-400/60'">
-                                    Semua Tahun
-                                </button>
-                                @foreach ($years as $yr)
-                                    <button type="button"
-                                            @click="yearFilter = @js((string) $yr)"
-                                            class="min-h-7 shrink-0 rounded-md border px-2.5 text-[11px] font-semibold transition"
-                                            :class="yearFilter === @js((string) $yr) ? 'border-amber-400 bg-amber-500/20 text-amber-500' : 'border-border bg-surface text-text-muted hover:border-amber-400/60'">
-                                        {{ $yr }}
-                                    </button>
-                                @endforeach
-                            </div>
-                        @endif
+                        @php
+                            $canonicalGenres = \App\Models\Film::CANONICAL_GENRES;
+                            $filmYears = $films->pluck('release_year')->filter()->unique()->sortDesc()->values()->all();
+                        @endphp
+                        <x-public.film-filter-bar :genres="$canonicalGenres" :years="$filmYears" />
 
                         {{-- Grid Pilihan Film --}}
                         <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                             @foreach ($films as $film)
                                 @php($tally = $candidateTallies->get($film->id)['seats'] ?? 0)
-                                <article x-show="matchesFilm(@js($film->title), @js($film->genre), @js($film->release_year))"
+                                <article x-show="matchesFilm(@js($film->title), @js($film->genre), @js((string) $film->release_year))"
                                          class="flex flex-col justify-between rounded-xl border bg-surface p-2.5 transition"
                                          :class="filmId === '{{ $film->id }}'
                                              ? 'border-amber-400 shadow-md ring-1 ring-amber-400'
@@ -869,6 +863,7 @@
                                     <button type="button"
                                             @click="filmDetail = @js(['id' => $film->id, 'title' => $film->title, 'genre' => $film->genre, 'duration' => $film->duration_minutes, 'rating' => $film->age_rating, 'synopsis' => $film->synopsis, 'trailer' => $film->trailer_url])"
                                             class="flex w-full flex-col text-left focus:outline-none">
+                                        {{-- Poster Container (Tile polos tanpa judul bila kosong, label peminat di bawah) --}}
                                         <div class="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-surface-2">
                                             @if ($film->poster_path)
                                                 <img src="{{ Storage::url($film->poster_path) }}"
@@ -876,30 +871,33 @@
                                                      loading="lazy"
                                                      class="size-full object-cover">
                                             @else
-                                                <div class="flex size-full items-center justify-center p-2 text-center text-xs font-bold text-text-muted">
-                                                    {{ $film->title }}
+                                                <div class="flex size-full items-center justify-center bg-surface-sunken">
+                                                    <svg class="size-8 text-text-muted/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+                                                    </svg>
                                                 </div>
                                             @endif
                                             <span class="absolute right-1.5 top-1.5 rounded bg-black/80 px-1.5 py-0.5 text-[9px] font-black text-amber-400 border border-amber-400/30">
                                                 {{ $film->age_rating }}
                                             </span>
+                                        </div>
+                                        <div class="mt-2 space-y-1">
+                                            <h3 class="line-clamp-2 text-xs font-bold text-text sm:text-sm">{{ $film->title }}</h3>
+                                            <p class="line-clamp-1 text-[11px] text-text-muted">{{ $film->genre }}, {{ $film->duration_minutes }}m</p>
 
-                                            {{-- Chip Peminat Film Calon --}}
-                                            <div class="absolute bottom-1.5 inset-x-1.5">
+                                            {{-- Chip Peminat Film Calon di baris teks di bawah poster, TIDAK menutupi poster --}}
+                                            <div class="pt-0.5">
                                                 @if ($tally > 0)
-                                                    <span class="inline-flex w-full items-center justify-center rounded badge-accent-solid px-1.5 py-0.5 text-[10px] font-black shadow-none">
-                                                        {{ $tally }} peminat
+                                                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                                                        <span class="size-1.5 rounded-full bg-amber-500"></span>
+                                                        <span>{{ $tally }} peminat</span>
                                                     </span>
                                                 @else
-                                                    <span class="inline-flex w-full items-center justify-center rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-medium text-slate-300">
-                                                        Belum ada peminat
+                                                    <span class="inline-flex items-center gap-1 text-[11px] font-medium text-text-muted">
+                                                        <span>Belum ada peminat</span>
                                                     </span>
                                                 @endif
                                             </div>
-                                        </div>
-                                        <div class="mt-2">
-                                            <h3 class="line-clamp-2 text-xs font-bold text-text sm:text-sm">{{ $film->title }}</h3>
-                                            <p class="mt-0.5 line-clamp-1 text-[11px] text-text-muted">{{ $film->genre }}, {{ $film->duration_minutes }}m</p>
                                         </div>
                                     </button>
 
@@ -922,10 +920,11 @@
                             @endforeach
                         </div>
 
-                        <p x-cloak x-show="filmOptions.length > 0 && filteredFilmCount === 0 && (filmSearch.trim() !== '' || genreFilter !== 'Semua')"
+                        <p x-cloak x-show="filmOptions.length > 0 && filteredFilmCount === 0 && (filmSearch.trim() !== '' || genre !== '' || tahun !== '')"
                            class="mt-4 rounded-xl border border-border bg-surface p-4 text-center text-xs text-text-muted">
-                            Film yang cocok belum ada. Coba kata kunci lain atau pilih kategori Semua.
+                            Film yang cocok belum ada. Coba kata kunci lain atau pilih Semua Genre.
                         </p>
+                    </div>
                     </div>
                 @endif
             </section>

@@ -22,6 +22,7 @@
     $arriveMinutes = $settings->ticketArriveMinutes();
     $address = $settings->contactAddress();
     $whatsapp = $settings->contactWhatsapp();
+    $email = $settings->contactEmail();
 
     $activeItems = $booking->items->where('status', '!=', 'dibatalkan');
 @endphp
@@ -263,6 +264,9 @@
         @endif
         @if ($whatsapp)
             <p class="text-slate-500">• Bantuan WhatsApp: {{ format_phone_id($whatsapp) }}</p>
+        @endif
+        @if ($email)
+            <p class="text-slate-500">• Email: {{ $email }}</p>
         @endif
     </div>
 
