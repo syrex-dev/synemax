@@ -102,13 +102,16 @@
             while (this.processedCount < this.totalRows && this.isProcessing) {
                 this.statusMessage = `Memproses potongan ${this.currentChunk + 1} dari ${this.totalChunks} (${Math.min(this.totalRows, (this.currentChunk + 1) * this.chunkSize)} dari ${this.totalRows} baris)...`;
 
+                const chunkUrl = '{{ route('admin.films.import.chunk', [], false) }}' || '/admin/films/impor/process-chunk';
+
                 try {
-                    const response = await fetch('{{ route('admin.films.import.chunk') }}', {
+                    const response = await fetch(chunkUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Accept': 'application/json'
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
                         },
                         body: JSON.stringify({
                             batch_token: this.batchToken,
@@ -221,6 +224,7 @@
             <x-ui.select
                 name="duplicate_strategy_selector"
                 label="Perlakuan Duplikat"
+                x-model="duplicateStrategy"
                 :value="$duplicateStrategy"
                 :options="[
                     'skip' => 'Lewati (bawaan)',
@@ -273,6 +277,27 @@
                 <p class="text-text-muted text-[11px]">Ada Masalah / Gagal</p>
                 <p class="text-lg font-black text-danger mt-0.5" x-text="failedCount"></p>
             </div>
+        </div>
+
+        {{-- Tombol Coba Lagi / Kembali saat Terjadi Kesalahan --}}
+        <div x-show="hasError" class="pt-3 border-t border-border flex flex-wrap items-center gap-3">
+            <button
+                type="button"
+                @click="startChunkedImport(true)"
+                class="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 py-2 text-xs font-bold text-slate-950 shadow-sm hover:bg-amber-400 transition"
+            >
+                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Coba Lanjutkan Impor</span>
+            </button>
+            <button
+                type="button"
+                @click="activeStep = 'preview'; hasError = false"
+                class="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-white/20 bg-surface px-4 py-2 text-xs font-bold text-text hover:bg-surface-2 transition shadow-xs"
+            >
+                <span>Kembali ke Tabel Pratinjau</span>
+            </button>
         </div>
 
         {{-- Tombol Aksi Pasca Selesai --}}

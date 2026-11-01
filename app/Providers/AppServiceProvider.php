@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\CinemaSettings;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -27,6 +28,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (config('app.env') === 'production' || request()->header('x-forwarded-proto') === 'https') {
+            URL::forceScheme('https');
+        }
+
         View::composer(['layouts.public', 'layouts.admin', 'public.*', 'admin.*'], function ($view) {
             $view->with('cinemaSettings', app(CinemaSettings::class));
         });

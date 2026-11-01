@@ -38,7 +38,7 @@
 
         async performSearch(q) {
             try {
-                const res = await fetch(`{{ route('admin.bookings.live_search') }}?q=${encodeURIComponent(q)}`, {
+                const res = await fetch(`{{ route('admin.bookings.live_search', [], false) }}?q=${encodeURIComponent(q)}`, {
                     headers: { 'Accept': 'application/json' }
                 });
                 if (res.ok) {

@@ -116,7 +116,7 @@
              },
              checkStatus(manual = true) {
                  this.polling = true;
-                 fetch(@js(route('booking.status.json', ['code' => $booking->code])))
+                 fetch(@js(route('booking.status.json', ['code' => $booking->code], false)))
                      .then(res => res.json())
                      .then(data => {
                          this.polling = false;

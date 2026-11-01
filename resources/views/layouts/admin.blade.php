@@ -92,7 +92,7 @@
             init() {
                 setInterval(() => {
                     if (document.visibilityState === 'visible') {
-                        fetch('{{ route('admin.polling.status') }}')
+                        fetch('{{ route('admin.polling.status', [], false) }}')
                             .then(res => res.json())
                             .then(data => {
                                 if (data && data.waiting_count > this.lastWaitingCount) {
@@ -115,7 +115,7 @@
             setDensity(mode) {
                 this.density = mode;
                 document.documentElement.dataset.density = mode;
-                fetch('{{ route('admin.density.update') }}', {
+                fetch('{{ route('admin.density.update', [], false) }}', {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
