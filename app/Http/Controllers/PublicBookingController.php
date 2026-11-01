@@ -337,7 +337,7 @@ class PublicBookingController extends Controller
                 'privatePrice' => $privatePrice,
                 'coupleUpgradeDiff' => max(0, $couplePrice - $booking->ticket_total),
                 'privateUpgradeDiff' => max(0, $privatePrice - $booking->ticket_total),
-                'canUpgradeCouple' => ! $session->isConfirmed() && $booking->seats_reserved <= 2 && $session->canAcceptCoupleBooking($booking->film_id)['allowed'],
+                'canUpgradeCouple' => ! $session->isConfirmed() && $booking->seats_reserved <= 2 && $session->canAcceptCoupleBooking($booking->film_id, $booking->id)['allowed'],
                 'canUpgradePrivate' => ! $session->isConfirmed() && ($session->occupiedBookings()->where('id', '!=', $booking->id)->count() === 0),
                 'ajakTemanUrl' => $this->ajakTemanWhatsAppUrl($booking),
                 'whatsAppUrl' => $this->ticketWhatsAppUrl($booking, $settings),

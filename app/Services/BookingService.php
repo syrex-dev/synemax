@@ -603,7 +603,7 @@ class BookingService
                     $this->reject('package', 'Upgrade ke Paket Couple hanya untuk pemesanan maksimal 2 kursi.');
                 }
                 // Couple checks
-                $check = $session->canAcceptCoupleBooking($lockedBooking->film_id);
+                $check = $session->canAcceptCoupleBooking($lockedBooking->film_id, $lockedBooking->id);
                 if (! $check['allowed']) {
                     $this->reject('package', $check['reason'] ?? 'Paket Couple tidak tersedia pada sesi ini.');
                 }

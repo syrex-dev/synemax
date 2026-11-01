@@ -122,8 +122,8 @@
         :class="{ 'overflow-hidden': menuSheetOpen }"
         class="min-h-screen bg-bg font-sans text-text antialiased transition-colors duration-200"
     >
-        {{-- Sticky Cinema Navbar (Opaque mobile 56px, backdrop-blur on desktop only) --}}
-        <header class="sticky top-0 z-40 border-b border-border dark:border-white/10 bg-surface dark:bg-[#07090E] md:bg-surface/90 md:dark:bg-[#07090E]/90 md:backdrop-blur-xl transition-colors duration-200 pt-[env(safe-area-inset-top)]">
+        {{-- Sticky Cinema Navbar (Translucent Glassmorphic Blur across mobile & desktop) --}}
+        <header class="sticky top-0 z-40 border-b border-border/80 dark:border-white/10 bg-surface/80 dark:bg-[#07090E]/80 backdrop-blur-md supports-[backdrop-filter]:bg-surface/75 dark:supports-[backdrop-filter]:bg-[#07090E]/75 transition-colors duration-200 pt-[env(safe-area-inset-top)]">
             <div class="mx-auto flex h-14 md:h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
                 {{-- Element 1: Logo Brand --}}
                 <a href="{{ route('home') }}" class="inline-flex min-h-11 items-center gap-2 group transition-transform hover:scale-102 shrink-0" aria-label="{{ setting('site_name', 'SynemaX') }}, beranda">
@@ -232,7 +232,7 @@
                         <button
                             type="button"
                             @click="toggleTheme()"
-                            class="md:hidden inline-flex size-11 items-center justify-center rounded-xl border border-slate-300 dark:border-white/15 bg-surface text-text hover:bg-surface-2 transition focus-visible:outline-2 focus-visible:outline-amber-500"
+                            class="md:hidden inline-flex size-11 items-center justify-center rounded-xl border border-slate-300/80 dark:border-white/15 bg-surface/70 dark:bg-white/5 backdrop-blur-sm text-text hover:bg-surface-2 transition focus-visible:outline-2 focus-visible:outline-amber-500 shadow-xs"
                             aria-label="Ganti mode tampilan terang atau gelap"
                             :title="currentTheme === 'dark' ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'"
                         >
@@ -251,12 +251,12 @@
             </div>
         </header>
 
-        {{-- Mobile Bottom Navigation Bar (CGV Pattern, Fixed bottom-0, Opaque, < 768px) --}}
+        {{-- Mobile Bottom Navigation Bar (CGV Pattern, Fixed bottom-0, Translucent Blur, < 768px) --}}
         @if (! $isActionPage)
             <nav
                 id="mobile-bottom-bar"
                 aria-label="Navigasi Bawah Mobile"
-                class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface dark:bg-[#07090E] border-t border-border dark:border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.5)] transition-colors duration-200"
+                class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/85 dark:bg-[#07090E]/85 backdrop-blur-md supports-[backdrop-filter]:bg-surface/80 dark:supports-[backdrop-filter]:bg-[#07090E]/80 border-t border-border/80 dark:border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.5)] transition-colors duration-200"
                 style="height: calc(60px + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px);"
             >
                 <div class="h-[60px] flex items-stretch justify-around w-full max-w-lg mx-auto">
@@ -395,7 +395,7 @@
                                 </a>
                             @endforeach
                             <a
-                                href="{{ route('schedule.index') }}#faq"
+                                href="{{ route('articles.index', ['tab' => 'harga-faq']) }}"
                                 @click="menuSheetOpen = false"
                                 class="flex min-h-[44px] items-center justify-between rounded-xl border border-border bg-surface-2 px-3.5 py-2 font-bold text-text hover:border-amber-500 transition-colors shadow-xs"
                             >

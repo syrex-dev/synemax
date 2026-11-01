@@ -186,31 +186,35 @@
                     </section>
 
                     {{-- Paket Sewa Studio Privat 6 Kursi --}}
-                    <section class="rounded-xl border border-amber-500/30 bg-surface p-6 sm:p-7 flex flex-col justify-between">
+                    <section class="rounded-3xl border border-border dark:border-white/10 bg-surface dark:bg-[#0B0F19] p-6 sm:p-7 shadow-xl flex flex-col justify-between relative overflow-hidden">
                         <div>
-                            <div class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
+                            <div class="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
                                 <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.504-1.125-1.125-1.125h-.871a2.25 2.25 0 00-1.591.659l-.439.44a.75.75 0 01-1.06 0l-.44-.44a2.25 2.25 0 00-1.59-.659h-.872c-.621 0-1.125.504-1.125 1.125V18.75m12 0a2.25 2.25 0 002.25-2.25V8.25A2.25 2.25 0 0018 6H6a2.25 2.25 0 00-2.25 2.25v8.25A2.25 2.25 0 006 18.75m12 0H6"/></svg>
                                 <span>Eksklusif Rombongan</span>
                             </div>
-                            <h2 class="mt-1.5 text-xl font-bold text-text">Sewa studio privat (6 kursi)</h2>
+                            <h2 class="mt-1.5 text-xl font-black text-text">Sewa studio privat (6 kursi)</h2>
                             <p class="mt-1 text-xs text-text-muted">Kunci seluruh 6 kursi khusus rombongan keluarga atau sahabat tanpa ada penonton lain.</p>
 
-                            <div class="mt-5 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4">
-                                <div class="flex items-baseline justify-between">
-                                    <span class="text-xs font-bold text-amber-300">Biaya sewa penuh 1 sesi:</span>
-                                    <span class="font-tabular text-xl sm:text-2xl font-black text-amber-400">Rp {{ number_format($privatePrice, 0, ',', '.') }}</span>
+                            <div class="mt-5 rounded-2xl border border-amber-500/25 dark:border-amber-400/20 bg-amber-500/5 dark:bg-amber-400/5 p-4 sm:p-5">
+                                <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 pb-3.5 border-b border-amber-500/15 dark:border-amber-400/15">
+                                    <span class="text-xs font-bold text-slate-700 dark:text-amber-200">Biaya sewa penuh 1 sesi:</span>
+                                    <span class="font-tabular text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-400">Rp {{ number_format($privatePrice, 0, ',', '.') }}</span>
                                 </div>
-                                <ul class="mt-3 space-y-1.5 text-xs text-slate-300">
-                                    <li class="flex items-center gap-2">
-                                        <svg class="size-3.5 text-emerald-400" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                        </svg>
+                                <ul class="mt-3.5 space-y-2 text-xs text-slate-700 dark:text-slate-300 font-medium">
+                                    <li class="flex items-center gap-2.5">
+                                        <span class="flex size-4 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
+                                            <svg class="size-3" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
                                         <span>Bebas pilih film dari katalog tersedia</span>
                                     </li>
-                                    <li class="flex items-center gap-2">
-                                        <svg class="size-3.5 text-emerald-400" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                        </svg>
+                                    <li class="flex items-center gap-2.5">
+                                        <span class="flex size-4 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
+                                            <svg class="size-3" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                            </svg>
+                                        </span>
                                         <span>Privasi total untuk 1 rombongan keluarga</span>
                                     </li>
                                 </ul>

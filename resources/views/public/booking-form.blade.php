@@ -56,7 +56,7 @@
               x-data="{
                   sessionId: @js((string) $session->id),
                   step: @js((int) old('wizard_step', 2)),
-                  package: @js(old('package', old('booking_type') === 'private' ? 'private' : (old('booking_type') === 'couple' ? 'couple' : 'reguler'))),
+                  package: @js(old('package', old('booking_type') === 'private' ? ($canPrivate ? 'private' : 'reguler') : (old('booking_type') === 'couple' ? ($canCouple ? 'couple' : 'reguler') : 'reguler'))),
                   type: @js(old('booking_type', 'per_orang')),
                   pax: @js((int) old('pax', 1)),
                   paymentMethod: @js(old('payment_method', $paymentMethods[0] ?? '')),

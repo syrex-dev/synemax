@@ -224,6 +224,14 @@ class QuorumAndPackageRulesTest extends TestCase
         // Regular booking for different film rejected
         $checkRegularDiff = $session->canAcceptRegularBooking($this->filmB->id, 1);
         $this->assertFalse($checkRegularDiff['allowed']);
+
+        // Session with even 1 regular booking -> couple rejected
+        $sessionWithRegular = $this->createSession('2026-10-29', '14:00');
+        $this->createBooking($sessionWithRegular, $this->filmA->id, 1, 'Regular User', '08123456788');
+        $sessionWithRegular->refresh();
+        $checkCoupleOnOccupied = $sessionWithRegular->canAcceptCoupleBooking($this->filmA->id);
+        $this->assertFalse($checkCoupleOnOccupied['allowed']);
+        $this->assertStringContainsString('Sudah ada pemesan di sesi ini', $checkCoupleOnOccupied['reason']);
     }
 
     public function test_private_package_rules_and_conditions(): void

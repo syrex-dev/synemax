@@ -294,11 +294,12 @@ class Session extends Model
 
     /**
      * Syarat Paket Couple:
-     * Hanya boleh bila sesi belum terkonfirmasi dan tidak ada kursi aktif film lain.
+     * Hanya boleh bila sesi belum terkonfirmasi, belum ada pemesan lain (kursi kosong),
+     * dan tidak ada kursi aktif film lain.
      *
      * @return array{allowed: bool, reason: ?string}
      */
-    public function canAcceptCoupleBooking(?int $filmId = null): array
+    public function canAcceptCoupleBooking(?int $filmId = null, ?int $excludeBookingId = null): array
     {
         if ($this->isPrivateActive()) {
             return [
@@ -311,6 +312,18 @@ class Session extends Model
             return [
                 'allowed' => false,
                 'reason' => 'Sesi ini sudah memiliki film yang terkonfirmasi.',
+            ];
+        }
+
+        $occupiedQuery = $this->occupiedBookings();
+        if ($excludeBookingId !== null) {
+            $occupiedQuery->where('id', '!=', $excludeBookingId);
+        }
+        $occupiedSeats = (int) $occupiedQuery->sum('seats_reserved');
+        if ($occupiedSeats > 0 || ($excludeBookingId === null && $this->hasActivePerPersonBookings())) {
+            return [
+                'allowed' => false,
+                'reason' => 'Sudah ada pemesan di sesi ini, jadi Paket Couple tidak tersedia.',
             ];
         }
 
