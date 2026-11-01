@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -201,7 +202,7 @@ class FilmController extends Controller
             'filter' => ['nullable', 'string'],
             'q' => ['nullable', 'string'],
             'batch_id' => ['nullable', 'string'],
-            'age_rating' => ['nullable', 'string', 'in:SU,13+,17+'],
+            'age_rating' => ['nullable', 'string', 'max:8', Rule::exists('age_ratings', 'code')],
             'genre' => ['nullable', 'string'],
         ], [
             'action.in' => 'Aksi yang dipilih tidak valid.',
@@ -326,7 +327,7 @@ class FilmController extends Controller
             'duration_minutes' => ['required', 'integer', 'between:1,400'],
             'release_year' => ['nullable', 'integer', 'between:1900,2100'],
             'genre' => ['required', 'string', 'max:150'],
-            'age_rating' => ['required', 'in:SU,13+,17+'],
+            'age_rating' => ['required', 'string', 'max:8', Rule::exists('age_ratings', 'code')],
             'synopsis' => ['required', 'string', 'max:3000'],
             'trailer_url' => ['nullable', 'url', 'max:255'],
             'director' => ['nullable', 'string', 'max:180'],
@@ -348,7 +349,7 @@ class FilmController extends Controller
             'genre.required' => 'Genre film wajib dipilih minimal satu.',
             'synopsis.required' => 'Sinopsis lengkap film wajib diisi.',
             'age_rating.required' => 'Klasifikasi usia wajib dipilih.',
-            'age_rating.in' => 'Pilih rating SU, 13+, atau 17+.',
+            'age_rating.exists' => 'Klasifikasi usia yang dipilih tidak terdaftar.',
             'trailer_url.url' => 'Masukkan tautan trailer yang valid.',
             'poster.image' => 'Poster harus berupa file gambar.',
             'poster.mimes' => 'Poster harus JPG, PNG, atau WebP.',

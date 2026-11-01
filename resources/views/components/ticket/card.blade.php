@@ -27,7 +27,7 @@
     $activeItems = $booking->items->where('status', '!=', 'dibatalkan');
 @endphp
 
-<div id="printable-ticket" class="print-ticket max-w-[400px] w-full mx-auto bg-white text-slate-900 rounded-[12px] border border-slate-300 dark:border-slate-300 shadow-none overflow-hidden select-none print:max-w-none print:w-full print:border-none print:rounded-none">
+<div id="printable-ticket" class="print-ticket max-w-[400px] w-full mx-auto bg-white text-slate-900 rounded-[12px] border border-slate-300 dark:border-slate-300 shadow-none overflow-hidden select-none break-inside-avoid [page-break-inside:avoid] print:max-w-none print:w-full print:border-none print:rounded-none">
 
     {{-- 1. STRIP MEREK (Tinggi 48px, Latar Putih) --}}
     <div class="h-12 px-4 flex items-center justify-between border-b border-slate-200 bg-white">
@@ -69,11 +69,7 @@
                      alt="{{ $film->title }}"
                      class="w-[72px] h-[108px] rounded-lg border-2 border-white object-cover shadow-sm bg-slate-800 {{ $isCancelled ? 'grayscale' : '' }}">
             @else
-                <div class="w-[72px] h-[108px] rounded-lg border-2 border-white bg-slate-800 flex items-center justify-center">
-                    <svg class="size-6 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                    </svg>
-                </div>
+                <div class="w-[72px] h-[108px] rounded-lg border-2 border-white/20 bg-slate-800 shrink-0"></div>
             @endif
         </div>
 
@@ -172,11 +168,11 @@
                 <p class="font-mono text-xl font-bold tracking-widest text-[#0F172A]">{{ $booking->code }}</p>
             </div>
         @else
-            {{-- Status: Aktif (QR 150px / 36mm cetak + Monospace 20px) --}}
+            {{-- Status: Aktif (QR inline SVG 150px / 36mm cetak + Monospace 20px) --}}
             <div class="flex flex-col items-center justify-center space-y-2">
-                <img src="{{ route('qr.code', ['data' => $booking->code, 'size' => 150, 'margin' => 1, 'ecc' => 'M']) }}"
-                     alt="QR Code Booking {{ $booking->code }}"
-                     class="size-[150px] object-contain border border-slate-200 rounded p-1 bg-white print:size-[36mm]">
+                <div class="size-[150px] border border-slate-200 rounded p-1 bg-white flex items-center justify-center print:size-[36mm] [&>svg]:w-full [&>svg]:h-full [&>svg]:block">
+                    {!! generate_inline_qr_svg($booking->code, 150, 1) !!}
+                </div>
                 
                 <div class="space-y-0.5">
                     <p class="font-mono text-[20px] font-bold tracking-widest text-[#0F172A] select-all">
@@ -215,8 +211,8 @@
             </span>
         </div>
 
-        {{-- Baris Jajan (Maksimal 5 item lalu +n item) --}}
-        @foreach ($activeItems->take(5) as $item)
+        {{-- Baris Jajan (Maksimal 3 item lalu +n item) --}}
+        @foreach ($activeItems->take(3) as $item)
             <div class="flex justify-between text-slate-600">
                 <span class="truncate pr-2">{{ $item->name_snapshot }} × {{ $item->qty }}{{ $item->note ? ' (' . $item->note . ')' : '' }}</span>
                 <span class="font-semibold text-slate-900 shrink-0 tabular-nums">
@@ -225,9 +221,9 @@
             </div>
         @endforeach
 
-        @if ($activeItems->count() > 5)
+        @if ($activeItems->count() > 3)
             <div class="text-[11px] text-slate-500">
-                +{{ $activeItems->count() - 5 }} item jajan lainnya
+                +{{ $activeItems->count() - 3 }} item jajan lainnya
             </div>
         @endif
 
@@ -240,16 +236,31 @@
         </div>
 
         {{-- Metode & Status Bayar --}}
+        @php
+            $isActuallyConfirmed = in_array($booking->status, ['terkonfirmasi', 'hadir', 'selesai'], true);
+            if ($isCancelled) {
+                $statusBayarLabel = $booking->refund_needed ? 'Dibatalkan (Perlu Refund)' : 'Dibatalkan';
+                $statusBayarColor = 'text-red-700';
+            } elseif ($isActuallyConfirmed) {
+                $statusBayarLabel = 'Lunas';
+                $statusBayarColor = 'text-emerald-700';
+            } elseif ($booking->payment_method === 'di_tempat') {
+                $statusBayarLabel = 'Bayar di tempat';
+                $statusBayarColor = 'text-amber-800';
+            } elseif ($booking->status === 'menunggu_konfirmasi') {
+                $statusBayarLabel = 'Menunggu konfirmasi';
+                $statusBayarColor = 'text-amber-700';
+            } else {
+                $statusBayarLabel = 'Belum dibayar';
+                $statusBayarColor = 'text-slate-600';
+            }
+        @endphp
         <div class="flex justify-between text-[11px] text-slate-500 pt-0.5">
             <span>
                 Metode: {{ ['di_tempat' => 'Bayar di tempat', 'qris' => 'QRIS', 'transfer' => 'Transfer'][$booking->payment_method] ?? ucfirst($booking->payment_method) }}
             </span>
-            <span class="font-bold {{ $isCancelled ? 'text-red-700' : ($booking->isPaid() ? 'text-emerald-700' : ($booking->payment_method === 'di_tempat' ? 'text-amber-800' : 'text-slate-600')) }}">
-                @if ($isCancelled)
-                    {{ $booking->refund_needed ? 'Dibatalkan (Perlu Refund)' : 'Dibatalkan' }}
-                @else
-                    {{ $booking->isPaid() ? 'Lunas' : ($booking->payment_method === 'di_tempat' ? 'Bayar di tempat' : 'Belum dibayar') }}
-                @endif
+            <span class="font-bold {{ $statusBayarColor }}">
+                {{ $statusBayarLabel }}
             </span>
         </div>
     </div>

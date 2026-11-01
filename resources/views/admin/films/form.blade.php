@@ -38,7 +38,6 @@
         <x-public.trailer-modal />
 
         <x-admin.page-header
-            eyebrow="Katalog"
             title="{{ $film->exists ? 'Ubah Film: ' . $film->title : 'Tambah Film Baru' }}"
             subtitle="Tambahkan film ke katalog bioskop. Poster menggunakan rasio standar 2:3 (600 × 900 px, maks 5 MB)."
         >
@@ -102,7 +101,7 @@
                             required
                             maxlength="180"
                             placeholder="Contoh: Interstellar"
-                            class="mt-1.5 min-h-[44px] w-full rounded-xl border {{ $errors->has('title') ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500' : 'border-border' }} px-3 text-sm"
+                            class="mt-1.5 min-h-[44px] w-full rounded-xl border {{ $errors->has('title') ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500' : 'border-border' }} bg-surface text-text px-3 text-sm"
                             @if ($errors->has('title')) aria-invalid="true" @endif
                         >
                         @error('title')
@@ -119,7 +118,7 @@
                             name="slug"
                             value="{{ old('slug', $film->slug) }}"
                             placeholder="Otomatis dibuat dari judul jika kosong"
-                            class="mt-1.5 min-h-[44px] w-full rounded-xl border {{ $errors->has('slug') ? 'border-red-500 focus:ring-red-500' : 'border-border' }} px-3 text-sm font-mono"
+                            class="mt-1.5 min-h-[44px] w-full rounded-xl border {{ $errors->has('slug') ? 'border-red-500 focus:ring-red-500' : 'border-border' }} bg-surface text-text px-3 text-sm font-mono"
                         >
                         @error('slug')
                             <p class="mt-1 text-xs text-red-500 font-semibold">{{ $message }}</p>
@@ -153,7 +152,7 @@
                             name="custom_genre"
                             value="{{ old('custom_genre') }}"
                             placeholder="Pisahkan dengan koma jika lebih dari satu"
-                            class="min-h-[38px] w-full max-w-sm rounded-xl border border-border px-3 text-xs"
+                            class="min-h-[38px] w-full max-w-sm rounded-xl border border-border bg-surface text-text px-3 text-xs"
                         >
                     </div>
                     @error('genre')
@@ -173,7 +172,7 @@
                             min="1900"
                             max="2100"
                             value="{{ old('release_year', $film->release_year ?: ($film->release_date ? $film->release_date->format('Y') : date('Y'))) }}"
-                            class="mt-1.5 min-h-[44px] w-full rounded-xl border {{ $errors->has('release_year') ? 'border-red-500' : 'border-border' }} px-3 text-sm"
+                            class="mt-1.5 min-h-[44px] w-full rounded-xl border {{ $errors->has('release_year') ? 'border-red-500' : 'border-border' }} bg-surface text-text px-3 text-sm"
                         >
                         @error('release_year')
                             <p class="mt-1 text-xs text-red-500 font-semibold">{{ $message }}</p>
@@ -192,7 +191,7 @@
                             max="400"
                             value="{{ old('duration_minutes', $film->duration_minutes ?? 110) }}"
                             required
-                            class="mt-1.5 min-h-[44px] w-full rounded-xl border {{ $errors->has('duration_minutes') ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500' : 'border-border' }} px-3 text-sm"
+                            class="mt-1.5 min-h-[44px] w-full rounded-xl border {{ $errors->has('duration_minutes') ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500' : 'border-border' }} bg-surface text-text px-3 text-sm"
                             @if ($errors->has('duration_minutes')) aria-invalid="true" @endif
                         >
                         @error('duration_minutes')
@@ -209,11 +208,7 @@
                             label="Klasifikasi Usia"
                             :required="true"
                             :value="old('age_rating', $film->age_rating ?? 'SU')"
-                            :options="[
-                                'SU' => 'SU · Semua Umur',
-                                '13+' => '13+ · Remaja',
-                                '17+' => '17+ · Dewasa',
-                            ]"
+                            :options="\App\Models\AgeRating::optionsArray($film->age_rating)"
                         />
                     </div>
 
@@ -238,7 +233,7 @@
                             x-model="trailerUrl"
                             placeholder="https://www.youtube.com/watch?v=..."
                             value="{{ old('trailer_url', $film->trailer_url) }}"
-                            class="mt-1.5 min-h-[44px] w-full rounded-xl border {{ $errors->has('trailer_url') ? 'border-red-500' : 'border-border' }} px-3 text-sm"
+                            class="mt-1.5 min-h-[44px] w-full rounded-xl border {{ $errors->has('trailer_url') ? 'border-red-500' : 'border-border' }} bg-surface text-text px-3 text-sm font-mono"
                         >
                         <p x-show="trailerError" x-text="trailerError" class="mt-1 text-xs text-red-500 font-semibold" style="display: none;"></p>
                         @error('trailer_url')
@@ -290,7 +285,7 @@
                         required
                         maxlength="3000"
                         placeholder="Tuliskan jalan cerita film untuk menarik minat penonton..."
-                        class="mt-1.5 w-full rounded-xl border {{ $errors->has('synopsis') ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500' : 'border-border' }} p-3 text-sm"
+                        class="mt-1.5 w-full rounded-xl border {{ $errors->has('synopsis') ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-500' : 'border-border' }} bg-surface text-text p-3 text-sm"
                         @if ($errors->has('synopsis')) aria-invalid="true" @endif
                     >{{ old('synopsis', $film->synopsis) }}</textarea>
                     @error('synopsis')
@@ -328,7 +323,7 @@
                                 value="{{ old('director', $film->director) }}"
                                 maxlength="180"
                                 placeholder="Contoh: Christopher Nolan"
-                                class="mt-1 min-h-[44px] w-full rounded-xl border border-border px-3 text-sm"
+                                class="mt-1 min-h-[44px] w-full rounded-xl border border-border bg-surface text-text px-3 text-sm"
                             >
                             @error('director')
                                 <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
@@ -343,7 +338,7 @@
                                 value="{{ old('casts', $film->casts) }}"
                                 maxlength="1000"
                                 placeholder="Contoh: Matthew McConaughey, Anne Hathaway"
-                                class="mt-1 min-h-[44px] w-full rounded-xl border border-border px-3 text-sm"
+                                class="mt-1 min-h-[44px] w-full rounded-xl border border-border bg-surface text-text px-3 text-sm"
                             >
                             @error('casts')
                                 <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
@@ -358,7 +353,7 @@
                                 value="{{ old('language', $film->language) }}"
                                 maxlength="100"
                                 placeholder="Contoh: Indonesia, Inggris"
-                                class="mt-1 min-h-[44px] w-full rounded-xl border border-border px-3 text-sm"
+                                class="mt-1 min-h-[44px] w-full rounded-xl border border-border bg-surface text-text px-3 text-sm"
                             >
                             @error('language')
                                 <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
@@ -371,7 +366,7 @@
                     <label for="license_notes" class="block text-xs font-bold uppercase tracking-wider text-text">
                         Catatan Lisensi / Internal (Hanya Admin)
                     </label>
-                    <textarea id="license_notes" name="license_notes" rows="2" maxlength="3000" placeholder="Catatan internal pengelola..." class="mt-1.5 w-full rounded-xl border border-border p-3 text-sm">{{ old('license_notes', $film->license_notes) }}</textarea>
+                    <textarea id="license_notes" name="license_notes" rows="2" maxlength="3000" placeholder="Catatan internal pengelola..." class="mt-1.5 w-full rounded-xl border border-border bg-surface text-text p-3 text-sm">{{ old('license_notes', $film->license_notes) }}</textarea>
                 </div>
 
                 <div class="pt-3 border-t border-border flex items-center justify-between">

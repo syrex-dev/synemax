@@ -121,15 +121,7 @@ class PublicCinemaController extends Controller
 
         $films = $query->orderBy('title')->paginate(24)->withQueryString();
 
-        $genres = Film::query()
-            ->where('is_active', true)
-            ->whereNotNull('genre')
-            ->pluck('genre')
-            ->flatMap(fn ($g) => array_map('trim', explode(',', (string) $g)))
-            ->unique()
-            ->filter()
-            ->sort()
-            ->values();
+        $genres = Film::CANONICAL_GENRES;
 
         $years = Film::query()
             ->where('is_active', true)

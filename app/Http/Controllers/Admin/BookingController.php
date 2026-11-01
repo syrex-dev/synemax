@@ -38,7 +38,7 @@ class BookingController extends Controller
         ]);
 
         $bookings = Booking::query()
-            ->with(['session.film', 'film', 'customerProfile'])
+            ->with(['session.film', 'film', 'customerProfile', 'items'])
             ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
             ->when($filters['session_id'] ?? null, fn (Builder $query, int $sessionId) => $query->where('session_id', $sessionId))
             ->when($filters['payment_method'] ?? null, fn (Builder $query, string $method) => $query->where('payment_method', $method))

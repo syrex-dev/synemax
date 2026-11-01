@@ -84,7 +84,11 @@
                     'tidak_hadir' => 'bg-surface-2 text-text-muted',
                     'dibatalkan' => 'bg-danger/10 text-danger',
                 ];
-                $whatsAppMessage = 'Halo '.$booking->customer_name.', admin Home Cinema menghubungi untuk booking '.$booking->code.'.';
+                $whatsAppMessage = 'Halo '.$booking->customer_name.', admin SynemaX menghubungi untuk booking '.$booking->code.'.';
+                if ($booking->notes) {
+                    $whatsAppMessage .= "\nCatatan pemesan: ".$booking->notes;
+                }
+                $hasNotes = !empty($booking->notes) || $booking->items->contains(fn ($i) => !empty($i->note));
             @endphp
             <article class="rounded-2xl border border-border bg-surface p-4 sm:p-5">
                 <div class="flex flex-wrap items-start justify-between gap-3">
@@ -99,6 +103,9 @@
                             @endif
                             @if ($booking->customerProfile?->no_show_count >= 2)
                                 <span class="rounded-full bg-danger/10 px-2 py-1 text-xs font-semibold text-danger">Peringatan tidak datang {{ $booking->customerProfile->no_show_count }}×</span>
+                            @endif
+                            @if ($hasNotes)
+                                <span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">Ada catatan</span>
                             @endif
                         </div>
                         <p class="mt-1 font-mono text-sm font-black text-accent">{{ $booking->code }}</p>
@@ -116,6 +123,21 @@
                     <p><span class="text-text-muted">Metode bayar:</span> <strong class="uppercase text-text">{{ ['di_tempat' => 'Di tempat', 'qris' => 'QRIS', 'transfer' => 'Transfer'][$booking->payment_method] ?? $booking->payment_method }}</strong></p>
                     @if ($booking->status === 'menunggu_pembayaran' && $booking->payment_expires_at)
                         <p class="sm:col-span-2 text-xs text-warning font-semibold">Batas bayar: {{ $booking->payment_expires_at->locale('id')->diffForHumans() }} ({{ $booking->payment_expires_at->format('H.i') }} WIB)</p>
+                    @endif
+                    @if ($booking->notes)
+                        <div class="sm:col-span-2 rounded-lg border border-amber-500/25 bg-amber-500/10 p-2.5 text-xs text-text">
+                            <span class="font-bold text-amber-600 dark:text-amber-400">Catatan Pemesan:</span>
+                            <span class="font-medium">{{ $booking->notes }}</span>
+                        </div>
+                    @endif
+                    @php($snackNotes = $booking->items->filter(fn ($i) => !empty($i->note)))
+                    @if ($snackNotes->isNotEmpty())
+                        <div class="sm:col-span-2 text-xs text-text-muted space-y-0.5">
+                            <span class="font-bold text-amber-600 dark:text-amber-400">Catatan Jajan:</span>
+                            @foreach ($snackNotes as $sn)
+                                <p><span class="font-semibold text-text">{{ $sn->name_snapshot }}:</span> {{ $sn->note }}</p>
+                            @endforeach
+                        </div>
                     @endif
                 </div>
 

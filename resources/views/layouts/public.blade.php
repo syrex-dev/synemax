@@ -264,6 +264,9 @@
                         @php
                             $isActive = $activeChecker($bItem);
                             $bKey = $bItem['key'] ?? $bItem['id'] ?? '';
+                            $mobileLabel = !empty($bItem['short_label'])
+                                ? $bItem['short_label']
+                                : (($bKey === 'lookup' || $bKey === 'booking_lookup') ? 'Booking' : $bItem['label']);
                         @endphp
                         <a
                             href="{{ url($bItem['url'] ?? '/') }}"
@@ -296,7 +299,7 @@
                                 </svg>
                             @endif
 
-                            <span class="text-[12px] leading-tight mt-0.5 truncate max-w-[64px]">{{ $bItem['label'] }}</span>
+                            <span class="text-[12px] leading-tight mt-0.5 text-center">{{ $mobileLabel }}</span>
                         </a>
                     @endforeach
 
@@ -450,11 +453,14 @@
 
                     {{-- Kontak & Sosial Media --}}
                     @php
-                        $contactEmail = app(\App\Services\CinemaSettings::class)->contactEmail();
-                        $contactPhone = setting('cinema_phone');
-                        $address = setting('cinema_address');
-                        $socialSettings = app(\App\Services\CinemaSettings::class)->socialSettings();
+                        $cinSettings = app(\App\Services\CinemaSettings::class);
+                        $contactEmail = $cinSettings->contactEmail();
+                        $contactPhone = $cinSettings->contactWhatsapp();
+                        $address = $cinSettings->contactAddress();
+                        $socialSettings = $cinSettings->socialSettings();
                         $hasSocial = count(array_filter($socialSettings, fn ($s) => !empty($s['url']))) > 0;
+                        $mapsUrl = $cinSettings->mapsUrl();
+                        $mapsLink = $mapsUrl ?: ($address ? 'https://www.google.com/maps/search/?api=1&query='.urlencode($address) : null);
                     @endphp
 
                     @if ($contactEmail || $contactPhone || $address || $hasSocial)
@@ -465,17 +471,19 @@
                                 <div class="text-xs text-text-muted space-y-1">
                                     <p class="font-bold text-text">{{ setting('site_name', 'SynemaX') }}</p>
                                     <p class="leading-relaxed">{{ $address }}</p>
-                                    <a
-                                        href="https://www.google.com/maps/search/?api=1&query={{ urlencode($address) }}"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold hover:underline pt-1 text-xs"
-                                    >
-                                        <span>Lihat di Google Maps</span>
-                                        <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                        </svg>
-                                    </a>
+                                    @if ($mapsLink)
+                                        <a
+                                            href="{{ $mapsLink }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold hover:underline pt-1 text-xs"
+                                        >
+                                            <span>{{ $cinSettings->mapsLabel() }}</span>
+                                            <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                            </svg>
+                                        </a>
+                                    @endif
                                 </div>
                             @endif
 

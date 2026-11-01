@@ -10,7 +10,6 @@
         nobarTargetId: '{{ old('target_id', $banner->target_id ?? '') }}'
     }">
         <x-admin.page-header
-            eyebrow="Banner Beranda"
             title="{{ $isEdit ? 'Ubah Slide Hero' : 'Tambah Slide Hero' }}"
             subtitle="Slide hero beranda berupa gambar penuh 1600 × 680 px tanpa teks overlay."
         >

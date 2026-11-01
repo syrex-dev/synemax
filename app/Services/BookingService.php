@@ -232,6 +232,7 @@ class BookingService
                 'payment_proof_path' => null,
                 'payment_expires_at' => $paymentExpiresAt,
                 'status' => $status,
+                'notes' => ! empty($data['notes']) ? trim((string) $data['notes']) : null,
             ]);
 
             $booking = $this->snackOrders->replaceItems($booking, $data['snacks'] ?? []);

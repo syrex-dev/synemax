@@ -1,6 +1,10 @@
 <?php
 
 use App\Services\CinemaSettings;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 
@@ -288,5 +292,26 @@ if (! function_exists('format_durasi_id')) {
         }
 
         return "{$rem}m";
+    }
+}
+
+if (! function_exists('generate_inline_qr_svg')) {
+    /**
+     * Generate inline SVG QR code markup for direct HTML server rendering.
+     */
+    function generate_inline_qr_svg(string $text, int $size = 150, int $margin = 1): string
+    {
+        $renderer = new ImageRenderer(
+            new RendererStyle($size, $margin),
+            new SvgImageBackEnd
+        );
+        $writer = new Writer($renderer);
+        $svg = $writer->writeString($text);
+
+        if (str_starts_with(trim($svg), '<?xml')) {
+            $svg = substr($svg, strpos($svg, '<svg'));
+        }
+
+        return $svg;
     }
 }

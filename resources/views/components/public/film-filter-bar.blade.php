@@ -66,6 +66,7 @@
         },
 
         onPointerDown(e) {
+            if (e.pointerType && e.pointerType !== 'mouse') return;
             const scroller = this.$refs.genreScroller;
             this.isDragging = true;
             this.hasMoved = false;
@@ -75,6 +76,7 @@
 
         onPointerMove(e) {
             if (!this.isDragging) return;
+            if (e.pointerType && e.pointerType !== 'mouse') return;
             const x = e.pageX || e.clientX;
             const walk = (x - this.startX);
             if (Math.abs(walk) > 5) {
@@ -83,7 +85,8 @@
             this.$refs.genreScroller.scrollLeft = this.scrollLeftStart - walk;
         },
 
-        onPointerUp() {
+        onPointerUp(e) {
+            if (e && e.pointerType && e.pointerType !== 'mouse') return;
             this.isDragging = false;
         },
 
@@ -162,10 +165,10 @@
             @wheel="onWheel($event)"
             @pointerdown="onPointerDown($event)"
             @pointermove="onPointerMove($event)"
-            @pointerup="onPointerUp()"
-            @pointercancel="onPointerUp()"
+            @pointerup="onPointerUp($event)"
+            @pointercancel="onPointerUp($event)"
             class="flex items-center gap-2 overflow-x-auto scroll-smooth py-1 px-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden select-none cursor-grab active:cursor-grabbing w-full"
-            style="scroll-snap-type: x proximity;"
+            style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity;"
         >
             {{-- All Genres Chip --}}
             <button
@@ -233,9 +236,9 @@
     </div>
 
     {{-- ================================================================= --}}
-    {{-- 2. ACCESSIBLE CUSTOM YEAR COMBOBOX (LEBAR TETAP >= 150px)         --}}
+    {{-- 2. ACCESSIBLE CUSTOM YEAR COMBOBOX (LEBAR PENUH DI HP < 640px)    --}}
     {{-- ================================================================= --}}
-    <div class="relative shrink-0 flex items-center gap-2">
+    <div class="relative shrink-0 flex items-center gap-2 w-full sm:w-auto">
         {{-- Combobox Trigger Button --}}
         <button
             type="button"
@@ -246,7 +249,7 @@
             aria-haspopup="listbox"
             aria-controls="year-listbox"
             aria-label="Filter berdasarkan tahun rilis"
-            class="relative inline-flex min-h-[44px] min-w-[150px] items-center justify-between rounded-xl border border-slate-300 dark:border-white/15 bg-surface px-3 py-2 text-xs font-bold text-text hover:border-amber-500 transition-all shadow-xs focus-visible:outline-2 focus-visible:outline-amber-500"
+            class="relative inline-flex min-h-[44px] w-full sm:w-auto sm:min-w-[150px] items-center justify-between rounded-xl border border-slate-300 dark:border-white/15 bg-surface px-3 py-2 text-xs font-bold text-text hover:border-amber-500 transition-all shadow-xs focus-visible:outline-2 focus-visible:outline-amber-500"
         >
             <div class="flex items-center gap-2 min-w-0 pr-6">
                 {{-- Calendar Icon --}}

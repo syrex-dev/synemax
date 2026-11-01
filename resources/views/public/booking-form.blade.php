@@ -1043,11 +1043,16 @@
                         <p class="mt-1 text-[11px] text-text-muted">Pastikan nomor aktif untuk notifikasi dan verifikasi tiket.</p>
                     </div>
 
-                    <div>
-                        <label for="notes" class="block text-xs font-bold uppercase tracking-wider text-text">Catatan Pemesanan (Opsional)</label>
+                    <div x-data="{ count: {{ strlen(old('notes', '')) }} }">
+                        <div class="flex items-center justify-between">
+                            <label for="notes" class="block text-xs font-bold uppercase tracking-wider text-text">Catatan Pemesanan (Opsional)</label>
+                            <span class="text-[11px] text-text-muted"><span x-text="count"></span>/300 karakter</span>
+                        </div>
                         <textarea id="notes"
                                   name="notes"
                                   rows="2"
+                                  maxlength="300"
+                                  @input="count = $el.value.length"
                                   placeholder="Permintaan khusus kursi atau catatan lainnya..."
                                   class="mt-1.5 w-full rounded-xl border border-border-input bg-surface p-3 text-xs text-text focus:border-amber-400 focus:outline-none">{{ old('notes') }}</textarea>
                     </div>
@@ -1158,10 +1163,16 @@
                  class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
                  @click.self="noteItemId = null">
                 <div class="w-full max-w-sm rounded-2xl border border-border bg-surface p-5 shadow-2xl">
-                    <h3 class="text-sm font-black text-text">Catatan Khusus Jajanan</h3>
-                    <p class="mt-1 text-xs text-text-muted">Contoh: es sedikit, pedas dipisah, atau tanpa gula.</p>
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="text-sm font-black text-text">Catatan Khusus Jajanan</h3>
+                            <p class="mt-1 text-xs text-text-muted">Contoh: es sedikit, pedas dipisah, atau tanpa gula.</p>
+                        </div>
+                        <span class="text-[11px] text-text-muted"><span x-text="(noteValue || '').length"></span>/250</span>
+                    </div>
                     <textarea x-model="noteValue"
                               rows="3"
+                              maxlength="250"
                               placeholder="Tulis catatan Anda..."
                               class="mt-3 w-full rounded-xl border border-border-input bg-surface-2 p-3 text-xs text-text focus:border-amber-400 focus:outline-none"></textarea>
                     <div class="mt-4 flex gap-2">

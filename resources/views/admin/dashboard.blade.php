@@ -546,12 +546,20 @@
                                         @foreach ($snackBookings as $b)
                                             <div class="p-2.5 rounded-lg bg-surface border border-border/80">
                                                 <div class="flex items-center justify-between">
-                                                    <span class="font-bold text-text">{{ $b->customer_name }}</span>
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="font-bold text-text">{{ $b->customer_name }}</span>
+                                                        @if ($b->notes || $b->items->contains(fn ($i) => !empty($i->note)))
+                                                            <span class="rounded bg-amber-500/15 px-1.5 py-0.2 text-[10px] font-bold text-amber-600 dark:text-amber-400">Ada catatan</span>
+                                                        @endif
+                                                    </div>
                                                     <span class="font-mono text-amber-500 font-bold">{{ $b->code }}</span>
                                                 </div>
+                                                @if ($b->notes)
+                                                    <p class="mt-1 text-[11px] text-amber-600 dark:text-amber-400 font-medium bg-amber-500/10 rounded px-2 py-1">Catatan pemesan: {{ $b->notes }}</p>
+                                                @endif
                                                 <ul class="mt-1 space-y-0.5 text-text-muted">
                                                     @foreach ($b->items as $item)
-                                                        <li>{{ $item->qty }}× {{ $item->name_snapshot }}@if ($item->note) · <span class="text-text font-medium">{{ $item->note }}</span>@endif</li>
+                                                        <li>{{ $item->qty }}× {{ $item->name_snapshot }}@if ($item->note) · <span class="text-amber-600 dark:text-amber-400 font-medium">{{ $item->note }}</span>@endif</li>
                                                     @endforeach
                                                 </ul>
                                             </div>

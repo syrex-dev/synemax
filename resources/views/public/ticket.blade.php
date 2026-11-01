@@ -14,37 +14,44 @@
         margin: 0;
     }
     @media print {
-        header, footer, nav, .no-print, button, a[href*="wa.me"], .action-buttons {
+        header, footer, nav, .no-print, button, a, [class*="z-[9999]"] {
             display: none !important;
         }
         body, html {
+            background: #ffffff !important;
             background-color: #ffffff !important;
             color: #0f172a !important;
             padding: 0 !important;
             margin: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
         }
         main {
-            padding: 16mm 0 !important;
+            display: block !important;
+            padding: 10mm 0 0 0 !important;
             margin: 0 !important;
         }
         .print-ticket-container {
-            max-width: 440px !important;
+            max-width: 380px !important;
             width: 100% !important;
             margin: 0 auto !important;
             padding: 0 !important;
         }
-        .print-ticket {
+        #printable-ticket, .print-ticket {
+            max-width: 380px !important;
+            width: 380px !important;
+            margin: 0 auto !important;
             background-color: #ffffff !important;
             color: #0f172a !important;
             border: 1px solid #cbd5e1 !important;
             box-shadow: none !important;
-            border-radius: 16px !important;
+            border-radius: 12px !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
-        .print-ticket * {
+        #printable-ticket *, .print-ticket * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }

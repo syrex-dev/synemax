@@ -9,30 +9,44 @@
         margin: 0;
     }
     @media print {
-        aside, header, nav, .no-print, [data-admin-sidebar], [data-admin-header], button, a {
+        header, aside, nav, footer, .no-print, button, a, [data-admin-sidebar], [data-admin-header], [class*="z-[9999]"] {
             display: none !important;
         }
         body, html {
+            background: #ffffff !important;
             background-color: #ffffff !important;
             color: #0f172a !important;
-            padding: 0 !important;
             margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+        }
+        .flex.max-w-screen-2xl, .min-w-0.flex-1 {
+            display: block !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         main {
-            padding: 16mm 0 !important;
+            display: block !important;
             margin: 0 !important;
+            padding: 10mm 0 0 0 !important;
+        }
+        .space-y-6 > :not(.print-ticket-container) {
+            display: none !important;
         }
         .print-ticket-container {
-            max-width: 440px !important;
-            width: 100% !important;
-            margin: 0 auto !important;
+            display: flex !important;
+            justify-content: center !important;
+            margin: 0 !important;
             padding: 0 !important;
         }
         #printable-ticket {
+            max-width: 380px !important;
+            width: 380px !important;
+            margin: 0 auto !important;
             background-color: #ffffff !important;
             color: #0f172a !important;
             border: 1px solid #cbd5e1 !important;
-            box-shadow: none !important;
             border-radius: 12px !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
@@ -42,6 +56,9 @@
         #printable-ticket * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+        }
+        .tear-notch {
+            display: none !important;
         }
     }
 </style>

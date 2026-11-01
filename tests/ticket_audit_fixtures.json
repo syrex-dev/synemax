@@ -1,0 +1,33 @@
+{
+    "scenarios": [
+        {
+            "id": 36,
+            "code": "TKT-AUDIT-0SNACK",
+            "snack_count": 0,
+            "ticket_url": "http:\/\/synemax.test\/admin\/booking\/36\/tiket"
+        },
+        {
+            "id": 37,
+            "code": "TKT-AUDIT-3SNACK",
+            "snack_count": 3,
+            "ticket_url": "http:\/\/synemax.test\/admin\/booking\/37\/tiket"
+        },
+        {
+            "id": 38,
+            "code": "TKT-AUDIT-6SNACK",
+            "snack_count": 6,
+            "ticket_url": "http:\/\/synemax.test\/admin\/booking\/38\/tiket"
+        },
+        {
+            "id": 39,
+            "code": "TKT-AUDIT-12SNACK",
+            "snack_count": 12,
+            "ticket_url": "http:\/\/synemax.test\/admin\/booking\/39\/tiket"
+        }
+    ],
+    "pending_cod": {
+        "id": 40,
+        "code": "TKT-AUDIT-PENDING-COD",
+        "ticket_url": "http:\/\/synemax.test\/admin\/booking\/40\/tiket"
+    }
+}

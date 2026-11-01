@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AgeRating;
 use App\Models\Film;
 use App\Models\ImportBatch;
 use App\Models\User;
@@ -73,9 +74,9 @@ class FilmBulkImportTest extends TestCase
         $mappedGenre = $importer->normalizeGenre('action, komedi, horror, roman, petualangan');
         $this->assertSame('Aksi, Komedi, Horor, Romantis, Petualangan', $mappedGenre);
 
-        // Age rating mapping (21+ becomes 17+, R13 becomes 13+, G becomes SU)
-        $this->assertSame('17+', $importer->normalizeAgeRating('21+'));
-        $this->assertSame('17+', $importer->normalizeAgeRating('D21'));
+        // Age rating mapping (21+ becomes canonical 21+, R13 becomes 13+, G becomes SU)
+        $this->assertSame('21+', $importer->normalizeAgeRating('21+'));
+        $this->assertSame('21+', $importer->normalizeAgeRating('D21'));
         $this->assertSame('13+', $importer->normalizeAgeRating('R13+'));
         $this->assertSame('SU', $importer->normalizeAgeRating('Semua Umur'));
         $this->assertSame('SU', $importer->normalizeAgeRating('BO'));
@@ -489,6 +490,9 @@ class FilmBulkImportTest extends TestCase
     {
         $importer = app(FilmBulkImporter::class);
 
+        // Test behavior when 21+ is not in active age ratings (deleted/inactive)
+        AgeRating::where('code', '21+')->delete();
+
         // "21+" and "D21" reported as variations requiring admin confirmation (status 'masalah')
         $var21 = [
             ['title' => 'Film 21 Plus', 'genre' => 'Thriller', 'duration_minutes' => 100, 'age_rating' => '21+'],
@@ -680,6 +684,9 @@ class FilmBulkImportTest extends TestCase
     public function test_rule_age_rating_unknown_and_21_plus_reported_as_variation_requiring_confirmation(): void
     {
         $importer = app(FilmBulkImporter::class);
+
+        // Test behavior when 21+ is not in active age ratings (deleted/inactive)
+        AgeRating::where('code', '21+')->delete();
 
         $csv = "judul,durasi,genre,klasifikasi,sinopsis,tahun\n"
             ."Film Variasi 21,100,Aksi,21+,Sinopsis 21+,2024\n"

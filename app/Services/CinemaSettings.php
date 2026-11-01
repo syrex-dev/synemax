@@ -330,9 +330,12 @@ class CinemaSettings
                 if (! isset($item['key']) && isset($item['id'])) {
                     $item['key'] = $item['id'];
                 }
+                $key = $item['key'] ?? '';
                 if (! isset($item['mobile_position'])) {
-                    $key = $item['key'] ?? '';
                     $item['mobile_position'] = in_array($key, ['home', 'schedule', 'film', 'lookup', 'booking_lookup'], true) ? 'bottom_bar' : 'menu';
+                }
+                if (! isset($item['short_label']) || $item['short_label'] === '') {
+                    $item['short_label'] = in_array($key, ['lookup', 'booking_lookup'], true) ? 'Booking' : ($item['label'] ?? ucfirst($key));
                 }
 
                 return $item;
@@ -340,13 +343,13 @@ class CinemaSettings
         }
 
         return [
-            ['key' => 'home', 'label' => 'Beranda', 'url' => '/', 'route' => 'home', 'mobile_position' => 'bottom_bar', 'is_visible' => true, 'order' => 1],
-            ['key' => 'schedule', 'label' => 'Jadwal', 'url' => '/jadwal', 'route' => 'schedule.index', 'mobile_position' => 'bottom_bar', 'is_visible' => true, 'order' => 2],
-            ['key' => 'film', 'label' => 'Film', 'url' => '/film', 'route' => 'films.index', 'mobile_position' => 'bottom_bar', 'is_visible' => true, 'order' => 3],
-            ['key' => 'nobar', 'label' => 'Nobar', 'url' => '/nobar', 'route' => 'nobar.index', 'mobile_position' => 'menu', 'is_visible' => true, 'order' => 4],
-            ['key' => 'promo', 'label' => 'Promo', 'url' => '/promo', 'route' => 'promos.index', 'mobile_position' => 'menu', 'is_visible' => true, 'order' => 5],
-            ['key' => 'articles', 'label' => 'Kabar', 'url' => '/kabar', 'route' => 'articles.index', 'mobile_position' => 'menu', 'is_visible' => true, 'order' => 6],
-            ['key' => 'lookup', 'label' => 'Cek booking', 'url' => '/cek-booking', 'route' => 'booking.lookup.form', 'mobile_position' => 'bottom_bar', 'is_visible' => true, 'order' => 7],
+            ['key' => 'home', 'label' => 'Beranda', 'short_label' => 'Beranda', 'url' => '/', 'route' => 'home', 'mobile_position' => 'bottom_bar', 'is_visible' => true, 'order' => 1],
+            ['key' => 'schedule', 'label' => 'Jadwal', 'short_label' => 'Jadwal', 'url' => '/jadwal', 'route' => 'schedule.index', 'mobile_position' => 'bottom_bar', 'is_visible' => true, 'order' => 2],
+            ['key' => 'film', 'label' => 'Film', 'short_label' => 'Film', 'url' => '/film', 'route' => 'films.index', 'mobile_position' => 'bottom_bar', 'is_visible' => true, 'order' => 3],
+            ['key' => 'nobar', 'label' => 'Nobar', 'short_label' => 'Nobar', 'url' => '/nobar', 'route' => 'nobar.index', 'mobile_position' => 'menu', 'is_visible' => true, 'order' => 4],
+            ['key' => 'promo', 'label' => 'Promo', 'short_label' => 'Promo', 'url' => '/promo', 'route' => 'promos.index', 'mobile_position' => 'menu', 'is_visible' => true, 'order' => 5],
+            ['key' => 'articles', 'label' => 'Kabar', 'short_label' => 'Kabar', 'url' => '/kabar', 'route' => 'articles.index', 'mobile_position' => 'menu', 'is_visible' => true, 'order' => 6],
+            ['key' => 'lookup', 'label' => 'Cek booking', 'short_label' => 'Booking', 'url' => '/cek-booking', 'route' => 'booking.lookup.form', 'mobile_position' => 'bottom_bar', 'is_visible' => true, 'order' => 7],
         ];
     }
 
@@ -557,12 +560,31 @@ class CinemaSettings
     // === TAB 6: KONTAK & SOSIAL ===
     public function contactWhatsapp(): string
     {
-        return $this->string('admin_whatsapp', '081234567890');
+        $wa = $this->string('admin_whatsapp', '');
+        if ($wa !== '') {
+            return $wa;
+        }
+        $phone = $this->string('whatsapp_number', '');
+        if ($phone !== '') {
+            return $phone;
+        }
+
+        return $this->string('cinema_phone', '');
+    }
+
+    public function contactPhone(): string
+    {
+        return $this->contactWhatsapp();
     }
 
     public function contactEmail(): string
     {
-        return $this->string('contact_email', '');
+        $email = $this->string('contact_email', '');
+        if ($email !== '') {
+            return $email;
+        }
+
+        return $this->string('cinema_email', '');
     }
 
     public function contactAddress(): string
@@ -583,15 +605,19 @@ class CinemaSettings
     public function mapsUrl(): string
     {
         $url = $this->string('maps_url', '');
-        if ($url !== '') {
+        if ($url !== '' && $url !== 'https://maps.google.com/?q=-6.200000,106.816666') {
             return $url;
         }
         $contactMaps = $this->string('contact_maps_url', '');
-        if ($contactMaps !== '') {
+        if ($contactMaps !== '' && $contactMaps !== 'https://maps.google.com/?q=-6.200000,106.816666') {
             return $contactMaps;
         }
+        $googleMaps = $this->string('google_maps_url', '');
+        if ($googleMaps !== '' && $googleMaps !== 'https://maps.google.com/?q=-6.200000,106.816666') {
+            return $googleMaps;
+        }
 
-        return $this->string('google_maps_url', '');
+        return '';
     }
 
     public function mapsLabel(): string
@@ -698,11 +724,11 @@ class CinemaSettings
     public function youtubeUrl(): string
     {
         $url = $this->string('youtube_url', '');
-        if ($url !== '') {
+        if ($url !== '' && $url !== 'https://youtube.com/@synemax.cinema' && $url !== 'https://www.youtube.com/@synemax.cinema') {
             return self::cleanSocialUrl($url);
         }
         $old = $this->string('social_youtube', '');
-        if ($old !== '') {
+        if ($old !== '' && $old !== 'https://youtube.com/@synemax.cinema' && $old !== 'https://www.youtube.com/@synemax.cinema') {
             if (str_starts_with($old, 'http://') || str_starts_with($old, 'https://')) {
                 return self::cleanSocialUrl($old);
             }
@@ -718,26 +744,17 @@ class CinemaSettings
 
     public function youtubeLabel(): string
     {
-        $lbl = $this->string('youtube_label', '');
-        if ($lbl !== '') {
-            return $lbl;
-        }
-        $old = $this->string('social_youtube', '');
-        if ($old !== '') {
-            if (str_starts_with($old, '@')) {
-                return $old;
-            }
-            $url = $this->youtubeUrl();
-            if ($url !== '') {
-                return self::suggestSocialHandle('youtube', $url);
-            }
-        }
         $url = $this->youtubeUrl();
-        if ($url !== '') {
-            return self::suggestSocialHandle('youtube', $url);
+        if ($url === '') {
+            return '';
         }
 
-        return '';
+        $lbl = $this->string('youtube_label', '');
+        if ($lbl !== '' && $lbl !== '@synemax.cinema') {
+            return $lbl;
+        }
+
+        return self::suggestSocialHandle('youtube', $url);
     }
 
     /**

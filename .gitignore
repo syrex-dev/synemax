@@ -26,8 +26,13 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 /scratch
+scratch/
 .env.qa
-database/qa.sqlite*
+.env.*
+!.env.example
+database/*.sqlite*
 database/*.bak*
+*.sqlite*
+*.bak*
 tests/qa_*
 

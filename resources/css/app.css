@@ -417,6 +417,61 @@ body {
     font-optical-sizing: auto;
 }
 
+/* Universal Form Input Tokenized Styling */
+input[type='text'],
+input[type='email'],
+input[type='url'],
+input[type='password'],
+input[type='number'],
+input[type='tel'],
+input[type='search'],
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'],
+textarea,
+select {
+    background-color: var(--surface-default);
+    color: var(--text-primary);
+    border-color: var(--border-default);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted);
+    opacity: 0.8;
+}
+
+.dark input[type='text'],
+.dark input[type='email'],
+.dark input[type='url'],
+.dark input[type='password'],
+.dark input[type='number'],
+.dark input[type='tel'],
+.dark input[type='search'],
+.dark input[type='date'],
+.dark input[type='time'],
+.dark input[type='datetime-local'],
+.dark textarea,
+.dark select {
+    background-color: var(--surface-default);
+    color: var(--text-primary);
+    border-color: var(--border-default);
+}
+
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark textarea:-webkit-autofill,
+.dark textarea:-webkit-autofill:hover,
+.dark textarea:-webkit-autofill:focus,
+.dark select:-webkit-autofill,
+.dark select:-webkit-autofill:hover,
+.dark select:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--text-primary);
+    -webkit-box-shadow: 0 0 0px 1000px var(--surface-default) inset;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
 
 /* Panel Layar Hero yang Menyala */
 .hero-screen-panel {

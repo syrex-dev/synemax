@@ -201,8 +201,9 @@ class RevisiBagianTigaTest extends TestCase
         // 3. Tear notches
         $res->assertSee('tear-notch', false);
 
-        // 4. QR Code contains strictly the booking code
-        $res->assertSee('data='.urlencode($booking->code), false);
+        // 4. QR Code contains strictly the booking code in inline SVG
+        $res->assertSee('<svg', false);
+        $res->assertSee($booking->code);
 
         // 5. Monospace booking code
         $res->assertSee('font-mono', false);

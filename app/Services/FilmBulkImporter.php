@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AgeRating;
 use App\Models\Film;
 use App\Models\ImportBatch;
 use Illuminate\Http\UploadedFile;
@@ -364,12 +365,12 @@ class FilmBulkImporter
                 }
             }
 
-            // 6. Age rating validation (Wajib: SU, 13+, 17+)
+            // 6. Age rating validation
             $rawAge = trim((string) ($row['age_rating'] ?? ''));
             if ($rawAge === '') {
-                $errors[] = 'Klasifikasi usia wajib diisi (SU, 13+, 17+).';
-                $cellErrors['age_rating'] = 'Wajib diisi (SU, 13+, 17+).';
-                $normalizedAge = '13+';
+                $errors[] = 'Klasifikasi usia wajib diisi.';
+                $cellErrors['age_rating'] = 'Wajib diisi.';
+                $normalizedAge = '';
             } else {
                 $ageWarning = null;
                 $isUnknown = false;
@@ -378,7 +379,7 @@ class FilmBulkImporter
 
                 if ($isVariation21) {
                     $errors[] = "Klasifikasi '{$rawAge}' merupakan variasi 21+ yang perlu dikonfirmasi admin (saran: petakan ke 17+).";
-                    $cellErrors['age_rating'] = 'Variasi 21+: konfirmasi ke 17+ atau sesuaikan.';
+                    $cellErrors['age_rating'] = "Variasi 21+ ('{$rawAge}') perlu konfirmasi admin (Saran: 17+).";
                 } elseif ($isUnknown) {
                     $errors[] = "Klasifikasi usia '{$rawAge}' tidak dikenal. Saran: pilih SU, 13+, atau 17+.";
                     $cellErrors['age_rating'] = 'Tidak dikenal. Saran: SU / 13+ / 17+.';
@@ -558,7 +559,7 @@ class FilmBulkImporter
     }
 
     /**
-     * Normalize age rating (SU, 13+, 17+).
+     * Normalize age rating against registered AgeRatings with legacy alias support.
      */
     public function normalizeAgeRating(
         string $raw,
@@ -571,26 +572,49 @@ class FilmBulkImporter
         $isVariation21 = false;
         $clean = strtoupper(trim(str_replace([' ', '-'], '', $raw)));
 
-        if ($clean === '' || in_array($clean, ['13', '13+', 'R13', 'R13+', 'PG13', 'PG-13', 'REMAJA', 'PG'], true)) {
-            return '13+';
+        if ($clean === '') {
+            $isUnknown = true;
+
+            return '';
+        }
+
+        // Check if directly matches any registered code (case-insensitive)
+        try {
+            $knownCodes = AgeRating::allCodes();
+        } catch (\Throwable) {
+            $knownCodes = ['SU', '13+', '17+', '21+'];
+        }
+
+        foreach ($knownCodes as $code) {
+            if ($clean === strtoupper(str_replace([' ', '-'], '', $code))) {
+                return $code;
+            }
+        }
+
+        // Check canonical aliases
+        if (in_array($clean, ['13', '13+', 'R13', 'R13+', 'PG13', 'PG-13', 'REMAJA', 'PG'], true)) {
+            return in_array('13+', $knownCodes, true) ? '13+' : ($knownCodes[0] ?? '13+');
         }
         if (in_array($clean, ['SU', 'G', 'SEMUAUMUR', 'SEMUA', 'ALL', 'BO', 'A'], true)) {
-            return 'SU';
+            return in_array('SU', $knownCodes, true) ? 'SU' : ($knownCodes[0] ?? 'SU');
         }
         if (in_array($clean, ['17', '17+', 'D17', 'R17', 'DEWASA', 'R'], true)) {
-            return '17+';
+            return in_array('17+', $knownCodes, true) ? '17+' : ($knownCodes[0] ?? '17+');
         }
         if (in_array($clean, ['21', '21+', 'D21', 'NC17', '18', '18+'], true)) {
+            if (in_array('21+', $knownCodes, true)) {
+                return '21+';
+            }
             $isVariation21 = true;
-            $warning = "Klasifikasi usia '{$raw}' merupakan variasi 21+ yang perlu dikonfirmasi admin (saran: petakan ke 17+).";
+            $warning = "Klasifikasi usia '{$raw}' merupakan variasi 21+ yang perlu dikonfirmasi admin (saran: petakan ke 17+ atau tambahkan klasifikasi 21+).";
 
-            return '17+';
+            return in_array('17+', $knownCodes, true) ? '17+' : '21+';
         }
 
         $isUnknown = true;
-        $warning = "Klasifikasi usia '{$raw}' tidak dikenal. Saran: pilih SU, 13+, atau 17+.";
+        $warning = "Klasifikasi usia '{$raw}' tidak dikenal. Ada masalah: tambahkan di menu Klasifikasi Usia atau sesuaikan.";
 
-        return '13+';
+        return $raw; // Return raw value, do not quietly replace!
     }
 
     /**

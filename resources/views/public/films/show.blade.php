@@ -26,17 +26,17 @@
 <x-public.trailer-modal />
 
 {{-- Header Banner Pola CGV --}}
-<div class="relative overflow-hidden bg-surface dark:bg-[#07090E] border-b border-border transition-colors duration-200">
+<div class="relative overflow-hidden bg-surface dark:bg-[#07090E] transition-colors duration-200">
     @if ($hasPoster)
-        {{-- Backdrop Layer Pola CGV: Menggunakan file poster yang sama persis, tajam & jelas terlihat --}}
+        {{-- Backdrop Layer Pola CGV: Foto memudar menyatu ke latar halaman di semua sisi bawah & samping tanpa tepi keras --}}
         <div
-            class="absolute inset-0 z-0 bg-cover bg-[center_25%] md:bg-[center_38%] pointer-events-none opacity-80 dark:opacity-65 transition-opacity duration-300"
-            style="background-image: url('{{ $film->posterUrl() }}');"
+            class="absolute inset-0 z-0 bg-cover bg-[center_25%] md:bg-[center_35%] pointer-events-none opacity-45 dark:opacity-30 transition-opacity duration-300"
+            style="background-image: url('{{ $film->posterUrl() }}'); -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 25%, black 20%, rgba(0,0,0,0.6) 55%, transparent 95%), linear-gradient(to bottom, black 40%, transparent 100%); mask-image: radial-gradient(ellipse 90% 70% at 50% 25%, black 20%, rgba(0,0,0,0.6) 55%, transparent 95%), linear-gradient(to bottom, black 40%, transparent 100%); -webkit-mask-composite: source-in; mask-composite: intersect;"
             aria-hidden="true"
         ></div>
-        {{-- Gradient Overlay Pola CGV: Fading halus dari permukaan solid di bawah ke lapisan lembut di atas --}}
+        {{-- Smooth Overlay Fading into Page Background --}}
         <div
-            class="absolute inset-0 z-0 bg-gradient-to-t from-surface via-surface/85 to-surface/50 dark:from-[#07090E] dark:via-[#07090E]/85 dark:to-[#07090E]/55 pointer-events-none"
+            class="absolute inset-0 z-0 bg-gradient-to-t from-surface via-surface/85 to-transparent dark:from-[#07090E] dark:via-[#07090E]/85 dark:to-transparent pointer-events-none"
             aria-hidden="true"
         ></div>
     @else
@@ -254,24 +254,54 @@
 
 {{-- Main Page Body --}}
 <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 space-y-10">
-    {{-- Synopsis with 4 lines clamp and "Baca selengkapnya" --}}
-    <div x-data="{ expanded: false }" class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-3">
+    {{-- Synopsis without bordered card (Pola CGV Text) with real overflow measurement --}}
+    <div
+        x-data="{
+            hasOverflow: false,
+            expanded: false,
+            checkOverflow() {
+                const el = this.$refs.synopsisText;
+                if (!el || this.expanded) return;
+                this.hasOverflow = el.scrollHeight > (el.clientHeight + 2);
+            },
+            init() {
+                if (document.fonts && document.fonts.ready) {
+                    document.fonts.ready.then(() => this.checkOverflow());
+                }
+                window.addEventListener('load', () => this.checkOverflow());
+                const ro = new ResizeObserver(() => this.checkOverflow());
+                if (this.$refs.synopsisText) ro.observe(this.$refs.synopsisText);
+                this.$nextTick(() => this.checkOverflow());
+            },
+            toggle() {
+                this.expanded = !this.expanded;
+                if (!this.expanded) {
+                    this.$nextTick(() => this.checkOverflow());
+                }
+            }
+        }"
+        class="space-y-2 pt-2"
+    >
         <h2 class="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Sinopsis</h2>
-        <div class="text-sm leading-relaxed text-text/90">
-            @if (filled($film->synopsis))
-                <p :class="{ 'line-clamp-4': !expanded }" class="whitespace-pre-line text-sm text-text leading-relaxed">{{ $film->synopsis }}</p>
-                @if (strlen($film->synopsis) > 240)
-                    <button
-                        type="button"
-                        @click="expanded = !expanded"
-                        class="mt-2 text-xs font-bold text-amber-500 hover:text-amber-400 hover:underline"
-                        x-text="expanded ? 'Tampilkan lebih sedikit' : 'Baca selengkapnya'"
-                    ></button>
-                @endif
-            @else
-                <p class="italic text-text-muted">Sinopsis belum tersedia untuk film ini.</p>
-            @endif
-        </div>
+        @if (filled($film->synopsis))
+            <div class="relative">
+                <p
+                    x-ref="synopsisText"
+                    :class="{ 'line-clamp-4': !expanded }"
+                    class="whitespace-pre-line text-sm sm:text-base text-text leading-relaxed"
+                >{{ $film->synopsis }}</p>
+                <button
+                    x-show="hasOverflow || expanded"
+                    x-cloak
+                    type="button"
+                    @click="toggle()"
+                    class="mt-2 inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-amber-600 dark:text-amber-400 hover:underline focus-visible:outline-2 focus-visible:outline-amber-500"
+                    x-text="expanded ? 'Tutup' : 'Baca selengkapnya'"
+                ></button>
+            </div>
+        @else
+            <p class="text-sm italic text-text-muted">Sinopsis belum tersedia untuk film ini.</p>
+        @endif
     </div>
 
     {{-- Opsional: Gabung Sesi yang Sudah Memilih Film Ini --}}
@@ -351,13 +381,49 @@
 
     {{-- Other Films Recommendation --}}
     @if ($otherFilms->count() > 0)
-        <section aria-labelledby="heading-rekomendasi" class="space-y-4">
+        <section
+            aria-labelledby="heading-rekomendasi"
+            x-data="{
+                canFadeLeft: false,
+                canFadeRight: false,
+                init() {
+                    const scroller = this.$refs.otherFilmsScroller;
+                    if (scroller) {
+                        const update = () => {
+                            this.canFadeLeft = scroller.scrollLeft > 4;
+                            this.canFadeRight = (scroller.scrollLeft + scroller.clientWidth) < (scroller.scrollWidth - 4);
+                        };
+                        scroller.addEventListener('scroll', update, { passive: true });
+                        const ro = new ResizeObserver(() => update());
+                        ro.observe(scroller);
+                        this.$nextTick(() => update());
+                    }
+                },
+                get otherFilmsMask() {
+                    if (window.innerWidth >= 640) return '';
+                    if (this.canFadeLeft && this.canFadeRight) {
+                        return 'linear-gradient(to right, transparent 0, black 1rem, black calc(100% - 1rem), transparent 100%)';
+                    } else if (this.canFadeLeft) {
+                        return 'linear-gradient(to right, transparent 0, black 1rem, black 100%)';
+                    } else if (this.canFadeRight) {
+                        return 'linear-gradient(to right, black 0, black calc(100% - 1rem), transparent 100%)';
+                    }
+                    return '';
+                }
+            }"
+            class="space-y-4"
+        >
             <h2 id="heading-rekomendasi" class="text-xl font-black text-text tracking-tight">Film Lainnya</h2>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div
+                x-ref="otherFilmsScroller"
+                class="-mx-4 px-4 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-4 gap-4 overflow-x-auto sm:overflow-visible scrollbar-none snap-x snap-mandatory"
+                style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch; padding-inline: 1rem; scroll-padding-inline: 1rem;"
+                :style="otherFilmsMask ? { maskImage: otherFilmsMask, WebkitMaskImage: otherFilmsMask } : {}"
+            >
                 @foreach ($otherFilms as $other)
                     <a
                         href="{{ route('films.show', $other->slug ?: $other->id) }}"
-                        class="group relative flex flex-col rounded-2xl overflow-hidden border border-border bg-surface shadow-token hover:border-amber-500 transition"
+                        class="w-[42%] sm:w-auto shrink-0 snap-start group relative flex flex-col rounded-2xl overflow-hidden border border-border bg-surface shadow-token hover:border-amber-500 transition"
                     >
                         <div class="relative w-full aspect-[2/3] overflow-hidden bg-slate-900">
                             @if ($other->posterUrl())

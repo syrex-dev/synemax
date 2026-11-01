@@ -19,7 +19,7 @@
 
         {{-- Pemilih Tanggal (Horizontal Scrollable Pills dengan Fade Tepi) --}}
         <div class="relative -mx-4 px-4 sm:mx-0 sm:px-0">
-            <nav class="mt-6 flex snap-x gap-2 overflow-x-auto pb-3 scrollbar-none scroll-smooth" style="touch-action: pan-y pinch-zoom; -webkit-overflow-scrolling: touch;" aria-label="Pilih tanggal nonton">
+            <nav class="mt-6 flex snap-x gap-2 overflow-x-auto pb-3 scrollbar-none scroll-smooth" style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch;" aria-label="Pilih tanggal nonton">
                 @foreach ($dates as $availableDate)
                     @php
                         $dateKey = $availableDate->toDateString();

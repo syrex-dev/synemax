@@ -68,7 +68,7 @@ class SettingController extends Controller
 
     public function update(Request $request, CinemaSettings $settings): RedirectResponse
     {
-        $tab = $request->input('active_tab', $request->input('_tab'));
+        $tab = $request->input('active_tab', $request->input('_tab', $request->input('tab')));
 
         if (! $tab && $request->has('weekday_price') && $request->has('payment_methods')) {
             $this->updateHarga($request, $settings);
@@ -94,7 +94,7 @@ class SettingController extends Controller
                 $tab = 'tampilan';
             } elseif ($request->has('weekday_price') || $request->has('faq_question')) {
                 $tab = 'harga';
-            } elseif ($request->has('cinema_phone') || $request->has('cinema_address') || $request->has('whatsapp_number')) {
+            } elseif ($request->has('contact_address') || $request->has('contact_email') || $request->has('admin_whatsapp') || $request->has('cinema_phone') || $request->has('cinema_address') || $request->has('whatsapp_number')) {
                 $tab = 'kontak';
             } elseif ($request->has('seo_title_template')) {
                 $tab = 'seo';
@@ -215,9 +215,14 @@ class SettingController extends Controller
                 $bottomBarCount++;
             }
 
+            $shortLabel = filled($item['short_label'] ?? null)
+                ? trim((string) $item['short_label'])
+                : (in_array($key, ['lookup', 'booking_lookup'], true) ? 'Booking' : ($item['label'] ?? ucfirst($key)));
+
             $cleanMenu[] = [
                 'key' => $key,
                 'label' => $item['label'] ?? ucfirst($key),
+                'short_label' => $shortLabel,
                 'url' => $item['url'] ?? '/',
                 'route' => $item['route'] ?? '',
                 'mobile_position' => $mobilePos,
@@ -530,8 +535,15 @@ class SettingController extends Controller
             }
         }
 
-        $settings->set('contact_email', $validated['contact_email'] ?? '', 'kontak');
-        $settings->set('contact_address', $validated['contact_address'] ?? '', 'kontak');
+        $contactEmail = $validated['contact_email'] ?? '';
+        $contactAddress = $validated['contact_address'] ?? '';
+
+        $settings->set('contact_email', $contactEmail, 'kontak');
+        $settings->set('cinema_email', $contactEmail, 'kontak');
+
+        $settings->set('contact_address', $contactAddress, 'kontak');
+        $settings->set('cinema_address', $contactAddress, 'kontak');
+
         $settings->set('footer_text', $validated['footer_text'] ?? '', 'kontak');
         $settings->set('show_floating_whatsapp', $request->boolean('show_floating_whatsapp'), 'kontak');
 

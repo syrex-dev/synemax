@@ -34,6 +34,7 @@ class StoreBookingRequest extends FormRequest
             'film_id' => ['nullable', 'integer', 'exists:films,id'],
             'payment_method' => ['required', 'in:di_tempat,qris,transfer'],
             'payment_proof' => ['prohibited'],
+            'notes' => ['nullable', 'string', 'max:300'],
             'snacks' => ['nullable', 'array', 'max:100'],
             'snacks.*' => ['required', 'array:qty,note'],
             'snacks.*.qty' => ['required', 'integer', 'min:0'],
@@ -55,6 +56,7 @@ class StoreBookingRequest extends FormRequest
             'film_id.exists' => 'Film yang dipilih sudah tidak tersedia.',
             'payment_method.in' => 'Pilih metode pembayaran yang tersedia.',
             'payment_proof.prohibited' => 'Unggah bukti pembayaran dilakukan di halaman pembayaran setelah booking dibuat.',
+            'notes.max' => 'Catatan pemesanan maksimal 300 karakter.',
             'snacks.*.qty.min' => 'Jumlah jajan tidak boleh kurang dari nol.',
             'snacks.*.note.max' => 'Catatan jajan maksimal 250 karakter.',
         ];

@@ -155,7 +155,7 @@
             @touchstart.passive="pauseForInteraction()"
             @touchend.passive="pauseForInteraction()"
             class="carousel-viewport flex overflow-x-auto scroll-smooth overscroll-x-contain select-none scrollbar-none snap-x snap-mandatory {{ $trackClass }}"
-            style="touch-action: pan-y pinch-zoom; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none;"
+            style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none;"
         >
             {{ $slot }}
         </div>

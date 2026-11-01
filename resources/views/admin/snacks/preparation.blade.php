@@ -41,7 +41,12 @@
                 <article class="overflow-hidden rounded-lg border border-border bg-surface print:break-inside-avoid print:bg-surface print:text-text">
                     <header class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4">
                         <div class="min-w-0">
-                            <h3 class="font-bold">{{ $booking->customer_name }}</h3>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold">{{ $booking->customer_name }}</h3>
+                                @if ($booking->notes || $booking->items->contains(fn ($i) => !empty($i->note)))
+                                    <span class="rounded bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">Ada catatan</span>
+                                @endif
+                            </div>
                             <div class="mt-1 flex flex-wrap items-center gap-2">
                                 <code class="font-mono text-sm text-accent">{{ $booking->code }}</code>
                                 <span x-data="{ copied: false, copyError: false }" class="print:hidden">
@@ -55,6 +60,12 @@
                         </div>
                         <a href="{{ route('admin.bookings.show', $booking) }}" class="inline-flex min-h-10 items-center gap-2 rounded-md px-2 text-sm font-semibold text-accent hover:bg-accent/10">Detail booking <span aria-hidden="true">→</span></a>
                     </header>
+                    @if ($booking->notes)
+                        <div class="mx-4 mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-text">
+                            <span class="font-bold text-amber-600 dark:text-amber-400">Catatan Pemesan:</span>
+                            <p class="mt-0.5 whitespace-pre-line font-medium">{{ $booking->notes }}</p>
+                        </div>
+                    @endif
                     <div class="hidden xl:block">
                         <x-admin.table class="rounded-none">
                             <x-slot:columns>
@@ -72,7 +83,15 @@
                                 @foreach ($booking->items as $item)
                                     <tr x-data="{ initial: '{{ $item->status }}', status: '{{ $item->status }}', saving: false, get dirty() { return this.status !== this.initial }, labels: { baru: 'Baru', disiapkan: 'Disiapkan', siap: 'Siap', selesai: 'Selesai' }, tones: { baru: 'bg-warning-surface text-warning', disiapkan: 'bg-info-surface text-info', siap: 'bg-success-surface text-success', selesai: 'bg-surface-2 text-text-muted' } }" class="transition-colors hover:bg-surface-2/60">
                                         <td class="px-4 py-3"><span class="inline-flex min-w-12 items-center justify-center rounded-md bg-surface-2 px-2 py-1 font-mono font-bold">{{ $item->qty }}×</span></td>
-                                        <td class="px-4 py-3"><p class="font-semibold text-text">{{ $item->name_snapshot }}</p>@if ($item->note)<p class="mt-1 text-sm text-text-muted">Catatan: {{ $item->note }}</p>@endif</td>
+                                        <td class="px-4 py-3">
+                                            <p class="font-semibold text-text">{{ $item->name_snapshot }}</p>
+                                            @if ($item->note)
+                                                <div class="mt-1 inline-flex items-start gap-1 rounded bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                                    <span class="font-bold shrink-0">Catatan:</span>
+                                                    <span>{{ $item->note }}</span>
+                                                </div>
+                                            @endif
+                                        </td>
                                         <td class="px-4 py-3"><span class="inline-flex min-h-7 items-center rounded-full px-3 text-xs font-semibold" :class="tones[status]" x-text="labels[status]">{{ ucfirst($item->status) }}</span></td>
                                         <td class="px-4 py-3">
                                             <form method="POST" action="{{ route('admin.snacks.items.status', $item) }}" @submit="saving = true" @change="if ($event.target.name === 'status') status = $event.target.value">@csrf @method('PATCH')
@@ -103,7 +122,10 @@
                                 <div class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-2">
                                     <span class="text-sm text-text-muted">Jumlah</span><span><span class="inline-flex min-w-12 items-center justify-center rounded-md bg-surface-2 px-2 py-1 font-mono font-bold">{{ $item->qty }}×</span></span>
                                     <span class="text-sm text-text-muted">Pesanan</span><span class="font-semibold text-text">{{ $item->name_snapshot }}</span>
-                                    @if ($item->note)<span class="text-sm text-text-muted">Catatan</span><span class="text-sm text-text-muted">{{ $item->note }}</span>@endif
+                                    @if ($item->note)
+                                        <span class="text-sm font-bold text-amber-600 dark:text-amber-400">Catatan</span>
+                                        <span class="rounded bg-amber-500/15 px-2 py-1 text-sm font-semibold text-amber-600 dark:text-amber-400">{{ $item->note }}</span>
+                                    @endif
                                     <span class="text-sm text-text-muted">Status sekarang</span><span><span class="inline-flex min-h-7 items-center rounded-full px-3 text-xs font-semibold" :class="tones[status]" x-text="labels[status]">{{ ucfirst($item->status) }}</span></span>
                                 </div>
                                 <form method="POST" action="{{ route('admin.snacks.items.status', $item) }}" @submit="saving = true" class="mt-4 border-t border-border pt-3 print:hidden">@csrf @method('PATCH')

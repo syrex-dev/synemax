@@ -62,6 +62,10 @@
                 @if ($booking->customerProfile?->no_show_count >= 2)
                     <span class="badge-danger-soft">Peringatan Tidak Datang {{ $booking->customerProfile->no_show_count }}×</span>
                 @endif
+
+                @if ($booking->notes || $booking->items->contains(fn ($i) => !empty($i->note)))
+                    <span class="inline-flex items-center rounded-lg bg-amber-500/15 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">Ada Catatan</span>
+                @endif
             </div>
         </div>
 
@@ -324,7 +328,10 @@
                                         </span>
                                     </div>
                                     @if ($item->note)
-                                        <p class="text-[11px] text-text-muted italic">Catatan: {{ $item->note }}</p>
+                                        <div class="mt-1 inline-flex items-start gap-1 rounded bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                            <span class="font-bold shrink-0">Catatan:</span>
+                                            <span>{{ $item->note }}</span>
+                                        </div>
                                     @endif
                                 </div>
                                 <div class="font-bold text-text shrink-0">
@@ -487,8 +494,17 @@
                     <p class="font-semibold text-text">{{ $booking->customer_name }}</p>
                     <p class="font-mono text-text-muted">{{ format_phone_id($booking->whatsapp) }}</p>
 
+                    @if ($booking->notes)
+                        <div class="mt-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-text">
+                            <span class="block font-bold text-amber-600 dark:text-amber-400">Catatan Pemesan:</span>
+                            <p class="mt-1 whitespace-pre-line font-medium">{{ $booking->notes }}</p>
+                        </div>
+                    @endif
+
+                    @php($waBookingMsg = 'Halo '.$booking->customer_name.', admin SynemaX menghubungi terkait booking '.$booking->code.'.'.($booking->notes ? "\nCatatan pemesan: ".$booking->notes : ''))
+
                     <a
-                        href="https://wa.me/{{ $booking->whatsapp }}?text={{ rawurlencode('Halo '.$booking->customer_name.', admin SynemaX menghubungi terkait booking '.$booking->code.'.') }}"
+                        href="https://wa.me/{{ $booking->whatsapp }}?text={{ rawurlencode($waBookingMsg) }}"
                         target="_blank"
                         rel="noopener noreferrer"
                         class="mt-2 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-500 transition shadow-none"

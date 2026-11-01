@@ -87,7 +87,7 @@
         {{-- ============================================================== --}}
         @if (count($infoChips) > 0)
             <section aria-label="Informasi Bioskop" class="relative -mx-4 px-4 sm:mx-0 sm:px-0">
-                <div class="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 text-[13px] font-bold text-text scroll-smooth" style="scrollbar-width: none; -ms-overflow-style: none;">
+                <div class="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 text-[13px] font-bold text-text scroll-smooth" style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none;">
                     @foreach ($infoChips as $chip)
                         @if (!empty($chip['is_visible']))
                             <div class="inline-flex h-9 sm:h-10 shrink-0 items-center rounded-full border border-border bg-surface px-4 shadow-2xs whitespace-nowrap">
@@ -122,6 +122,32 @@
                     'poster_url' => $f->posterUrl(),
                     'url' => route('films.show', $f->slug ?: $f->id),
                 ])) }},
+                canFadeLeft: false,
+                canFadeRight: false,
+                init() {
+                    const scroller = this.$refs.filmCarousel;
+                    if (scroller) {
+                        const update = () => {
+                            this.canFadeLeft = scroller.scrollLeft > 4;
+                            this.canFadeRight = (scroller.scrollLeft + scroller.clientWidth) < (scroller.scrollWidth - 4);
+                        };
+                        scroller.addEventListener('scroll', update, { passive: true });
+                        const ro = new ResizeObserver(() => update());
+                        ro.observe(scroller);
+                        this.$nextTick(() => update());
+                    }
+                },
+                get filmMaskStyle() {
+                    if (window.innerWidth >= 640) return '';
+                    if (this.canFadeLeft && this.canFadeRight) {
+                        return 'linear-gradient(to right, transparent 0, black 1rem, black calc(100% - 1rem), transparent 100%)';
+                    } else if (this.canFadeLeft) {
+                        return 'linear-gradient(to right, transparent 0, black 1rem, black 100%)';
+                    } else if (this.canFadeRight) {
+                        return 'linear-gradient(to right, black 0, black calc(100% - 1rem), transparent 100%)';
+                    }
+                    return '';
+                },
                 get filteredFilms() {
                     return this.allFilms.filter(f => {
                         const matchGenre = !this.genre || (f.genre && f.genre.toLowerCase().split(',').map(s => s.trim()).includes(this.genre.toLowerCase()));
@@ -136,6 +162,13 @@
                     if (this.genre) url.searchParams.set('genre', this.genre); else url.searchParams.delete('genre');
                     if (this.tahun) url.searchParams.set('tahun', this.tahun); else url.searchParams.delete('tahun');
                     window.history.replaceState({}, '', url);
+                    this.$nextTick(() => {
+                        const scroller = this.$refs.filmCarousel;
+                        if (scroller) {
+                            this.canFadeLeft = scroller.scrollLeft > 4;
+                            this.canFadeRight = (scroller.scrollLeft + scroller.clientWidth) < (scroller.scrollWidth - 4);
+                        }
+                    });
                 },
                 resetFilter() {
                     this.setFilter('', '');
@@ -160,8 +193,10 @@
 
             {{-- Mobile: Horizontal Carousel (~2.3 posters visible, bleed). Desktop: Grid --}}
             <div
+                x-ref="filmCarousel"
                 class="-mx-4 px-4 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6 overflow-x-auto sm:overflow-visible scrollbar-none snap-x snap-mandatory"
-                style="touch-action: pan-y pinch-zoom; -webkit-overflow-scrolling: touch;"
+                style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch; padding-inline: 1rem; scroll-padding-inline: 1rem;"
+                :style="filmMaskStyle ? { maskImage: filmMaskStyle, WebkitMaskImage: filmMaskStyle } : {}"
             >
                 <template x-for="film in filteredFilms" :key="film.id">
                     <a

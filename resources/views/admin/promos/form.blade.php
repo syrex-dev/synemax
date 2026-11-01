@@ -5,7 +5,6 @@
 @section('content')
     <div>
         <x-admin.page-header
-            eyebrow="Penawaran Khusus"
             title="{{ $isEdit ? 'Ubah Promo: ' . $promo->title : 'Tambah Promo Baru' }}"
             subtitle="Promo dikelola lewat upload banner gambar 1200 × 600 px. Setiap promo memiliki halaman detail sendiri."
         >

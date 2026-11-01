@@ -182,6 +182,7 @@
                                     <th class="w-16 text-center">Urutan</th>
                                     <th>Menu / Halaman</th>
                                     <th>Label di Navbar</th>
+                                    <th>Label singkat di HP</th>
                                     <th>Tautan Tujuan</th>
                                     <th class="w-36">Tampil di HP</th>
                                     <th class="w-24 text-center">Tampilkan</th>
@@ -193,7 +194,7 @@
                                     <tr>
                                         <td class="text-center font-bold">
                                             <input type="hidden" name="menu[{{ $idx }}][key]" value="{{ $item['key'] ?? $item['id'] ?? ('item_'.$idx) }}">
-                                            <input type="number" name="menu[{{ $idx }}][order]" value="{{ $item['order'] ?? ($idx + 1) }}" min="1" max="20" class="w-14 text-center rounded-lg border py-1 text-xs">
+                                            <input type="number" name="menu[{{ $idx }}][order]" value="{{ $item['order'] ?? ($idx + 1) }}" min="1" max="20" class="w-14 text-center rounded-lg border py-1 text-xs bg-surface text-text border-border">
                                         </td>
                                         <td class="font-bold text-text">
                                             {{ ucfirst($item['key'] ?? $item['id'] ?? 'Menu') }}
@@ -202,7 +203,10 @@
                                             @endif
                                         </td>
                                         <td>
-                                            <input type="text" name="menu[{{ $idx }}][label]" value="{{ $item['label'] }}" required class="w-full max-w-xs rounded-lg border py-1.5 px-2.5 text-xs">
+                                            <input type="text" name="menu[{{ $idx }}][label]" value="{{ $item['label'] }}" required class="w-full max-w-xs rounded-lg border py-1.5 px-2.5 text-xs bg-surface text-text border-border">
+                                        </td>
+                                        <td>
+                                            <input type="text" name="menu[{{ $idx }}][short_label]" value="{{ $item['short_label'] ?? '' }}" placeholder="{{ ($item['key'] ?? '') === 'lookup' ? 'Booking' : $item['label'] }}" class="w-full max-w-[130px] rounded-lg border py-1.5 px-2.5 text-xs bg-surface text-text border-border">
                                         </td>
                                         <td class="text-xs text-text-muted font-mono">
                                             <input type="hidden" name="menu[{{ $idx }}][url]" value="{{ $item['url'] }}">
