@@ -4,45 +4,12 @@
 
 @section('content')
     <div
-        x-data="{
-            selected: [],
-            allChecked: false,
-            selectAllFiltered: false,
-            ratingModalOpen: false,
-            genreModalOpen: false,
-            exportModalOpen: false,
-            showUndoToast: {{ $undoBatchId ? 'true' : 'false' }},
-            undoCountdown: 8,
-            undoTimer: null,
-            init() {
-                if (this.showUndoToast) {
-                    this.undoTimer = setInterval(() => {
-                        if (this.undoCountdown > 1) {
-                            this.undoCountdown--;
-                        } else {
-                            this.showUndoToast = false;
-                            clearInterval(this.undoTimer);
-                        }
-                    }, 1000);
-                }
-            },
-            toggleAll() {
-                if (this.allChecked) {
-                    this.selected = [];
-                    this.allChecked = false;
-                    this.selectAllFiltered = false;
-                } else {
-                    this.selected = {{ Js::from($films->pluck('id')->values()->all()) }};
-                    this.allChecked = true;
-                }
-            },
-            updateCheckAll() {
-                this.allChecked = this.selected.length > 0 && this.selected.length === {{ $films->count() }};
-                if (!this.allChecked) {
-                    this.selectAllFiltered = false;
-                }
-            }
-        }"
+        x-data="adminFilmsIndex({
+            filmsOnPage: {{ Js::from($films->pluck('id')->values()->all()) }},
+            totalFilms: {{ $films->total() }},
+            currentSearch: {{ Js::from($search) }},
+            undoBatchId: {{ $undoBatchId ? 'true' : 'false' }}
+        })"
     >
         {{-- Toast Urungkan Batch Impor (8 Detik) --}}
         @if ($undoBatchId)
@@ -167,8 +134,13 @@
                     @endif
                 </div>
 
-                {{-- Kolom Cari Judul --}}
-                <form action="{{ route('admin.films.index') }}" method="GET" class="flex items-center gap-2">
+                {{-- Kolom Cari Judul Live Search --}}
+                <form
+                    action="{{ route('admin.films.index') }}"
+                    method="GET"
+                    @submit.prevent="performSearch()"
+                    class="flex items-center gap-2"
+                >
                     @if ($filter)
                         <input type="hidden" name="filter" value="{{ $filter }}">
                     @endif
@@ -182,24 +154,59 @@
                         <input
                             type="text"
                             name="q"
-                            value="{{ $search }}"
+                            id="admin-films-search-input"
+                            x-model="searchQuery"
+                            @input.debounce.300ms="performSearch()"
                             placeholder="Cari judul film..."
-                            class="w-full min-h-[38px] rounded-xl border border-border bg-surface pl-9 pr-3 text-xs text-text placeholder:text-text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                            autocomplete="off"
+                            class="w-full min-h-[38px] rounded-xl border border-border bg-surface pl-9 pr-8 text-xs text-text placeholder:text-text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
                         >
-                        <svg class="size-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+                        {{-- Icon Search / Spinner Loading --}}
+                        <div class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
+                            <svg x-show="!isSearching" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <svg x-show="isSearching" x-cloak class="size-4 animate-spin text-amber-500" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                        {{-- Tombol Clear X saat ada input --}}
+                        <button
+                            type="button"
+                            x-show="searchQuery && searchQuery.length > 0"
+                            x-cloak
+                            @click="clearSearch()"
+                            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text p-0.5 rounded-full hover:bg-surface-2 transition"
+                            title="Hapus pencarian"
+                        >
+                            <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
-                    @if ($search)
-                        <a href="{{ route('admin.films.index', array_filter(['filter' => $filter, 'trash' => $showTrash ? 1 : null, 'batch_id' => $batchId])) }}" class="text-xs text-text-muted hover:text-text">
-                            Reset
-                        </a>
-                    @endif
+                    <button
+                        type="button"
+                        x-show="searchQuery && searchQuery.length > 0"
+                        x-cloak
+                        @click="clearSearch()"
+                        class="text-xs text-text-muted hover:text-text font-medium"
+                    >
+                        Reset
+                    </button>
                 </form>
             </div>
         </div>
 
-        {{-- Banner Pilih Semua Sesuai Filter ("Pilih 230 film") --}}
+        {{-- Dynamic Films List Container (Diperbarui secara reaktif oleh Live Search) --}}
+        <div
+            id="films-list-container"
+            data-films-on-page="{{ json_encode($films->pluck('id')->values()->all()) }}"
+            data-total-films="{{ $films->total() }}"
+            class="relative transition-opacity duration-150"
+            :class="{ 'opacity-60 pointer-events-none': isSearching }"
+        >
+            {{-- Banner Pilih Semua Sesuai Filter ("Pilih 230 film") --}}
         @if ($films->total() > $films->count())
             <div
                 x-show="allChecked && !selectAllFiltered"
@@ -433,6 +440,7 @@
                 {{ $films->links() }}
             </div>
         @endif
+        </div>
 
         {{-- Floating Sticky Bulk Action Bar --}}
         <div
@@ -447,7 +455,7 @@
             class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[95%] max-w-3xl rounded-2xl border border-border bg-surface/95 backdrop-blur-md p-4 shadow-2xl flex flex-wrap items-center justify-between gap-3"
         >
             <div class="flex items-center gap-2">
-                <span class="inline-flex size-6 items-center justify-center rounded-full bg-amber-500 text-xs font-black text-slate-950" x-text="selectAllFiltered ? '{{ $films->total() }}' : selected.length"></span>
+                <span class="inline-flex size-6 items-center justify-center rounded-full bg-amber-500 text-xs font-black text-slate-950" x-text="selectAllFiltered ? totalFilms : selected.length"></span>
                 <span class="text-xs font-bold text-text">film dipilih</span>
             </div>
 
@@ -471,7 +479,7 @@
                         @csrf
                         <input type="hidden" name="action" value="activate">
                         <input type="hidden" name="filter" value="{{ $filter }}">
-                        <input type="hidden" name="q" value="{{ $search }}">
+                        <input type="hidden" name="q" :value="searchQuery">
                         <input type="hidden" name="select_all" :value="selectAllFiltered ? 1 : 0">
                         <template x-for="id in selected" :key="'act-'+id">
                             <input type="hidden" name="film_ids[]" :value="id">
@@ -486,7 +494,7 @@
                         @csrf
                         <input type="hidden" name="action" value="deactivate">
                         <input type="hidden" name="filter" value="{{ $filter }}">
-                        <input type="hidden" name="q" value="{{ $search }}">
+                        <input type="hidden" name="q" :value="searchQuery">
                         <input type="hidden" name="select_all" :value="selectAllFiltered ? 1 : 0">
                         <template x-for="id in selected" :key="'deact-'+id">
                             <input type="hidden" name="film_ids[]" :value="id">
@@ -528,7 +536,7 @@
                         @csrf
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="filter" value="{{ $filter }}">
-                        <input type="hidden" name="q" value="{{ $search }}">
+                        <input type="hidden" name="q" :value="searchQuery">
                         <input type="hidden" name="select_all" :value="selectAllFiltered ? 1 : 0">
                         <template x-for="id in selected" :key="'del-'+id">
                             <input type="hidden" name="film_ids[]" :value="id">
@@ -562,7 +570,7 @@
                 <div>
                     <h3 class="text-base font-bold text-text">Atur Klasifikasi Usia Massal</h3>
                     <p class="text-xs text-text-muted mt-0.5">
-                        Terapkan klasifikasi usia terpilih untuk <span x-text="selectAllFiltered ? '{{ $films->total() }}' : selected.length"></span> film.
+                        Terapkan klasifikasi usia terpilih untuk <span x-text="selectAllFiltered ? totalFilms : selected.length"></span> film.
                     </p>
                 </div>
 
@@ -570,7 +578,7 @@
                     @csrf
                     <input type="hidden" name="action" value="set_rating">
                     <input type="hidden" name="filter" value="{{ $filter }}">
-                    <input type="hidden" name="q" value="{{ $search }}">
+                    <input type="hidden" name="q" :value="searchQuery">
                     <input type="hidden" name="select_all" :value="selectAllFiltered ? 1 : 0">
                     <template x-for="id in selected" :key="'rate-'+id">
                         <input type="hidden" name="film_ids[]" :value="id">
@@ -621,14 +629,14 @@
                 <div>
                     <h3 class="text-base font-bold text-text">Kelola Genre Massal</h3>
                     <p class="text-xs text-text-muted mt-0.5">
-                        Tambahkan atau ganti genre pada <span x-text="selectAllFiltered ? '{{ $films->total() }}' : selected.length"></span> film terpilih.
+                        Tambahkan atau ganti genre pada <span x-text="selectAllFiltered ? totalFilms : selected.length"></span> film terpilih.
                     </p>
                 </div>
 
                 <form method="POST" action="{{ route('admin.films.bulk_action') }}" class="space-y-4">
                     @csrf
                     <input type="hidden" name="filter" value="{{ $filter }}">
-                    <input type="hidden" name="q" value="{{ $search }}">
+                    <input type="hidden" name="q" :value="searchQuery">
                     <input type="hidden" name="select_all" :value="selectAllFiltered ? 1 : 0">
                     <template x-for="id in selected" :key="'genre-'+id">
                         <input type="hidden" name="film_ids[]" :value="id">
@@ -778,3 +786,116 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+    function adminFilmsIndex(config) {
+        return {
+            selected: [],
+            allChecked: false,
+            selectAllFiltered: false,
+            ratingModalOpen: false,
+            genreModalOpen: false,
+            exportModalOpen: false,
+            showUndoToast: Boolean(config.undoBatchId),
+            undoCountdown: 8,
+            undoTimer: null,
+            searchQuery: config.currentSearch || '',
+            isSearching: false,
+            filmsOnPage: config.filmsOnPage || [],
+            totalFilms: config.totalFilms || 0,
+
+            init() {
+                if (this.showUndoToast) {
+                    this.undoTimer = setInterval(() => {
+                        if (this.undoCountdown > 1) {
+                            this.undoCountdown--;
+                        } else {
+                            this.showUndoToast = false;
+                            clearInterval(this.undoTimer);
+                        }
+                    }, 1000);
+                }
+            },
+
+            toggleAll() {
+                if (this.allChecked) {
+                    this.selected = [];
+                    this.allChecked = false;
+                    this.selectAllFiltered = false;
+                } else {
+                    this.selected = [...this.filmsOnPage];
+                    this.allChecked = true;
+                }
+            },
+
+            updateCheckAll() {
+                this.allChecked = this.selected.length > 0 && this.selected.length === this.filmsOnPage.length;
+                if (!this.allChecked) {
+                    this.selectAllFiltered = false;
+                }
+            },
+
+            async performSearch() {
+                this.isSearching = true;
+                const url = new URL(window.location.href);
+                const trimmed = (this.searchQuery || '').trim();
+                if (trimmed.length > 0) {
+                    url.searchParams.set('q', trimmed);
+                } else {
+                    url.searchParams.delete('q');
+                }
+                url.searchParams.delete('page');
+
+                window.history.replaceState({}, '', url.toString());
+
+                try {
+                    const response = await fetch(url.toString(), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    const html = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+
+                    const newContainer = doc.getElementById('films-list-container');
+                    const currentContainer = document.getElementById('films-list-container');
+
+                    if (newContainer && currentContainer) {
+                        currentContainer.innerHTML = newContainer.innerHTML;
+
+                        const newFilmsData = newContainer.getAttribute('data-films-on-page');
+                        const newTotal = newContainer.getAttribute('data-total-films');
+                        if (newFilmsData) {
+                            try {
+                                this.filmsOnPage = JSON.parse(newFilmsData);
+                            } catch (e) {}
+                        }
+                        if (newTotal !== null) {
+                            this.totalFilms = parseInt(newTotal, 10);
+                        }
+
+                        this.selected = [];
+                        this.allChecked = false;
+                        this.selectAllFiltered = false;
+
+                        if (window.Alpine && window.Alpine.initTree) {
+                            window.Alpine.initTree(currentContainer);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Live search error:', err);
+                } finally {
+                    this.isSearching = false;
+                }
+            },
+
+            clearSearch() {
+                this.searchQuery = '';
+                this.performSearch();
+            }
+        };
+    }
+</script>
+@endpush
