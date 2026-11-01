@@ -63,7 +63,7 @@
                     <span>Ekspor CSV</span>
                 </button>
                 <a
-                    href="{{ route('admin.age_ratings.index') }}"
+                    href="{{ Route::has('admin.age_ratings.index') ? route('admin.age_ratings.index') : url('/admin/age-ratings') }}"
                     class="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-slate-300 dark:border-white/20 bg-surface px-3.5 py-2 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition-colors shadow-xs"
                     title="Kelola klasifikasi batas usia penonton (SU, 13+, 17+, dll.)"
                 >
@@ -73,7 +73,7 @@
                     <span>Klasifikasi Usia</span>
                 </a>
                 <a
-                    href="{{ route('admin.genres.index') }}"
+                    href="{{ Route::has('admin.genres.index') ? route('admin.genres.index') : url('/admin/genres') }}"
                     class="inline-flex min-h-[42px] items-center gap-1.5 rounded-xl border border-slate-300 dark:border-white/20 bg-surface px-3.5 py-2 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition-colors shadow-xs"
                     title="Kelola daftar genre film dari database"
                 >
