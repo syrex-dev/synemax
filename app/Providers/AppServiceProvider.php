@@ -32,6 +32,8 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
+        \Illuminate\Pagination\Paginator::defaultView('pagination::tailwind');
+
         View::composer(['layouts.public', 'layouts.admin', 'public.*', 'admin.*'], function ($view) {
             $view->with('cinemaSettings', app(CinemaSettings::class));
         });

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Film;
 use App\Models\User;
 use App\Services\CinemaSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -109,5 +110,34 @@ class SettingsManagementTest extends TestCase
         $adminRes->assertOk();
         $adminRes->assertSee('custom_favicon.svg');
         $adminRes->assertSee('rel="icon"', false);
+    }
+
+    public function test_featured_films_settings_and_home_order(): void
+    {
+        $filmA = Film::query()->create(['title' => 'Film Alpha', 'slug' => 'film-alpha-'.uniqid(), 'duration_minutes' => 100, 'genre' => 'Drama', 'age_rating' => 'SU', 'synopsis' => 'Sinopsis A', 'is_active' => true]);
+        $filmB = Film::query()->create(['title' => 'Film Beta', 'slug' => 'film-beta-'.uniqid(), 'duration_minutes' => 100, 'genre' => 'Drama', 'age_rating' => 'SU', 'synopsis' => 'Sinopsis B', 'is_active' => true]);
+        $filmC = Film::query()->create(['title' => 'Film Charlie', 'slug' => 'film-charlie-'.uniqid(), 'duration_minutes' => 100, 'genre' => 'Drama', 'age_rating' => 'SU', 'synopsis' => 'Sinopsis C', 'is_active' => true]);
+
+        // Update settings to use custom mode with order: Charlie, Alpha
+        $response = $this->actingAs($this->admin)->put(route('admin.settings.update'), [
+            'active_tab' => 'tampilan',
+            'default_theme' => 'system',
+            'home_films_count' => 8,
+            'home_hero_interval' => 5,
+            'home_films_mode' => 'custom',
+            'home_featured_film_ids' => [$filmC->id, $filmA->id],
+        ]);
+
+        $response->assertRedirect(route('admin.settings.edit', ['tab' => 'tampilan']));
+        $this->assertSame('custom', setting('home_films_mode'));
+        $this->assertEquals([$filmC->id, $filmA->id], setting('home_featured_film_ids'));
+
+        // Visit home page
+        $homeRes = $this->get(route('home'));
+        $homeRes->assertOk();
+        $films = $homeRes->viewData('films');
+        $this->assertCount(2, $films);
+        $this->assertSame($filmC->id, $films->first()->id);
+        $this->assertSame($filmA->id, $films->last()->id);
     }
 }

@@ -228,7 +228,7 @@
                     <span class="text-xs font-semibold text-text-muted">
                         Menampilkan {{ $films->firstItem() }}–{{ $films->lastItem() }} dari {{ $films->total() }} film
                     </span>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
                         {{ $films->links() }}
                     </div>
                 </div>

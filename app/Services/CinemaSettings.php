@@ -383,6 +383,31 @@ class CinemaSettings
         return $this->integer('home_films_count', 8);
     }
 
+    public function homeFilmsMode(): string
+    {
+        return $this->string('home_films_mode', 'auto');
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function homeFeaturedFilmIds(): array
+    {
+        $val = $this->get('home_featured_film_ids', []);
+        if (is_string($val)) {
+            $decoded = json_decode($val, true);
+            if (is_array($decoded)) {
+                $val = $decoded;
+            }
+        }
+
+        if (! is_array($val)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map('intval', $val), fn ($id) => $id > 0));
+    }
+
     public function homeHeroInterval(): int
     {
         return $this->integer('home_hero_interval', 5);

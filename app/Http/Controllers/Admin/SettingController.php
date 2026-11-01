@@ -52,7 +52,10 @@ class SettingController extends Controller
             'nobar' => NobarEvent::where('is_sample', true)->count(),
             'news' => NewsArticle::where('is_sample', true)->count(),
         ];
-        $sampleCounts['total'] = array_sum($sampleCounts);
+        $activeFilms = Film::query()
+            ->where('is_active', true)
+            ->orderBy('title')
+            ->get(['id', 'title', 'release_year', 'genre', 'poster_path']);
 
         return view('admin.settings.edit', [
             'currentTab' => $currentTab,
@@ -63,6 +66,9 @@ class SettingController extends Controller
             'qrisRatioWarning' => $qrisRatioWarning,
             'libraryImages' => $libraryImages,
             'sampleCounts' => $sampleCounts,
+            'activeFilms' => $activeFilms,
+            'featuredFilmIds' => $settings->homeFeaturedFilmIds(),
+            'homeFilmsMode' => $settings->homeFilmsMode(),
         ]);
     }
 
@@ -251,6 +257,9 @@ class SettingController extends Controller
             'home_films_count' => 'required|integer|in:6,8,10,12',
             'home_hero_interval' => 'required|integer|in:4,5,6,8',
             'home_hero_autoplay' => 'nullable|boolean',
+            'home_films_mode' => 'nullable|in:auto,custom',
+            'home_featured_film_ids' => 'nullable|array',
+            'home_featured_film_ids.*' => 'nullable|integer',
         ]);
 
         $settings->set('default_theme', $validated['default_theme'], 'tampilan');
@@ -258,6 +267,10 @@ class SettingController extends Controller
         $settings->set('home_films_count', (int) $validated['home_films_count'], 'tampilan');
         $settings->set('home_hero_interval', (int) $validated['home_hero_interval'], 'tampilan');
         $settings->set('home_hero_autoplay', $request->boolean('home_hero_autoplay'), 'tampilan');
+        $settings->set('home_films_mode', $request->input('home_films_mode', 'auto'), 'tampilan');
+
+        $featuredIds = array_values(array_unique(array_filter(array_map('intval', (array) $request->input('home_featured_film_ids', [])))));
+        $settings->set('home_featured_film_ids', $featuredIds, 'tampilan');
 
         // Handle Chips
         $chipsInput = $request->input('chips', []);

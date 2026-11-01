@@ -48,9 +48,23 @@ class PublicCinemaController extends Controller
 
         // 3. Film Catalog
         $filmsLimit = $settings->homeFilmsCount();
-        $filmsQuery = Film::query()->where('is_active', true)->orderBy('title');
+        $filmsMode = $settings->homeFilmsMode();
+        $featuredIds = $settings->homeFeaturedFilmIds();
 
-        $films = $filmsQuery->take($filmsLimit)->get();
+        if ($filmsMode === 'custom' && ! empty($featuredIds)) {
+            $films = Film::query()
+                ->where('is_active', true)
+                ->whereIn('id', $featuredIds)
+                ->get()
+                ->sortBy(fn ($f) => array_search($f->id, $featuredIds, true))
+                ->values();
+
+            if ($films->isEmpty()) {
+                $films = Film::query()->where('is_active', true)->orderBy('title')->take($filmsLimit)->get();
+            }
+        } else {
+            $films = Film::query()->where('is_active', true)->orderBy('title')->take($filmsLimit)->get();
+        }
         $allActiveFilms = Film::query()->where('is_active', true)->get(['id', 'genre', 'release_year']);
 
         // Single source of truth from genres table

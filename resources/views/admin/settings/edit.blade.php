@@ -359,6 +359,192 @@
                     </div>
                 </div>
 
+                {{-- Kurasi Film Beranda (Film Pilihan & Urutan Tampil) --}}
+                <div class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-5"
+                     x-data="{
+                         mode: @js(old('home_films_mode', $homeFilmsMode)),
+                         selectedFilmId: '',
+                         allFilms: @js($activeFilms->map(fn($f) => [
+                             'id' => (int) $f->id,
+                             'title' => $f->title,
+                             'release_year' => $f->release_year,
+                             'genre' => $f->genre,
+                             'poster' => $f->posterUrl(),
+                         ])),
+                         featuredIds: @js(old('home_featured_film_ids', $featuredFilmIds)),
+                         addFilm() {
+                             const id = Number(this.selectedFilmId);
+                             if (!id) return;
+                             if (!this.featuredIds.includes(id)) {
+                                 this.featuredIds.push(id);
+                             }
+                             this.selectedFilmId = '';
+                         },
+                         removeFilm(id) {
+                             this.featuredIds = this.featuredIds.filter(fId => fId !== id);
+                         },
+                         moveUp(index) {
+                             if (index <= 0) return;
+                             const temp = this.featuredIds[index];
+                             this.featuredIds[index] = this.featuredIds[index - 1];
+                             this.featuredIds[index - 1] = temp;
+                         },
+                         moveDown(index) {
+                             if (index >= this.featuredIds.length - 1) return;
+                             const temp = this.featuredIds[index];
+                             this.featuredIds[index] = this.featuredIds[index + 1];
+                             this.featuredIds[index + 1] = temp;
+                         },
+                         getFilm(id) {
+                             return this.allFilms.find(f => f.id === id) || { id: id, title: 'Film #' + id, release_year: '', genre: '', poster: null };
+                         },
+                         get availableFilms() {
+                             return this.allFilms.filter(f => !this.featuredIds.includes(f.id));
+                         }
+                     }"
+                >
+                    <div>
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div>
+                                <h2 class="text-base font-bold text-text">Kurasi Film Beranda (Film Pilihan & Urutan Tampil)</h2>
+                                <p class="text-xs text-text-muted mt-0.5">Tentukan apakah film di beranda tampil otomatis atau dipilih dan diurutkan secara khusus oleh admin.</p>
+                            </div>
+                            {{-- Mode Switcher Radio --}}
+                            <div class="flex items-center gap-1.5 p-1 rounded-xl bg-surface-2 border border-border shrink-0">
+                                <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition select-none"
+                                       :class="mode === 'auto' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-text-muted hover:text-text'">
+                                    <input type="radio" name="home_films_mode" value="auto" x-model="mode" class="sr-only">
+                                    <span>Otomatis (Semua Film)</span>
+                                </label>
+                                <label class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition select-none"
+                                       :class="mode === 'custom' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-text-muted hover:text-text'">
+                                    <input type="radio" name="home_films_mode" value="custom" x-model="mode" class="sr-only">
+                                    <span>Pilihan Admin & Urutan</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Custom Featured Films Selector & List (Hanya aktif bila mode === 'custom') --}}
+                    <div x-show="mode === 'custom'" x-transition class="space-y-4 pt-4 border-t border-border">
+                        {{-- Input Penambah Film --}}
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                            <div class="flex-1 min-w-[240px]">
+                                <select x-model="selectedFilmId" class="w-full rounded-xl border border-border bg-surface-2 text-text px-3 py-2 text-xs font-medium focus:border-amber-500 focus:outline-none">
+                                    <option value="">-- Pilih film untuk ditambahkan ke beranda --</option>
+                                    <template x-for="film in availableFilms" :key="film.id">
+                                        <option :value="film.id" x-text="`${film.title} (${film.release_year || '-'})`"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <button
+                                type="button"
+                                @click="addFilm()"
+                                :disabled="!selectedFilmId"
+                                class="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-4 text-xs font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-xs shrink-0"
+                            >
+                                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                </svg>
+                                <span>Tambahkan Film</span>
+                            </button>
+                        </div>
+
+                        {{-- Daftar Film Terpilih dengan Urutan Tampil --}}
+                        <div>
+                            <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2">Daftar Urutan Tayang di Beranda (<span x-text="featuredIds.length"></span> Film)</p>
+
+                            <div class="space-y-2">
+                                <template x-for="(fId, index) in featuredIds" :key="fId">
+                                    <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-surface-2 transition">
+                                        {{-- Hidden input for form submission --}}
+                                        <input type="hidden" name="home_featured_film_ids[]" :value="fId">
+
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            {{-- Nomor Urutan Badge --}}
+                                            <span class="flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-black text-xs"
+                                                  x-text="index + 1">
+                                            </span>
+
+                                            {{-- Poster Thumbnail --}}
+                                            <div class="size-11 rounded-lg bg-surface border border-border overflow-hidden shrink-0 flex items-center justify-center">
+                                                <template x-if="getFilm(fId).poster">
+                                                    <img :src="getFilm(fId).poster" :alt="getFilm(fId).title" class="size-full object-cover">
+                                                </template>
+                                                <template x-if="!getFilm(fId).poster">
+                                                    <svg class="size-5 text-text-muted opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                                                    </svg>
+                                                </template>
+                                            </div>
+
+                                            {{-- Info Film --}}
+                                            <div class="min-w-0">
+                                                <p class="text-xs font-bold text-text truncate" x-text="getFilm(fId).title"></p>
+                                                <p class="text-[11px] text-text-muted truncate">
+                                                    <span x-text="getFilm(fId).genre || 'Genre -'"></span>
+                                                    <span class="mx-1">•</span>
+                                                    <span x-text="getFilm(fId).release_year || '-'"></span>
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {{-- Tombol Geser Atas / Bawah & Hapus --}}
+                                        <div class="flex items-center gap-1 shrink-0">
+                                            {{-- Geser Ke Atas --}}
+                                            <button
+                                                type="button"
+                                                @click="moveUp(index)"
+                                                :disabled="index === 0"
+                                                class="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-surface text-text hover:border-amber-500 hover:text-amber-500 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                                                title="Geser ke urutan sebelumnya"
+                                                aria-label="Geser ke atas"
+                                            >
+                                                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                                                </svg>
+                                            </button>
+
+                                            {{-- Geser Ke Bawah --}}
+                                            <button
+                                                type="button"
+                                                @click="moveDown(index)"
+                                                :disabled="index === featuredIds.length - 1"
+                                                class="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-surface text-text hover:border-amber-500 hover:text-amber-500 disabled:opacity-30 disabled:cursor-not-allowed transition"
+                                                title="Geser ke urutan setelahnya"
+                                                aria-label="Geser ke bawah"
+                                            >
+                                                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                                </svg>
+                                            </button>
+
+                                            {{-- Hapus dari Urutan --}}
+                                            <button
+                                                type="button"
+                                                @click="removeFilm(fId)"
+                                                class="inline-flex size-8 items-center justify-center rounded-lg border border-danger/30 bg-danger/10 text-danger hover:bg-danger/20 transition ml-1"
+                                                title="Hapus film dari beranda"
+                                                aria-label="Hapus film"
+                                            >
+                                                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                {{-- Empty State --}}
+                                <div x-show="featuredIds.length === 0" class="rounded-xl border border-dashed border-border p-6 text-center text-xs text-text-muted">
+                                    <p class="font-bold text-text">Belum ada film yang dipilih secara khusus.</p>
+                                    <p class="mt-1">Pilih film dari menu di atas lalu klik <strong>Tambahkan Film</strong> untuk menentukan film dan urutan tampilnya di beranda.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex justify-end gap-3">
                     <button type="submit" class="inline-flex min-h-[44px] items-center rounded-xl bg-amber-500 px-6 font-bold text-slate-950 shadow-sm hover:bg-amber-400">
                         Simpan Perubahan Tampilan
