@@ -845,23 +845,6 @@
                         Tips kode promo: Gunakan <span class="font-bold text-amber-400">XXIPREMIERE</span> (Diskon 10%) atau <span class="font-bold text-amber-400">SYNEMAX5K</span> (Diskon Rp 5.000).
                     </p>
                 </div>
-
-                {{-- Tombol Lanjut In-Page Langkah 2 --}}
-                <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm">
-                    <div>
-                        <span class="text-[11px] font-bold uppercase tracking-wider text-text-muted block">Total Sementara</span>
-                        <div class="font-tabular text-lg font-black text-amber-700 dark:text-amber-400"
-                             x-text="`Rp ${new Intl.NumberFormat('id-ID').format(grandTotal)}`"></div>
-                    </div>
-                    <button type="button"
-                            @click="nextStep()"
-                            class="btn-gold-cinema inline-flex min-h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-6 text-sm font-black shadow-md transition hover:scale-[1.02] active:scale-[0.98]">
-                        <span>Lanjut ke Pilih Film</span>
-                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                        </svg>
-                    </button>
-                </div>
             </section>
 
             {{-- ==================== LANGKAH 3: PILIH FILM ==================== --}}
@@ -1195,30 +1178,6 @@
                             </div>
                         @endforeach
                     </div>
-
-                    {{-- Tombol Navigasi In-Page Langkah 4 --}}
-                    <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm">
-                        <button type="button"
-                                @click="previousStep()"
-                                class="inline-flex min-h-11 w-full sm:w-auto items-center justify-center rounded-xl border border-border-input bg-surface px-4 text-xs font-bold text-text hover:border-amber-400">
-                            &larr; Kembali ke Film
-                        </button>
-                        <div class="flex items-center gap-2 w-full sm:w-auto">
-                            <button type="button"
-                                    @click="skipSnacks()"
-                                    class="inline-flex min-h-11 flex-1 sm:flex-none items-center justify-center rounded-xl border border-border px-4 text-xs font-bold text-text-muted hover:border-amber-400 hover:text-text">
-                                Lewati Jajan
-                            </button>
-                            <button type="button"
-                                    @click="nextStep()"
-                                    class="btn-gold-cinema inline-flex min-h-12 flex-1 sm:flex-none items-center justify-center gap-2 rounded-xl px-6 text-sm font-black shadow-md transition hover:scale-[1.02] active:scale-[0.98]">
-                                <span>Lanjut ke Pembayaran</span>
-                                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
                 </section>
             @endif
 
@@ -1309,24 +1268,6 @@
                             <span class="font-tabular text-amber-700 dark:text-amber-400" x-text="`Rp ${new Intl.NumberFormat('id-ID').format(grandTotal)}`"></span>
                         </div>
                     </dl>
-                </div>
-
-                {{-- Tombol Konfirmasi Final In-Page Langkah 5 --}}
-                <div class="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm">
-                    <button type="button"
-                            @click="previousStep()"
-                            class="inline-flex min-h-11 w-full sm:w-auto items-center justify-center rounded-xl border border-border-input bg-surface px-4 text-xs font-bold text-text hover:border-amber-400">
-                        &larr; Kembali
-                    </button>
-                    <button type="submit"
-                            :disabled="isSubmitting"
-                            class="btn-gold-cinema inline-flex min-h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-8 text-sm font-black shadow-lg disabled:opacity-50 transition hover:scale-[1.02] active:scale-[0.98]">
-                        <span x-show="!isSubmitting" x-text="paymentMethod === 'di_tempat' ? 'Konfirmasi Booking' : 'Booking & Bayar Sekarang'">Booking & Bayar Sekarang</span>
-                        <span x-show="isSubmitting" x-cloak>Memproses Booking...</span>
-                        <svg x-show="!isSubmitting" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                        </svg>
-                    </button>
                 </div>
             </section>
 
