@@ -89,12 +89,24 @@
                       if (g !== undefined) this.genre = g;
                       if (y !== undefined) this.tahun = y;
                   },
-                  filmOptions: @js($films->map(fn($f) => [
-                      'id' => $f->id,
+                  filmsData: @js($films->map(fn($f) => [
+                      'id' => (string) $f->id,
                       'title' => $f->title,
-                      'genre' => $f->genre,
+                      'genre' => $f->formattedGenresText(3),
+                      'full_genre' => (string) $f->genre,
+                      'duration' => (int) $f->duration_minutes,
                       'year' => (string) $f->release_year,
+                      'rating' => (string) ($f->age_rating ?: 'SU'),
+                      'poster' => $f->poster_path ? Storage::url($f->poster_path) : null,
+                      'synopsis' => (string) $f->synopsis,
+                      'tally' => (int) ($candidateTallies->get($f->id)['seats'] ?? 0),
                   ])),
+                  showFilmCatalog: @js(empty(request('film')) && empty(old('film_id'))),
+                  get filmOptions() { return this.filmsData; },
+                  get currentFilm() {
+                      if (!this.filmId) return null;
+                      return this.filmsData.find(f => String(f.id) === String(this.filmId)) || null;
+                  },
                   filmDetail: null,
                   noteItemId: null,
                   noteValue: '',
@@ -187,6 +199,9 @@
 
                   // Evaluasi Pagar Anti-Buntu & Kelayakan Film
                   getFilmStatus(fId) {
+                      if (!fId) {
+                          return { allowed: false, isDeadlock: false, reason: 'Pilih salah satu film terlebih dahulu.' };
+                      }
                       const id = Number(fId);
                       if (this.isConfirmed) {
                           if (this.lockedFilmId && Number(this.lockedFilmId) !== id) {
@@ -379,9 +394,11 @@
                           return;
                       }
                       this.filmId = String(id);
+                      this.showFilmCatalog = false;
                       this.filmDetail = null;
                       this.wizardError = '';
                       this.persist();
+                      this.scrollToTop();
                   },
 
                   openNote(id) { this.noteItemId = id; this.noteValue = (this.cart[id] || {}).note || '' },
@@ -488,12 +505,22 @@
                   },
 
                   init() {
+                      const requestFilm = @js((string) request('film', ''));
+                      const oldFilm = @js((string) old('film_id', ''));
                       try {
                           const saved = JSON.parse(sessionStorage.getItem('synemax:booking-wizard') || 'null');
                           if (saved && String(saved.sessionId) === String(this.sessionId)) {
                               this.step = [2, 3, 4, 5].includes(Number(saved.step)) ? Number(saved.step) : 2;
                               if (@js(! $errors->any())) {
-                                  this.filmId = saved.filmId || this.filmId;
+                                  if (requestFilm) {
+                                      this.filmId = requestFilm;
+                                      this.showFilmCatalog = false;
+                                  } else if (oldFilm) {
+                                      this.filmId = oldFilm;
+                                      this.showFilmCatalog = false;
+                                  } else if (saved.filmId) {
+                                      this.filmId = saved.filmId;
+                                  }
                                   if (['reguler', 'couple', 'private'].includes(saved.package)) {
                                       this.package = saved.package;
                                   }
@@ -503,9 +530,18 @@
                                   this.cart = saved.cart || this.cart;
                                   this.activeCategory = saved.activeCategory || this.activeCategory;
                               }
+                          } else {
+                              if (requestFilm) {
+                                  this.filmId = requestFilm;
+                                  this.showFilmCatalog = false;
+                              }
                           }
                       } catch {
                           this.storageAvailable = false;
+                          if (requestFilm) {
+                              this.filmId = requestFilm;
+                              this.showFilmCatalog = false;
+                          }
                       }
 
                       this.syncSeatsWithPackage();
@@ -844,21 +880,117 @@
                         </div>
                     </div>
                 @else
-                    {{-- Search & Filter Genre/Year --}}
-                    <div class="space-y-3">
-                        <input id="film-search"
-                               x-model="filmSearch"
-                               type="search"
-                               autocomplete="off"
-                               placeholder="Cari judul atau genre film..."
-                               class="min-h-11 w-full rounded-xl border border-border-input bg-surface px-4 text-sm text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400">
+                    {{-- KARTU FILM TERPILIH (TERPISAH DARI DAFTAR FILM LAINNYA) --}}
+                    <div x-show="currentFilm !== null" class="rounded-2xl border-2 border-amber-500/60 bg-gradient-to-br from-amber-500/15 via-surface to-surface-2 p-4 sm:p-5 shadow-lg">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border/80 pb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[11px] font-black text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                    <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+                                    </svg>
+                                    <span>Film Terpilih Kamu</span>
+                                </span>
+                            </div>
+                            <button type="button"
+                                    @click="showFilmCatalog = !showFilmCatalog"
+                                    class="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-amber-500/40 bg-surface px-3 text-xs font-bold text-text hover:border-amber-400 hover:text-amber-500 transition">
+                                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                </svg>
+                                <span x-text="showFilmCatalog ? 'Tutup Daftar Film' : 'Mau ganti film?'">Mau ganti film?</span>
+                            </button>
+                        </div>
 
-                        @php
-                            $canonicalGenres = \App\Models\Genre::allActiveNames();
-                            $filmYears = $films->pluck('release_year')->filter()->unique()->sortDesc()->values()->all();
-                        @endphp
-                        <x-public.film-filter-bar :genres="$canonicalGenres" :years="$filmYears" />
+                        <div class="mt-3.5 flex gap-3.5 sm:gap-4">
+                            {{-- Poster Thumbnail --}}
+                            <div class="relative aspect-[2/3] w-20 sm:w-28 shrink-0 overflow-hidden rounded-xl bg-surface-sunken border border-border">
+                                <template x-if="currentFilm && currentFilm.poster">
+                                    <img :src="currentFilm.poster" :alt="currentFilm.title" class="size-full object-cover">
+                                </template>
+                                <template x-if="!currentFilm || !currentFilm.poster">
+                                    <div class="flex size-full items-center justify-center bg-surface-sunken">
+                                        <svg class="size-8 text-text-muted/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
+                                        </svg>
+                                    </div>
+                                </template>
+                                <span class="absolute right-1.5 top-1.5 rounded bg-black/80 px-1.5 py-0.5 text-[9px] font-black text-amber-400 border border-amber-400/30"
+                                      x-text="currentFilm ? currentFilm.rating : 'SU'"></span>
+                            </div>
+
+                            {{-- Info Film --}}
+                            <div class="flex-1 min-w-0 flex flex-col justify-between">
+                                <div>
+                                    <h3 class="text-base sm:text-lg font-black text-text line-clamp-2" x-text="currentFilm?.title"></h3>
+                                    <p class="mt-0.5 text-xs text-text-muted" x-text="`${currentFilm?.genre} · ${currentFilm?.duration}m ${currentFilm?.year ? '· ' + currentFilm.year : ''}`"></p>
+                                    
+                                    <div class="mt-2">
+                                        <template x-if="currentFilm && currentFilm.tally > 0">
+                                            <span class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400">
+                                                <span class="size-2 rounded-full bg-amber-500 animate-pulse"></span>
+                                                <span x-text="`${currentFilm.tally} peminat di sesi ini`"></span>
+                                            </span>
+                                        </template>
+                                        <template x-if="currentFilm && !currentFilm.tally">
+                                            <span class="inline-flex items-center gap-1 text-xs text-text-muted">
+                                                <span>Belum ada peminat lain di sesi ini</span>
+                                            </span>
+                                        </template>
+                                    </div>
+
+                                    <p class="mt-2 text-xs text-text-muted line-clamp-2 leading-relaxed hidden sm:block" x-text="currentFilm?.synopsis || 'Sinopsis belum tersedia.'"></p>
+                                </div>
+
+                                {{-- Tombol Aksi Langsung pada Kartu Film Terpilih --}}
+                                <div class="mt-3 flex flex-wrap items-center gap-2 pt-2 border-t border-border/60">
+                                    <button type="button"
+                                            @click="nextStep()"
+                                            class="btn-gold-cinema inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-xs sm:text-sm font-black shadow-md transition hover:scale-[1.02] active:scale-[0.98]">
+                                        <span x-text="hasSnacks ? 'Lanjut ke Menu Jajan' : 'Lanjut ke Pembayaran'">{{ $snacksEnabled ? 'Lanjut ke Menu Jajan' : 'Lanjut ke Pembayaran' }}</span>
+                                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                                        </svg>
+                                    </button>
+                                    <button type="button"
+                                            @click="showFilmCatalog = !showFilmCatalog"
+                                            class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-border-input bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-400 transition">
+                                        <span x-text="showFilmCatalog ? 'Sembunyikan Daftar' : 'Ganti Pilihan Film'">Ganti Pilihan Film</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    {{-- DAFTAR KATALOG FILM LAINNYA --}}
+                    <div x-show="!filmId || showFilmCatalog" class="space-y-4">
+                        <div class="flex items-center justify-between border-t border-border pt-4">
+                            <div>
+                                <h3 class="text-sm font-black text-text" x-text="currentFilm ? 'Pilih Film Lainnya' : 'Daftar Katalog Film Bioskop'">Daftar Katalog Film Bioskop</h3>
+                                <p class="text-xs text-text-muted">Cari dan pilih film yang kamu inginkan untuk sesi ini.</p>
+                            </div>
+                            <button x-show="currentFilm !== null"
+                                    type="button"
+                                    @click="showFilmCatalog = false"
+                                    class="text-xs font-bold text-amber-500 hover:underline">
+                                Tutup Katalog &times;
+                            </button>
+                        </div>
+
+                        {{-- Search & Filter Genre/Year --}}
+                        <div class="space-y-3">
+                            <input id="film-search"
+                                   x-model="filmSearch"
+                                   type="search"
+                                   autocomplete="off"
+                                   placeholder="Cari judul atau genre film..."
+                                   class="min-h-11 w-full rounded-xl border border-border-input bg-surface px-4 text-sm text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400">
+
+                            @php
+                                $canonicalGenres = \App\Models\Genre::allActiveNames();
+                                $filmYears = $films->pluck('release_year')->filter()->unique()->sortDesc()->values()->all();
+                            @endphp
+                            <x-public.film-filter-bar :genres="$canonicalGenres" :years="$filmYears" />
+                        </div>
 
                         {{-- Grid Pilihan Film --}}
                         <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -929,11 +1061,10 @@
                             @endforeach
                         </div>
 
-                        <p x-cloak x-show="filmOptions.length > 0 && filteredFilmCount === 0 && (filmSearch.trim() !== '' || genre !== '' || tahun !== '')"
+                        <p x-cloak x-show="filmsData.length > 0 && filteredFilmCount === 0 && (filmSearch.trim() !== '' || genre !== '' || tahun !== '')"
                            class="mt-4 rounded-xl border border-border bg-surface p-4 text-center text-xs text-text-muted">
                             Film yang cocok belum ada. Coba kata kunci lain atau pilih Semua Genre.
                         </p>
-                    </div>
                     </div>
                 @endif
 
@@ -950,7 +1081,7 @@
                                 @click="nextStep()"
                                 :disabled="!filmId || !getFilmStatus(filmId).allowed"
                                 class="btn-gold-cinema inline-flex min-h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-6 text-sm font-black shadow-md disabled:cursor-not-allowed disabled:opacity-50 transition hover:scale-[1.02] active:scale-[0.98]">
-                            <span x-text="hasSnacks ? 'Lanjut ke Menu Jajan' : 'Lanjut ke Pembayaran'"></span>
+                            <span x-text="hasSnacks ? 'Lanjut ke Menu Jajan' : 'Lanjut ke Pembayaran'">{{ $snacksEnabled ? 'Lanjut ke Menu Jajan' : 'Lanjut ke Pembayaran' }}</span>
                             <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                             </svg>
@@ -1164,7 +1295,7 @@
                     <button type="submit"
                             :disabled="isSubmitting"
                             class="btn-gold-cinema inline-flex min-h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-8 text-sm font-black shadow-lg disabled:opacity-50 transition hover:scale-[1.02] active:scale-[0.98]">
-                        <span x-show="!isSubmitting" x-text="paymentMethod === 'di_tempat' ? 'Konfirmasi Booking' : 'Booking & Bayar Sekarang'"></span>
+                        <span x-show="!isSubmitting" x-text="paymentMethod === 'di_tempat' ? 'Konfirmasi Booking' : 'Booking & Bayar Sekarang'">Booking & Bayar Sekarang</span>
                         <span x-show="isSubmitting" x-cloak>Memproses Booking...</span>
                         <svg x-show="!isSubmitting" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
@@ -1213,7 +1344,7 @@
                                     @click="nextStep()"
                                     :disabled="!filmId || !getFilmStatus(filmId).allowed"
                                     class="btn-gold-cinema inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-5 text-xs font-black shadow-none disabled:cursor-not-allowed disabled:opacity-50 transition active:scale-95">
-                                <span x-text="hasSnacks ? 'Lanjut ke Menu Jajan' : 'Lanjut ke Pembayaran'"></span>
+                                <span x-text="hasSnacks ? 'Lanjut ke Menu Jajan' : 'Lanjut ke Pembayaran'">{{ $snacksEnabled ? 'Lanjut ke Menu Jajan' : 'Lanjut ke Pembayaran' }}</span>
                                 <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                                 </svg>
@@ -1234,7 +1365,7 @@
                                 x-show="step === 5"
                                 :disabled="isSubmitting"
                                 class="btn-gold-cinema inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-6 text-xs font-black shadow-lg disabled:opacity-50 transition active:scale-95">
-                            <span x-show="!isSubmitting" x-text="paymentMethod === 'di_tempat' ? 'Konfirmasi Booking' : 'Booking & Bayar Sekarang'"></span>
+                            <span x-show="!isSubmitting" x-text="paymentMethod === 'di_tempat' ? 'Konfirmasi Booking' : 'Booking & Bayar Sekarang'">Booking & Bayar Sekarang</span>
                             <span x-show="isSubmitting" x-cloak>Memproses...</span>
                             <svg x-show="!isSubmitting" class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
