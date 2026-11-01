@@ -45,12 +45,12 @@
     }"
     x-on:open-trailer.window="open($event.detail.id, $event.detail.title, $event.detail.trigger)"
     x-on:keydown.escape.window="if (isOpen) close()"
-    x-teleport="body"
 >
-    <div
-        x-show="isOpen"
-        x-cloak
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+    <template x-teleport="body">
+        <div
+            x-show="isOpen"
+            x-cloak
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
         role="dialog"
         aria-modal="true"
         :aria-label="'Trailer ' + videoTitle"
@@ -123,5 +123,5 @@
                 </a>
             </div>
         </div>
-    </div>
+    </template>
 </div>

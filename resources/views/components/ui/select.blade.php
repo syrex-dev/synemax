@@ -77,8 +77,8 @@
     x-data="{
         open: false,
         search: '',
-        selectedValue: '{{ addslashes((string)$currentValue) }}',
-        selectedLabel: '{{ addslashes((string)$selectedLabel) }}',
+        selectedValue: @js((string)$currentValue),
+        selectedLabel: @js((string)$selectedLabel),
         focusedIndex: -1,
         options: {{ Js::from($normalizedOptions) }},
         desktopStyles: {},
@@ -248,6 +248,7 @@
         name="{{ $name }}"
         id="{{ $selectId }}"
         x-ref="hiddenInput"
+        value="{{ $currentValue }}"
         :value="selectedValue"
         @if ($required) required @endif
         @if ($disabled) disabled @endif
@@ -259,7 +260,7 @@
         type="button"
         x-ref="button"
         id="{{ $selectId }}-button"
-        @click="toggle()"
+        @click.stop="toggle()"
         role="combobox"
         :aria-expanded="open"
         aria-haspopup="listbox"

@@ -26,7 +26,7 @@
 
 <div
     x-data="{
-        previewUrl: '{{ $initialUrl }}',
+        previewUrl: @js($initialUrl),
         hasFile: {{ $initialUrl ? 'true' : 'false' }},
         fileName: '',
         clientError: '',
@@ -109,48 +109,44 @@
     {{-- Dropzone & Preview Box --}}
     <div class="relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-400 dark:border-white/20 bg-surface p-4 transition-colors hover:border-amber-500">
         {{-- Preview Area --}}
-        <template x-if="hasFile && previewUrl">
-            <div class="space-y-3">
-                <div class="relative flex items-center justify-center rounded-xl bg-slate-950/20 p-2 max-h-56 overflow-hidden">
-                    <img :src="previewUrl" alt="Pratinjau" class="max-h-52 w-auto max-w-full rounded-lg object-contain shadow-sm">
-                </div>
-                <div class="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-                    <span class="truncate text-xs font-semibold text-text max-w-[200px]" x-text="fileName || 'Gambar tersimpan'"></span>
-                    <div class="flex items-center gap-2">
-                        <label for="{{ $inputId }}" class="inline-flex min-h-[34px] cursor-pointer items-center rounded-lg border border-slate-400 dark:border-white/20 bg-surface px-3 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition-colors shadow-xs">
-                            Ganti
-                        </label>
-                        <button type="button" @click="removeFile()" class="inline-flex min-h-[34px] items-center rounded-lg border border-danger/40 bg-surface px-3 text-xs font-bold text-danger hover:bg-danger/10 transition-colors shadow-xs">
-                            Hapus
-                        </button>
-                    </div>
+        <div x-show="hasFile && previewUrl" x-cloak class="space-y-3">
+            <div class="relative flex items-center justify-center rounded-xl bg-slate-950/20 p-2 max-h-56 overflow-hidden">
+                <img :src="previewUrl" alt="Pratinjau" class="max-h-52 w-auto max-w-full rounded-lg object-contain shadow-sm">
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+                <span class="truncate text-xs font-semibold text-text max-w-[200px]" x-text="fileName || 'Gambar tersimpan'"></span>
+                <div class="flex items-center gap-2">
+                    <label for="{{ $inputId }}" class="inline-flex min-h-[34px] cursor-pointer items-center rounded-lg border border-slate-400 dark:border-white/20 bg-surface px-3 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition-colors shadow-xs">
+                        Ganti
+                    </label>
+                    <button type="button" @click="removeFile()" class="inline-flex min-h-[34px] items-center rounded-lg border border-danger/40 bg-surface px-3 text-xs font-bold text-danger hover:bg-danger/10 transition-colors shadow-xs">
+                        Hapus
+                    </button>
                 </div>
             </div>
-        </template>
+        </div>
 
         {{-- Empty State / File Selector --}}
-        <template x-if="!hasFile || !previewUrl">
-            <div class="flex flex-col items-center justify-center py-6 text-center">
-                <div class="flex size-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-500 mb-3">
-                    <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                </div>
-                <p class="text-xs font-bold text-text">Pilih gambar dari komputer</p>
-                <p class="mt-1 text-[11px] text-text-muted">{{ $hint }}</p>
-
-                <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
-                    <label for="{{ $inputId }}" class="inline-flex min-h-[38px] cursor-pointer items-center rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400 transition-colors shadow-xs">
-                        Pilih File
-                    </label>
-                    @if (count($libraryImages) > 0)
-                        <button type="button" @click="showLibrary = true" class="inline-flex min-h-[38px] items-center rounded-xl border border-slate-400 dark:border-white/20 bg-surface px-3 py-1.5 text-xs font-semibold text-text hover:bg-surface-2 transition-colors shadow-xs">
-                            Pilih dari pustaka
-                        </button>
-                    @endif
-                </div>
+        <div x-show="!hasFile || !previewUrl" class="flex flex-col items-center justify-center py-6 text-center">
+            <div class="flex size-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-500 mb-3">
+                <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
             </div>
-        </template>
+            <p class="text-xs font-bold text-text">Pilih gambar dari komputer</p>
+            <p class="mt-1 text-[11px] text-text-muted">{{ $hint }}</p>
+
+            <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+                <label for="{{ $inputId }}" class="inline-flex min-h-[38px] cursor-pointer items-center rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400 transition-colors shadow-xs">
+                    Pilih File
+                </label>
+                @if (count($libraryImages) > 0)
+                    <button type="button" @click="showLibrary = true" class="inline-flex min-h-[38px] items-center rounded-xl border border-slate-400 dark:border-white/20 bg-surface px-3 py-1.5 text-xs font-semibold text-text hover:bg-surface-2 transition-colors shadow-xs">
+                        Pilih dari pustaka
+                    </button>
+                @endif
+            </div>
+        </div>
 
         {{-- Hidden Native File Input --}}
         <input

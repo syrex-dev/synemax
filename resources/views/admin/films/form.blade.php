@@ -3,35 +3,38 @@
 @section('title', $film->exists ? 'Ubah Film' : 'Tambah Film Baru')
 
 @section('content')
-    <div
-        x-data="{
-            trailerUrl: '{{ old('trailer_url', $film->trailer_url) }}',
-            filmTitle: '{{ old('title', $film->title) }}',
-            trailerError: '',
-            extractYoutubeId(url) {
-                if (!url) return null;
-                const trimmed = url.trim();
-                const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts|live)\/|.*[?&]v=)|youtu\.be\/)([^\"&?\/\s]{11})/i;
-                const match = trimmed.match(regExp);
-                return match ? match[1] : null;
-            },
-            previewTrailer(event) {
-                const id = this.extractYoutubeId(this.trailerUrl);
-                if (!id) {
-                    this.trailerError = 'Tautan YouTube tidak dikenali. Masukkan tautan youtube.com atau youtu.be yang valid.';
-                    return;
-                }
-                this.trailerError = '';
-                window.dispatchEvent(new CustomEvent('open-trailer', {
-                    detail: {
-                        id: id,
-                        title: this.filmTitle || 'Pratinjau Trailer',
-                        trigger: event.currentTarget
+    <script>
+        function filmFormHandler() {
+            return {
+                trailerUrl: @js(old('trailer_url', $film->trailer_url ?? '')),
+                filmTitle: @js(old('title', $film->title ?? '')),
+                trailerError: '',
+                get youtubeId() {
+                    if (!this.trailerUrl) return null;
+                    const trimmed = this.trailerUrl.trim();
+                    const match = trimmed.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts|live)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i);
+                    return match ? match[1] : null;
+                },
+                previewTrailer(event) {
+                    const id = this.youtubeId;
+                    if (!id) {
+                        this.trailerError = 'Tautan YouTube tidak dikenali. Masukkan tautan youtube.com atau youtu.be yang valid.';
+                        return;
                     }
-                }));
-            }
-        }"
-    >
+                    this.trailerError = '';
+                    window.dispatchEvent(new CustomEvent('open-trailer', {
+                        detail: {
+                            id: id,
+                            title: this.filmTitle || 'Pratinjau Trailer',
+                            trigger: event ? event.currentTarget : null
+                        }
+                    }));
+                }
+            };
+        }
+    </script>
+
+    <div x-data="filmFormHandler()">
         <x-public.trailer-modal />
 
         <x-admin.page-header
@@ -212,9 +215,6 @@
                                 '17+' => '17+ · Dewasa',
                             ]"
                         />
-                        @error('age_rating')
-                            <p class="mt-1 text-xs text-red-500 font-semibold">{{ $message }}</p>
-                        @enderror
                     </div>
 
                     <div>
@@ -244,6 +244,38 @@
                         @error('trailer_url')
                             <p class="mt-1 text-xs text-red-500 font-semibold">{{ $message }}</p>
                         @enderror
+
+                        {{-- In-Form Live Trailer Player & Placeholder --}}
+                        <div class="mt-3">
+                            {{-- Live Video Player saat ID YouTube terdeteksi --}}
+                            <div x-show="youtubeId" class="overflow-hidden rounded-xl border border-border bg-black/40">
+                                <div class="aspect-video w-full">
+                                    <iframe
+                                        x-bind:src="youtubeId ? ('https://www.youtube-nocookie.com/embed/' + youtubeId) : ''"
+                                        class="size-full rounded-xl"
+                                        frameborder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowfullscreen
+                                    ></iframe>
+                                </div>
+                                <div class="flex items-center justify-between p-2.5 bg-surface text-xs border-t border-border">
+                                    <span class="font-semibold text-text truncate">Pratinjau Video YouTube</span>
+                                    <span class="text-[11px] text-text-muted font-mono" x-text="'ID: ' + youtubeId"></span>
+                                </div>
+                            </div>
+
+                            {{-- Feedback saat format URL belum valid --}}
+                            <div x-show="trailerUrl && trailerUrl.trim().length > 0 && !youtubeId" class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                                <svg class="size-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                <span>Format tautan YouTube belum dikenali. Contoh: <code>https://www.youtube.com/watch?v=...</code></span>
+                            </div>
+
+                            {{-- Placeholder ramah saat kosong --}}
+                            <div x-show="!trailerUrl || trailerUrl.trim().length === 0" class="rounded-xl border border-dashed border-border p-3.5 text-center text-xs text-text-muted bg-surface-2/40">
+                                <p class="font-medium text-text">Pratinjau Trailer</p>
+                                <p class="text-[11px] mt-0.5 text-text-muted">Masukkan tautan YouTube di atas untuk melihat pratinjau video secara langsung di sini.</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

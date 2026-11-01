@@ -470,5 +470,7 @@
 
         {{-- Universal In-App Dialogs (Toasts, Confirmation Modals, 419 Alert) --}}
         <x-in-app-dialogs />
+
+        @stack('scripts')
     </body>
 </html>
