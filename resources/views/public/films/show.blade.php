@@ -27,18 +27,21 @@
 
 {{-- Header Banner Pola CGV --}}
 <div class="relative overflow-hidden bg-surface dark:bg-[#07090E] border-b border-border transition-colors duration-200">
-    {{-- Blurred Backdrop Layer (Elemen tersendiri, bukan backdrop-filter) --}}
     @if ($hasPoster)
+        {{-- Backdrop Layer Pola CGV: Menggunakan file poster yang sama persis, tajam & jelas terlihat --}}
         <div
-            class="absolute inset-0 z-0 bg-cover bg-center filter blur-2xl scale-110 opacity-25 dark:opacity-20 pointer-events-none"
+            class="absolute inset-0 z-0 bg-cover bg-[center_25%] md:bg-[center_38%] pointer-events-none opacity-80 dark:opacity-65 transition-opacity duration-300"
             style="background-image: url('{{ $film->posterUrl() }}');"
+            aria-hidden="true"
+        ></div>
+        {{-- Gradient Overlay Pola CGV: Fading halus dari permukaan solid di bawah ke lapisan lembut di atas --}}
+        <div
+            class="absolute inset-0 z-0 bg-gradient-to-t from-surface via-surface/85 to-surface/50 dark:from-[#07090E] dark:via-[#07090E]/85 dark:to-[#07090E]/55 pointer-events-none"
             aria-hidden="true"
         ></div>
     @else
         <div class="absolute inset-0 z-0 bg-gradient-to-b from-surface-2 to-surface dark:from-[#0B101B] dark:to-[#07090E] pointer-events-none" aria-hidden="true"></div>
     @endif
-    {{-- Gradient Overlay fading to background color --}}
-    <div class="absolute inset-0 z-0 bg-gradient-to-b from-bg/40 via-bg/80 to-bg pointer-events-none" aria-hidden="true"></div>
 
     {{-- Content Container --}}
     <div class="relative z-10 mx-auto max-w-6xl px-4 pt-4 sm:pt-6 pb-8 sm:px-6">
