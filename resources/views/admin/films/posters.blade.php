@@ -669,400 +669,14 @@
     </div>
 
     {{-- Daftar Poster Belum Terpasang --}}
-    <div
-        class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-4"
-        x-data="{
-            posters: {{ Js::from($unmatchedPosters) }},
-            selectedFilms: {},
-            ocrMatches: {},
-            scanningFiles: {},
-            processingFiles: {},
-            isScanningOcr: false,
-            ocrTotalCount: 0,
-            ocrCurrentIndex: 0,
-            ocrProgressPercent: 0,
-            ocrProgressText: '',
-            isSubmittingBatch: false,
-            banner: null,
-            _bannerTimer: null,
-
-            init() {
-                for (const p of this.posters) {
-                    if (!(p.filename in this.selectedFilms)) {
-                        this.selectedFilms[p.filename] = '';
-                    }
-                }
-            },
-
-            get selectedCount() {
-                return Object.values(this.selectedFilms).filter(Boolean).length;
-            },
-
-            showBanner(type, message) {
-                this.banner = { type, message };
-                if (this._bannerTimer) clearTimeout(this._bannerTimer);
-                this._bannerTimer = setTimeout(() => {
-                    this.banner = null;
-                }, 8000);
-            },
-
-            notifyCountChange() {
-                window.dispatchEvent(new CustomEvent('unmatched-count-changed', {
-                    detail: this.posters.length
-                }));
-            },
-
-            formatSize(bytes) {
-                if (!bytes || bytes <= 0) return '0 B';
-                const units = ['B', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(1024));
-                return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
-            },
-
-            async scanSinglePosterOcr(poster) {
-                if (this.scanningFiles[poster.filename] || this.isScanningOcr) return;
-
-                this.scanningFiles[poster.filename] = true;
-                try {
-                    const text = await recognizeTextFromSource(poster.url);
-                    if (!text || text.trim().length === 0) {
-                        alert('Tidak ditemukan teks judul yang terbaca pada gambar ini.');
-                        return;
-                    }
-
-                    const res = await fetch('{{ route('admin.films.posters.match_ocr') }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({
-                            ocr_text: text,
-                            filename: poster.filename
-                        })
-                    });
-
-                    const data = await res.json();
-                    if (res.ok && data.success && data.matched && data.film_id) {
-                        this.selectedFilms[poster.filename] = String(data.film_id);
-                        this.ocrMatches[poster.filename] = {
-                            film_id: data.film_id,
-                            film_title: data.film_title,
-                            confidence: data.confidence,
-                            match_type: data.match_type
-                        };
-                        this.showBanner('success', `✨ Poster &quot;${poster.filename}&quot; cocok dengan film &quot;${data.film_title}&quot;!`);
-                    } else {
-                        alert(data.message || 'Tidak ditemukan film katalog yang cocok dengan teks pada poster ini.');
-                    }
-                } catch (err) {
-                    alert('Gagal memindai gambar: ' + err.message);
-                } finally {
-                    this.scanningFiles[poster.filename] = false;
-                }
-            },
-
-            async scanAllPostersOcr() {
-                if (this.isScanningOcr || this.posters.length === 0) return;
-
-                this.isScanningOcr = true;
-                this.ocrTotalCount = this.posters.length;
-                this.ocrCurrentIndex = 0;
-                this.ocrProgressPercent = 0;
-                this.ocrProgressText = 'Menyiapkan modul OCR AI di peramban...';
-
-                let matchedCount = 0;
-
-                try {
-                    for (let i = 0; i < this.posters.length; i++) {
-                        const poster = this.posters[i];
-                        this.ocrCurrentIndex = i + 1;
-                        this.ocrProgressPercent = Math.round((this.ocrCurrentIndex / this.ocrTotalCount) * 100);
-                        this.ocrProgressText = `[${this.ocrCurrentIndex}/${this.ocrTotalCount}] Membaca teks pada poster: ${poster.filename}...`;
-
-                        if (this.selectedFilms[poster.filename]) {
-                            continue;
-                        }
-
-                        try {
-                            const text = await recognizeTextFromSource(poster.url);
-                            if (text && text.trim().length > 0) {
-                                this.ocrProgressText = `[${this.ocrCurrentIndex}/${this.ocrTotalCount}] Mencocokkan dengan katalog: ${poster.filename}...`;
-
-                                const res = await fetch('{{ route('admin.films.posters.match_ocr') }}', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Accept': 'application/json',
-                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                        'X-Requested-With': 'XMLHttpRequest'
-                                    },
-                                    body: JSON.stringify({
-                                        ocr_text: text,
-                                        filename: poster.filename
-                                    })
-                                });
-
-                                const data = await res.json();
-                                if (res.ok && data.success && data.matched && data.film_id) {
-                                    this.selectedFilms[poster.filename] = String(data.film_id);
-                                    this.ocrMatches[poster.filename] = {
-                                        film_id: data.film_id,
-                                        film_title: data.film_title,
-                                        confidence: data.confidence,
-                                        match_type: data.match_type
-                                    };
-                                    matchedCount++;
-                                }
-                            }
-                        } catch (err) {
-                            console.warn('Gagal memindai poster ' + poster.filename, err);
-                        }
-                    }
-
-                    if (matchedCount > 0) {
-                        this.showBanner('success', `✨ Selesai! Berhasil mengenali ${matchedCount} judul film dari foto poster. Silakan periksa dan klik &quot;Pasangkan Semua yang Dipilih&quot;.`);
-                    } else {
-                        this.showBanner('info', 'Pemindaian selesai, namun tidak ditemukan judul film katalog yang cocok pada teks foto. Anda dapat memilih film secara manual.');
-                    }
-                } catch (e) {
-                    this.showBanner('error', 'Terjadi kesalahan saat memindai: ' + e.message);
-                } finally {
-                    this.isScanningOcr = false;
-                    this.ocrProgressText = '';
-                }
-            },
-
-            async assignSingle(filename) {
-                const filmId = this.selectedFilms[filename];
-                if (!filmId) {
-                    alert('Pilih film penerima terlebih dahulu pada poster ini.');
-                    return;
-                }
-
-                this.processingFiles[filename] = true;
-                try {
-                    const res = await fetch('{{ route('admin.films.posters.assign') }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({
-                            poster_filename: filename,
-                            film_id: parseInt(filmId, 10)
-                        })
-                    });
-
-                    const data = await res.json();
-                    if (res.ok && data.success) {
-                        this.posters = this.posters.filter(p => p.filename !== filename);
-                        delete this.selectedFilms[filename];
-                        delete this.ocrMatches[filename];
-                        this.notifyCountChange();
-                        this.showBanner('success', `🎉 ${data.message || 'Poster berhasil dipasangkan!'}`);
-                    } else {
-                        alert(data.message || 'Gagal memasangkan poster.');
-                    }
-                } catch (err) {
-                    alert('Gagal menghubungi server: ' + err.message);
-                } finally {
-                    delete this.processingFiles[filename];
-                }
-            },
-
-            async assignAllSelected() {
-                const assignments = [];
-                for (const poster of this.posters) {
-                    const filmId = this.selectedFilms[poster.filename];
-                    if (filmId) {
-                        assignments.push({
-                            poster_filename: poster.filename,
-                            film_id: parseInt(filmId, 10)
-                        });
-                    }
-                }
-
-                if (assignments.length === 0) {
-                    alert('Pilih minimal satu film penerima terlebih dahulu pada poster yang ingin dipasangkan.');
-                    return;
-                }
-
-                this.isSubmittingBatch = true;
-                try {
-                    const res = await fetch('{{ route('admin.films.posters.assign_batch') }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: JSON.stringify({ assignments })
-                    });
-
-                    const data = await res.json();
-                    if (res.ok && data.success) {
-                        const assignedFilenames = new Set(assignments.map(a => a.poster_filename));
-                        this.posters = this.posters.filter(p => !assignedFilenames.has(p.filename));
-                        for (const fn of assignedFilenames) {
-                            delete this.selectedFilms[fn];
-                            delete this.ocrMatches[fn];
-                        }
-                        this.notifyCountChange();
-                        this.showBanner('success', `🎉 ${data.message || 'Berhasil memasangkan kumpulan poster!'}`);
-                    } else {
-                        alert(data.message || 'Gagal memasangkan kumpulan poster.');
-                    }
-                } catch (err) {
-                    alert('Gagal menghubungi server: ' + err.message);
-                } finally {
-                    this.isSubmittingBatch = false;
-                }
-            },
-
-            async deleteSingle(filename) {
-                if (!confirm('Hapus berkas poster ini dari antrean?')) {
-                    return;
-                }
-
-                this.processingFiles[filename] = true;
-                try {
-                    const url = '{{ route('admin.films.posters.destroy', '__FILE__') }}'.replace('__FILE__', encodeURIComponent(filename));
-                    const res = await fetch(url, {
-                        method: 'DELETE',
-                        headers: {
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    });
-
-                    const data = await res.json();
-                    if (res.ok && data.success) {
-                        this.posters = this.posters.filter(p => p.filename !== filename);
-                        delete this.selectedFilms[filename];
-                        delete this.ocrMatches[filename];
-                        this.notifyCountChange();
-                        this.showBanner('info', 'Poster berhasil dihapus dari antrean.');
-                    } else {
-                        alert(data.message || 'Gagal menghapus poster.');
-                    }
-                } catch (err) {
-                    alert('Gagal menghapus berkas: ' + err.message);
-                } finally {
-                    delete this.processingFiles[filename];
-                }
-            }
-        }"
-    >
-        {{-- Header & Batch Actions --}}
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    @if (empty($unmatchedPosters))
+        <div class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-4">
             <div>
-                <div class="flex items-center gap-2">
-                    <h3 class="text-base font-bold text-text">
-                        Poster Belum Terpasang (<span x-text="posters.length"></span>)
-                    </h3>
-                    <template x-if="selectedCount > 0">
-                        <span class="inline-flex items-center rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-bold text-amber-500 border border-amber-500/30">
-                            <span x-text="selectedCount"></span> dipilih
-                        </span>
-                    </template>
-                </div>
+                <h3 class="text-base font-bold text-text">Poster Belum Terpasang (0)</h3>
                 <p class="text-xs text-text-muted mt-0.5">
-                    Poster yang tidak cocok otomatis dapat dipasangkan secara manual atau dipindai otomatis dari teks foto menggunakan OCR AI.
+                    Poster yang tidak cocok otomatis dengan judul/slug film dapat dipasangkan secara manual melalui pilihan film di bawah tiap poster.
                 </p>
             </div>
-
-            <div class="flex flex-wrap items-center gap-2 shrink-0">
-                {{-- Scan All with OCR --}}
-                <button
-                    type="button"
-                    @click="scanAllPostersOcr()"
-                    :disabled="isScanningOcr || isSubmittingBatch || posters.length === 0"
-                    class="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-1.5 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title="Pindai judul film dari teks pada foto poster menggunakan OCR AI"
-                >
-                    <template x-if="isScanningOcr">
-                        <svg class="size-4 animate-spin text-amber-500" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </template>
-                    <template x-if="!isScanningOcr">
-                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-                        </svg>
-                    </template>
-                    <span x-text="isScanningOcr ? 'Memindai Teks...' : 'Pindai Judul Semua Poster (OCR AI)'"></span>
-                </button>
-
-                {{-- Pasangkan Semua yang Dipilih --}}
-                <button
-                    type="button"
-                    @click="assignAllSelected()"
-                    :disabled="selectedCount === 0 || isSubmittingBatch || isScanningOcr"
-                    class="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <template x-if="isSubmittingBatch">
-                        <svg class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </template>
-                    <template x-if="!isSubmittingBatch">
-                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                    </template>
-                    <span>Pasangkan Semua yang Dipilih (<span x-text="selectedCount"></span>)</span>
-                </button>
-            </div>
-        </div>
-
-        {{-- Toast / Banner --}}
-        <template x-if="banner">
-            <div
-                class="rounded-xl p-3.5 text-xs font-semibold flex items-center justify-between gap-3 animate-fade-in"
-                :class="{
-                    'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400': banner.type === 'success',
-                    'bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400': banner.type === 'error',
-                    'bg-amber-500/10 border border-amber-500/30 text-amber-500': banner.type === 'info'
-                }"
-            >
-                <span x-text="banner.message"></span>
-                <button type="button" @click="banner = null" class="opacity-70 hover:opacity-100 text-sm font-bold">✕</button>
-            </div>
-        </template>
-
-        {{-- Progress Bar for OCR Scan --}}
-        <template x-if="isScanningOcr">
-            <div class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
-                <div class="flex items-center justify-between text-xs">
-                    <span class="font-bold text-amber-500 flex items-center gap-2">
-                        <svg class="size-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span x-text="ocrProgressText"></span>
-                    </span>
-                    <span class="font-bold text-amber-500" x-text="ocrProgressPercent + '%'"></span>
-                </div>
-                <div class="h-2 w-full overflow-hidden rounded-full bg-surface-2 border border-border">
-                    <div
-                        class="h-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all duration-300"
-                        :style="`width: ${ocrProgressPercent}%`"
-                    ></div>
-                </div>
-            </div>
-        </template>
-
-        {{-- Empty State --}}
-        <template x-if="posters.length === 0">
             <div class="rounded-xl border border-border bg-surface-2/30 p-8 text-center text-xs text-text-muted">
                 <svg class="size-8 text-success mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1070,106 +684,552 @@
                 <p class="font-bold text-text">Semua poster telah terpasang rapi</p>
                 <p class="mt-1">Tidak ada berkas poster antrean yang belum terpasang ke film katalog.</p>
             </div>
-        </template>
+        </div>
+    @else
+        <div
+            class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-4"
+            x-data="{
+                posterList: [
+                    @foreach ($unmatchedPosters as $p)
+                    {
+                        filename: {{ Js::from($p['filename']) }},
+                        url: {{ Js::from($p['url']) }},
+                        selectName: 'film_id_{{ md5($p['filename']) }}'
+                    },
+                    @endforeach
+                ],
+                totalInitial: {{ count($unmatchedPosters) }},
+                removedPosters: {},
+                selectedFilms: {},
+                ocrMatches: {},
+                scanningFiles: {},
+                processingFiles: {},
+                isScanningOcr: false,
+                ocrTotalCount: 0,
+                ocrCurrentIndex: 0,
+                ocrProgressPercent: 0,
+                ocrProgressText: '',
+                isSubmittingBatch: false,
+                banner: null,
+                _bannerTimer: null,
 
-        {{-- Grid of Poster Cards --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" x-show="posters.length > 0">
-            <template x-for="poster in posters" :key="poster.filename">
-                <div class="rounded-xl border border-border bg-surface-2/40 p-4 space-y-3 flex flex-col justify-between transition-all">
-                    <div class="flex gap-3">
-                        <img
-                            :src="poster.url"
-                            :alt="poster.filename"
-                            class="h-28 w-20 shrink-0 rounded-lg object-cover border border-border bg-surface shadow-xs"
-                            loading="lazy"
-                        >
-                        <div class="min-w-0 flex-1 space-y-1">
-                            <p class="text-xs font-bold text-text truncate" :title="poster.filename" x-text="poster.filename"></p>
-                            <p class="text-[11px] text-text-muted" x-text="`${poster.width} × ${poster.height} px · ${formatSize(poster.size)}`"></p>
-                            <template x-if="poster.is_small">
-                                <span class="inline-flex items-center rounded-md bg-warning/15 px-2 py-0.5 text-[10px] font-bold text-warning border border-warning/30" :title="poster.warning">
-                                    Resolusi Rendah
-                                </span>
-                            </template>
+                get remainingCount() {
+                    const removedCount = Object.keys(this.removedPosters).filter(k => this.removedPosters[k]).length;
+                    return Math.max(0, this.totalInitial - removedCount);
+                },
 
-                            {{-- OCR Match Badge if detected --}}
-                            <template x-if="ocrMatches[poster.filename]">
-                                <div class="mt-1 inline-flex items-center gap-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                                    <svg class="size-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                    <span class="truncate" x-text="`AI: ${ocrMatches[poster.filename].film_title}`"></span>
-                                </div>
-                            </template>
-                        </div>
+                get selectedCount() {
+                    let count = 0;
+                    for (const p of this.posterList) {
+                        if (!this.removedPosters[p.filename] && this.selectedFilms[p.filename]) {
+                            count++;
+                        }
+                    }
+                    return count;
+                },
+
+                onFilmSelected(filename, filmId) {
+                    this.selectedFilms[filename] = filmId || '';
+                },
+
+                showBanner(type, message) {
+                    this.banner = { type, message };
+                    if (this._bannerTimer) clearTimeout(this._bannerTimer);
+                    this._bannerTimer = setTimeout(() => {
+                        this.banner = null;
+                    }, 8000);
+                },
+
+                notifyCountChange() {
+                    window.dispatchEvent(new CustomEvent('unmatched-count-changed', {
+                        detail: this.remainingCount
+                    }));
+                },
+
+                async scanSinglePosterOcr(filename, url, selectName) {
+                    if (this.scanningFiles[filename] || this.isScanningOcr) return;
+
+                    this.scanningFiles[filename] = true;
+                    try {
+                        const text = await recognizeTextFromSource(url);
+                        if (!text || text.trim().length === 0) {
+                            alert('Tidak ditemukan teks judul yang terbaca pada gambar ini.');
+                            return;
+                        }
+
+                        const res = await fetch('{{ route('admin.films.posters.match_ocr') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({
+                                ocr_text: text,
+                                filename: filename
+                            })
+                        });
+
+                        const data = await res.json();
+                        if (res.ok && data.success && data.matched && data.film_id) {
+                            this.selectedFilms[filename] = String(data.film_id);
+                            this.ocrMatches[filename] = {
+                                film_id: data.film_id,
+                                film_title: data.film_title,
+                                confidence: data.confidence,
+                                match_type: data.match_type
+                            };
+
+                            // Update custom x-ui.select component value & label
+                            window.dispatchEvent(new CustomEvent('synemax-select-set', {
+                                detail: {
+                                    name: selectName,
+                                    value: String(data.film_id)
+                                }
+                            }));
+
+                            this.showBanner('success', `✨ Poster &quot;${filename}&quot; cocok dengan film &quot;${data.film_title}&quot;!`);
+                        } else {
+                            alert(data.message || 'Tidak ditemukan film katalog yang cocok dengan teks pada poster ini.');
+                        }
+                    } catch (err) {
+                        alert('Gagal memindai gambar: ' + err.message);
+                    } finally {
+                        this.scanningFiles[filename] = false;
+                    }
+                },
+
+                async scanAllPostersOcr() {
+                    if (this.isScanningOcr || this.remainingCount === 0) return;
+
+                    const pendingPosters = this.posterList.filter(p => !this.removedPosters[p.filename] && !this.selectedFilms[p.filename]);
+                    if (pendingPosters.length === 0) {
+                        this.showBanner('info', 'Semua poster yang tampil saat ini sudah dipilihkan filmnya.');
+                        return;
+                    }
+
+                    this.isScanningOcr = true;
+                    this.ocrTotalCount = pendingPosters.length;
+                    this.ocrCurrentIndex = 0;
+                    this.ocrProgressPercent = 0;
+                    this.ocrProgressText = 'Menyiapkan modul OCR AI di peramban...';
+
+                    let matchedCount = 0;
+
+                    try {
+                        for (let i = 0; i < pendingPosters.length; i++) {
+                            const poster = pendingPosters[i];
+                            this.ocrCurrentIndex = i + 1;
+                            this.ocrProgressPercent = Math.round((this.ocrCurrentIndex / this.ocrTotalCount) * 100);
+                            this.ocrProgressText = `[${this.ocrCurrentIndex}/${this.ocrTotalCount}] Membaca teks pada poster: ${poster.filename}...`;
+
+                            try {
+                                const text = await recognizeTextFromSource(poster.url);
+                                if (text && text.trim().length > 0) {
+                                    this.ocrProgressText = `[${this.ocrCurrentIndex}/${this.ocrTotalCount}] Mencocokkan dengan katalog: ${poster.filename}...`;
+
+                                    const res = await fetch('{{ route('admin.films.posters.match_ocr') }}', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Accept': 'application/json',
+                                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                            'X-Requested-With': 'XMLHttpRequest'
+                                        },
+                                        body: JSON.stringify({
+                                            ocr_text: text,
+                                            filename: poster.filename
+                                        })
+                                    });
+
+                                    const data = await res.json();
+                                    if (res.ok && data.success && data.matched && data.film_id) {
+                                        this.selectedFilms[poster.filename] = String(data.film_id);
+                                        this.ocrMatches[poster.filename] = {
+                                            film_id: data.film_id,
+                                            film_title: data.film_title,
+                                            confidence: data.confidence,
+                                            match_type: data.match_type
+                                        };
+
+                                        // Update custom x-ui.select component value & label
+                                        window.dispatchEvent(new CustomEvent('synemax-select-set', {
+                                            detail: {
+                                                name: poster.selectName,
+                                                value: String(data.film_id)
+                                            }
+                                        }));
+
+                                        matchedCount++;
+                                    }
+                                }
+                            } catch (err) {
+                                console.warn('Gagal memindai poster ' + poster.filename, err);
+                            }
+                        }
+
+                        if (matchedCount > 0) {
+                            this.showBanner('success', `✨ Selesai! Berhasil mengenali ${matchedCount} judul film dari foto poster. Silakan tinjau dan klik &quot;Pasangkan Semua yang Dipilih&quot;.`);
+                        } else {
+                            this.showBanner('info', 'Pemindaian selesai, namun tidak ditemukan judul film katalog yang cocok pada teks foto. Anda dapat memilih film secara manual.');
+                        }
+                    } catch (e) {
+                        this.showBanner('error', 'Terjadi kesalahan saat memindai: ' + e.message);
+                    } finally {
+                        this.isScanningOcr = false;
+                        this.ocrProgressText = '';
+                    }
+                },
+
+                async assignSingle(filename) {
+                    const filmId = this.selectedFilms[filename];
+                    if (!filmId) {
+                        alert('Pilih film penerima terlebih dahulu pada poster ini.');
+                        return;
+                    }
+
+                    this.processingFiles[filename] = true;
+                    try {
+                        const res = await fetch('{{ route('admin.films.posters.assign') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({
+                                poster_filename: filename,
+                                film_id: parseInt(filmId, 10)
+                            })
+                        });
+
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.removedPosters[filename] = true;
+                            delete this.selectedFilms[filename];
+                            delete this.ocrMatches[filename];
+                            this.notifyCountChange();
+                            this.showBanner('success', `🎉 ${data.message || 'Poster berhasil dipasangkan!'}`);
+                        } else {
+                            alert(data.message || 'Gagal memasangkan poster.');
+                        }
+                    } catch (err) {
+                        alert('Gagal menghubungi server: ' + err.message);
+                    } finally {
+                        delete this.processingFiles[filename];
+                    }
+                },
+
+                async assignAllSelected() {
+                    const assignments = [];
+                    for (const poster of this.posterList) {
+                        if (!this.removedPosters[poster.filename]) {
+                            const filmId = this.selectedFilms[poster.filename];
+                            if (filmId) {
+                                assignments.push({
+                                    poster_filename: poster.filename,
+                                    film_id: parseInt(filmId, 10)
+                                });
+                            }
+                        }
+                    }
+
+                    if (assignments.length === 0) {
+                        alert('Pilih minimal satu film penerima terlebih dahulu pada poster yang ingin dipasangkan.');
+                        return;
+                    }
+
+                    this.isSubmittingBatch = true;
+                    try {
+                        const res = await fetch('{{ route('admin.films.posters.assign_batch') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({ assignments })
+                        });
+
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            for (const item of assignments) {
+                                this.removedPosters[item.poster_filename] = true;
+                                delete this.selectedFilms[item.poster_filename];
+                                delete this.ocrMatches[item.poster_filename];
+                            }
+                            this.notifyCountChange();
+                            this.showBanner('success', `🎉 ${data.message || 'Berhasil memasangkan kumpulan poster!'}`);
+                        } else {
+                            alert(data.message || 'Gagal memasangkan kumpulan poster.');
+                        }
+                    } catch (err) {
+                        alert('Gagal menghubungi server: ' + err.message);
+                    } finally {
+                        this.isSubmittingBatch = false;
+                    }
+                },
+
+                async deleteSingle(filename) {
+                    if (!confirm('Hapus berkas poster ini dari antrean?')) {
+                        return;
+                    }
+
+                    this.processingFiles[filename] = true;
+                    try {
+                        const url = '{{ route('admin.films.posters.destroy', '__FILE__') }}'.replace('__FILE__', encodeURIComponent(filename));
+                        const res = await fetch(url, {
+                            method: 'DELETE',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.removedPosters[filename] = true;
+                            delete this.selectedFilms[filename];
+                            delete this.ocrMatches[filename];
+                            this.notifyCountChange();
+                            this.showBanner('info', 'Poster berhasil dihapus dari antrean.');
+                        } else {
+                            alert(data.message || 'Gagal menghapus poster.');
+                        }
+                    } catch (err) {
+                        alert('Gagal menghapus berkas: ' + err.message);
+                    } finally {
+                        delete this.processingFiles[filename];
+                    }
+                }
+            }"
+        >
+            {{-- Header & Batch Actions --}}
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-base font-bold text-text">
+                            Poster Belum Terpasang (<span x-text="remainingCount"></span>)
+                        </h3>
+                        <template x-if="selectedCount > 0">
+                            <span class="inline-flex items-center rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-bold text-amber-500 border border-amber-500/30">
+                                <span x-text="selectedCount"></span> dipilih
+                            </span>
+                        </template>
                     </div>
+                    <p class="text-xs text-text-muted mt-0.5">
+                        Poster yang tidak cocok otomatis dapat dipasangkan secara manual melalui pencarian film di bawah tiap poster atau dipindai menggunakan OCR AI.
+                    </p>
+                </div>
 
-                    <div class="pt-2 border-t border-border space-y-2">
-                        <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <label class="block text-xs font-semibold text-text">Pasangkan ke Film</label>
+                <div class="flex flex-wrap items-center gap-2 shrink-0">
+                    {{-- Scan All with OCR --}}
+                    <button
+                        type="button"
+                        @click="scanAllPostersOcr()"
+                        :disabled="isScanningOcr || isSubmittingBatch || remainingCount === 0"
+                        class="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-1.5 text-xs font-bold text-amber-500 hover:bg-amber-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Pindai judul film dari teks pada foto poster menggunakan OCR AI"
+                    >
+                        <template x-if="isScanningOcr">
+                            <svg class="size-4 animate-spin text-amber-500" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </template>
+                        <template x-if="!isScanningOcr">
+                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                            </svg>
+                        </template>
+                        <span x-text="isScanningOcr ? 'Memindai Teks...' : 'Pindai Judul Semua Poster (OCR AI)'"></span>
+                    </button>
+
+                    {{-- Pasangkan Semua yang Dipilih --}}
+                    <button
+                        type="button"
+                        @click="assignAllSelected()"
+                        :disabled="selectedCount === 0 || isSubmittingBatch || isScanningOcr"
+                        class="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <template x-if="isSubmittingBatch">
+                            <svg class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </template>
+                        <template x-if="!isSubmittingBatch">
+                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </template>
+                        <span>Pasangkan Semua yang Dipilih (<span x-text="selectedCount"></span>)</span>
+                    </button>
+                </div>
+            </div>
+
+            {{-- Toast / Banner --}}
+            <template x-if="banner">
+                <div
+                    class="rounded-xl p-3.5 text-xs font-semibold flex items-center justify-between gap-3 animate-fade-in"
+                    :class="{
+                        'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400': banner.type === 'success',
+                        'bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400': banner.type === 'error',
+                        'bg-amber-500/10 border border-amber-500/30 text-amber-500': banner.type === 'info'
+                    }"
+                >
+                    <span x-text="banner.message"></span>
+                    <button type="button" @click="banner = null" class="opacity-70 hover:opacity-100 text-sm font-bold">✕</button>
+                </div>
+            </template>
+
+            {{-- Progress Bar for OCR Scan --}}
+            <template x-if="isScanningOcr">
+                <div class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold text-amber-500 flex items-center gap-2">
+                            <svg class="size-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span x-text="ocrProgressText"></span>
+                        </span>
+                        <span class="font-bold text-amber-500" x-text="ocrProgressPercent + '%'"></span>
+                    </div>
+                    <div class="h-2 w-full overflow-hidden rounded-full bg-surface-2 border border-border">
+                        <div
+                            class="h-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all duration-300"
+                            :style="`width: ${ocrProgressPercent}%`"
+                        ></div>
+                    </div>
+                </div>
+            </template>
+
+            {{-- Dynamic Empty State when all assigned/deleted --}}
+            <div x-show="remainingCount === 0" class="rounded-xl border border-border bg-surface-2/30 p-8 text-center text-xs text-text-muted">
+                <svg class="size-8 text-success mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="font-bold text-text">Semua poster telah terpasang rapi</p>
+                <p class="mt-1">Tidak ada berkas poster antrean yang belum terpasang ke film katalog.</p>
+            </div>
+
+            {{-- Grid of Poster Cards using original custom x-ui.select --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" x-show="remainingCount > 0">
+                @foreach ($unmatchedPosters as $poster)
+                    @php
+                        $posterKey = md5($poster['filename']);
+                    @endphp
+                    <div
+                        x-show="!removedPosters['{{ $poster['filename'] }}']"
+                        x-transition:leave="transition ease-in duration-200"
+                        x-transition:leave-start="opacity-100 scale-100"
+                        x-transition:leave-end="opacity-0 scale-95"
+                        class="rounded-xl border border-border bg-surface-2/40 p-4 space-y-3 flex flex-col justify-between transition-all"
+                        id="card-{{ $posterKey }}"
+                    >
+                        <div class="flex gap-3">
+                            <img
+                                src="{{ $poster['url'] }}"
+                                alt="{{ $poster['filename'] }}"
+                                class="h-28 w-20 shrink-0 rounded-lg object-cover border border-border bg-surface shadow-xs"
+                                loading="lazy"
+                            >
+                            <div class="min-w-0 flex-1 space-y-1">
+                                <p class="text-xs font-bold text-text truncate" title="{{ $poster['filename'] }}">
+                                    {{ $poster['filename'] }}
+                                </p>
+                                <p class="text-[11px] text-text-muted">
+                                    {{ $poster['width'] }} × {{ $poster['height'] }} px · {{ round($poster['size'] / 1024, 1) }} KB
+                                </p>
+                                @if ($poster['is_small'])
+                                    <span class="inline-flex items-center rounded-md bg-warning/15 px-2 py-0.5 text-[10px] font-bold text-warning border border-warning/30" title="{{ $poster['warning'] }}">
+                                        Resolusi Rendah
+                                    </span>
+                                @endif
+
+                                {{-- OCR Match Badge if detected --}}
+                                <template x-if="ocrMatches['{{ $poster['filename'] }}']">
+                                    <div class="mt-1 inline-flex items-center gap-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                                        <svg class="size-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                        <span class="truncate" x-text="`AI: ${ocrMatches['{{ $poster['filename'] }}'].film_title}`"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div class="pt-2 border-t border-border space-y-2">
+                            <div>
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-xs font-semibold text-text">Pasangkan ke Film</label>
+                                    <button
+                                        type="button"
+                                        @click="scanSinglePosterOcr('{{ $poster['filename'] }}', '{{ $poster['url'] }}', 'film_id_{{ $posterKey }}')"
+                                        :disabled="scanningFiles['{{ $poster['filename'] }}'] || isScanningOcr"
+                                        class="text-[10px] font-semibold text-amber-500 hover:text-amber-400 inline-flex items-center gap-1 disabled:opacity-50"
+                                        title="Pindai judul dari foto poster ini dengan AI"
+                                    >
+                                        <template x-if="scanningFiles['{{ $poster['filename'] }}']">
+                                            <svg class="size-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </template>
+                                        <template x-if="!scanningFiles['{{ $poster['filename'] }}']">
+                                            <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            </svg>
+                                        </template>
+                                        <span x-text="scanningFiles['{{ $poster['filename'] }}'] ? 'Memindai...' : 'Pindai Foto'"></span>
+                                    </button>
+                                </div>
+
+                                {{-- Original Custom SynemaX Dropdown Component with Search --}}
+                                <x-ui.select
+                                    name="film_id_{{ $posterKey }}"
+                                    placeholder="Pilih film penerima..."
+                                    size="sm"
+                                    :options="$filmOptions"
+                                    @change="onFilmSelected('{{ $poster['filename'] }}', $event.target.value)"
+                                />
+                            </div>
+
+                            <div class="flex items-center justify-between gap-2 pt-1">
                                 <button
                                     type="button"
-                                    @click="scanSinglePosterOcr(poster)"
-                                    :disabled="scanningFiles[poster.filename] || isScanningOcr"
-                                    class="text-[10px] font-semibold text-amber-500 hover:text-amber-400 inline-flex items-center gap-1 disabled:opacity-50"
-                                    title="Pindai judul dari foto poster ini dengan AI"
+                                    @click="assignSingle('{{ $poster['filename'] }}')"
+                                    :disabled="!selectedFilms['{{ $poster['filename'] }}'] || processingFiles['{{ $poster['filename'] }}']"
+                                    class="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-1 text-xs font-bold text-slate-950 hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <template x-if="scanningFiles[poster.filename]">
-                                        <svg class="size-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <template x-if="processingFiles['{{ $poster['filename'] }}']">
+                                        <svg class="size-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
                                     </template>
-                                    <template x-if="!scanningFiles[poster.filename]">
-                                        <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                        </svg>
-                                    </template>
-                                    <span x-text="scanningFiles[poster.filename] ? 'Memindai...' : 'Pindai Foto'"></span>
+                                    <span>Pasangkan</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    @click="deleteSingle('{{ $poster['filename'] }}')"
+                                    :disabled="processingFiles['{{ $poster['filename'] }}']"
+                                    class="inline-flex min-h-[30px] items-center justify-center rounded-lg border border-danger/30 px-2.5 py-1 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors disabled:opacity-50"
+                                    title="Hapus poster ini dari antrean"
+                                >
+                                    Hapus Poster
                                 </button>
                             </div>
-
-                            <select
-                                x-model="selectedFilms[poster.filename]"
-                                class="w-full rounded-xl border border-border bg-surface px-3 py-2 text-xs font-medium text-text focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition-colors"
-                            >
-                                <option value="">-- Pilih film penerima... --</option>
-                                @foreach ($filmOptions as $fId => $fLabel)
-                                    <option value="{{ $fId }}">{{ $fLabel }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <div class="flex items-center justify-between gap-2 pt-1">
-                            <button
-                                type="button"
-                                @click="assignSingle(poster.filename)"
-                                :disabled="!selectedFilms[poster.filename] || processingFiles[poster.filename]"
-                                class="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-1 text-xs font-bold text-slate-950 hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <template x-if="processingFiles[poster.filename]">
-                                    <svg class="size-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                </template>
-                                <span>Pasangkan</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                @click="deleteSingle(poster.filename)"
-                                :disabled="processingFiles[poster.filename]"
-                                class="inline-flex min-h-[30px] items-center justify-center rounded-lg border border-danger/30 px-2.5 py-1 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors disabled:opacity-50"
-                                title="Hapus poster ini dari antrean"
-                            >
-                                Hapus Poster
-                            </button>
                         </div>
                     </div>
-                </div>
-            </template>
+                @endforeach
+            </div>
         </div>
-    </div>
+    @endif
 </div>
 @endsection
 
