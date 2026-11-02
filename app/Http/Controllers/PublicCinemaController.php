@@ -129,7 +129,7 @@ class PublicCinemaController extends Controller
             $query->where('title', 'like', '%'.$search.'%');
         }
 
-        $films = $query->orderBy('title')->paginate(24)->withQueryString();
+        $films = $query->orderBy('title')->paginate(25)->withQueryString();
 
         $genres = Genre::allActiveNames();
 
