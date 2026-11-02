@@ -74,270 +74,7 @@
     {{-- Form Unggah Banyak Berkas / ZIP dengan Indikator Progres Interaktif --}}
     <div
         class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-6"
-        x-data="{
-            imageFiles: [],
-            zipFile: null,
-            useOcr: true,
-            mode: 'idle', // 'idle' | 'uploading_zip' | 'processing' | 'done' | 'error'
-            progressPercent: 0,
-            currentIndex: 0,
-            totalCount: 0,
-            currentFileName: '',
-            statusMessage: 'Pilih berkas gambar atau ZIP untuk memulai.',
-            results: [],
-            stats: { matched: 0, unmatched: 0, failed: 0 },
-
-            handleImagesChange(e) {
-                this.imageFiles = Array.from(e.target.files || []);
-                if (this.imageFiles.length > 0) {
-                    this.zipFile = null;
-                    const zipInput = document.getElementById('zip_file');
-                    if (zipInput) zipInput.value = '';
-                }
-                this.resetProgressState();
-            },
-
-            handleZipChange(e) {
-                this.zipFile = e.target.files && e.target.files[0] ? e.target.files[0] : null;
-                if (this.zipFile) {
-                    this.imageFiles = [];
-                    const imgInput = document.getElementById('images');
-                    if (imgInput) imgInput.value = '';
-                }
-                this.resetProgressState();
-            },
-
-            resetProgressState() {
-                this.mode = 'idle';
-                this.progressPercent = 0;
-                this.currentIndex = 0;
-                this.totalCount = 0;
-                this.currentFileName = '';
-                this.results = [];
-                this.stats = { matched: 0, unmatched: 0, failed: 0 };
-            },
-
-            clearAllInputs() {
-                this.resetProgressState();
-                this.imageFiles = [];
-                this.zipFile = null;
-                const imgInput = document.getElementById('images');
-                if (imgInput) imgInput.value = '';
-                const zipInput = document.getElementById('zip_file');
-                if (zipInput) zipInput.value = '';
-            },
-
-            formatSize(bytes) {
-                if (!bytes || bytes <= 0) return '0 B';
-                const units = ['B', 'KB', 'MB', 'GB'];
-                const i = Math.floor(Math.log(bytes) / Math.log(1024));
-                return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
-            },
-
-            get totalImageSize() {
-                return this.imageFiles.reduce((acc, f) => acc + f.size, 0);
-            },
-
-            async startProcess() {
-                if (this.imageFiles.length === 0 && !this.zipFile) {
-                    if (typeof window.showToast === 'function') {
-                        window.showToast({
-                            type: 'warning',
-                            message: 'Pilih minimal satu berkas gambar atau berkas arsip ZIP terlebih dahulu.'
-                        });
-                    }
-                    return;
-                }
-
-                if (this.zipFile) {
-                    await this.processZipArchive();
-                } else if (this.imageFiles.length > 0) {
-                    await this.processImagesSequentially();
-                }
-            },
-
-            async processImagesSequentially() {
-                this.mode = 'processing';
-                this.totalCount = this.imageFiles.length;
-                this.currentIndex = 0;
-                this.results = [];
-                this.stats = { matched: 0, unmatched: 0, failed: 0 };
-                this.progressPercent = 0;
-
-                for (let i = 0; i < this.imageFiles.length; i++) {
-                    const file = this.imageFiles[i];
-                    this.currentIndex = i + 1;
-                    this.currentFileName = file.name;
-
-                    let ocrText = null;
-                    if (this.useOcr) {
-                        this.statusMessage = `Membaca judul dari foto (${this.currentIndex}/${this.totalCount}): ${file.name}...`;
-                        try {
-                            ocrText = await recognizeTextFromSource(file);
-                        } catch (err) {
-                            console.warn('OCR error for ' + file.name, err);
-                        }
-                    }
-
-                    this.statusMessage = `Memproses & mencocokkan poster (${this.currentIndex}/${this.totalCount}): ${file.name}...`;
-
-                    const fd = new FormData();
-                    fd.append('image', file);
-                    fd.append('_token', '{{ csrf_token() }}');
-                    if (ocrText) {
-                        fd.append('ocr_text', ocrText);
-                    }
-
-                    try {
-                        const response = await fetch('{{ route('admin.films.posters.process_single') }}', {
-                            method: 'POST',
-                            headers: {
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            },
-                            body: fd
-                        });
-
-                        const resData = await response.json();
-
-                        if (response.ok && resData.success) {
-                            this.results.unshift(resData);
-                            if (resData.status === 'matched') {
-                                this.stats.matched++;
-                            } else {
-                                this.stats.unmatched++;
-                            }
-                        } else {
-                            this.results.unshift({
-                                filename: file.name,
-                                status: 'failed',
-                                message: resData.message || 'Gagal memproses gambar ini.'
-                            });
-                            this.stats.failed++;
-                        }
-                    } catch (err) {
-                        this.results.unshift({
-                            filename: file.name,
-                            status: 'failed',
-                            message: 'Gagal menghubungi server: ' + err.message
-                        });
-                        this.stats.failed++;
-                    }
-
-                    this.progressPercent = Math.round((this.currentIndex / this.totalCount) * 100);
-                }
-
-                this.mode = 'done';
-                this.statusMessage = `Selesai! ${this.stats.matched} cocok otomatis, ${this.stats.unmatched} belum terpasang, ${this.stats.failed} gagal.`;
-            },
-
-            async processZipArchive() {
-                this.mode = 'uploading_zip';
-                this.statusMessage = `Mengunggah berkas arsip ZIP (${this.zipFile.name})...`;
-                this.progressPercent = 10;
-                this.results = [];
-                this.stats = { matched: 0, unmatched: 0, failed: 0 };
-
-                const fd = new FormData();
-                fd.append('zip_file', this.zipFile);
-                fd.append('_token', '{{ csrf_token() }}');
-
-                let uploadRes;
-                try {
-                    const response = await fetch('{{ route('admin.films.posters.upload_zip') }}', {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: fd
-                    });
-
-                    uploadRes = await response.json();
-
-                    if (!response.ok || !uploadRes.success) {
-                        throw new Error(uploadRes.message || 'Gagal mengekstrak berkas ZIP.');
-                    }
-                } catch (err) {
-                    this.mode = 'error';
-                    this.statusMessage = 'Gagal memproses ZIP: ' + err.message;
-                    return;
-                }
-
-                const batchId = uploadRes.batch_id;
-                const files = uploadRes.files || [];
-                this.totalCount = files.length;
-                this.currentIndex = 0;
-                this.mode = 'processing';
-                this.progressPercent = 20;
-
-                for (let i = 0; i < files.length; i++) {
-                    const item = files[i];
-                    this.currentIndex = i + 1;
-                    this.currentFileName = item.filename;
-                    this.statusMessage = `Memproses poster ${this.currentIndex} dari ${this.totalCount} (${item.filename})...`;
-
-                    try {
-                        const itemRes = await fetch('{{ route('admin.films.posters.process_batch_item') }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            },
-                            body: JSON.stringify({
-                                batch_id: batchId,
-                                filename: item.filename,
-                                staged_path: item.staged_path
-                            })
-                        });
-
-                        const itemData = await itemRes.json();
-
-                        if (itemRes.ok && itemData.success) {
-                            this.results.unshift(itemData);
-                            if (itemData.status === 'matched') {
-                                this.stats.matched++;
-                            } else {
-                                this.stats.unmatched++;
-                            }
-                        } else {
-                            this.results.unshift({
-                                filename: item.filename,
-                                status: 'failed',
-                                message: itemData.message || 'Gagal memproses poster.'
-                            });
-                            this.stats.failed++;
-                        }
-                    } catch (err) {
-                        this.results.unshift({
-                            filename: item.filename,
-                            status: 'failed',
-                            message: 'Gagal memproses berkas: ' + err.message
-                        });
-                        this.stats.failed++;
-                    }
-
-                    // Map 20% -> 100%
-                    this.progressPercent = 20 + Math.round((this.currentIndex / this.totalCount) * 80);
-                }
-
-                // Cleanup batch folder
-                fetch('{{ route('admin.films.posters.cleanup_batch') }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ batch_id: batchId })
-                }).catch(() => {});
-
-                this.mode = 'done';
-                this.statusMessage = `Selesai! ${this.stats.matched} cocok otomatis, ${this.stats.unmatched} belum terpasang, ${this.stats.failed} gagal.`;
-            }
-        }"
+        x-data="bulkPosterUploaderComponent()"
     >
         <div>
             <h2 class="text-base font-bold text-text">Unggah Poster Sekaligus</h2>
@@ -693,346 +430,14 @@
     @else
         <div
             class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-4"
-            x-data="{
-                posterList: [
-                    @foreach ($unmatchedPosters as $p)
-                    {
-                        filename: {{ Js::from($p['filename']) }},
-                        url: {{ Js::from($p['url']) }},
-                        selectName: 'film_id_{{ md5($p['filename']) }}'
-                    },
-                    @endforeach
-                ],
-                totalInitial: {{ count($unmatchedPosters) }},
-                removedPosters: {},
-                selectedFilms: {},
-                ocrMatches: {},
-                scanningFiles: {},
-                processingFiles: {},
-                isScanningOcr: false,
-                ocrTotalCount: 0,
-                ocrCurrentIndex: 0,
-                ocrProgressPercent: 0,
-                ocrProgressText: '',
-                isSubmittingBatch: false,
-                banner: null,
-                _bannerTimer: null,
-
-                get remainingCount() {
-                    const removedCount = Object.keys(this.removedPosters).filter(k => this.removedPosters[k]).length;
-                    return Math.max(0, this.totalInitial - removedCount);
-                },
-
-                get selectedCount() {
-                    let count = 0;
-                    for (const p of this.posterList) {
-                        if (!this.removedPosters[p.filename] && this.selectedFilms[p.filename]) {
-                            count++;
-                        }
-                    }
-                    return count;
-                },
-
-                onFilmSelected(filename, filmId) {
-                    this.selectedFilms[filename] = filmId || '';
-                },
-
-                showBanner(type, message) {
-                    this.banner = { type, message };
-                    if (this._bannerTimer) clearTimeout(this._bannerTimer);
-                    this._bannerTimer = setTimeout(() => {
-                        this.banner = null;
-                    }, 8000);
-                },
-
-                notify(type, message) {
-                    if (typeof window.showToast === 'function') {
-                        window.showToast({ type, message });
-                    }
-                    this.showBanner(type, message);
-                },
-
-                notifyCountChange() {
-                    window.dispatchEvent(new CustomEvent('unmatched-count-changed', {
-                        detail: this.remainingCount
-                    }));
-                },
-
-                async scanSinglePosterOcr(filename, url, selectName) {
-                    if (this.scanningFiles[filename] || this.isScanningOcr) return;
-
-                    this.scanningFiles[filename] = true;
-                    try {
-                        const text = await recognizeTextFromSource(url);
-                        if (!text || text.trim().length === 0) {
-                            this.notify('info', 'Teks pada gambar ini tidak terbaca oleh modul OCR. Pastikan resolusi dan kontras gambar cukup jelas.');
-                            return;
-                        }
-
-                        const res = await fetch('{{ route('admin.films.posters.match_ocr') }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            },
-                            body: JSON.stringify({
-                                ocr_text: text,
-                                filename: filename
-                            })
-                        });
-
-                        const data = await res.json();
-                        if (res.ok && data.success && data.matched && data.film_id) {
-                            this.selectedFilms[filename] = String(data.film_id);
-                            this.ocrMatches[filename] = {
-                                film_id: data.film_id,
-                                film_title: data.film_title,
-                                confidence: data.confidence,
-                                match_type: data.match_type
-                            };
-
-                            // Update custom x-ui.select component value & label
-                            window.dispatchEvent(new CustomEvent('synemax-select-set', {
-                                detail: {
-                                    name: selectName,
-                                    value: String(data.film_id)
-                                }
-                            }));
-
-                            this.notify('success', `✨ Poster "${filename}" cocok dengan film "${data.film_title}"!`);
-                        } else {
-                            const preview = data.preview_ocr ? ` (Teks terbaca: "${data.preview_ocr}")` : '';
-                            this.notify('info', (data.message || 'Tidak ditemukan film katalog yang cocok dengan teks pada poster ini.') + preview);
-                        }
-                    } catch (err) {
-                        this.notify('error', 'Gagal memindai gambar: ' + err.message);
-                    } finally {
-                        this.scanningFiles[filename] = false;
-                    }
-                },
-
-                async scanAllPostersOcr() {
-                    if (this.isScanningOcr || this.remainingCount === 0) return;
-
-                    const pendingPosters = this.posterList.filter(p => !this.removedPosters[p.filename] && !this.selectedFilms[p.filename]);
-                    if (pendingPosters.length === 0) {
-                        this.showBanner('info', 'Semua poster yang tampil saat ini sudah dipilihkan filmnya.');
-                        return;
-                    }
-
-                    this.isScanningOcr = true;
-                    this.ocrTotalCount = pendingPosters.length;
-                    this.ocrCurrentIndex = 0;
-                    this.ocrProgressPercent = 0;
-                    this.ocrProgressText = 'Menyiapkan modul OCR AI di peramban...';
-
-                    let matchedCount = 0;
-
-                    try {
-                        for (let i = 0; i < pendingPosters.length; i++) {
-                            const poster = pendingPosters[i];
-                            this.ocrCurrentIndex = i + 1;
-                            this.ocrProgressPercent = Math.round((this.ocrCurrentIndex / this.ocrTotalCount) * 100);
-                            this.ocrProgressText = `[${this.ocrCurrentIndex}/${this.ocrTotalCount}] Membaca teks pada poster: ${poster.filename}...`;
-
-                            try {
-                                const text = await recognizeTextFromSource(poster.url);
-                                if (text && text.trim().length > 0) {
-                                    this.ocrProgressText = `[${this.ocrCurrentIndex}/${this.ocrTotalCount}] Mencocokkan dengan katalog: ${poster.filename}...`;
-
-                                    const res = await fetch('{{ route('admin.films.posters.match_ocr') }}', {
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            'Accept': 'application/json',
-                                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                            'X-Requested-With': 'XMLHttpRequest'
-                                        },
-                                        body: JSON.stringify({
-                                            ocr_text: text,
-                                            filename: poster.filename
-                                        })
-                                    });
-
-                                    const data = await res.json();
-                                    if (res.ok && data.success && data.matched && data.film_id) {
-                                        this.selectedFilms[poster.filename] = String(data.film_id);
-                                        this.ocrMatches[poster.filename] = {
-                                            film_id: data.film_id,
-                                            film_title: data.film_title,
-                                            confidence: data.confidence,
-                                            match_type: data.match_type
-                                        };
-
-                                        // Update custom x-ui.select component value & label
-                                        window.dispatchEvent(new CustomEvent('synemax-select-set', {
-                                            detail: {
-                                                name: poster.selectName,
-                                                value: String(data.film_id)
-                                            }
-                                        }));
-
-                                        matchedCount++;
-                                    }
-                                }
-                            } catch (err) {
-                                console.warn('Gagal memindai poster ' + poster.filename, err);
-                            }
-                        }
-
-                        if (matchedCount > 0) {
-                            this.showBanner('success', `✨ Selesai! Berhasil mengenali ${matchedCount} judul film dari foto poster. Silakan tinjau dan klik &quot;Pasangkan Semua yang Dipilih&quot;.`);
-                        } else {
-                            this.showBanner('info', 'Pemindaian selesai, namun tidak ditemukan judul film katalog yang cocok pada teks foto. Anda dapat memilih film secara manual.');
-                        }
-                    } catch (e) {
-                        this.showBanner('error', 'Terjadi kesalahan saat memindai: ' + e.message);
-                    } finally {
-                        this.isScanningOcr = false;
-                        this.ocrProgressText = '';
-                    }
-                },
-
-                async assignSingle(filename) {
-                    const filmId = this.selectedFilms[filename];
-                    if (!filmId) {
-                        this.notify('warning', 'Pilih film penerima terlebih dahulu pada poster ini.');
-                        return;
-                    }
-
-                    this.processingFiles[filename] = true;
-                    try {
-                        const res = await fetch('{{ route('admin.films.posters.assign') }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            },
-                            body: JSON.stringify({
-                                poster_filename: filename,
-                                film_id: parseInt(filmId, 10)
-                            })
-                        });
-
-                        const data = await res.json();
-                        if (res.ok && data.success) {
-                            this.removedPosters[filename] = true;
-                            delete this.selectedFilms[filename];
-                            delete this.ocrMatches[filename];
-                            this.notifyCountChange();
-                            this.notify('success', `🎉 ${data.message || 'Poster berhasil dipasangkan!'}`);
-                        } else {
-                            this.notify('error', data.message || 'Gagal memasangkan poster.');
-                        }
-                    } catch (err) {
-                        this.notify('error', 'Gagal menghubungi server: ' + err.message);
-                    } finally {
-                        delete this.processingFiles[filename];
-                    }
-                },
-
-                async assignAllSelected() {
-                    const assignments = [];
-                    for (const poster of this.posterList) {
-                        if (!this.removedPosters[poster.filename]) {
-                            const filmId = this.selectedFilms[poster.filename];
-                            if (filmId) {
-                                assignments.push({
-                                    poster_filename: poster.filename,
-                                    film_id: parseInt(filmId, 10)
-                                });
-                            }
-                        }
-                    }
-
-                    if (assignments.length === 0) {
-                        this.notify('warning', 'Pilih minimal satu film penerima terlebih dahulu pada poster yang ingin dipasangkan.');
-                        return;
-                    }
-
-                    this.isSubmittingBatch = true;
-                    try {
-                        const res = await fetch('{{ route('admin.films.posters.assign_batch') }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            },
-                            body: JSON.stringify({ assignments })
-                        });
-
-                        const data = await res.json();
-                        if (res.ok && data.success) {
-                            for (const item of assignments) {
-                                this.removedPosters[item.poster_filename] = true;
-                                delete this.selectedFilms[item.poster_filename];
-                                delete this.ocrMatches[item.poster_filename];
-                            }
-                            this.notifyCountChange();
-                            this.notify('success', `🎉 ${data.message || 'Berhasil memasangkan kumpulan poster!'}`);
-                        } else {
-                            this.notify('error', data.message || 'Gagal memasangkan kumpulan poster.');
-                        }
-                    } catch (err) {
-                        this.notify('error', 'Gagal menghubungi server: ' + err.message);
-                    } finally {
-                        this.isSubmittingBatch = false;
-                    }
-                },
-
-                deleteSingle(filename) {
-                    if (typeof window.openConfirmModal === 'function') {
-                        window.openConfirmModal({
-                            title: 'Hapus Poster Antrean',
-                            message: `Hapus berkas poster "${filename}" dari antrean poster belum terpasang?`,
-                            confirmText: 'Hapus Poster',
-                            confirmClass: 'bg-danger text-white hover:bg-danger/90',
-                            cancelText: 'Batal',
-                            onConfirm: () => {
-                                this.executeDeleteSingle(filename);
-                            }
-                        });
-                    } else {
-                        this.executeDeleteSingle(filename);
-                    }
-                },
-
-                async executeDeleteSingle(filename) {
-                    this.processingFiles[filename] = true;
-                    try {
-                        const url = '{{ route('admin.films.posters.destroy', '__FILE__') }}'.replace('__FILE__', encodeURIComponent(filename));
-                        const res = await fetch(url, {
-                            method: 'DELETE',
-                            headers: {
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        });
-
-                        const data = await res.json();
-                        if (res.ok && data.success) {
-                            this.removedPosters[filename] = true;
-                            delete this.selectedFilms[filename];
-                            delete this.ocrMatches[filename];
-                            this.notifyCountChange();
-                            this.notify('info', 'Poster berhasil dihapus dari antrean.');
-                        } else {
-                            this.notify('error', data.message || 'Gagal menghapus poster.');
-                        }
-                    } catch (err) {
-                        this.notify('error', 'Gagal menghapus berkas: ' + err.message);
-                    } finally {
-                        delete this.processingFiles[filename];
-                    }
-                }
-            }"
+            x-data="unmatchedPostersComponent({
+                posterList: {{ Js::from(array_map(fn($p) => [
+                    'filename' => $p['filename'],
+                    'url' => $p['url'],
+                    'selectName' => 'film_id_'.md5($p['filename'])
+                ], $unmatchedPosters)) }},
+                totalInitial: {{ count($unmatchedPosters) }}
+            })"
         >
             {{-- Header & Batch Actions --}}
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1353,6 +758,616 @@
             _sharedOcrWorkerPromise = null;
             return '';
         }
+    }
+
+    function bulkPosterUploaderComponent() {
+        return {
+            imageFiles: [],
+            zipFile: null,
+            useOcr: true,
+            mode: 'idle',
+            progressPercent: 0,
+            currentIndex: 0,
+            totalCount: 0,
+            currentFileName: '',
+            statusMessage: 'Pilih berkas gambar atau ZIP untuk memulai.',
+            results: [],
+            stats: { matched: 0, unmatched: 0, failed: 0 },
+
+            handleImagesChange(e) {
+                this.imageFiles = Array.from(e.target.files || []);
+                if (this.imageFiles.length > 0) {
+                    this.zipFile = null;
+                    const zipInput = document.getElementById('zip_file');
+                    if (zipInput) zipInput.value = '';
+                }
+                this.resetProgressState();
+            },
+
+            handleZipChange(e) {
+                this.zipFile = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+                if (this.zipFile) {
+                    this.imageFiles = [];
+                    const imgInput = document.getElementById('images');
+                    if (imgInput) imgInput.value = '';
+                }
+                this.resetProgressState();
+            },
+
+            resetProgressState() {
+                this.mode = 'idle';
+                this.progressPercent = 0;
+                this.currentIndex = 0;
+                this.totalCount = 0;
+                this.currentFileName = '';
+                this.results = [];
+                this.stats = { matched: 0, unmatched: 0, failed: 0 };
+            },
+
+            clearAllInputs() {
+                this.resetProgressState();
+                this.imageFiles = [];
+                this.zipFile = null;
+                const imgInput = document.getElementById('images');
+                if (imgInput) imgInput.value = '';
+                const zipInput = document.getElementById('zip_file');
+                if (zipInput) zipInput.value = '';
+            },
+
+            formatSize(bytes) {
+                if (!bytes || bytes <= 0) return '0 B';
+                const units = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(1024));
+                return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + units[i];
+            },
+
+            get totalImageSize() {
+                return this.imageFiles.reduce((acc, f) => acc + f.size, 0);
+            },
+
+            async startProcess() {
+                if (this.imageFiles.length === 0 && !this.zipFile) {
+                    if (typeof window.showToast === 'function') {
+                        window.showToast({
+                            type: 'warning',
+                            message: 'Pilih minimal satu berkas gambar atau berkas arsip ZIP terlebih dahulu.'
+                        });
+                    }
+                    return;
+                }
+
+                if (this.zipFile) {
+                    await this.processZipArchive();
+                } else if (this.imageFiles.length > 0) {
+                    await this.processImagesSequentially();
+                }
+            },
+
+            async processImagesSequentially() {
+                this.mode = 'processing';
+                this.totalCount = this.imageFiles.length;
+                this.currentIndex = 0;
+                this.results = [];
+                this.stats = { matched: 0, unmatched: 0, failed: 0 };
+                this.progressPercent = 0;
+
+                for (let i = 0; i < this.imageFiles.length; i++) {
+                    const file = this.imageFiles[i];
+                    this.currentIndex = i + 1;
+                    this.currentFileName = file.name;
+
+                    let ocrText = null;
+                    if (this.useOcr) {
+                        this.statusMessage = 'Membaca judul dari foto (' + this.currentIndex + '/' + this.totalCount + '): ' + file.name + '...';
+                        try {
+                            ocrText = await recognizeTextFromSource(file);
+                        } catch (err) {
+                            console.warn('OCR error for ' + file.name, err);
+                        }
+                    }
+
+                    this.statusMessage = 'Memproses & mencocokkan poster (' + this.currentIndex + '/' + this.totalCount + '): ' + file.name + '...';
+
+                    const fd = new FormData();
+                    fd.append('image', file);
+                    fd.append('_token', '{{ csrf_token() }}');
+                    if (ocrText) {
+                        fd.append('ocr_text', ocrText);
+                    }
+
+                    try {
+                        const response = await fetch('{{ route('admin.films.posters.process_single') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: fd
+                        });
+
+                        const resData = await response.json();
+
+                        if (response.ok && resData.success) {
+                            this.results.unshift(resData);
+                            if (resData.status === 'matched') {
+                                this.stats.matched++;
+                            } else {
+                                this.stats.unmatched++;
+                            }
+                        } else {
+                            this.results.unshift({
+                                filename: file.name,
+                                status: 'failed',
+                                message: resData.message || 'Gagal memproses gambar ini.'
+                            });
+                            this.stats.failed++;
+                        }
+                    } catch (err) {
+                        this.results.unshift({
+                            filename: file.name,
+                            status: 'failed',
+                            message: 'Gagal menghubungi server: ' + err.message
+                        });
+                        this.stats.failed++;
+                    }
+
+                    this.progressPercent = Math.round((this.currentIndex / this.totalCount) * 100);
+                }
+
+                this.mode = 'done';
+                this.statusMessage = 'Selesai! ' + this.stats.matched + ' cocok otomatis, ' + this.stats.unmatched + ' belum terpasang, ' + this.stats.failed + ' gagal.';
+            },
+
+            async processZipArchive() {
+                this.mode = 'uploading_zip';
+                this.statusMessage = 'Mengunggah berkas arsip ZIP (' + this.zipFile.name + ')...';
+                this.progressPercent = 10;
+                this.results = [];
+                this.stats = { matched: 0, unmatched: 0, failed: 0 };
+
+                const fd = new FormData();
+                fd.append('zip_file', this.zipFile);
+                fd.append('_token', '{{ csrf_token() }}');
+
+                let uploadRes;
+                try {
+                    const response = await fetch('{{ route('admin.films.posters.upload_zip') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: fd
+                    });
+
+                    uploadRes = await response.json();
+
+                    if (!response.ok || !uploadRes.success) {
+                        throw new Error(uploadRes.message || 'Gagal mengekstrak berkas ZIP.');
+                    }
+                } catch (err) {
+                    this.mode = 'error';
+                    this.statusMessage = 'Gagal memproses ZIP: ' + err.message;
+                    return;
+                }
+
+                const batchId = uploadRes.batch_id;
+                const files = uploadRes.files || [];
+                this.totalCount = files.length;
+                this.currentIndex = 0;
+                this.mode = 'processing';
+                this.progressPercent = 20;
+
+                for (let i = 0; i < files.length; i++) {
+                    const item = files[i];
+                    this.currentIndex = i + 1;
+                    this.currentFileName = item.filename;
+                    this.statusMessage = 'Memproses poster ' + this.currentIndex + ' dari ' + this.totalCount + ' (' + item.filename + ')...';
+
+                    try {
+                        const itemRes = await fetch('{{ route('admin.films.posters.process_batch_item') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({
+                                batch_id: batchId,
+                                filename: item.filename,
+                                staged_path: item.staged_path
+                            })
+                        });
+
+                        const itemData = await itemRes.json();
+
+                        if (itemRes.ok && itemData.success) {
+                            this.results.unshift(itemData);
+                            if (itemData.status === 'matched') {
+                                this.stats.matched++;
+                            } else {
+                                this.stats.unmatched++;
+                            }
+                        } else {
+                            this.results.unshift({
+                                filename: item.filename,
+                                status: 'failed',
+                                message: itemData.message || 'Gagal memproses poster.'
+                            });
+                            this.stats.failed++;
+                        }
+                    } catch (err) {
+                        this.results.unshift({
+                            filename: item.filename,
+                            status: 'failed',
+                            message: 'Gagal memproses berkas: ' + err.message
+                        });
+                        this.stats.failed++;
+                    }
+
+                    this.progressPercent = 20 + Math.round((this.currentIndex / this.totalCount) * 80);
+                }
+
+                fetch('{{ route('admin.films.posters.cleanup_batch') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ batch_id: batchId })
+                }).catch(() => {});
+
+                this.mode = 'done';
+                this.statusMessage = 'Selesai! ' + this.stats.matched + ' cocok otomatis, ' + this.stats.unmatched + ' belum terpasang, ' + this.stats.failed + ' gagal.';
+            }
+        };
+    }
+
+    function unmatchedPostersComponent(config) {
+        return {
+            posterList: config.posterList || [],
+            totalInitial: config.totalInitial || 0,
+            removedPosters: {},
+            selectedFilms: {},
+            ocrMatches: {},
+            scanningFiles: {},
+            processingFiles: {},
+            isScanningOcr: false,
+            ocrTotalCount: 0,
+            ocrCurrentIndex: 0,
+            ocrProgressPercent: 0,
+            ocrProgressText: '',
+            isSubmittingBatch: false,
+            banner: null,
+            _bannerTimer: null,
+
+            get remainingCount() {
+                const removedCount = Object.keys(this.removedPosters).filter((k) => this.removedPosters[k]).length;
+                return Math.max(0, this.totalInitial - removedCount);
+            },
+
+            get selectedCount() {
+                let count = 0;
+                for (let i = 0; i < this.posterList.length; i++) {
+                    const p = this.posterList[i];
+                    if (!this.removedPosters[p.filename] && this.selectedFilms[p.filename]) {
+                        count++;
+                    }
+                }
+                return count;
+            },
+
+            onFilmSelected(filename, filmId) {
+                this.selectedFilms[filename] = filmId || '';
+            },
+
+            showBanner(type, message) {
+                this.banner = { type, message };
+                if (this._bannerTimer) clearTimeout(this._bannerTimer);
+                this._bannerTimer = setTimeout(() => {
+                    this.banner = null;
+                }, 8000);
+            },
+
+            notify(type, message) {
+                if (typeof window.showToast === 'function') {
+                    window.showToast({ type, message });
+                }
+                this.showBanner(type, message);
+            },
+
+            notifyCountChange() {
+                window.dispatchEvent(new CustomEvent('unmatched-count-changed', {
+                    detail: this.remainingCount
+                }));
+            },
+
+            async scanSinglePosterOcr(filename, url, selectName) {
+                if (this.scanningFiles[filename] || this.isScanningOcr) return;
+
+                this.scanningFiles[filename] = true;
+                try {
+                    const text = await recognizeTextFromSource(url);
+                    if (!text || text.trim().length === 0) {
+                        this.notify('info', 'Teks pada gambar ini tidak terbaca oleh modul OCR. Pastikan resolusi dan kontras gambar cukup jelas.');
+                        return;
+                    }
+
+                    const res = await fetch('{{ route('admin.films.posters.match_ocr') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            ocr_text: text,
+                            filename: filename
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (res.ok && data.success && data.matched && data.film_id) {
+                        this.selectedFilms[filename] = String(data.film_id);
+                        this.ocrMatches[filename] = {
+                            film_id: data.film_id,
+                            film_title: data.film_title,
+                            confidence: data.confidence,
+                            match_type: data.match_type
+                        };
+
+                        // Update custom x-ui.select component value & label
+                        window.dispatchEvent(new CustomEvent('synemax-select-set', {
+                            detail: {
+                                name: selectName,
+                                value: String(data.film_id)
+                            }
+                        }));
+
+                        this.notify('success', '✨ Poster "' + filename + '" cocok dengan film "' + data.film_title + '"!');
+                    } else {
+                        const preview = data.preview_ocr ? ' (Teks terbaca: "' + data.preview_ocr + '")' : '';
+                        this.notify('info', (data.message || 'Tidak ditemukan film katalog yang cocok dengan teks pada poster ini.') + preview);
+                    }
+                } catch (err) {
+                    this.notify('error', 'Gagal memindai gambar: ' + err.message);
+                } finally {
+                    this.scanningFiles[filename] = false;
+                }
+            },
+
+            async scanAllPostersOcr() {
+                if (this.isScanningOcr || this.remainingCount === 0) return;
+
+                const pendingPosters = [];
+                for (let i = 0; i < this.posterList.length; i++) {
+                    const p = this.posterList[i];
+                    if (!this.removedPosters[p.filename] && !this.selectedFilms[p.filename]) {
+                        pendingPosters.push(p);
+                    }
+                }
+
+                if (pendingPosters.length === 0) {
+                    this.notify('info', 'Semua poster yang tampil saat ini sudah dipilihkan filmnya.');
+                    return;
+                }
+
+                this.isScanningOcr = true;
+                this.ocrTotalCount = pendingPosters.length;
+                this.ocrCurrentIndex = 0;
+                this.ocrProgressPercent = 0;
+                this.ocrProgressText = 'Menyiapkan modul OCR AI di peramban...';
+
+                let matchedCount = 0;
+
+                try {
+                    for (let i = 0; i < pendingPosters.length; i++) {
+                        const poster = pendingPosters[i];
+                        this.ocrCurrentIndex = i + 1;
+                        this.ocrProgressPercent = Math.round((this.ocrCurrentIndex / this.ocrTotalCount) * 100);
+                        this.ocrProgressText = '[' + this.ocrCurrentIndex + '/' + this.ocrTotalCount + '] Membaca teks pada poster: ' + poster.filename + '...';
+
+                        try {
+                            const text = await recognizeTextFromSource(poster.url);
+                            if (text && text.trim().length > 0) {
+                                this.ocrProgressText = '[' + this.ocrCurrentIndex + '/' + this.ocrTotalCount + '] Mencocokkan dengan katalog: ' + poster.filename + '...';
+
+                                const res = await fetch('{{ route('admin.films.posters.match_ocr') }}', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Accept': 'application/json',
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    },
+                                    body: JSON.stringify({
+                                        ocr_text: text,
+                                        filename: poster.filename
+                                    })
+                                });
+
+                                const data = await res.json();
+                                if (res.ok && data.success && data.matched && data.film_id) {
+                                    this.selectedFilms[poster.filename] = String(data.film_id);
+                                    this.ocrMatches[poster.filename] = {
+                                        film_id: data.film_id,
+                                        film_title: data.film_title,
+                                        confidence: data.confidence,
+                                        match_type: data.match_type
+                                    };
+
+                                    // Update custom x-ui.select component value & label
+                                    window.dispatchEvent(new CustomEvent('synemax-select-set', {
+                                        detail: {
+                                            name: poster.selectName,
+                                            value: String(data.film_id)
+                                        }
+                                    }));
+
+                                    matchedCount++;
+                                }
+                            }
+                        } catch (err) {
+                            console.warn('Gagal memindai poster ' + poster.filename, err);
+                        }
+                    }
+
+                    if (matchedCount > 0) {
+                        this.notify('success', '✨ Selesai! Berhasil mengenali ' + matchedCount + ' judul film dari foto poster. Silakan tinjau dan klik "Pasangkan Semua yang Dipilih".');
+                    } else {
+                        this.notify('info', 'Pemindaian selesai, namun tidak ditemukan judul film katalog yang cocok pada teks foto. Anda dapat memilih film secara manual.');
+                    }
+                } catch (e) {
+                    this.notify('error', 'Terjadi kesalahan saat memindai: ' + e.message);
+                } finally {
+                    this.isScanningOcr = false;
+                    this.ocrProgressText = '';
+                }
+            },
+
+            async assignSingle(filename) {
+                const filmId = this.selectedFilms[filename];
+                if (!filmId) {
+                    this.notify('warning', 'Pilih film penerima terlebih dahulu pada poster ini.');
+                    return;
+                }
+
+                this.processingFiles[filename] = true;
+                try {
+                    const res = await fetch('{{ route('admin.films.posters.assign') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            poster_filename: filename,
+                            film_id: parseInt(filmId, 10)
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        this.removedPosters[filename] = true;
+                        delete this.selectedFilms[filename];
+                        delete this.ocrMatches[filename];
+                        this.notifyCountChange();
+                        this.notify('success', '🎉 ' + (data.message || 'Poster berhasil dipasangkan!'));
+                    } else {
+                        this.notify('error', data.message || 'Gagal memasangkan poster.');
+                    }
+                } catch (err) {
+                    this.notify('error', 'Gagal menghubungi server: ' + err.message);
+                } finally {
+                    delete this.processingFiles[filename];
+                }
+            },
+
+            async assignAllSelected() {
+                const assignments = [];
+                for (let i = 0; i < this.posterList.length; i++) {
+                    const poster = this.posterList[i];
+                    if (!this.removedPosters[poster.filename]) {
+                        const filmId = this.selectedFilms[poster.filename];
+                        if (filmId) {
+                            assignments.push({
+                                poster_filename: poster.filename,
+                                film_id: parseInt(filmId, 10)
+                            });
+                        }
+                    }
+                }
+
+                if (assignments.length === 0) {
+                    this.notify('warning', 'Pilih minimal satu film penerima terlebih dahulu pada poster yang ingin dipasangkan.');
+                    return;
+                }
+
+                this.isSubmittingBatch = true;
+                try {
+                    const res = await fetch('{{ route('admin.films.posters.assign_batch') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ assignments })
+                    });
+
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        for (let i = 0; i < assignments.length; i++) {
+                            const item = assignments[i];
+                            this.removedPosters[item.poster_filename] = true;
+                            delete this.selectedFilms[item.poster_filename];
+                            delete this.ocrMatches[item.poster_filename];
+                        }
+                        this.notifyCountChange();
+                        this.notify('success', '🎉 ' + (data.message || 'Berhasil memasangkan kumpulan poster!'));
+                    } else {
+                        this.notify('error', data.message || 'Gagal memasangkan kumpulan poster.');
+                    }
+                } catch (err) {
+                    this.notify('error', 'Gagal menghubungi server: ' + err.message);
+                } finally {
+                    this.isSubmittingBatch = false;
+                }
+            },
+
+            deleteSingle(filename) {
+                if (typeof window.openConfirmModal === 'function') {
+                    window.openConfirmModal({
+                        title: 'Hapus Poster Antrean',
+                        message: 'Hapus berkas poster "' + filename + '" dari antrean poster belum terpasang?',
+                        confirmText: 'Hapus Poster',
+                        confirmClass: 'bg-danger text-white hover:bg-danger/90',
+                        cancelText: 'Batal',
+                        onConfirm: () => {
+                            this.executeDeleteSingle(filename);
+                        }
+                    });
+                } else {
+                    this.executeDeleteSingle(filename);
+                }
+            },
+
+            async executeDeleteSingle(filename) {
+                this.processingFiles[filename] = true;
+                try {
+                    const url = '{{ route('admin.films.posters.destroy', '__FILE__') }}'.replace('__FILE__', encodeURIComponent(filename));
+                    const res = await fetch(url, {
+                        method: 'DELETE',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        this.removedPosters[filename] = true;
+                        delete this.selectedFilms[filename];
+                        delete this.ocrMatches[filename];
+                        this.notifyCountChange();
+                        this.notify('info', 'Poster berhasil dihapus dari antrean.');
+                    } else {
+                        this.notify('error', data.message || 'Gagal menghapus poster.');
+                    }
+                } catch (err) {
+                    this.notify('error', 'Gagal menghapus berkas: ' + err.message);
+                } finally {
+                    delete this.processingFiles[filename];
+                }
+            }
+        };
     }
 </script>
 @endpush
