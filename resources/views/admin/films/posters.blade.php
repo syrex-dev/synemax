@@ -140,7 +140,12 @@
 
             async startProcess() {
                 if (this.imageFiles.length === 0 && !this.zipFile) {
-                    alert('Pilih minimal satu berkas gambar atau berkas arsip ZIP terlebih dahulu.');
+                    if (typeof window.showToast === 'function') {
+                        window.showToast({
+                            type: 'warning',
+                            message: 'Pilih minimal satu berkas gambar atau berkas arsip ZIP terlebih dahulu.'
+                        });
+                    }
                     return;
                 }
 
@@ -740,6 +745,13 @@
                     }, 8000);
                 },
 
+                notify(type, message) {
+                    if (typeof window.showToast === 'function') {
+                        window.showToast({ type, message });
+                    }
+                    this.showBanner(type, message);
+                },
+
                 notifyCountChange() {
                     window.dispatchEvent(new CustomEvent('unmatched-count-changed', {
                         detail: this.remainingCount
@@ -753,7 +765,7 @@
                     try {
                         const text = await recognizeTextFromSource(url);
                         if (!text || text.trim().length === 0) {
-                            alert('Tidak ditemukan teks judul yang terbaca pada gambar ini.');
+                            this.notify('info', 'Teks pada gambar ini tidak terbaca oleh modul OCR. Pastikan resolusi dan kontras gambar cukup jelas.');
                             return;
                         }
 
@@ -789,12 +801,13 @@
                                 }
                             }));
 
-                            this.showBanner('success', `✨ Poster &quot;${filename}&quot; cocok dengan film &quot;${data.film_title}&quot;!`);
+                            this.notify('success', `✨ Poster "${filename}" cocok dengan film "${data.film_title}"!`);
                         } else {
-                            alert(data.message || 'Tidak ditemukan film katalog yang cocok dengan teks pada poster ini.');
+                            const preview = data.preview_ocr ? ` (Teks terbaca: "${data.preview_ocr}")` : '';
+                            this.notify('info', (data.message || 'Tidak ditemukan film katalog yang cocok dengan teks pada poster ini.') + preview);
                         }
                     } catch (err) {
-                        alert('Gagal memindai gambar: ' + err.message);
+                        this.notify('error', 'Gagal memindai gambar: ' + err.message);
                     } finally {
                         this.scanningFiles[filename] = false;
                     }
@@ -885,7 +898,7 @@
                 async assignSingle(filename) {
                     const filmId = this.selectedFilms[filename];
                     if (!filmId) {
-                        alert('Pilih film penerima terlebih dahulu pada poster ini.');
+                        this.notify('warning', 'Pilih film penerima terlebih dahulu pada poster ini.');
                         return;
                     }
 
@@ -911,12 +924,12 @@
                             delete this.selectedFilms[filename];
                             delete this.ocrMatches[filename];
                             this.notifyCountChange();
-                            this.showBanner('success', `🎉 ${data.message || 'Poster berhasil dipasangkan!'}`);
+                            this.notify('success', `🎉 ${data.message || 'Poster berhasil dipasangkan!'}`);
                         } else {
-                            alert(data.message || 'Gagal memasangkan poster.');
+                            this.notify('error', data.message || 'Gagal memasangkan poster.');
                         }
                     } catch (err) {
-                        alert('Gagal menghubungi server: ' + err.message);
+                        this.notify('error', 'Gagal menghubungi server: ' + err.message);
                     } finally {
                         delete this.processingFiles[filename];
                     }
@@ -937,7 +950,7 @@
                     }
 
                     if (assignments.length === 0) {
-                        alert('Pilih minimal satu film penerima terlebih dahulu pada poster yang ingin dipasangkan.');
+                        this.notify('warning', 'Pilih minimal satu film penerima terlebih dahulu pada poster yang ingin dipasangkan.');
                         return;
                     }
 
@@ -962,22 +975,35 @@
                                 delete this.ocrMatches[item.poster_filename];
                             }
                             this.notifyCountChange();
-                            this.showBanner('success', `🎉 ${data.message || 'Berhasil memasangkan kumpulan poster!'}`);
+                            this.notify('success', `🎉 ${data.message || 'Berhasil memasangkan kumpulan poster!'}`);
                         } else {
-                            alert(data.message || 'Gagal memasangkan kumpulan poster.');
+                            this.notify('error', data.message || 'Gagal memasangkan kumpulan poster.');
                         }
                     } catch (err) {
-                        alert('Gagal menghubungi server: ' + err.message);
+                        this.notify('error', 'Gagal menghubungi server: ' + err.message);
                     } finally {
                         this.isSubmittingBatch = false;
                     }
                 },
 
-                async deleteSingle(filename) {
-                    if (!confirm('Hapus berkas poster ini dari antrean?')) {
-                        return;
+                deleteSingle(filename) {
+                    if (typeof window.openConfirmModal === 'function') {
+                        window.openConfirmModal({
+                            title: 'Hapus Poster Antrean',
+                            message: `Hapus berkas poster "${filename}" dari antrean poster belum terpasang?`,
+                            confirmText: 'Hapus Poster',
+                            confirmClass: 'bg-danger text-white hover:bg-danger/90',
+                            cancelText: 'Batal',
+                            onConfirm: () => {
+                                this.executeDeleteSingle(filename);
+                            }
+                        });
+                    } else {
+                        this.executeDeleteSingle(filename);
                     }
+                },
 
+                async executeDeleteSingle(filename) {
                     this.processingFiles[filename] = true;
                     try {
                         const url = '{{ route('admin.films.posters.destroy', '__FILE__') }}'.replace('__FILE__', encodeURIComponent(filename));
@@ -996,12 +1022,12 @@
                             delete this.selectedFilms[filename];
                             delete this.ocrMatches[filename];
                             this.notifyCountChange();
-                            this.showBanner('info', 'Poster berhasil dihapus dari antrean.');
+                            this.notify('info', 'Poster berhasil dihapus dari antrean.');
                         } else {
-                            alert(data.message || 'Gagal menghapus poster.');
+                            this.notify('error', data.message || 'Gagal menghapus poster.');
                         }
                     } catch (err) {
-                        alert('Gagal menghapus berkas: ' + err.message);
+                        this.notify('error', 'Gagal menghapus berkas: ' + err.message);
                     } finally {
                         delete this.processingFiles[filename];
                     }
@@ -1250,17 +1276,77 @@
                         document.head.appendChild(script);
                     });
                 }
-                const worker = await Tesseract.createWorker('eng');
-                return worker;
+
+                // Load Indonesian & English models for optimum film title recognition
+                try {
+                    return await Tesseract.createWorker(['ind', 'eng']);
+                } catch (e) {
+                    console.warn('Gagal memuat model ind+eng, beralih ke eng:', e);
+                    return await Tesseract.createWorker('eng');
+                }
             })();
         }
         return await _sharedOcrWorkerPromise;
     }
 
+    async function preprocessImageForOcr(source) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+
+            img.onload = () => {
+                try {
+                    const maxDim = 1200;
+                    let w = img.naturalWidth || img.width;
+                    let h = img.naturalHeight || img.height;
+
+                    if (!w || !h) {
+                        return resolve(source);
+                    }
+
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) {
+                            h = Math.round((h * maxDim) / w);
+                            w = maxDim;
+                        } else {
+                            w = Math.round((w * maxDim) / h);
+                            h = maxDim;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) return resolve(source);
+
+                    ctx.drawImage(img, 0, 0, w, h);
+                    resolve(canvas);
+                } catch (e) {
+                    console.warn('Canvas preprocess skipped (CORS/memory), using raw source:', e);
+                    resolve(source);
+                }
+            };
+
+            img.onerror = () => {
+                resolve(source);
+            };
+
+            if (typeof source === 'string') {
+                img.src = source;
+            } else if (source instanceof Blob || source instanceof File) {
+                img.src = URL.createObjectURL(source);
+            } else {
+                resolve(source);
+            }
+        });
+    }
+
     async function recognizeTextFromSource(source) {
         try {
+            const processed = await preprocessImageForOcr(source);
             const worker = await getSharedOcrWorker();
-            const ret = await worker.recognize(source);
+            const ret = await worker.recognize(processed);
             return ret?.data?.text || '';
         } catch (e) {
             console.warn('OCR recognition error:', e);

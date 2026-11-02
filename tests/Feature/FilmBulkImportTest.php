@@ -898,7 +898,7 @@ class FilmBulkImportTest extends TestCase
             'is_active' => true,
         ]);
 
-        // 1. Test matchOcr endpoint
+        // 1. Test matchOcr endpoint with exact phrase
         $matchRes = $this->actingAs($this->admin)->post(route('admin.films.posters.match_ocr'), [
             'ocr_text' => 'DARI BAYU SKAK SEKAWAN LIMO DI BIOSKOP',
         ]);
@@ -909,6 +909,31 @@ class FilmBulkImportTest extends TestCase
             'film_id' => $film1->id,
             'film_title' => 'Sekawan Limo',
         ]);
+        $this->assertNotEmpty($matchRes->json('preview_ocr'));
+
+        // 1b. Test matchOcr with spaced-out poster typography ("S E K A W A N   L I M O")
+        $matchSpaced = $this->actingAs($this->admin)->post(route('admin.films.posters.match_ocr'), [
+            'ocr_text' => 'FILM NASIONAL S E K A W A N   L I M O TAYANG OKTOBER',
+        ]);
+        $matchSpaced->assertOk();
+        $matchSpaced->assertJson([
+            'success' => true,
+            'matched' => true,
+            'film_id' => $film1->id,
+            'film_title' => 'Sekawan Limo',
+            'match_type' => 'spaced_title_match',
+        ]);
+
+        // 1c. Test matchOcr with unknown text returning preview_ocr
+        $matchUnknown = $this->actingAs($this->admin)->post(route('admin.films.posters.match_ocr'), [
+            'ocr_text' => 'WARUNG KOPI BU SURTI PASAR MALAM',
+        ]);
+        $matchUnknown->assertOk();
+        $matchUnknown->assertJson([
+            'success' => true,
+            'matched' => false,
+        ]);
+        $this->assertStringContainsString('WARUNG KOPI BU SURTI', $matchUnknown->json('message'));
 
         // 2. Put unmatched poster in storage
         Storage::disk('public')->put('posters/unmatched/test_unmatched.webp', 'dummy');
