@@ -118,8 +118,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/films/posters/upload-zip', [FilmPosterController::class, 'uploadZip'])->name('films.posters.upload_zip');
     Route::post('/films/posters/process-batch-item', [FilmPosterController::class, 'processBatchItem'])->name('films.posters.process_batch_item');
     Route::post('/films/posters/cleanup-batch', [FilmPosterController::class, 'cleanupBatch'])->name('films.posters.cleanup_batch');
+    Route::post('/films/posters/match-ocr', [FilmPosterController::class, 'matchOcr'])->name('films.posters.match_ocr');
     Route::post('/films/posters/assign', [FilmPosterController::class, 'assign'])->name('films.posters.assign');
-    Route::delete('/films/posters/{filename}', [FilmPosterController::class, 'destroy'])->name('films.posters.destroy');
+    Route::post('/films/posters/assign-batch', [FilmPosterController::class, 'assignBatch'])->name('films.posters.assign_batch');
+    Route::delete('/films/posters/{filename}', [FilmPosterController::class, 'destroy'])->name('films.posters.destroy')->where('filename', '[A-Za-z0-9_.\-]+');
     Route::redirect('/films/create', '/admin/films/buat');
     Route::get('/films/buat', [FilmController::class, 'create'])->name('films.create');
     Route::post('/films', [FilmController::class, 'store'])->name('films.store');

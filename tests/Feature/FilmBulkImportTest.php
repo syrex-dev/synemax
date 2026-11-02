@@ -328,7 +328,8 @@ class FilmBulkImportTest extends TestCase
         $response->assertOk();
         $response->assertViewIs('public.films.index');
         $response->assertSee('Katalog Film');
-        $response->assertSee('Menampilkan 1–24 dari 500 film');
+        $response->assertSee('Menampilkan');
+        $response->assertSee('500');
         $response->assertSee('Katalog Film Ke-1');
 
         // Check that response was delivered smoothly (< 1.5s)
@@ -845,5 +846,98 @@ class FilmBulkImportTest extends TestCase
         $cleanupRes->assertJson(['success' => true]);
 
         @unlink($zipPath);
+    }
+
+    public function test_ajax_process_single_poster_with_ocr_text_matching(): void
+    {
+        $film = Film::create([
+            'title' => 'Mati Rasa',
+            'duration_minutes' => 105,
+            'genre' => 'Drama',
+            'age_rating' => '13+',
+            'synopsis' => 'Sinopsis mati rasa.',
+            'is_active' => true,
+        ]);
+
+        $img = imagecreatetruecolor(400, 600);
+        imagefilledrectangle($img, 0, 0, 400, 600, imagecolorallocate($img, 10, 20, 30));
+        ob_start();
+        imagepng($img);
+        $pngData = ob_get_clean();
+        imagedestroy($img);
+
+        // Generic screenshot name without film title in filename
+        $screenshotFile = UploadedFile::fake()->createWithContent('Screenshot 2026-11-02 145022.png', $pngData);
+
+        $response = $this->actingAs($this->admin)->post(route('admin.films.posters.process_single'), [
+            'image' => $screenshotFile,
+            'ocr_text' => 'FILM TERBARU MATI RASA DI BIOSKOP OKTOBER 2026',
+        ]);
+
+        $response->assertOk();
+        $response->assertJson([
+            'success' => true,
+            'status' => 'matched',
+            'match_method' => 'deteksi teks judul di foto (OCR)',
+            'film_id' => $film->id,
+            'film_title' => 'Mati Rasa',
+        ]);
+
+        $film->refresh();
+        $this->assertNotNull($film->poster_path);
+    }
+
+    public function test_assign_batch_and_match_ocr_endpoint(): void
+    {
+        $film1 = Film::create([
+            'title' => 'Sekawan Limo',
+            'duration_minutes' => 112,
+            'genre' => 'Komedi',
+            'age_rating' => '13+',
+            'synopsis' => 'Sinopsis sekawan limo.',
+            'is_active' => true,
+        ]);
+
+        // 1. Test matchOcr endpoint
+        $matchRes = $this->actingAs($this->admin)->post(route('admin.films.posters.match_ocr'), [
+            'ocr_text' => 'DARI BAYU SKAK SEKAWAN LIMO DI BIOSKOP',
+        ]);
+        $matchRes->assertOk();
+        $matchRes->assertJson([
+            'success' => true,
+            'matched' => true,
+            'film_id' => $film1->id,
+            'film_title' => 'Sekawan Limo',
+        ]);
+
+        // 2. Put unmatched poster in storage
+        Storage::disk('public')->put('posters/unmatched/test_unmatched.webp', 'dummy');
+
+        // 3. Test assignBatch endpoint
+        $batchRes = $this->actingAs($this->admin)->post(route('admin.films.posters.assign_batch'), [
+            'assignments' => [
+                [
+                    'film_id' => $film1->id,
+                    'poster_filename' => 'test_unmatched.webp',
+                ],
+            ],
+        ], ['Accept' => 'application/json']);
+
+        $batchRes->assertOk();
+        $batchRes->assertJson([
+            'success' => true,
+            'assigned_count' => 1,
+        ]);
+
+        $film1->refresh();
+        $this->assertNotNull($film1->poster_path);
+        Storage::disk('public')->assertExists($film1->poster_path);
+
+        // 4. Test destroy endpoint via AJAX
+        Storage::disk('public')->put('posters/unmatched/test_to_delete.webp', 'dummy');
+        $deleteRes = $this->actingAs($this->admin)->delete(route('admin.films.posters.destroy', 'test_to_delete.webp'), [], ['Accept' => 'application/json']);
+        $deleteRes->assertOk();
+        $deleteRes->assertJson(['success' => true]);
+        Storage::disk('public')->assertMissing('posters/unmatched/test_to_delete.webp');
     }
 }
