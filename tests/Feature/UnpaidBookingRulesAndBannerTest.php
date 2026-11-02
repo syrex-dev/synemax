@@ -193,6 +193,7 @@ class UnpaidBookingRulesAndBannerTest extends TestCase
         $response->assertOk();
         $response->assertSee('unpaid-booking-banner', false);
         $response->assertSee($booking->code);
+        $this->assertSame(1, substr_count($response->getContent(), 'id="unpaid-booking-banner"'));
         $response->assertSee('Lanjutkan pembayaran');
     }
 

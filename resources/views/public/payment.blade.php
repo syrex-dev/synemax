@@ -71,6 +71,7 @@
                          setTimeout(() => this.copiedAccount = null, 2500);
                      });
                  }
+             },
              fileError: '',
              handleFileChange(event) {
                  const files = event.target.files;

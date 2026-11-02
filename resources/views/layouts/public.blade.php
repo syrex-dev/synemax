@@ -254,9 +254,6 @@
             </div>
         </header>
 
-        {{-- Banner In-App Booking Belum Dibayar --}}
-        <x-public.unpaid-booking-banner />
-
 
         {{-- Mobile Bottom Navigation Bar (CGV Pattern, Fixed bottom-0, Translucent Blur, < 768px) --}}
         @if (! $isActionPage)
