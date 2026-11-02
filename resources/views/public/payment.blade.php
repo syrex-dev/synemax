@@ -212,6 +212,36 @@
                     </button>
                 </div>
 
+                {{-- Rincian Transparansi Biaya (Tiket + Jajan) --}}
+                <div class="mt-3.5 pt-3 border-t border-border space-y-2 text-xs">
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Rincian Pembayaran</p>
+                    <div class="flex justify-between items-center text-text-muted">
+                        <span>Tiket ({{ $booking->isPrivate() ? 'Sewa Private (6 orang)' : ($booking->isCouple() ? 'Paket Couple' : ($booking->seat_price ? $booking->pax . ' × Rp ' . number_format($booking->seat_price, 0, ',', '.') : $booking->pax . ' orang')) }})</span>
+                        <span class="font-tabular font-bold text-text">Rp {{ number_format($booking->ticket_total, 0, ',', '.') }}</span>
+                    </div>
+
+                    @php
+                        $paymentSnackItems = $booking->items->where('status', '!=', 'dibatalkan');
+                        if ($paymentSnackItems->isEmpty() && $booking->items->isNotEmpty() && $booking->snack_total > 0) {
+                            $paymentSnackItems = $booking->items;
+                        }
+                    @endphp
+
+                    @if ($paymentSnackItems->isNotEmpty())
+                        @foreach ($paymentSnackItems as $snackItem)
+                            <div class="flex justify-between items-center text-text-muted">
+                                <span class="truncate pr-2">Jajan ({{ $snackItem->name_snapshot }} × {{ $snackItem->qty }}{{ $snackItem->note ? ' · ' . $snackItem->note : '' }})</span>
+                                <span class="font-tabular font-semibold text-text shrink-0">Rp {{ number_format($snackItem->subtotal, 0, ',', '.') }}</span>
+                            </div>
+                        @endforeach
+                    @elseif ($booking->snack_total > 0)
+                        <div class="flex justify-between items-center text-text-muted">
+                            <span>Pesanan Jajan</span>
+                            <span class="font-tabular font-semibold text-text">Rp {{ number_format($booking->snack_total, 0, ',', '.') }}</span>
+                        </div>
+                    @endif
+                </div>
+
                 <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-text-muted">
                     <p>Kode Booking: <strong class="font-tabular font-bold text-amber-700 dark:text-amber-400">{{ $booking->code }}</strong></p>
                     <p>Transfer tepat sesuai jumlah di atas.</p>

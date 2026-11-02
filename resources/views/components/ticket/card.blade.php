@@ -24,7 +24,11 @@
     $whatsapp = $settings->contactWhatsapp();
     $email = $settings->contactEmail();
 
-    $activeItems = $booking->items->where('status', '!=', 'dibatalkan');
+    // Ambil item jajan: tetap sertakan jika booking kedaluwarsa/batal agar rincian total biaya transparan
+    $displayItems = $booking->items->where('status', '!=', 'dibatalkan');
+    if ($displayItems->isEmpty() && $booking->items->isNotEmpty() && $booking->snack_total > 0) {
+        $displayItems = $booking->items;
+    }
 @endphp
 
 <div id="printable-ticket" class="print-ticket max-w-[400px] w-full mx-auto bg-white text-slate-900 rounded-[12px] border border-slate-300 dark:border-slate-300 shadow-none overflow-hidden select-none break-inside-avoid [page-break-inside:avoid] print:max-w-none print:w-full print:border-none print:rounded-none">
@@ -211,18 +215,27 @@
         </div>
 
         {{-- Baris Jajan (Maksimal 3 item lalu +n item) --}}
-        @foreach ($activeItems->take(3) as $item)
-            <div class="flex justify-between text-slate-600">
-                <span class="truncate pr-2">{{ $item->name_snapshot }} × {{ $item->qty }}{{ $item->note ? ' (' . $item->note . ')' : '' }}</span>
-                <span class="font-semibold text-slate-900 shrink-0 tabular-nums">
-                    Rp {{ number_format($item->subtotal, 0, ',', '.') }}
-                </span>
-            </div>
-        @endforeach
+        @if ($displayItems->isNotEmpty())
+            @foreach ($displayItems->take(3) as $item)
+                <div class="flex justify-between text-slate-600">
+                    <span class="truncate pr-2">Jajan ({{ $item->name_snapshot }} × {{ $item->qty }}{{ $item->note ? ' · ' . $item->note : '' }})</span>
+                    <span class="font-semibold text-slate-900 shrink-0 tabular-nums">
+                        Rp {{ number_format($item->subtotal, 0, ',', '.') }}
+                    </span>
+                </div>
+            @endforeach
 
-        @if ($activeItems->count() > 3)
-            <div class="text-[11px] text-slate-500">
-                +{{ $activeItems->count() - 3 }} item jajan lainnya
+            @if ($displayItems->count() > 3)
+                <div class="text-[11px] text-slate-500">
+                    +{{ $displayItems->count() - 3 }} item jajan lainnya
+                </div>
+            @endif
+        @elseif ($booking->snack_total > 0)
+            <div class="flex justify-between text-slate-600">
+                <span>Pesanan Jajan</span>
+                <span class="font-semibold text-slate-900 shrink-0 tabular-nums">
+                    Rp {{ number_format($booking->snack_total, 0, ',', '.') }}
+                </span>
             </div>
         @endif
 

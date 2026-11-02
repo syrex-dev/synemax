@@ -530,6 +530,51 @@ class SnackOrderFlowTest extends TestCase
         ]);
     }
 
+    public function test_ticket_card_and_payment_page_transparently_show_snack_breakdown_even_when_expired(): void
+    {
+        Setting::updateOrCreate(['key' => 'enabled_payment_methods'], ['value' => json_encode(['di_tempat', 'transfer', 'qris'])]);
+        Setting::updateOrCreate(['key' => 'transfer_accounts'], ['value' => json_encode([['bank_name' => 'BCA', 'account_number' => '12345678', 'account_holder' => 'SynemaX']])]);
+
+        $session = $this->createSession();
+        $response = $this->post(route('booking.store', $session), array_merge($this->bookingData(), [
+            'booking_type' => 'private',
+            'pax' => 6,
+            'payment_method' => 'transfer',
+            'snacks' => [
+                $this->water->id => ['qty' => 1],
+            ],
+        ]));
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect();
+
+        $booking = Booking::query()->where('customer_name', 'Pemesan Jajan')->firstOrFail();
+        $this->assertSame(30000, $booking->ticket_total);
+        $this->assertSame(3000, $booking->snack_total);
+        $this->assertSame(33000, $booking->total_price);
+
+        // 1. Payment page displays ticket total, snack item breakdown, and overall total
+        $this->get(route('booking.payment', ['code' => $booking->code]))
+            ->assertOk()
+            ->assertSee('Rincian Pembayaran')
+            ->assertSee('Rp 30.000')
+            ->assertSee('Jajan (Air mineral × 1)')
+            ->assertSee('Rp 3.000')
+            ->assertSee('Rp 33.000');
+
+        // 2. Mark booking as cancelled/expired (items become dibatalkan)
+        app(BookingService::class)->cancel($booking->code, $booking->whatsapp);
+        $booking->refresh();
+
+        // 3. Ticket card still renders snack row so total is transparent
+        $this->get(route('booking.ticket', ['code' => $booking->code]))
+            ->assertOk()
+            ->assertSee('Rp 30.000')
+            ->assertSee('Jajan (Air mineral × 1)')
+            ->assertSee('Rp 3.000')
+            ->assertSee('Total Pembayaran')
+            ->assertSee('Rp 33.000');
+    }
+
     private function createMenuItem(MenuCategory $category, string $name, int $price, int $prepMinutes): MenuItem
     {
         return MenuItem::query()->create([
