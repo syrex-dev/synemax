@@ -724,4 +724,126 @@ class FilmBulkImportTest extends TestCase
         $this->assertSame('baru', $analyzed[5]['status']);
         $this->assertSame('17+', $analyzed[5]['age_rating']);
     }
+
+    public function test_ajax_process_single_poster_matching_and_unmatched(): void
+    {
+        $film = Film::create([
+            'title' => 'Petualangan Sherina',
+            'duration_minutes' => 110,
+            'genre' => 'Petualangan',
+            'age_rating' => 'SU',
+            'synopsis' => 'Sinopsis film anak-anak.',
+            'is_active' => true,
+        ]);
+
+        // 1. Create a matching poster image (named petualangan-sherina.png)
+        $img = imagecreatetruecolor(400, 600);
+        $color = imagecolorallocate($img, 120, 200, 100);
+        imagefilledrectangle($img, 0, 0, 400, 600, $color);
+        ob_start();
+        imagepng($img);
+        $pngData = ob_get_clean();
+        imagedestroy($img);
+
+        $matchingFile = UploadedFile::fake()->createWithContent('petualangan-sherina.png', $pngData);
+
+        $response = $this->actingAs($this->admin)->post(route('admin.films.posters.process_single'), [
+            'image' => $matchingFile,
+        ]);
+
+        $response->assertOk();
+        $response->assertJson([
+            'success' => true,
+            'status' => 'matched',
+            'filename' => 'petualangan-sherina.png',
+            'film_id' => $film->id,
+            'film_title' => 'Petualangan Sherina',
+        ]);
+
+        $film->refresh();
+        $this->assertNotNull($film->poster_path);
+        Storage::disk('public')->assertExists($film->poster_path);
+
+        // 2. Upload unmatched poster
+        $unmatchedFile = UploadedFile::fake()->createWithContent('film-acak-tidak-ada.png', $pngData);
+        $unmatchedResponse = $this->actingAs($this->admin)->post(route('admin.films.posters.process_single'), [
+            'image' => $unmatchedFile,
+        ]);
+
+        $unmatchedResponse->assertOk();
+        $unmatchedResponse->assertJson([
+            'success' => true,
+            'status' => 'unmatched',
+            'filename' => 'film-acak-tidak-ada.png',
+            'film_id' => null,
+        ]);
+    }
+
+    public function test_ajax_zip_batch_processing_and_cleanup(): void
+    {
+        $film = Film::create([
+            'title' => 'Laskar Pelangi',
+            'duration_minutes' => 125,
+            'genre' => 'Drama',
+            'age_rating' => 'SU',
+            'synopsis' => 'Sinopsis laskar pelangi.',
+            'is_active' => true,
+        ]);
+
+        // Create a ZIP with 1 poster
+        $img = imagecreatetruecolor(400, 600);
+        imagefilledrectangle($img, 0, 0, 400, 600, imagecolorallocate($img, 50, 100, 150));
+        ob_start();
+        imagejpeg($img);
+        $jpgData = ob_get_clean();
+        imagedestroy($img);
+
+        $zipPath = tempnam(sys_get_temp_dir(), 'zip_test_');
+        $zip = new ZipArchive;
+        $zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        $zip->addFromString('laskar-pelangi.jpg', $jpgData);
+        $zip->close();
+
+        $uploadedZip = new UploadedFile($zipPath, 'posters.zip', 'application/zip', null, true);
+
+        // 1. Upload zip
+        $uploadZipRes = $this->actingAs($this->admin)->post(route('admin.films.posters.upload_zip'), [
+            'zip_file' => $uploadedZip,
+        ]);
+
+        $uploadZipRes->assertOk();
+        $uploadData = $uploadZipRes->json();
+        $this->assertTrue($uploadData['success']);
+        $this->assertNotEmpty($uploadData['batch_id']);
+        $this->assertCount(1, $uploadData['files']);
+
+        $batchId = $uploadData['batch_id'];
+        $item = $uploadData['files'][0];
+
+        // 2. Process batch item
+        $processRes = $this->actingAs($this->admin)->post(route('admin.films.posters.process_batch_item'), [
+            'batch_id' => $batchId,
+            'filename' => $item['filename'],
+            'staged_path' => $item['staged_path'],
+        ]);
+
+        $processRes->assertOk();
+        $processRes->assertJson([
+            'success' => true,
+            'status' => 'matched',
+            'film_title' => 'Laskar Pelangi',
+        ]);
+
+        $film->refresh();
+        $this->assertNotNull($film->poster_path);
+
+        // 3. Cleanup batch
+        $cleanupRes = $this->actingAs($this->admin)->post(route('admin.films.posters.cleanup_batch'), [
+            'batch_id' => $batchId,
+        ]);
+        $cleanupRes->assertOk();
+        $cleanupRes->assertJson(['success' => true]);
+
+        @unlink($zipPath);
+    }
 }

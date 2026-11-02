@@ -767,12 +767,24 @@ class FilmBulkImporter
             throw new RuntimeException('Ekstensi GD PHP wajib aktif untuk memproses poster.');
         }
 
-        $contents = file_get_contents($imagePath);
-        if ($contents === false) {
-            throw new RuntimeException("Gagal membaca berkas poster dari path: {$imagePath}");
+        $source = false;
+        $imageType = @exif_imagetype($imagePath);
+        if ($imageType === IMAGETYPE_JPEG && function_exists('imagecreatefromjpeg')) {
+            $source = @imagecreatefromjpeg($imagePath);
+        } elseif ($imageType === IMAGETYPE_PNG && function_exists('imagecreatefrompng')) {
+            $source = @imagecreatefrompng($imagePath);
+        } elseif ($imageType === IMAGETYPE_WEBP && function_exists('imagecreatefromwebp')) {
+            $source = @imagecreatefromwebp($imagePath);
         }
 
-        $source = @imagecreatefromstring($contents);
+        if ($source === false) {
+            $contents = @file_get_contents($imagePath);
+            if ($contents === false) {
+                throw new RuntimeException("Gagal membaca berkas poster dari path: {$imagePath}");
+            }
+            $source = @imagecreatefromstring($contents);
+        }
+
         if ($source === false) {
             throw new RuntimeException('File gambar poster rusak atau tidak valid.');
         }

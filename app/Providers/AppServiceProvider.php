@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\CinemaSettings;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -32,7 +33,7 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        \Illuminate\Pagination\Paginator::defaultView('pagination::tailwind');
+        Paginator::defaultView('pagination::tailwind');
 
         View::composer(['layouts.public', 'layouts.admin', 'public.*', 'admin.*'], function ($view) {
             $view->with('cinemaSettings', app(CinemaSettings::class));

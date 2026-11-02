@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Film;
 use App\Services\FilmBulkImporter;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -68,15 +69,299 @@ class FilmPosterController extends Controller
     }
 
     /**
-     * Handle bulk upload of multiple image files or ZIP archive.
+     * Process a single poster image file: validates, crops, compresses, and matches against unassigned films.
+     *
+     * @return array{
+     *     success: bool,
+     *     status: 'matched'|'unmatched'|'failed',
+     *     filename: string,
+     *     film_id: ?int,
+     *     film_title: ?string,
+     *     poster_url: ?string,
+     *     warning: ?string,
+     *     message: string
+     * }
      */
-    public function upload(Request $request, FilmBulkImporter $importer): RedirectResponse
+    public function processPosterFile(string $sourcePath, string $originalFilename, FilmBulkImporter $importer): array
+    {
+        if (! file_exists($sourcePath)) {
+            return [
+                'success' => false,
+                'status' => 'failed',
+                'filename' => $originalFilename,
+                'film_id' => null,
+                'film_title' => null,
+                'poster_url' => null,
+                'warning' => null,
+                'message' => 'Berkas gambar tidak ditemukan di sistem.',
+            ];
+        }
+
+        // Genuine image validation
+        $imageInfo = @getimagesize($sourcePath);
+        if ($imageInfo === false || ! in_array($imageInfo[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
+            return [
+                'success' => false,
+                'status' => 'failed',
+                'filename' => $originalFilename,
+                'film_id' => null,
+                'film_title' => null,
+                'poster_url' => null,
+                'warning' => null,
+                'message' => 'Format berkas tidak valid. Harap gunakan format JPG, PNG, atau WebP.',
+            ];
+        }
+
+        $warning = ($imageInfo[0] < 300) ? 'Lebar gambar kurang dari 300px (kualitas resolusi rendah).' : null;
+
+        // Crop & store 600x900 WebP
+        try {
+            $storedPath = $importer->cropAndStorePoster($sourcePath);
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'status' => 'failed',
+                'filename' => $originalFilename,
+                'film_id' => null,
+                'film_title' => null,
+                'poster_url' => null,
+                'warning' => null,
+                'message' => 'Gagal memproses gambar: '.$e->getMessage(),
+            ];
+        }
+
+        $origNoExt = strtolower(pathinfo($originalFilename, PATHINFO_FILENAME));
+        $origSlug = Str::slug($origNoExt);
+
+        // Fetch films currently without poster
+        $filmsWithoutPoster = Film::query()
+            ->where(function ($q) {
+                $q->whereNull('poster_path')->orWhere('poster_path', '');
+            })
+            ->orderBy('title')
+            ->get();
+
+        $matchedFilm = null;
+        foreach ($filmsWithoutPoster as $film) {
+            $filmSlug = $film->slug;
+            $filmTitleSlug = Str::slug($film->title);
+
+            $isExact = ($origNoExt === strtolower($film->title))
+                || ($origSlug === $filmSlug)
+                || ($origSlug === $filmTitleSlug);
+
+            $isSubstring = false;
+            if (! $isExact && strlen($filmSlug) >= 4 && strlen($origSlug) >= 4) {
+                if (str_contains($origSlug, $filmSlug) || str_contains($filmSlug, $origSlug)) {
+                    $isSubstring = true;
+                }
+            }
+
+            if ($isExact || $isSubstring) {
+                $matchedFilm = $film;
+                break;
+            }
+        }
+
+        if ($matchedFilm) {
+            $matchedFilm->update(['poster_path' => $storedPath, 'is_sample' => false]);
+
+            return [
+                'success' => true,
+                'status' => 'matched',
+                'filename' => $originalFilename,
+                'film_id' => $matchedFilm->id,
+                'film_title' => $matchedFilm->title,
+                'poster_url' => Storage::disk('public')->url($storedPath),
+                'warning' => $warning,
+                'message' => "Berhasil dicocokkan otomatis ke film \"{$matchedFilm->title}\".",
+            ];
+        }
+
+        // Unmatched -> move to unmatched storage directory
+        $destUnmatched = self::UNMATCHED_DIR.'/'.Str::slug($origNoExt).'_'.Str::random(6).'.'.pathinfo($storedPath, PATHINFO_EXTENSION);
+        Storage::disk('public')->move($storedPath, $destUnmatched);
+
+        return [
+            'success' => true,
+            'status' => 'unmatched',
+            'filename' => $originalFilename,
+            'film_id' => null,
+            'film_title' => null,
+            'poster_url' => Storage::disk('public')->url($destUnmatched),
+            'warning' => $warning,
+            'message' => 'Tidak ditemukan film yang cocok. Disimpan ke antrean poster belum terpasang.',
+        ];
+    }
+
+    /**
+     * AJAX endpoint: Process a single uploaded image.
+     */
+    public function processSingle(Request $request, FilmBulkImporter $importer): JsonResponse
+    {
+        $request->validate([
+            'image' => 'required|file|max:5120',
+        ], [
+            'image.required' => 'Pilih berkas gambar untuk diproses.',
+            'image.max' => 'Ukuran berkas gambar maksimal 5 MB.',
+        ]);
+
+        $file = $request->file('image');
+        if (! $file instanceof UploadedFile || ! $file->isValid()) {
+            return response()->json([
+                'success' => false,
+                'status' => 'failed',
+                'filename' => $file?->getClientOriginalName() ?? 'unknown',
+                'message' => 'Berkas unggahan tidak valid atau gagal diunggah.',
+            ], 422);
+        }
+
+        $originalName = $file->getClientOriginalName();
+        $tempPath = $file->getRealPath();
+
+        $result = $this->processPosterFile($tempPath, $originalName, $importer);
+
+        return response()->json($result);
+    }
+
+    /**
+     * AJAX endpoint: Upload and extract ZIP archive into temporary batch folder.
+     */
+    public function uploadZip(Request $request, FilmBulkImporter $importer): JsonResponse
+    {
+        $request->validate([
+            'zip_file' => 'required|file|mimes:zip|max:51200',
+        ], [
+            'zip_file.required' => 'Pilih berkas ZIP untuk diunggah.',
+            'zip_file.mimes' => 'Berkas harus berformat ZIP.',
+            'zip_file.max' => 'Ukuran berkas ZIP maksimal 50 MB.',
+        ]);
+
+        $zipFile = $request->file('zip_file');
+        if (! $zipFile instanceof UploadedFile || ! $zipFile->isValid()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Berkas ZIP tidak valid.',
+            ], 422);
+        }
+
+        try {
+            $batchId = Str::uuid()->toString();
+            $extracted = $importer->extractPosterZip($zipFile, $batchId);
+
+            $files = [];
+            $seen = [];
+            foreach ($extracted as $key => $item) {
+                if (str_contains($key, '.') && ! isset($seen[$item['staged_path']])) {
+                    $seen[$item['staged_path']] = true;
+                    $files[] = [
+                        'filename' => $item['filename'],
+                        'staged_path' => $item['staged_path'],
+                        'size' => $item['size'],
+                    ];
+                }
+            }
+
+            if (empty($files)) {
+                $this->deleteStagingDirectory(storage_path("app/tmp_posters/{$batchId}"));
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ditemukan berkas gambar yang valid di dalam arsip ZIP.',
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'batch_id' => $batchId,
+                'total' => count($files),
+                'files' => $files,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengekstrak berkas ZIP: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * AJAX endpoint: Process a single staged poster from an extracted ZIP batch.
+     */
+    public function processBatchItem(Request $request, FilmBulkImporter $importer): JsonResponse
+    {
+        $validated = $request->validate([
+            'batch_id' => 'required|string',
+            'filename' => 'required|string',
+            'staged_path' => 'required|string',
+        ]);
+
+        $batchId = $validated['batch_id'];
+        $stagedPath = $validated['staged_path'];
+        $filename = $validated['filename'];
+
+        // Security check: ensure path is inside temporary batch folder
+        $allowedPrefix = realpath(storage_path("app/tmp_posters/{$batchId}"));
+        $realPath = realpath($stagedPath);
+
+        if (! $allowedPrefix || ! $realPath || ! str_starts_with($realPath, $allowedPrefix)) {
+            return response()->json([
+                'success' => false,
+                'status' => 'failed',
+                'filename' => $filename,
+                'message' => 'Akses berkas tidak diizinkan atau batch tidak valid.',
+            ], 403);
+        }
+
+        $result = $this->processPosterFile($realPath, $filename, $importer);
+
+        // Delete the staged file after processing
+        @unlink($realPath);
+
+        return response()->json($result);
+    }
+
+    /**
+     * AJAX endpoint: Cleanup temporary staging folder for a batch.
+     */
+    public function cleanupBatch(Request $request): JsonResponse
+    {
+        $batchId = $request->input('batch_id');
+        if ($batchId && is_string($batchId) && preg_match('/^[a-zA-Z0-9\-_]+$/', $batchId)) {
+            $stagingDir = storage_path("app/tmp_posters/{$batchId}");
+            $this->deleteStagingDirectory($stagingDir);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    private function deleteStagingDirectory(string $dir): void
+    {
+        if (! is_dir($dir)) {
+            return;
+        }
+
+        $files = glob("{$dir}/*");
+        if ($files) {
+            foreach ($files as $f) {
+                @unlink($f);
+            }
+        }
+        @rmdir($dir);
+    }
+
+    /**
+     * Handle bulk upload of multiple image files or ZIP archive (standard form submit & backwards compatibility).
+     */
+    public function upload(Request $request, FilmBulkImporter $importer): RedirectResponse|JsonResponse
     {
         $request->validate([
             'images.*' => 'nullable|file|max:5120', // max 5MB per image
+            'posters.*' => 'nullable|file|max:5120',
             'zip_file' => 'nullable|file|mimes:zip|max:51200', // max 50MB
         ], [
             'images.*.max' => 'Ukuran berkas gambar maksimal 5 MB per gambar.',
+            'posters.*.max' => 'Ukuran berkas gambar maksimal 5 MB per gambar.',
             'zip_file.mimes' => 'Berkas harus berformat ZIP.',
             'zip_file.max' => 'Ukuran berkas ZIP maksimal 50 MB.',
         ]);
@@ -88,6 +373,10 @@ class FilmPosterController extends Controller
         $zipFile = $request->file('zip_file');
 
         if (empty($uploadedImages) && $zipFile === null) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Pilih minimal satu berkas gambar atau berkas ZIP untuk diunggah.'], 422);
+            }
+
             return back()->with('error', 'Pilih minimal satu berkas gambar atau berkas ZIP untuk diunggah.');
         }
 
@@ -123,98 +412,50 @@ class FilmPosterController extends Controller
                     }
                 }
             } catch (\Exception $e) {
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'Gagal memproses berkas ZIP: '.$e->getMessage()], 422);
+                }
+
                 return back()->with('error', 'Gagal memproses berkas ZIP: '.$e->getMessage());
             }
         }
 
         if (empty($allCandidatePaths)) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Tidak ditemukan berkas gambar yang valid pada data yang diunggah.'], 422);
+            }
+
             return back()->with('error', 'Tidak ditemukan berkas gambar yang valid pada data yang diunggah.');
         }
-
-        // 3. Process candidate images and attempt auto-matching
-        $filmsWithoutPoster = Film::query()
-            ->where(function ($q) {
-                $q->whereNull('poster_path')->orWhere('poster_path', '');
-            })
-            ->get();
 
         $matchedCount = 0;
         $unmatchedCount = 0;
         $warningsCount = 0;
+        $failedCount = 0;
 
         foreach ($allCandidatePaths as $candidate) {
             $sourcePath = $candidate['staged_path'];
-            if (! file_exists($sourcePath)) {
-                continue;
-            }
-
-            // Genuine image validation
-            $imageInfo = @getimagesize($sourcePath);
-            if ($imageInfo === false || ! in_array($imageInfo[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP], true)) {
-                @unlink($sourcePath);
-
-                continue;
-            }
-
-            if ($imageInfo[0] < 300) {
-                $warningsCount++;
-            }
-
-            // Crop & store 600x900 WebP (fallback JPG)
-            try {
-                $storedPath = $importer->cropAndStorePoster($sourcePath);
-            } catch (\Exception $e) {
-                @unlink($sourcePath);
-
-                continue;
-            }
-
             $origFilename = $candidate['filename'];
-            $origNoExt = strtolower(pathinfo($origFilename, PATHINFO_FILENAME));
-            $origSlug = Str::slug($origNoExt);
 
-            // Attempt matching
-            $matchedFilm = null;
-            foreach ($filmsWithoutPoster as $film) {
-                $filmSlug = $film->slug;
-                $filmTitleSlug = Str::slug($film->title);
+            $res = $this->processPosterFile($sourcePath, $origFilename, $importer);
 
-                if (
-                    $origNoExt === strtolower($film->title) ||
-                    $origSlug === $filmSlug ||
-                    $origSlug === $filmTitleSlug ||
-                    str_contains($origSlug, $filmSlug) ||
-                    str_contains($filmSlug, $origSlug)
-                ) {
-                    $matchedFilm = $film;
-                    break;
-                }
+            if ($res['status'] === 'matched') {
+                $matchedCount++;
+            } elseif ($res['status'] === 'unmatched') {
+                $unmatchedCount++;
+            } else {
+                $failedCount++;
             }
 
-            if ($matchedFilm) {
-                $matchedFilm->update(['poster_path' => $storedPath, 'is_sample' => false]);
-                // Remove from local list so other posters don't match the same film
-                $filmsWithoutPoster = $filmsWithoutPoster->reject(fn ($f) => $f->id === $matchedFilm->id);
-                $matchedCount++;
-            } else {
-                // Move to unmatched folder
-                $destUnmatched = self::UNMATCHED_DIR.'/'.Str::slug($origNoExt).'_'.Str::random(6).'.'.pathinfo($storedPath, PATHINFO_EXTENSION);
-                Storage::disk('public')->copy($storedPath, $destUnmatched);
-                Storage::disk('public')->delete($storedPath);
-                $unmatchedCount++;
+            if (! empty($res['warning'])) {
+                $warningsCount++;
             }
 
             @unlink($sourcePath);
         }
 
         // Cleanup temporary staging folder
-        $files = glob("{$stagingDir}/*");
-        if ($files) {
-            foreach ($files as $f) {
-                @unlink($f);
-            }
-        }
-        @rmdir($stagingDir);
+        $this->deleteStagingDirectory($stagingDir);
 
         $msg = "Proses poster selesai: {$matchedCount} poster berhasil dicocokkan otomatis.";
         if ($unmatchedCount > 0) {
@@ -222,6 +463,20 @@ class FilmPosterController extends Controller
         }
         if ($warningsCount > 0) {
             $msg .= " Catatan: {$warningsCount} gambar memiliki lebar di bawah 300px (peringatan kualitas).";
+        }
+        if ($failedCount > 0) {
+            $msg .= " {$failedCount} berkas gagal diproses.";
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'matched' => $matchedCount,
+                'unmatched' => $unmatchedCount,
+                'failed' => $failedCount,
+                'warnings' => $warningsCount,
+                'message' => $msg,
+            ]);
         }
 
         return redirect()->route('admin.films.posters.index')->with('status', $msg);
