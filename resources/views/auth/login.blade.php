@@ -31,6 +31,18 @@
             </div>
 
             <div>
+                <style>
+                    /* Hilangkan ikon reveal password bawaan browser Edge / Chromium agar tidak dobel */
+                    input[type="password"]::-ms-reveal,
+                    input[type="password"]::-ms-clear,
+                    #password::-ms-reveal,
+                    #password::-ms-clear {
+                        display: none !important;
+                        width: 0 !important;
+                        height: 0 !important;
+                        pointer-events: none !important;
+                    }
+                </style>
                 <label for="password" class="block text-xs font-bold text-text mb-1">Kata sandi</label>
                 <div class="relative">
                     <input id="password"

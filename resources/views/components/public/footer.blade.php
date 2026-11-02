@@ -1,6 +1,7 @@
 @php
     $settings = app(\App\Services\CinemaSettings::class);
     $email = $settings->contactEmail();
+    $whatsapp = $settings->contactWhatsapp();
     $instagramUrl = $settings->instagramUrl();
     $instagramLabel = $settings->instagramLabel();
     $tiktokUrl = $settings->tiktokUrl();
@@ -105,6 +106,27 @@
                 </h3>
 
                 <div class="space-y-2.5 text-xs">
+                    @if ($whatsapp)
+                        @php
+                            $waDigits = preg_replace('/[^\d]/', '', (string) $whatsapp);
+                            if (str_starts_with($waDigits, '0')) {
+                                $waDigits = '62' . substr($waDigits, 1);
+                            } elseif (! str_starts_with($waDigits, '62') && strlen($waDigits) >= 8) {
+                                $waDigits = '62' . $waDigits;
+                            }
+                            $waUrl = 'https://wa.me/' . $waDigits . '?text=' . rawurlencode('Halo admin SynemaX, saya mau bertanya.');
+                        @endphp
+                        <div>
+                            <a href="{{ $waUrl }}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-[44px] items-center gap-2.5 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 font-bold transition-colors">
+                                <span class="flex size-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
+                                    <svg class="size-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.303-.058.116-.087.188-.173.289l-.26.302c-.087.087-.179.182-.077.357.101.174.449.741.963 1.199.662.59 1.221.774 1.394.861.173.087.275.072.376-.043.101-.116.433-.506.549-.68.116-.173.231-.144.39-.086.159.058 1.011.477 1.184.564.173.087.289.13.332.202.043.072.043.419-.101.824z"/>
+                                    </svg>
+                                </span>
+                                <span>WhatsApp Admin</span>
+                            </a>
+                        </div>
+                    @endif
                     @if ($email)
                         <div>
                             <a href="mailto:{{ $email }}" class="inline-flex min-h-[44px] items-center gap-2.5 text-slate-700 dark:text-slate-300 hover:text-amber-700 dark:hover:text-amber-400 font-bold transition-colors">
