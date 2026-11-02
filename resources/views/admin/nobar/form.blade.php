@@ -10,10 +10,72 @@
         catatanMarkdown: @js(old('catatan', $event->catatan ?? '')),
         catatanTab: 'write',
         posterPreview: null,
-        handlePosterChange(event) {
-            const file = event.target.files && event.target.files[0];
-            if (file) {
+        posterOptimizing: false,
+        posterInfo: '',
+        async handlePosterChange(event) {
+            const inputEl = event.target;
+            const file = inputEl.files && inputEl.files[0];
+            if (!file) return;
+
+            if (file.type === 'image/svg+xml') {
                 this.posterPreview = URL.createObjectURL(file);
+                return;
+            }
+
+            this.posterOptimizing = true;
+            this.posterInfo = 'Mengoptimalkan poster...';
+            try {
+                const optimized = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onerror = () => reject(new Error('Gagal membaca file'));
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onerror = () => reject(new Error('Gagal memproses gambar'));
+                        img.onload = () => {
+                            let w = img.naturalWidth;
+                            let h = img.naturalHeight;
+                            const maxW = 1200;
+                            const maxH = 1600;
+                            if (w > maxW || h > maxH) {
+                                const ratio = Math.min(maxW / w, maxH / h);
+                                w = Math.max(1, Math.round(w * ratio));
+                                w = Math.max(1, Math.round(h * ratio));
+                            }
+                            const canvas = document.createElement('canvas');
+                            canvas.width = w;
+                            canvas.height = h;
+                            const ctx = canvas.getContext('2d');
+                            if (!ctx) return resolve({ file, origSize: file.size, w, h, previewUrl: e.target.result });
+                            ctx.imageSmoothingEnabled = true;
+                            ctx.imageSmoothingQuality = 'high';
+                            ctx.drawImage(img, 0, 0, w, h);
+                            canvas.toBlob((blob) => {
+                                if (!blob) return resolve({ file, origSize: file.size, w, h, previewUrl: e.target.result });
+                                const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || 'nobar';
+                                const cleanName = baseName.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50) || 'nobar';
+                                const newFile = new File([blob], `${cleanName}.webp`, { type: 'image/webp', lastModified: Date.now() });
+                                resolve({ file: newFile, origSize: file.size, w, h, previewUrl: URL.createObjectURL(blob) });
+                            }, 'image/webp', 0.88);
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                });
+
+                if (window.DataTransfer && optimized.file) {
+                    const dt = new DataTransfer();
+                    dt.items.add(optimized.file);
+                    inputEl.files = dt.files;
+                    this.posterPreview = optimized.previewUrl;
+                    const optKb = (optimized.file.size / 1024).toFixed(0);
+                    this.posterInfo = `Poster dioptimalkan: ${optKb} KB (${optimized.w}×${optimized.h} px, HD)`;
+                } else {
+                    this.posterPreview = URL.createObjectURL(file);
+                }
+            } catch (e) {
+                this.posterPreview = URL.createObjectURL(file);
+            } finally {
+                this.posterOptimizing = false;
             }
         }
     }">
@@ -194,8 +256,16 @@
                     </div>
 
                     {{-- Pratinjau Poster Baru --}}
-                    <div x-show="posterPreview" x-cloak class="rounded-xl border border-accent/40 bg-accent/5 p-4">
-                        <p class="text-xs font-bold text-accent">Pratinjau poster baru yang dipilih:</p>
+                    <div x-show="posterPreview" x-cloak class="rounded-xl border border-accent/40 bg-accent/5 p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <p class="text-xs font-bold text-accent">Pratinjau poster baru yang dipilih:</p>
+                            <span x-show="posterInfo" x-cloak class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                <svg class="size-3.5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                                </svg>
+                                <span x-text="posterInfo"></span>
+                            </span>
+                        </div>
                         <div class="mt-2.5 overflow-hidden rounded-xl border border-border bg-bg/80 p-2 inline-block">
                             <img :src="posterPreview" alt="Pratinjau Poster Baru" class="max-h-60 rounded-lg object-contain">
                         </div>

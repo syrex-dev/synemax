@@ -2,11 +2,11 @@
     'name',
     'label' => null,
     'currentValue' => null,
-    'hint' => 'JPG, PNG, atau WebP, maks 2 MB',
+    'hint' => 'JPG, PNG, atau WebP, maks 5 MB (otomatis dioptimalkan HD)',
     'aspectRatio' => null,
     'recommendedWidth' => null,
     'recommendedHeight' => null,
-    'maxSizeMb' => 2,
+    'maxSizeMb' => 5,
     'accept' => 'image/jpeg,image/png,image/webp,image/svg+xml',
     'required' => false,
     'libraryImages' => [],
@@ -22,6 +22,11 @@
             $initialUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($currentValue);
         }
     }
+    $recW = (int) ($recommendedWidth ?? 0);
+    $recH = (int) ($recommendedHeight ?? 0);
+    // Double resolution for Retina HD (at least 1200px width, 1800px height for posters)
+    $targetBoundW = $recW > 0 ? max($recW * 2, 1000) : 1200;
+    $targetBoundH = $recH > 0 ? max($recH * 2, 1500) : 1800;
 @endphp
 
 <div
@@ -30,64 +35,214 @@
         hasFile: {{ $initialUrl ? 'true' : 'false' }},
         fileName: '',
         clientError: '',
+        clientWarning: '',
+        optimizationInfo: '',
+        isOptimizing: false,
         showLibrary: false,
         deleteMarked: false,
-        handleFileChange(event) {
-            const file = event.target.files[0];
+
+        async handleFileChange(event) {
+            const inputEl = event.target;
+            let file = inputEl.files && inputEl.files[0];
             if (!file) return;
 
             this.clientError = '';
+            this.clientWarning = '';
+            this.optimizationInfo = '';
             this.deleteMarked = false;
             this.fileName = file.name;
 
-            // Check size
-            const maxBytes = {{ $maxSizeMb }} * 1024 * 1024;
-            if (file.size > maxBytes) {
-                this.clientError = `Ukuran file ${(file.size / 1024 / 1024).toFixed(1)} MB melebihi batas maksimal {{ $maxSizeMb }} MB.`;
+            // If SVG vector, no canvas compression needed
+            if (file.type === 'image/svg+xml') {
+                const maxBytes = {{ $maxSizeMb }} * 1024 * 1024;
+                if (file.size > maxBytes) {
+                    this.clientError = `Ukuran file ${(file.size / 1024 / 1024).toFixed(1)} MB melebihi batas maksimal {{ $maxSizeMb }} MB.`;
+                    inputEl.value = '';
+                    return;
+                }
+                this.previewUrl = URL.createObjectURL(file);
+                this.hasFile = true;
+                return;
             }
 
-            // Preview & check dimensions
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                this.previewUrl = e.target.result;
+            // Raster image: optimize via Canvas to WebP
+            this.isOptimizing = true;
+            this.optimizationInfo = 'Mengoptimalkan kualitas gambar...';
+
+            try {
+                const result = await this.optimizeImage(file);
+                const optimizedFile = result.file;
+
+                // Seamlessly replace the file in the native file input so the form submits the lightweight file
+                if (window.DataTransfer && result.wasOptimized) {
+                    const dt = new DataTransfer();
+                    dt.items.add(optimizedFile);
+                    inputEl.files = dt.files;
+                }
+
+                this.previewUrl = result.previewUrl;
                 this.hasFile = true;
 
-                @if ($recommendedWidth && $recommendedHeight)
-                    const img = new Image();
-                    img.onload = () => {
-                        const actualW = img.naturalWidth;
-                        const actualH = img.naturalHeight;
-                        const expectedRatio = {{ $recommendedWidth }} / {{ $recommendedHeight }};
-                        const actualRatio = actualW / actualH;
-                        const ratioDiff = Math.abs(actualRatio - expectedRatio) / expectedRatio;
+                const optKb = (optimizedFile.size / 1024).toFixed(0);
+                this.fileName = `${optimizedFile.name} (${optKb} KB)`;
 
-                        if (ratioDiff > 0.05) {
-                            @if ($recommendedWidth === $recommendedHeight)
-                                this.clientError = `Rasio gambar ${actualW}×${actualH} tidak persegi. Gambar QRIS sebaiknya persegi (1:1) dan rapi agar mudah dipindai.`;
-                            @else
-                                this.clientError = `Rasio gambar ${actualW}×${actualH} berbeda dari rekomendasi {{ $recommendedWidth }}×{{ $recommendedHeight }} px. Gambar mungkin terpotong.`;
-                            @endif
+                if (result.wasOptimized && result.origSize > optimizedFile.size) {
+                    const origStr = result.origSize > 1024 * 1024
+                        ? (result.origSize / (1024 * 1024)).toFixed(1) + ' MB'
+                        : (result.origSize / 1024).toFixed(0) + ' KB';
+                    this.optimizationInfo = `Kualitas dioptimalkan: ${origStr} → ${optKb} KB (${result.width}×${result.height} px, HD)`;
+                } else {
+                    this.optimizationInfo = `Gambar siap (${optKb} KB, ${result.width}×${result.height} px)`;
+                }
+
+                // Aspect ratio check
+                @if ($recommendedWidth && $recommendedHeight)
+                    const expectedRatio = {{ $recommendedWidth }} / {{ $recommendedHeight }};
+                    const actualRatio = result.width / result.height;
+                    const ratioDiff = Math.abs(actualRatio - expectedRatio) / expectedRatio;
+
+                    if (ratioDiff > 0.08) {
+                        @if ($recommendedWidth === $recommendedHeight)
+                            this.clientWarning = `Rasio gambar ${result.width}×${result.height} tidak persegi. Disarankan persegi (1:1) dan rapi.`;
+                        @else
+                            this.clientWarning = `Rasio gambar ${result.width}×${result.height} berbeda dari rasio standar {{ $recommendedWidth }}×{{ $recommendedHeight }} (2:3). Gambar mungkin sedikit terpotong di katalog.`;
+                        @endif
+                    }
+                @endif
+
+                // Max size check
+                const maxBytes = {{ $maxSizeMb }} * 1024 * 1024;
+                if (optimizedFile.size > maxBytes) {
+                    this.clientError = `Ukuran file ${(optimizedFile.size / 1024 / 1024).toFixed(1)} MB melebihi batas maksimal {{ $maxSizeMb }} MB.`;
+                }
+            } catch (err) {
+                console.warn('Image optimization fallback:', err);
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.previewUrl = e.target.result;
+                    this.hasFile = true;
+                };
+                reader.readAsDataURL(file);
+            } finally {
+                this.isOptimizing = false;
+            }
+        },
+
+        optimizeImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error('Gagal membaca file'));
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onerror = () => reject(new Error('Gagal memproses gambar'));
+                    img.onload = () => {
+                        const origW = img.naturalWidth;
+                        const origH = img.naturalHeight;
+
+                        const maxW = {{ $targetBoundW }};
+                        const maxH = {{ $targetBoundH }};
+
+                        let targetW = origW;
+                        let targetH = origH;
+
+                        // Downscale smoothly if larger than target bounds, preserving exact aspect ratio
+                        if (origW > maxW || origH > maxH) {
+                            const ratio = Math.min(maxW / origW, maxH / origH);
+                            targetW = Math.max(1, Math.round(origW * ratio));
+                            targetH = Math.max(1, Math.round(origH * ratio));
                         }
+
+                        // If file is already small WebP within bounds, keep as is
+                        if (file.size <= 250 * 1024 && origW <= maxW && origH <= maxH && file.type === 'image/webp') {
+                            return resolve({
+                                file: file,
+                                wasOptimized: false,
+                                origSize: file.size,
+                                previewUrl: e.target.result,
+                                width: origW,
+                                height: origH
+                            });
+                        }
+
+                        const canvas = document.createElement('canvas');
+                        canvas.width = targetW;
+                        canvas.height = targetH;
+                        const ctx = canvas.getContext('2d', { alpha: true });
+                        if (!ctx) {
+                            return resolve({
+                                file: file,
+                                wasOptimized: false,
+                                origSize: file.size,
+                                previewUrl: e.target.result,
+                                width: origW,
+                                height: origH
+                            });
+                        }
+
+                        // High quality smoothing
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, 0, 0, targetW, targetH);
+
+                        // High-quality WebP encoding (0.88 is visually crisp with tiny footprint)
+                        canvas.toBlob((blob) => {
+                            if (!blob) {
+                                return resolve({
+                                    file: file,
+                                    wasOptimized: false,
+                                    origSize: file.size,
+                                    previewUrl: e.target.result,
+                                    width: origW,
+                                    height: origH
+                                });
+                            }
+
+                            const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                            const cleanName = baseName.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50) || 'image';
+                            const newFileName = `${cleanName}.webp`;
+
+                            const optimizedFile = new File([blob], newFileName, {
+                                type: 'image/webp',
+                                lastModified: Date.now()
+                            });
+
+                            const previewUrl = URL.createObjectURL(blob);
+                            resolve({
+                                file: optimizedFile,
+                                wasOptimized: true,
+                                origSize: file.size,
+                                previewUrl: previewUrl,
+                                width: targetW,
+                                height: targetH
+                            });
+                        }, 'image/webp', 0.88);
                     };
                     img.src = e.target.result;
-                @endif
-            };
-            reader.readAsDataURL(file);
+                };
+                reader.readAsDataURL(file);
+            });
         },
+
         removeFile() {
             this.previewUrl = '';
             this.hasFile = false;
             this.fileName = '';
             this.clientError = '';
+            this.clientWarning = '';
+            this.optimizationInfo = '';
             this.deleteMarked = true;
             const input = document.getElementById('{{ $inputId }}');
             if (input) input.value = '';
         },
+
         selectFromLibrary(url, path) {
             this.previewUrl = url;
             this.hasFile = true;
             this.deleteMarked = false;
             this.showLibrary = false;
+            this.clientError = '';
+            this.clientWarning = '';
+            this.optimizationInfo = '';
             document.getElementById('library_{{ $name }}').value = path;
         }
     }"
@@ -110,11 +265,28 @@
     <div class="relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-400 dark:border-white/20 bg-surface p-4 transition-colors hover:border-amber-500">
         {{-- Preview Area --}}
         <div x-show="hasFile && previewUrl" x-cloak class="space-y-3">
-            <div class="relative flex items-center justify-center rounded-xl bg-slate-950/20 p-2 max-h-56 overflow-hidden">
-                <img :src="previewUrl" alt="Pratinjau" class="max-h-52 w-auto max-w-full rounded-lg object-contain shadow-sm">
+            <div class="relative flex items-center justify-center rounded-xl bg-slate-950/20 p-2 max-h-64 overflow-hidden">
+                <img :src="previewUrl" alt="Pratinjau" class="max-h-60 w-auto max-w-full rounded-lg object-contain shadow-sm">
+
+                {{-- Loading Overlay when optimizing --}}
+                <div x-show="isOptimizing" x-cloak class="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white backdrop-blur-xs rounded-xl">
+                    <svg class="size-6 animate-spin text-amber-400" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <span class="mt-2 text-xs font-semibold">Mengoptimalkan gambar...</span>
+                </div>
             </div>
             <div class="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-                <span class="truncate text-xs font-semibold text-text max-w-[200px]" x-text="fileName || 'Gambar tersimpan'"></span>
+                <div class="min-w-0 max-w-[280px]">
+                    <span class="truncate text-xs font-semibold text-text block" x-text="fileName || 'Gambar tersimpan'"></span>
+                    <span x-show="optimizationInfo" x-cloak class="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                        <svg class="size-3.5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                        </svg>
+                        <span x-text="optimizationInfo"></span>
+                    </span>
+                </div>
                 <div class="flex items-center gap-2">
                     <label for="{{ $inputId }}" class="inline-flex min-h-[34px] cursor-pointer items-center rounded-lg border border-slate-400 dark:border-white/20 bg-surface px-3 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition-colors shadow-xs">
                         Ganti
@@ -159,10 +331,18 @@
         >
     </div>
 
-    {{-- Client Warning / Error --}}
-    <div x-show="clientError" x-cloak class="rounded-xl border border-amber-600/40 bg-amber-500/15 dark:bg-amber-500/20 p-3 text-xs font-semibold text-[#78350F] dark:text-[#FEF08A] flex items-start gap-2 shadow-xs">
+    {{-- Client Warning (e.g. Aspect ratio recommendation) --}}
+    <div x-show="clientWarning" x-cloak class="rounded-xl border border-amber-600/40 bg-amber-500/15 dark:bg-amber-500/20 p-3 text-xs font-semibold text-[#78350F] dark:text-[#FEF08A] flex items-start gap-2 shadow-xs">
         <svg class="size-4 shrink-0 mt-0.5 text-[#78350F] dark:text-[#FEF08A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <span x-text="clientWarning"></span>
+    </div>
+
+    {{-- Client Error (e.g. Size exceeds limit) --}}
+    <div x-show="clientError" x-cloak class="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-xs font-semibold text-red-600 dark:text-red-400 flex items-start gap-2 shadow-xs">
+        <svg class="size-4 shrink-0 mt-0.5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <span x-text="clientError"></span>
     </div>

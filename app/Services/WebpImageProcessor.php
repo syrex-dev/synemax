@@ -44,7 +44,7 @@ class WebpImageProcessor
         );
 
         ob_start();
-        $encoded = imagewebp($target, null, 78);
+        $encoded = imagewebp($target, null, 82);
         $webp = ob_get_clean();
         imagedestroy($source);
         imagedestroy($target);
