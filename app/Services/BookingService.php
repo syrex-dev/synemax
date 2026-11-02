@@ -260,6 +260,12 @@ class BookingService
                 $lockedBooking->update(['status' => 'kedaluwarsa']);
                 $this->snackOrders->cancelItems($lockedBooking);
                 $session->syncPrivateStatus();
+
+                try {
+                    app(TelegramNotificationService::class)->queue('booking_expired', $lockedBooking);
+                } catch (\Throwable) {
+                    // Fail safely
+                }
             }, attempts: 3);
             $count++;
         }
@@ -284,6 +290,12 @@ class BookingService
                 $lockedBooking->update(['status' => 'kedaluwarsa']);
                 $this->snackOrders->cancelItems($lockedBooking);
                 $session->syncPrivateStatus();
+
+                try {
+                    app(TelegramNotificationService::class)->queue('booking_expired', $lockedBooking);
+                } catch (\Throwable) {
+                    // Fail safely
+                }
             }, attempts: 3);
 
             return $booking->fresh();

@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\BookingService;
 use App\Services\CinemaSettings;
 use App\Services\SnackOrderService;
+use App\Services\TelegramNotificationService;
 use App\Support\WhatsAppNumber;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -306,6 +307,9 @@ class BookingController extends Controller
             'confirmed_at' => now(),
             'proof_rejection_note' => null,
         ]);
+
+        app(TelegramNotificationService::class)->queue('payment_confirmed', $booking);
+        app(TelegramNotificationService::class)->flush();
     }
 
     private function cancel(
@@ -321,6 +325,9 @@ class BookingController extends Controller
         $snackOrders->cancelItems($booking);
 
         $session->syncPrivateStatus();
+
+        app(TelegramNotificationService::class)->queue('booking_cancelled', $booking);
+        app(TelegramNotificationService::class)->flush();
     }
 
     private function markAttended(Booking $booking): void

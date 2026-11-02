@@ -152,7 +152,7 @@
                 <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
-                <span>← Beranda</span>
+                <span>Beranda</span>
             </a>
         </div>
 
@@ -645,7 +645,7 @@
                                     <input type="radio" name="target_session_id" value="{{ $alt->id }}" class="sr-only" required>
                                     <div>
                                         <p class="text-xs font-bold text-text">
-                                            {{ $alt->startsAt()->locale('id')->translatedFormat('D, d M') }} · {{ substr((string) $alt->start_time, 0, 5) }} WIB
+                                            {{ format_tanggal_id($alt->session_date) }} · {{ format_jam_id($alt->start_time) }}
                                         </p>
                                         <p class="text-[10px] text-text-muted">
                                             @if ($altLocked)
@@ -699,7 +699,7 @@
                                 <div class="flex items-center gap-2">
                                     <input type="radio" name="package" value="couple" class="sr-only" checked>
                                     <div>
-                                        <p class="text-xs font-bold text-text">Paket Couple (2 Kursi)</p>
+                                        <p class="text-xs font-bold text-text">Paket Couple (2 orang)</p>
                                         <p class="text-[10px] text-text-muted">Langsung pasti tayang.</p>
                                     </div>
                                 </div>
@@ -715,8 +715,8 @@
                                 <div class="flex items-center gap-2">
                                     <input type="radio" name="package" value="private" class="sr-only" {{ ! $canUpgradeCouple ? 'checked' : '' }}>
                                     <div>
-                                        <p class="text-xs font-bold text-text">Sewa Studio Privat (6 Kursi)</p>
-                                        <p class="text-[10px] text-text-muted">Kunci seluruh 6 kursi studio.</p>
+                                        <p class="text-xs font-bold text-text">Sewa Studio Privat (6 orang)</p>
+                                        <p class="text-[10px] text-text-muted">Kunci seluruh 6 tempat studio.</p>
                                     </div>
                                 </div>
                                 <div class="text-right">
@@ -749,9 +749,9 @@
                     <h3 class="text-base font-bold text-white">Batalkan booking ini?</h3>
                     <p class="mt-2 text-xs leading-relaxed text-slate-300">
                         @if (! $isConfirmed)
-                            Sesi belum pasti tayang. Pembatalan ini bebas biaya (gratis). Kursi Anda akan dilepaskan kembali.
+                            Sesi belum pasti tayang. Pembatalan ini bebas biaya (gratis). Tempat Anda akan dilepaskan kembali.
                         @else
-                            Kursi yang sudah Anda pesan akan dilepaskan kembali agar dapat dipesan penonton lain.
+                            Tempat yang sudah Anda pesan akan dilepaskan kembali agar dapat dipesan penonton lain.
                         @endif
                     </p>
                     <form method="POST" action="{{ route('booking.cancel', ['code' => $booking->code]) }}" class="mt-4">

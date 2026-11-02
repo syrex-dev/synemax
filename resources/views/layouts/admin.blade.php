@@ -464,6 +464,35 @@
             {{-- Main Content Column --}}
             <div class="min-w-0 flex-1">
                 <main class="mx-auto min-w-0 max-w-screen-xl px-4 py-6 sm:px-6 lg:px-8 {{ ! $isFormPage ? 'pb-24 lg:pb-8' : '' }}">
+                    @php
+                        $unmigratedTables = [];
+                        if (! \Illuminate\Support\Facades\Schema::hasTable('genres')) {
+                            $unmigratedTables[] = 'genres';
+                        }
+                        if (! \Illuminate\Support\Facades\Schema::hasTable('age_ratings')) {
+                            $unmigratedTables[] = 'age_ratings';
+                        }
+                    @endphp
+
+                    @if (! empty($unmigratedTables))
+                        <div class="mb-6 rounded-2xl border-2 border-amber-500 bg-amber-500/10 p-4 sm:p-5 text-amber-700 dark:text-amber-400">
+                            <div class="flex items-start gap-3">
+                                <svg class="size-6 shrink-0 mt-0.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <div class="space-y-1">
+                                    <h4 class="font-bold text-sm sm:text-base text-text">Peringatan: Migrasi database belum dijalankan</h4>
+                                    <p class="text-xs text-text-muted">
+                                        Tabel <code>{{ implode(', ', $unmigratedTables) }}</code> belum ada di database. Sistem saat ini berjalan dengan fallback terbatas.
+                                    </p>
+                                    <p class="text-xs font-semibold text-text mt-2">
+                                        Segera jalankan di server: <code class="px-2 py-0.5 rounded bg-surface border border-border text-amber-500 font-mono">php artisan migrate --force</code>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     @yield('content')
                 </main>
             </div>

@@ -33,19 +33,13 @@
                 <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
-                <span>← Beranda</span>
+                <span>Beranda</span>
             </a>
         </div>
 
         {{-- Header Halaman Cek Booking --}}
         <header class="mb-6 text-center sm:text-left">
-            <span class="inline-flex items-center gap-1.5 badge-accent-soft rounded-full px-3 py-1 text-xs font-bold">
-                <svg class="size-3.5 text-current" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                </svg>
-                Pencarian tiket
-            </span>
-            <h1 class="mt-2 text-2xl font-black text-text sm:text-4xl tracking-tight">Cek booking</h1>
+            <h1 class="text-2xl font-black text-text sm:text-4xl tracking-tight">Cek booking</h1>
             <p class="mt-2 text-xs sm:text-sm text-text-muted leading-relaxed">
                 Masukkan kode booking dan nomor WhatsApp yang digunakan saat memesan untuk membuka tiket digital atau menyelesaikan pembayaran.
             </p>
@@ -151,13 +145,5 @@
             </div>
         </section>
 
-        {{-- Bantuan WhatsApp & Navigasi --}}
-        <div class="mt-8 max-w-[400px] mx-auto w-full space-y-3">
-            <x-ui.whatsapp-button variant="inline" />
-            <a href="{{ route('home') }}"
-               class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-amber-400 transition shadow-none">
-                Kembali ke Beranda
-            </a>
-        </div>
     </section>
 @endsection

@@ -35,6 +35,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'confirmed_at',
     'cancelled_at',
     'attended_at',
+    'access_token_hash',
 ])]
 class Booking extends Model
 {

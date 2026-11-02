@@ -70,13 +70,19 @@ Route::get('/booking/{code}/bukti', [PublicBookingController::class, 'showProof'
 Route::post('/booking/{code}/bukti', [PublicBookingController::class, 'uploadProof'])
     ->middleware('throttle:10,1')
     ->name('booking.proof.upload');
-Route::get('/cek-booking', [PublicBookingController::class, 'lookupForm'])->name('booking.lookup.form');
-Route::post('/cek-booking', [PublicBookingController::class, 'lookup'])
+Route::get('/tiket', [PublicBookingController::class, 'ticketIndex'])->name('booking.ticket.index');
+Route::post('/tiket/tambah', [PublicBookingController::class, 'lookupAndAdd'])
+    ->middleware('throttle:10,1')
+    ->name('booking.ticket.add');
+Route::post('/tiket/{code}/batal', [PublicBookingController::class, 'cancel'])
+    ->middleware('throttle:5,1')
+    ->name('booking.cancel');
+Route::redirect('/cek-booking', '/tiket', 301)->name('booking.lookup.form');
+Route::post('/cek-booking', [PublicBookingController::class, 'lookupAndAdd'])
     ->middleware('throttle:10,1')
     ->name('booking.lookup');
 Route::post('/cek-booking/{code}/batal', [PublicBookingController::class, 'cancel'])
-    ->middleware('throttle:5,1')
-    ->name('booking.cancel');
+    ->middleware('throttle:5,1');
 Route::post('/cek-booking/{code}/ubah-film', [PublicBookingController::class, 'changeFilm'])
     ->middleware('throttle:10,1')
     ->name('booking.change-film');
@@ -121,6 +127,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/films/posters/match-ocr', [FilmPosterController::class, 'matchOcr'])->name('films.posters.match_ocr');
     Route::post('/films/posters/assign', [FilmPosterController::class, 'assign'])->name('films.posters.assign');
     Route::post('/films/posters/assign-batch', [FilmPosterController::class, 'assignBatch'])->name('films.posters.assign_batch');
+    Route::post('/films/posters/undo-batch', [FilmPosterController::class, 'undoBatch'])->name('films.posters.undo_batch');
     Route::delete('/films/posters/{filename}', [FilmPosterController::class, 'destroy'])->name('films.posters.destroy')->where('filename', '[A-Za-z0-9_.\-]+');
     Route::redirect('/films/create', '/admin/films/buat');
     Route::get('/films/buat', [FilmController::class, 'create'])->name('films.create');
@@ -237,6 +244,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/pengaturan/cache-clear', [SettingController::class, 'clearCache'])->name('settings.cache.clear');
     Route::post('/pengaturan/reset', [SettingController::class, 'resetDefaults'])->name('settings.reset');
     Route::post('/pengaturan/delete-sample', [SettingController::class, 'deleteSampleData'])->name('settings.delete_sample');
+    Route::post('/pengaturan/telegram/test', [SettingController::class, 'testTelegram'])->name('settings.telegram.test');
+    Route::post('/pengaturan/telegram/detect', [SettingController::class, 'detectTelegramChats'])->name('settings.telegram.detect');
+    Route::post('/pengaturan/telegram/retry/{id}', [SettingController::class, 'retryTelegramNotification'])->name('settings.telegram.retry');
     Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/laporan/export.csv', [ReportController::class, 'export'])->name('reports.export');
 

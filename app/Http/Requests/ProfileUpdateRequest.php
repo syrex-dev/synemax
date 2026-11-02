@@ -28,4 +28,12 @@ class ProfileUpdateRequest extends FormRequest
             ],
         ];
     }
+
+    public function attributes(): array
+    {
+        return [
+            'name' => 'Nama',
+            'email' => 'Alamat email',
+        ];
+    }
 }

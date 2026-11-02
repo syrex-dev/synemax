@@ -20,24 +20,85 @@
     @endphp
 
     <div class="mx-auto max-w-xl px-4 pb-40 pt-4 sm:px-6 sm:pb-44 sm:pt-6">
+        @if (!empty($existingUnpaidBooking))
+            <div x-data="{ showUnpaidModal: true }" x-show="showUnpaidModal" x-cloak
+                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+                 @keydown.escape.window="showUnpaidModal = false">
+                <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-5 shadow-2xl space-y-4">
+                    <div class="flex items-start gap-3">
+                        <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                            <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <h3 class="text-sm font-bold text-text">Kamu masih punya booking yang belum dibayar</h3>
+                            <p class="mt-1 text-xs text-text-muted leading-relaxed">
+                                Booking <strong class="text-text font-mono">{{ $existingUnpaidBooking->code }}</strong> untuk film <strong>{{ $existingUnpaidBooking->film?->title ?? 'Film' }}</strong> masih aktif menahan tempatmu.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl border border-border bg-surface-2 p-3 text-xs space-y-1">
+                        <div class="flex justify-between">
+                            <span class="text-text-muted">Total Tagihan:</span>
+                            <span class="font-bold text-text">Rp {{ number_format($existingUnpaidBooking->total_price, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-text-muted">Jadwal:</span>
+                            <span class="font-semibold text-text">{{ format_hari_tanggal_id($existingUnpaidBooking->session?->session_date) }} · {{ format_jam_id($existingUnpaidBooking->session?->start_time) }}</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 pt-1">
+                        <a href="{{ route('booking.payment', ['code' => $existingUnpaidBooking->code]) }}"
+                           class="flex w-full min-h-[44px] items-center justify-center rounded-xl bg-amber-500 px-4 text-xs font-bold text-slate-950 shadow-sm hover:bg-amber-400 transition">
+                            Lanjutkan Pembayaran
+                        </a>
+
+                        <form method="POST" action="{{ route('booking.cancel', ['code' => $existingUnpaidBooking->code]) }}">
+                            @csrf
+                            <button type="submit"
+                                    class="flex w-full min-h-[44px] items-center justify-center rounded-xl border border-danger/30 bg-danger/10 px-4 text-xs font-bold text-danger hover:bg-danger/20 transition">
+                                Batalkan Booking Itu & Pesan Baru
+                            </button>
+                        </form>
+
+                        <button type="button"
+                                @click="showUnpaidModal = false"
+                                class="flex w-full min-h-[40px] items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:bg-surface-2 transition">
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        @endif
+
         {{-- Header & Slot Jam Terpilih --}}
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
             <div>
-                <a href="{{ route('schedule.date', ['date' => $session->session_date]) }}"
-                   class="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold text-[#B45309] dark:text-amber-400 hover:underline">
-                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                    <span>Ganti jadwal</span>
-                </a>
-                <h1 class="mt-1 text-2xl font-black tracking-tight text-text sm:text-3xl">Amankan kursimu</h1>
-                <p class="mt-0.5 text-xs text-text-muted">{{ $session->startsAt()->locale('id')->translatedFormat('l, d F Y') }}</p>
+                <div class="flex items-center gap-3">
+                    <a href="{{ route('schedule.date', ['date' => $session->session_date]) }}"
+                       class="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold text-[#B45309] dark:text-amber-400 hover:underline">
+                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        <span>Ganti jadwal</span>
+                    </a>
+                    <button type="button"
+                            @click="window.dispatchEvent(new CustomEvent('request-reset-draft'))"
+                            class="inline-flex min-h-11 items-center gap-1 text-xs font-bold text-text-muted hover:text-danger hover:underline">
+                        <span>Mulai dari awal</span>
+                    </button>
+                </div>
+                <h1 class="mt-1 text-2xl font-black tracking-tight text-text sm:text-3xl">Amankan tempatmu</h1>
+                <p class="mt-0.5 text-xs text-text-muted">{{ format_hari_tanggal_id($session->session_date) }}</p>
             </div>
             <div class="inline-flex items-center gap-1.5 badge-accent-soft rounded-xl px-4 py-2 font-tabular text-sm font-black shadow-none">
                 <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>{{ substr((string) $session->start_time, 0, 5) }} WIB</span>
+                <span>{{ format_jam_id($session->start_time) }}</span>
             </div>
         </div>
 
@@ -53,7 +114,9 @@
         @endif
 
         <form method="POST" action="{{ route('booking.store', ['session' => $session->id]) }}" enctype="multipart/form-data" novalidate
+              @request-reset-draft.window="confirmResetDraft = true"
               x-data="{
+                  confirmResetDraft: false,
                   sessionId: @js((string) $session->id),
                   step: @js((int) old('wizard_step', 2)),
                   package: @js(old('package', old('booking_type') === 'private' ? ($canPrivate ? 'private' : 'reguler') : (old('booking_type') === 'couple' ? ($canCouple ? 'couple' : 'reguler') : 'reguler'))),
@@ -120,17 +183,6 @@
                   // Data peminat per film saat ini { film_id: seats }
                   currentTallies: @js($candidateTallies->mapWithKeys(fn($t, $k) => [$k => (int) $t['seats']])),
 
-                  // Denah Kursi Sinematik (6 Kursi Mini Studio)
-                  seats: [
-                      { id: 'A1', label: 'A1' },
-                      { id: 'A2', label: 'A2' },
-                      { id: 'A3', label: 'A3' },
-                      { id: 'B1', label: 'B1' },
-                      { id: 'B2', label: 'B2' },
-                      { id: 'B3', label: 'B3' },
-                  ],
-                  selectedSeats: [],
-
                   // Fitur Promo & Voucher
                   promoCode: '',
                   promoApplied: null,
@@ -138,53 +190,16 @@
                   promoMessage: '',
                   isPromoValid: false,
 
-                  isSeatOccupied(seatIndex) {
-                      return seatIndex >= (6 - this.occupiedCount);
-                  },
-
-                  toggleSeat(seatId, seatIndex) {
-                      if (this.isSeatOccupied(seatIndex)) return;
-                      if (this.package === 'private') return; // Private otomatis kunci semua kursi
-
-                      const idx = this.selectedSeats.indexOf(seatId);
-                      if (idx > -1) {
-                          if (this.package === 'couple') {
-                              // Couple wajib 2 kursi
-                              return;
-                          }
-                          if (this.selectedSeats.length > 1) {
-                              this.selectedSeats.splice(idx, 1);
-                          }
-                      } else {
-                          if (this.package === 'couple') {
-                              if (this.selectedSeats.length >= 2) {
-                                  this.selectedSeats.shift(); // Geser kursi
-                              }
-                              this.selectedSeats.push(seatId);
-                          } else {
-                              if (this.selectedSeats.length < this.remaining) {
-                                  this.selectedSeats.push(seatId);
-                              }
-                          }
-                      }
-                      this.pax = Math.max(1, this.selectedSeats.length);
-                      this.persist();
-                  },
-
                   syncSeatsWithPackage() {
-                      const available = this.seats.filter((_, i) => !this.isSeatOccupied(i)).map(s => s.id);
                       if (this.package === 'private') {
-                          this.selectedSeats = [...available];
                           this.pax = 6;
                           this.type = 'private';
                       } else if (this.package === 'couple') {
-                          this.selectedSeats = available.slice(0, 2);
                           this.pax = 2;
                           this.type = 'couple';
                       } else {
                           this.type = 'per_orang';
-                          this.pax = Math.max(1, Math.min(this.pax || 1, available.length));
-                          this.selectedSeats = available.slice(0, this.pax);
+                          this.pax = Math.max(1, Math.min(this.pax || 1, this.remaining));
                       }
                   },
 
@@ -503,20 +518,45 @@
 
                   skipSnacks() { this.nextStep() },
 
+                  resetDraft() {
+                      try {
+                          sessionStorage.removeItem('synemax:booking-wizard');
+                      } catch {}
+                      this.step = 2;
+                      this.package = 'reguler';
+                      this.type = 'per_orang';
+                      this.pax = 1;
+                      this.filmId = this.lockedFilmId || '';
+                      this.cart = {};
+                      this.promoCode = '';
+                      this.promoApplied = null;
+                      this.promoDiscount = 0;
+                      this.wizardError = '';
+                      this.scrollToTop();
+                  },
+
                   persist() {
                       if (!this.storageAvailable) return;
                       try {
+                          const cleanCart = {};
+                          for (const [id, item] of Object.entries(this.cart || {})) {
+                              if (item && Number(item.qty) > 0) {
+                                  cleanCart[id] = { qty: Number(item.qty), note: item.note || '' };
+                              }
+                          }
+                          const safeStep = this.step === 5 ? (this.hasSnacks ? 4 : 3) : this.step;
+
                           sessionStorage.setItem('synemax:booking-wizard', JSON.stringify({
-                              schema: 4,
+                              schema: 5,
+                              savedAt: Date.now(),
                               sessionId: this.sessionId,
-                              step: this.step,
+                              step: safeStep,
                               package: this.package,
                               filmId: this.filmId,
                               type: this.type,
                               pax: this.pax,
-                              selectedSeats: this.selectedSeats,
                               paymentMethod: this.paymentMethod,
-                              cart: this.cart,
+                              cart: cleanCart,
                               activeCategory: this.activeCategory
                           }));
                       } catch {
@@ -527,28 +567,47 @@
                   init() {
                       const requestFilm = @js((string) request('film', ''));
                       const oldFilm = @js((string) old('film_id', ''));
+                      const maxAge = 60 * 60 * 1000;
                       try {
                           const saved = JSON.parse(sessionStorage.getItem('synemax:booking-wizard') || 'null');
                           if (saved && String(saved.sessionId) === String(this.sessionId)) {
-                              this.step = [2, 3, 4, 5].includes(Number(saved.step)) ? Number(saved.step) : 2;
-                              if (@js(! $errors->any())) {
-                                  if (requestFilm) {
-                                      this.filmId = requestFilm;
-                                      this.showFilmCatalog = false;
-                                  } else if (oldFilm) {
-                                      this.filmId = oldFilm;
-                                      this.showFilmCatalog = false;
-                                  } else if (saved.filmId) {
-                                      this.filmId = saved.filmId;
+                              const isExpired = saved.savedAt && (Date.now() - saved.savedAt > maxAge);
+                              const validSchema = Number(saved.schema) >= 5;
+
+                              if (!isExpired && validSchema) {
+                                  let restoredStep = [2, 3, 4].includes(Number(saved.step)) ? Number(saved.step) : 2;
+                                  if (restoredStep === 4 && !this.hasSnacks) restoredStep = 3;
+                                  this.step = restoredStep;
+
+                                  if (@js(! $errors->any())) {
+                                      if (requestFilm) {
+                                          this.filmId = requestFilm;
+                                          this.showFilmCatalog = false;
+                                      } else if (oldFilm) {
+                                          this.filmId = oldFilm;
+                                          this.showFilmCatalog = false;
+                                      } else if (saved.filmId) {
+                                          this.filmId = saved.filmId;
+                                      }
+                                      if (['reguler', 'couple', 'private'].includes(saved.package)) {
+                                          this.package = saved.package;
+                                      }
+                                      this.pax = Math.min(this.remaining, Math.max(1, Number(saved.pax || 1)));
+                                      this.paymentMethod = saved.paymentMethod || this.paymentMethod;
+
+                                      const clean = {};
+                                      if (saved.cart && typeof saved.cart === 'object') {
+                                          for (const [id, item] of Object.entries(saved.cart)) {
+                                              if (item && Number(item.qty) > 0) {
+                                                  clean[id] = item;
+                                              }
+                                          }
+                                      }
+                                      this.cart = clean;
+                                      this.activeCategory = saved.activeCategory || this.activeCategory;
                                   }
-                                  if (['reguler', 'couple', 'private'].includes(saved.package)) {
-                                      this.package = saved.package;
-                                  }
-                                  this.pax = Math.min(this.remaining, Math.max(1, Number(saved.pax || 1)));
-                                  this.selectedSeats = saved.selectedSeats || [];
-                                  this.paymentMethod = saved.paymentMethod || this.paymentMethod;
-                                  this.cart = saved.cart || this.cart;
-                                  this.activeCategory = saved.activeCategory || this.activeCategory;
+                              } else {
+                                  sessionStorage.removeItem('synemax:booking-wizard');
                               }
                           } else {
                               if (requestFilm) {
@@ -582,19 +641,55 @@
             <input type="hidden" name="payment_method" :value="paymentMethod">
             <input type="hidden" name="promo_code" :value="promoApplied || ''">
 
-            {{-- Hidden Inputs for Snacks --}}
+            {{-- Hidden Inputs for Snacks (Hanya item yang dipilih dengan qty > 0) --}}
             <template x-for="(line, itemId) in cart" :key="`post-snack-${itemId}`">
-                <div>
-                    <input type="hidden" :name="`snacks[${itemId}][qty]`" :value="line.qty">
-                    <input type="hidden" :name="`snacks[${itemId}][note]`" :value="line.note || ''">
-                </div>
+                <template x-if="line && Number(line.qty) > 0">
+                    <div>
+                        <input type="hidden" :name="`snacks[${itemId}][qty]`" :value="line.qty">
+                        <input type="hidden" :name="`snacks[${itemId}][note]`" :value="line.note || ''">
+                    </div>
+                </template>
             </template>
+
+            {{-- Modal Konfirmasi Mulai Dari Awal --}}
+            <div x-show="confirmResetDraft" x-cloak
+                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+                 @keydown.escape.window="confirmResetDraft = false">
+                <div class="w-full max-w-sm rounded-2xl border border-border bg-surface p-5 shadow-2xl space-y-4">
+                    <div class="flex items-start gap-3">
+                        <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-danger/10 text-danger border border-danger/20">
+                            <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-text">Mulai dari Awal?</h3>
+                            <p class="mt-1 text-xs text-text-muted leading-relaxed">Seluruh pilihan paket, jumlah penonton, film, dan jajan yang sudah dipilih akan dikosongkan kembali.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 pt-2">
+                        <button type="button" @click="confirmResetDraft = false"
+                                class="flex-1 rounded-xl border border-border p-2.5 text-xs font-bold text-text hover:bg-surface-2 transition">
+                            Batal
+                        </button>
+                        <button type="button"
+                                @click="resetDraft(); confirmResetDraft = false;"
+                                class="flex-1 rounded-xl bg-danger p-2.5 text-xs font-bold text-white hover:opacity-90 transition">
+                            Ya, Bersihkan
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             {{-- Wizard Progress Bar ala Bioskop Modern --}}
             <div class="sm:hidden mt-4">
                 <div class="mb-1.5 flex items-center justify-between text-xs">
                     <span class="font-bold text-text" x-text="'Langkah ' + step + ' dari 5 · ' + (step === 2 ? 'Paket' : (step === 3 ? 'Film' : (step === 4 ? 'Jajan' : (step === 5 ? 'Ringkasan' : 'Jadwal'))))"></span>
-                    <span class="font-tabular font-bold text-text-muted" x-text="((step / 5) * 100) + '%'"></span>
+                    <button type="button"
+                            @click="confirmResetDraft = true"
+                            class="text-[11px] font-semibold text-text-muted hover:text-danger hover:underline">
+                        Mulai dari awal
+                    </button>
                 </div>
                 <div class="h-2 w-full overflow-hidden rounded-full progress-track">
                     <div class="h-full rounded-full progress-fill transition-all duration-300" :style="'width: ' + ((step / 5) * 100) + '%'"></div>
@@ -604,7 +699,14 @@
             <div class="hidden sm:block mt-4">
                 <div class="mb-2 flex items-center justify-between text-xs text-text-muted">
                     <span class="font-bold text-text">Pemesanan Tiket Studio</span>
-                    <span class="font-tabular font-medium" x-text="'Langkah ' + step + ' dari 5'">Langkah 2 dari 5</span>
+                    <div class="flex items-center gap-3">
+                        <button type="button"
+                                @click="confirmResetDraft = true"
+                                class="text-xs font-semibold text-text-muted hover:text-danger hover:underline">
+                            Mulai dari awal
+                        </button>
+                        <span class="font-tabular font-medium" x-text="'Langkah ' + step + ' dari 5'">Langkah 2 dari 5</span>
+                    </div>
                 </div>
                 <ol class="grid grid-cols-5 gap-2 text-center" aria-label="Tahapan pemesanan">
                     @foreach ($wizardSteps as $stepNum => $stepLabel)
@@ -677,7 +779,7 @@
                             </p>
                         </div>
                         <div class="mt-3 border-t border-border pt-2 text-[11px] text-text-muted" x-show="package === 'reguler'">
-                            <span class="font-bold text-text" x-text="`${pax} Kursi dipilih`"></span>
+                            <span class="font-bold text-text" x-text="`${pax} orang dipilih`"></span>
                         </div>
                     </div>
 
@@ -742,77 +844,42 @@
                     </div>
                 </div>
 
-                {{-- DENAH KURSI MINI BIOSKOP --}}
+                {{-- JUMLAH PENONTON (TANPA NOMOR/DENAH KURSI) --}}
                 <div class="rounded-xl border border-border bg-surface-2 dark:bg-[#0E131F] p-5">
-                    <div class="flex items-center justify-between mb-4">
-                        <span class="text-xs font-bold uppercase tracking-wider text-text">Denah Kursi Studio Mini</span>
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-text">Jumlah Penonton</span>
                         <span class="text-xs text-text-muted font-medium"
-                              x-text="package === 'private' ? 'Seluruh 6 kursi studio otomatis terkunci' : (package === 'couple' ? 'Pilih 2 kursi bersebelahan' : `Pilih ${pax} kursi`)"></span>
+                              x-text="package === 'private' ? 'Seluruh studio (6 orang eksklusif)' : (package === 'couple' ? 'Paket Couple (2 orang)' : `Sisa ${remaining} dari 6 tempat`)"></span>
                     </div>
 
-                    {{-- Proyektor Screen --}}
-                    <div class="mx-auto max-w-sm text-center mb-6">
-                        <div class="curved-cinema-screen flex items-center justify-center border border-border bg-surface">
-                            <span class="text-[10px] font-black tracking-[0.35em] text-text-muted uppercase">LAYAR / SCREEN</span>
-                        </div>
-                        <p class="text-[10px] text-text-muted mt-1">Arah Pandangan Proyektor</p>
-                    </div>
-
-                    {{-- Layout 6 Kursi Mini Studio (2 Baris x 3 Kolom) --}}
-                    <div class="mx-auto max-w-xs space-y-3.5">
-                        {{-- Baris A --}}
-                        <div class="flex items-center justify-center gap-3">
-                            <span class="w-4 text-xs font-bold text-text-muted">A</span>
-                            <template x-for="(seat, idx) in seats.slice(0, 3)" :key="seat.id">
-                                <button type="button"
-                                        @click="toggleSeat(seat.id, idx)"
-                                        :disabled="isSeatOccupied(idx) || package === 'private'"
-                                        class="seat-item flex size-14 flex-col items-center justify-center rounded-xl font-tabular text-xs font-black transition"
-                                        :class="isSeatOccupied(idx)
-                                            ? 'bg-surface-sunken text-text-muted opacity-50 cursor-not-allowed border border-border'
-                                            : (selectedSeats.includes(seat.id) ? 'badge-accent-solid font-black' : 'bg-surface border border-border-input text-text hover:border-amber-400')">
-                                    <svg class="size-4 mb-0.5 opacity-80" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M4 18v3h3v-3h10v3h3v-3h1a1 1 0 001-1v-5a3 3 0 00-3-3h-1V6a3 3 0 00-3-3H9a3 3 0 00-3 3v3H5a3 3 0 00-3 3v5a1 1 0 001 1h1z" />
-                                    </svg>
-                                    <span x-text="seat.label"></span>
-                                </button>
-                            </template>
-                        </div>
-
-                        {{-- Baris B --}}
-                        <div class="flex items-center justify-center gap-3">
-                            <span class="w-4 text-xs font-bold text-text-muted">B</span>
-                            <template x-for="(seat, idx) in seats.slice(3, 6)" :key="seat.id">
-                                <button type="button"
-                                        @click="toggleSeat(seat.id, idx + 3)"
-                                        :disabled="isSeatOccupied(idx + 3) || package === 'private'"
-                                        class="seat-item flex size-14 flex-col items-center justify-center rounded-xl font-tabular text-xs font-black transition"
-                                        :class="isSeatOccupied(idx + 3)
-                                            ? 'bg-surface-sunken text-text-muted opacity-50 cursor-not-allowed border border-border'
-                                            : (selectedSeats.includes(seat.id) ? 'badge-accent-solid font-black' : 'bg-surface border border-border-input text-text hover:border-amber-400')">
-                                    <svg class="size-4 mb-0.5 opacity-80" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M4 18v3h3v-3h10v3h3v-3h1a1 1 0 001-1v-5a3 3 0 00-3-3h-1V6a3 3 0 00-3-3H9a3 3 0 00-3 3v3H5a3 3 0 00-3 3v5a1 1 0 001 1h1z" />
-                                    </svg>
-                                    <span x-text="seat.label"></span>
-                                </button>
-                            </template>
+                    <div x-show="package === 'reguler'" class="space-y-3">
+                        <p class="text-xs text-text-muted">Pilih jumlah tiket yang ingin dipesan (kapasitas studio maks 6 orang):</p>
+                        <div class="flex items-center gap-3">
+                            <button type="button"
+                                    @click="pax = Math.max(1, pax - 1); persist();"
+                                    :disabled="pax <= 1"
+                                    class="flex size-11 items-center justify-center rounded-xl border border-border-input bg-surface text-base font-bold text-text hover:border-amber-400 disabled:opacity-30 transition">
+                                −
+                            </button>
+                            <span class="font-tabular text-lg font-black text-text w-24 text-center" x-text="`${pax} Orang`"></span>
+                            <button type="button"
+                                    @click="pax = Math.min(remaining, pax + 1); persist();"
+                                    :disabled="pax >= remaining"
+                                    class="flex size-11 items-center justify-center rounded-xl btn-gold-cinema text-base font-bold disabled:opacity-30 transition">
+                                +
+                            </button>
+                            <span class="text-xs text-text-muted ml-2 font-medium" x-text="`Total tiket: Rp ${new Intl.NumberFormat('id-ID').format(unitPrice * pax)}`"></span>
                         </div>
                     </div>
 
-                    {{-- Legenda Denah Kursi --}}
-                    <div class="mt-6 flex flex-wrap items-center justify-center gap-4 border-t border-border pt-3 text-xs text-text-muted">
-                        <div class="flex items-center gap-1.5">
-                            <span class="size-3.5 rounded border border-border-input bg-surface"></span>
-                            <span class="text-text">Tersedia</span>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <span class="size-3.5 rounded badge-accent-solid"></span>
-                            <span class="text-text font-bold">Dipilih</span>
-                        </div>
-                        <div class="flex items-center gap-1.5">
-                            <span class="size-3.5 rounded bg-surface-sunken border border-border opacity-50"></span>
-                            <span>Terisi</span>
-                        </div>
+                    <div x-show="package === 'couple'" class="text-xs text-text-muted space-y-1">
+                        <p class="font-bold text-text">Paket Couple berlaku untuk 2 orang.</p>
+                        <p>Langsung pasti tayang dan penonton lain masih boleh bergabung.</p>
+                    </div>
+
+                    <div x-show="package === 'private'" class="text-xs text-text-muted space-y-1">
+                        <p class="font-bold text-text">Sewa Studio Privat mencakup kapasitas hingga 6 orang.</p>
+                        <p>Seluruh studio mini eksklusif khusus rombongan Anda tanpa penonton lain.</p>
                     </div>
                 </div>
 
@@ -1189,7 +1256,8 @@
                 </div>
 
                 {{-- Form Identitas --}}
-                <div class="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-sm">
+                <div class="space-y-4 rounded-2xl border border-border bg-surface p-5 shadow-sm"
+                     x-init="if (@js($errors->any())) { $nextTick(() => { const el = document.getElementById('{{ $errors->has('customer_name') ? 'customer_name' : ($errors->has('whatsapp') ? 'whatsapp' : '') }}'); if (el) { el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } }); }">
                     <div>
                         <label for="customer_name" class="block text-xs font-bold uppercase tracking-wider text-text">Nama Lengkap</label>
                         <input id="customer_name"
@@ -1198,7 +1266,10 @@
                                value="{{ old('customer_name') }}"
                                required
                                placeholder="Nama pemesan tiket..."
-                               class="mt-1.5 min-h-11 w-full rounded-xl border border-border-input bg-surface px-4 text-sm text-text focus:border-amber-400 focus:outline-none">
+                               class="mt-1.5 min-h-11 w-full rounded-xl border {{ $errors->has('customer_name') ? 'border-danger bg-danger-surface/20' : 'border-border-input bg-surface' }} px-4 text-sm text-text focus:border-amber-400 focus:outline-none">
+                        @if ($errors->has('customer_name'))
+                            <p class="mt-1 text-xs font-semibold text-danger-text">{{ $errors->first('customer_name') }}</p>
+                        @endif
                     </div>
 
                     <div>
@@ -1209,8 +1280,11 @@
                                value="{{ old('whatsapp') }}"
                                required
                                placeholder="Contoh: 08123456789"
-                               class="mt-1.5 min-h-11 w-full rounded-xl border border-border-input bg-surface px-4 text-sm text-text focus:border-amber-400 focus:outline-none">
+                               class="mt-1.5 min-h-11 w-full rounded-xl border {{ $errors->has('whatsapp') ? 'border-danger bg-danger-surface/20' : 'border-border-input bg-surface' }} px-4 text-sm text-text focus:border-amber-400 focus:outline-none">
                         <p class="mt-1 text-[11px] text-text-muted">Pastikan nomor aktif untuk notifikasi dan verifikasi tiket.</p>
+                        @if ($errors->has('whatsapp'))
+                            <p class="mt-1 text-xs font-semibold text-danger-text">{{ $errors->first('whatsapp') }}</p>
+                        @endif
                     </div>
 
                     <div x-data="{ count: {{ strlen(old('notes', '')) }} }">
@@ -1223,7 +1297,7 @@
                                   rows="2"
                                   maxlength="300"
                                   @input="count = $el.value.length"
-                                  placeholder="Permintaan khusus kursi atau catatan lainnya..."
+                                  placeholder="Permintaan khusus atau catatan lainnya..."
                                   class="mt-1.5 w-full rounded-xl border border-border-input bg-surface p-3 text-xs text-text focus:border-amber-400 focus:outline-none">{{ old('notes') }}</textarea>
                     </div>
                 </div>
@@ -1252,7 +1326,7 @@
                     <h3 class="text-xs font-bold uppercase tracking-wider text-text">Rincian Pembayaran</h3>
                     <dl class="mt-3 space-y-2 text-xs divide-y divide-border">
                         <div class="flex justify-between py-1.5 text-text-muted">
-                            <span>Paket (<span x-text="package === 'private' ? 'Sewa Studio Privat' : (package === 'couple' ? 'Paket Couple (2 Kursi)' : pax + ' Kursi Reguler')"></span>)</span>
+                            <span>Paket (<span x-text="package === 'private' ? 'Sewa Studio Privat' : (package === 'couple' ? 'Paket Couple (2 orang)' : pax + ' orang reguler')"></span>)</span>
                             <span class="font-tabular font-bold text-text" x-text="`Rp ${new Intl.NumberFormat('id-ID').format(ticketTotal)}`"></span>
                         </div>
                         <div x-show="snackCount > 0" class="flex justify-between py-1.5 text-text-muted">
@@ -1307,7 +1381,7 @@
                         <button type="button"
                                 x-show="step === 2"
                                 @click="nextStep()"
-                                class="btn-gold-cinema inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-4 sm:px-6 text-xs sm:text-sm font-black shadow-md shadow-amber-500/20 transition active:scale-95 shrink-0">
+                                class="btn-gold-cinema inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-4 sm:px-6 text-xs sm:text-sm font-black shadow-md transition active:scale-95 shrink-0">
                             <span class="sm:hidden">Pilih Film</span>
                             <span class="hidden sm:inline">Lanjut ke Pilih Film</span>
                             <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -1320,7 +1394,7 @@
                                 x-show="step === 3"
                                 @click="nextStep()"
                                 :disabled="!filmId || !getFilmStatus(filmId).allowed"
-                                class="btn-gold-cinema inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-4 sm:px-6 text-xs sm:text-sm font-black shadow-md shadow-amber-500/20 disabled:cursor-not-allowed disabled:opacity-40 transition active:scale-95 shrink-0">
+                                class="btn-gold-cinema inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-4 sm:px-6 text-xs sm:text-sm font-black shadow-md disabled:cursor-not-allowed disabled:opacity-40 transition active:scale-95 shrink-0">
                             <span x-text="hasSnacks ? 'Menu Jajan' : 'Pembayaran'" class="sm:hidden"></span>
                             <span x-text="hasSnacks ? 'Lanjut ke Menu Jajan' : 'Lanjut ke Pembayaran'" class="hidden sm:inline"></span>
                             <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -1332,7 +1406,7 @@
                         <button type="button"
                                 x-show="step === 4"
                                 @click="nextStep()"
-                                class="btn-gold-cinema inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-4 sm:px-6 text-xs sm:text-sm font-black shadow-md shadow-amber-500/20 transition active:scale-95 shrink-0">
+                                class="btn-gold-cinema inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-4 sm:px-6 text-xs sm:text-sm font-black shadow-md transition active:scale-95 shrink-0">
                             <span class="sm:hidden">Pembayaran</span>
                             <span class="hidden sm:inline">Lanjut ke Pembayaran</span>
                             <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -1344,7 +1418,7 @@
                         <button type="submit"
                                 x-show="step === 5"
                                 :disabled="isSubmitting"
-                                class="btn-gold-cinema inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 sm:px-6 text-xs sm:text-sm font-black shadow-lg shadow-amber-500/25 disabled:opacity-50 transition active:scale-95 shrink-0">
+                                class="btn-gold-cinema inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 sm:px-6 text-xs sm:text-sm font-black shadow-lg disabled:opacity-50 transition active:scale-95 shrink-0">
                             <span x-show="!isSubmitting" x-text="paymentMethod === 'di_tempat' ? 'Konfirmasi' : 'Bayar Sekarang'" class="sm:hidden"></span>
                             <span x-show="!isSubmitting" x-text="paymentMethod === 'di_tempat' ? 'Konfirmasi Booking' : 'Booking & Bayar Sekarang'" class="hidden sm:inline"></span>
                             <span x-show="isSubmitting" x-cloak>Memproses...</span>

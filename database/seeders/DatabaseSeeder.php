@@ -21,6 +21,15 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        $activeDb = (string) config('database.connections.'.config('database.default').'.database');
+        $normalizedDb = str_replace('\\', '/', $activeDb);
+        $isQa = str_ends_with($normalizedDb, 'qa.sqlite');
+        $isTesting = app()->environment('testing') || $activeDb === ':memory:';
+
+        if (! $isQa && ! $isTesting) {
+            throw new \RuntimeException("Seeding DITOLAK: Database aktif ('{$activeDb}') bukan 'qa.sqlite'. Seeding hanya diperbolehkan pada lingkungan QA untuk melindungi database pemilik.");
+        }
+
         $this->seedScheduleTemplates();
         $this->seedSettings();
         $this->seedFilms();

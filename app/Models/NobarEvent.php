@@ -193,7 +193,7 @@ class NobarEvent extends Model
     public function shareWhatsAppUrl(): string
     {
         $match = $this->vsTitle();
-        $dateStr = $this->kickoff_at->translatedFormat('l, d M Y · H:i').' WIB';
+        $dateStr = format_hari_tanggal_id($this->kickoff_at).' · '.format_jam_id($this->kickoff_at);
         $url = route('nobar.show', ['slug' => $this->slug]);
 
         $text = "Ayo nobar {$match} di SynemaX Home Cinema!\n"

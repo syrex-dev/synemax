@@ -164,11 +164,11 @@ class BookingFlowTest extends TestCase
         $this->followingRedirects()
             ->get(route('booking.success', $privateBooking->code))
             ->assertOk()
-            ->assertSee('Sewa Private (6 kursi)');
+            ->assertSee('Sewa Private (6 orang)');
         $this->followingRedirects()->post(route('booking.lookup'), [
             'code' => $privateBooking->code,
             'whatsapp' => '081234567890',
-        ])->assertOk()->assertSee('Sewa Private (6 kursi)');
+        ])->assertOk()->assertSee('Sewa Private (6 orang)');
 
         $perPersonSession = $this->createSession($this->firstFilm, '19:30');
         $this->post(
@@ -220,7 +220,7 @@ class BookingFlowTest extends TestCase
             'whatsapp' => '081234567890',
         ]);
 
-        $response->assertRedirect(route('booking.lookup.form'));
+        $response->assertRedirect(route('booking.ticket.index'));
         $this->assertSame('dibatalkan', $booking->fresh()->status);
         $this->assertSame(0, (int) $session->fresh()->occupiedBookings()->sum('seats_reserved'));
     }
@@ -231,7 +231,7 @@ class BookingFlowTest extends TestCase
         $booking = $this->createBooking($session, $this->firstFilm, pax: 2);
         CarbonImmutable::setTestNow(CarbonImmutable::parse('2026-10-14 11:00:00', 'Asia/Jakarta'));
 
-        $this->from(route('booking.lookup.form'))
+        $this->from(route('booking.ticket.index'))
             ->post(route('booking.cancel', $booking->code), ['whatsapp' => '081234567890'])
             ->assertSessionHasErrors('code');
 

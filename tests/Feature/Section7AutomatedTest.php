@@ -45,16 +45,16 @@ class Section7AutomatedTest extends TestCase
 
         // Footer is scoped to desktop (hidden md:block)
         $this->assertMatchesRegularExpression('/<footer[^>]*class="[^"]*hidden\s+md:block[^"]*"/', $html);
-        $response->assertSee('Jelajahi', false);
-        $response->assertSee('Bantuan', false);
-        $response->assertSee('Hubungi & Ikuti', false);
+        $response->assertSee('Jadwal', false);
+        $response->assertSee('Harga & FAQ', false);
+        $response->assertSee('Tiket', false);
 
-        // Mobile bottom bar is rendered with 5 navigation items
+        // Mobile bottom bar is rendered with navigation items
         $this->assertStringContainsString('id="mobile-bottom-bar"', $html);
         $this->assertStringContainsString('Beranda', $html);
         $this->assertStringContainsString('Jadwal', $html);
         $this->assertStringContainsString('Film', $html);
-        $this->assertStringContainsString('Cek booking', $html);
+        $this->assertStringContainsString('Tiket', $html);
         $this->assertStringContainsString('Menu', $html);
 
         // Email rendered in footer

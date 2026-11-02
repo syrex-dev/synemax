@@ -325,7 +325,7 @@
                         <h2 class="text-xl sm:text-2xl font-black text-text tracking-tight">Makanan & Minuman</h2>
                         <p class="mt-0.5 text-xs text-text-muted line-clamp-1 sm:line-clamp-none">Popcorn hangat, minuman segar, dan camilan lezat menemani nontonmu</p>
                     </div>
-                    <a href="{{ route('booking.lookup.form') }}" class="shrink-0 whitespace-nowrap text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-400 hover:underline">
+                    <a href="{{ route('booking.ticket.index') }}" class="shrink-0 whitespace-nowrap text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-400 hover:underline">
                         <span class="sm:hidden">Pesan &gt;</span>
                         <span class="hidden sm:inline">Pesan camilan &gt;</span>
                     </a>
@@ -348,7 +348,7 @@
                             class="w-[86%] sm:w-[70%] lg:w-[48%] shrink-0 snap-start"
                         >
                             <a
-                                href="{{ $sb['url'] ?? route('booking.lookup.form') }}"
+                                href="{{ $sb['url'] ?? route('booking.ticket.index') }}"
                                 class="group relative block aspect-[2/1] w-full overflow-hidden rounded-xl sm:rounded-2xl border border-border bg-surface shadow-2xs hover:border-amber-500 transition-colors focus-visible:outline-2 focus-visible:outline-amber-500"
                                 title="{{ $sb['title'] ?? 'Makanan & Minuman' }}"
                             >

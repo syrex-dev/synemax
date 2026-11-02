@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\MenuItem;
 use App\Support\WhatsAppNumber;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -12,10 +13,33 @@ class StoreBookingRequest extends FormRequest
         $package = $this->input('package') ?: ($this->input('booking_type') === 'private' ? 'private' : ($this->input('booking_type') === 'couple' ? 'couple' : 'reguler'));
         $bookingType = $this->input('booking_type') ?: ($package === 'private' ? 'private' : ($package === 'couple' ? 'couple' : 'per_orang'));
 
+        $snacks = $this->input('snacks');
+        $cleanSnacks = [];
+        if (is_array($snacks)) {
+            foreach ($snacks as $itemId => $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
+                $rawQty = $item['qty'] ?? null;
+                if ($rawQty === '' || $rawQty === null || ! is_numeric($rawQty)) {
+                    continue;
+                }
+                $qty = (int) $rawQty;
+                if ($qty <= 0) {
+                    continue;
+                }
+                $cleanSnacks[$itemId] = [
+                    'qty' => $qty,
+                    'note' => isset($item['note']) ? (string) $item['note'] : null,
+                ];
+            }
+        }
+
         $this->merge([
             'whatsapp' => WhatsAppNumber::normalize((string) $this->input('whatsapp')),
             'package' => $package,
             'booking_type' => $bookingType,
+            'snacks' => ! empty($cleanSnacks) ? $cleanSnacks : null,
         ]);
     }
 
@@ -23,6 +47,7 @@ class StoreBookingRequest extends FormRequest
     {
         $package = $this->input('package') ?: ($this->input('booking_type') === 'private' ? 'private' : ($this->input('booking_type') === 'couple' ? 'couple' : 'reguler'));
         $isRegular = ! in_array($package, ['couple', 'private'], true);
+        $maxQty = (int) config('cinema.snack_max_qty_per_item', 10);
 
         return [
             'customer_name' => ['required', 'string', 'max:120'],
@@ -36,10 +61,41 @@ class StoreBookingRequest extends FormRequest
             'payment_proof' => ['prohibited'],
             'notes' => ['nullable', 'string', 'max:300'],
             'snacks' => ['nullable', 'array', 'max:100'],
-            'snacks.*' => ['required', 'array:qty,note'],
-            'snacks.*.qty' => ['required', 'integer', 'min:0'],
+            'snacks.*' => ['array'],
+            'snacks.*.qty' => ['nullable', 'integer', 'min:0', "max:{$maxQty}"],
             'snacks.*.note' => ['nullable', 'string', 'max:250'],
         ];
+    }
+
+    public function attributes(): array
+    {
+        $attributes = [
+            'customer_name' => 'Nama pemesan',
+            'whatsapp' => 'Nomor WhatsApp',
+            'pax' => 'Jumlah orang',
+            'people_count' => 'Jumlah orang',
+            'booking_type' => 'Tipe booking',
+            'package' => 'Paket booking',
+            'film_id' => 'Pilihan film',
+            'payment_method' => 'Metode pembayaran',
+            'payment_proof' => 'Bukti pembayaran',
+            'notes' => 'Catatan pemesanan',
+            'snacks' => 'Pesanan jajan',
+            'snacks.*.qty' => 'Jumlah jajan',
+            'snacks.*.note' => 'Catatan jajan',
+        ];
+
+        try {
+            $items = MenuItem::query()->select('id', 'name')->get();
+            foreach ($items as $item) {
+                $attributes["snacks.{$item->id}.qty"] = "Jumlah {$item->name}";
+                $attributes["snacks.{$item->id}.note"] = "Catatan {$item->name}";
+            }
+        } catch (\Throwable) {
+            // Abaikan bila tabel belum siap
+        }
+
+        return $attributes;
     }
 
     public function messages(): array
@@ -54,10 +110,12 @@ class StoreBookingRequest extends FormRequest
             'booking_type.required' => 'Pilih tipe booking yang tersedia.',
             'booking_type.in' => 'Pilih tipe booking yang tersedia.',
             'film_id.exists' => 'Film yang dipilih sudah tidak tersedia.',
+            'payment_method.required' => 'Pilih metode pembayaran yang tersedia.',
             'payment_method.in' => 'Pilih metode pembayaran yang tersedia.',
             'payment_proof.prohibited' => 'Unggah bukti pembayaran dilakukan di halaman pembayaran setelah booking dibuat.',
             'notes.max' => 'Catatan pemesanan maksimal 300 karakter.',
             'snacks.*.qty.min' => 'Jumlah jajan tidak boleh kurang dari nol.',
+            'snacks.*.qty.max' => 'Jumlah jajan melebihi batas maksimal.',
             'snacks.*.note.max' => 'Catatan jajan maksimal 250 karakter.',
         ];
     }

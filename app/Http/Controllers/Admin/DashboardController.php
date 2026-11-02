@@ -9,6 +9,7 @@ use App\Models\Film;
 use App\Models\Promo;
 use App\Models\Session;
 use App\Services\CinemaSettings;
+use App\Services\TelegramNotificationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -97,7 +98,27 @@ class DashboardController extends Controller
         $qrisWarning = $qrisSelected && (! $settings->hasValidQrisImage() || ! $settings->boolean('qris_enabled', true));
         $transferWarning = in_array('transfer', $rawMethods, true) && ! $settings->hasValidTransferAccounts();
 
+        try {
+            app(TelegramNotificationService::class)->flush();
+        } catch (\Throwable) {
+            // Fail safely
+        }
+
+        $urgentWaitingBookings = Booking::query()
+            ->where('status', 'menunggu_konfirmasi')
+            ->where('payment_proof_uploaded_at', '<=', now()->subHours(12))
+            ->count();
+
         $actionItems = collect();
+        if ($urgentWaitingBookings > 0) {
+            $actionItems->push([
+                'type' => 'booking_urgent',
+                'level' => 'critical',
+                'urgency_score' => 0,
+                'title' => 'MENDESAK: '.$urgentWaitingBookings.' booking menunggu konfirmasi > 12 jam',
+                'url' => route('admin.bookings.index', ['status' => 'menunggu_konfirmasi']),
+            ]);
+        }
         if ($waitingBookings > 0) {
             $actionItems->push([
                 'type' => 'booking',

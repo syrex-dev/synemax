@@ -8,14 +8,18 @@ use App\Models\Booking;
 use App\Models\Film;
 use App\Models\NewsArticle;
 use App\Models\NobarEvent;
+use App\Models\NotificationOutbox;
 use App\Models\Promo;
 use App\Models\Setting;
 use App\Services\CinemaSettings;
+use App\Services\TelegramNotificationService;
 use App\Support\WhatsAppNumber;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -69,6 +73,26 @@ class SettingController extends Controller
             'activeFilms' => $activeFilms,
             'featuredFilmIds' => $settings->homeFeaturedFilmIds(),
             'homeFilmsMode' => $settings->homeFilmsMode(),
+            'telegramSettings' => [
+                'enabled' => $settings->boolean('telegram_notifications_enabled', false),
+                'masked_token' => app(TelegramNotificationService::class)->getMaskedToken(),
+                'chat_ids' => $settings->string('telegram_chat_ids'),
+                'notify_booking_created' => $settings->boolean('telegram_notify_booking_created', true),
+                'notify_proof_uploaded' => $settings->boolean('telegram_notify_proof_uploaded', true),
+                'notify_payment_confirmed' => $settings->boolean('telegram_notify_payment_confirmed', false),
+                'notify_booking_cancelled' => $settings->boolean('telegram_notify_booking_cancelled', true),
+                'notify_booking_expired' => $settings->boolean('telegram_notify_booking_expired', false),
+                'notify_session_confirmed' => $settings->boolean('telegram_notify_session_confirmed', true),
+                'notify_session_cancelled' => $settings->boolean('telegram_notify_session_cancelled', true),
+                'hide_customer_whatsapp' => $settings->boolean('telegram_hide_customer_whatsapp', false),
+                'include_customer_notes' => $settings->boolean('telegram_include_customer_notes', true),
+            ],
+            'telegramLogs' => NotificationOutbox::query()
+                ->where('channel', 'telegram')
+                ->with('booking')
+                ->orderByDesc('id')
+                ->limit(50)
+                ->get(),
         ]);
     }
 
@@ -104,6 +128,8 @@ class SettingController extends Controller
                 $tab = 'kontak';
             } elseif ($request->has('seo_title_template')) {
                 $tab = 'seo';
+            } elseif ($request->has('telegram_bot_token') || $request->has('telegram_notifications_enabled') || $request->has('telegram_chat_ids')) {
+                $tab = 'notifikasi';
             } else {
                 $tab = 'operasional';
             }
@@ -130,6 +156,9 @@ class SettingController extends Controller
                 break;
             case 'seo':
                 $this->updateSeo($request, $settings);
+                break;
+            case 'notifikasi':
+                $this->updateNotifikasi($request, $settings);
                 break;
             default:
                 $this->updateOperasional($request, $settings);
@@ -744,6 +773,73 @@ class SettingController extends Controller
         return redirect()->route('admin.settings.edit', ['tab' => 'seo'])->with(
             'status',
             "Data contoh berhasil dibersihkan ({$total} item dihapus: {$deletedCounts['films']} film, {$deletedCounts['promos']} promo, {$deletedCounts['banners']} banner hero, {$deletedCounts['nobar']} nobar, {$deletedCounts['news']} kabar)."
+        );
+    }
+
+    private function updateNotifikasi(Request $request, CinemaSettings $settings): void
+    {
+        $enabled = $request->boolean('telegram_notifications_enabled') ? 1 : 0;
+        $settings->set('telegram_notifications_enabled', (string) $enabled, 'notifikasi');
+
+        $newToken = trim((string) $request->input('telegram_bot_token', ''));
+        if ($newToken !== '' && ! str_contains($newToken, '••••••')) {
+            $settings->set('telegram_bot_token', Crypt::encryptString($newToken), 'notifikasi');
+        }
+
+        $chatIds = trim((string) $request->input('telegram_chat_ids', ''));
+        $settings->set('telegram_chat_ids', $chatIds, 'notifikasi');
+
+        $events = [
+            'telegram_notify_booking_created' => $request->boolean('telegram_notify_booking_created', true),
+            'telegram_notify_proof_uploaded' => $request->boolean('telegram_notify_proof_uploaded', true),
+            'telegram_notify_payment_confirmed' => $request->boolean('telegram_notify_payment_confirmed', false),
+            'telegram_notify_booking_cancelled' => $request->boolean('telegram_notify_booking_cancelled', true),
+            'telegram_notify_booking_expired' => $request->boolean('telegram_notify_booking_expired', false),
+            'telegram_notify_session_confirmed' => $request->boolean('telegram_notify_session_confirmed', true),
+            'telegram_notify_session_cancelled' => $request->boolean('telegram_notify_session_cancelled', true),
+            'telegram_hide_customer_whatsapp' => $request->boolean('telegram_hide_customer_whatsapp', false),
+            'telegram_include_customer_notes' => $request->boolean('telegram_include_customer_notes', true),
+        ];
+
+        foreach ($events as $k => $v) {
+            $settings->set($k, (string) ($v ? 1 : 0), 'notifikasi');
+        }
+    }
+
+    public function testTelegram(Request $request, TelegramNotificationService $telegram): JsonResponse
+    {
+        $chatId = $request->input('chat_id');
+        $token = $request->input('token');
+
+        if ($token && str_contains($token, '••••••')) {
+            $token = null;
+        }
+
+        $result = $telegram->sendTestMessage($chatId, $token);
+
+        return response()->json($result);
+    }
+
+    public function detectTelegramChats(Request $request, TelegramNotificationService $telegram): JsonResponse
+    {
+        $token = $request->input('token');
+        if ($token && str_contains($token, '••••••')) {
+            $token = null;
+        }
+
+        $result = $telegram->detectChats($token);
+
+        return response()->json($result);
+    }
+
+    public function retryTelegramNotification(int $id, TelegramNotificationService $telegram): RedirectResponse
+    {
+        $item = NotificationOutbox::query()->findOrFail($id);
+        $ok = $telegram->dispatchItem($item);
+
+        return back()->with(
+            $ok ? 'status' : 'error',
+            $ok ? 'Pesan notifikasi berhasil dikirim ulang ke Telegram.' : 'Gagal mengirim ulang: '.($item->last_error ?? 'Terjadi kesalahan.')
         );
     }
 }

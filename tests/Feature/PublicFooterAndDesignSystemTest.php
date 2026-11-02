@@ -25,7 +25,7 @@ class PublicFooterAndDesignSystemTest extends TestCase
             '/nobar',
             '/promo',
             '/kabar',
-            '/cek-booking',
+            '/tiket',
         ];
 
         foreach ($routes as $uri) {
@@ -38,9 +38,9 @@ class PublicFooterAndDesignSystemTest extends TestCase
             $this->assertEquals(1, $footerCount, "Page {$uri} should have exactly one footer element, found {$footerCount}");
 
             // Assert footer structure
-            $response->assertSee('Jelajahi', false);
-            $response->assertSee('Bantuan', false);
-            $response->assertSee('Hubungi & Ikuti', false);
+            $response->assertSee('Jadwal', false);
+            $response->assertSee('Harga & FAQ', false);
+            $response->assertSee('Tiket', false);
 
             // Assert Design System is NOT in the public area
             $response->assertDontSee('Design System', false);

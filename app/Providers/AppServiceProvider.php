@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Services\CinemaSettings;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -29,9 +30,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (config('app.env') === 'production' || request()->header('x-forwarded-proto') === 'https') {
+        if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
+
+        $activeDb = (string) config('database.connections.'.config('database.default').'.database');
+        $normalizedDb = str_replace('\\', '/', $activeDb);
+        $isQa = str_ends_with($normalizedDb, 'qa.sqlite');
+        $isTesting = $this->app->environment('testing') || $activeDb === ':memory:';
+
+        DB::prohibitDestructiveCommands(! $isQa && ! $isTesting);
 
         Paginator::defaultView('pagination::tailwind');
 

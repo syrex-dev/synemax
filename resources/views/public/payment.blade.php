@@ -44,9 +44,9 @@
                      this.timerInterval = setInterval(update, 1000);
                  }
              },
+             totalSeconds: @js(($paymentTimeLimitMinutes ?? 30) * 60),
              get progressPct() {
-                 // 15 menit = 900 detik
-                 return Math.min(100, Math.max(0, (this.timeLeft / 900) * 100));
+                 return Math.min(100, Math.max(0, (this.timeLeft / (this.totalSeconds || 1800)) * 100));
              },
              get isUrgent() {
                  return this.timeLeft > 0 && this.timeLeft <= 180;
@@ -71,13 +71,25 @@
                          setTimeout(() => this.copiedAccount = null, 2500);
                      });
                  }
-             },
+             fileError: '',
              handleFileChange(event) {
                  const files = event.target.files;
                  if (files && files.length > 0) {
+                     const file = files[0];
+                     const maxKb = @js($maxPaymentProofKb ?? 4096);
+                     if (file.size > maxKb * 1024) {
+                         const maxLabel = maxKb >= 1024 ? (maxKb / 1024).toFixed(0) + ' MB' : maxKb + ' KB';
+                         this.fileError = `Ukuran file (${(file.size / (1024 * 1024)).toFixed(1)} MB) melebihi batas maksimal ${maxLabel}. Silakan pilih file yang lebih kecil.`;
+                         this.hasFile = false;
+                         this.selectedFileName = '';
+                         event.target.value = '';
+                         return;
+                     }
+                     this.fileError = '';
                      this.hasFile = true;
-                     this.selectedFileName = files[0].name;
+                     this.selectedFileName = file.name;
                  } else {
+                     this.fileError = '';
                      this.hasFile = false;
                      this.selectedFileName = '';
                  }
@@ -91,7 +103,7 @@
                 <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
-                <span>← Beranda</span>
+                <span>Beranda</span>
             </a>
         </div>
 
@@ -132,9 +144,9 @@
                 </div>
                 <div class="text-right">
                     <span class="rounded-lg bg-surface-2 px-2.5 py-1 text-[11px] font-bold text-text-muted">
-                        Batas: 15 Menit
+                        Batas: {{ $paymentTimeLimitMinutes ?? 30 }} Menit
                     </span>
-                    <p class="mt-1 text-[11px] text-text-muted">Kursi terkunci sementara</p>
+                    <p class="mt-1 text-[11px] text-text-muted">Tempatmu ditahan sementara</p>
                 </div>
             </div>
 
@@ -145,7 +157,7 @@
                      :style="`width: ${progressPct}%`"></div>
             </div>
             <p class="mt-2 text-[11px] text-text-muted text-center sm:text-left">
-                Kirim bukti transfer sebelum penghitung waktu habis agar kursi Anda tidak dibatalkan otomatis.
+                Kirim bukti transfer sebelum penghitung waktu habis agar tempat Anda tidak dibatalkan otomatis.
             </p>
         </div>
 
@@ -154,7 +166,7 @@
              class="mb-6 rounded-xl border border-danger/40 bg-danger-surface p-6 text-center text-danger-text">
             <h1 class="text-lg font-black text-danger-text sm:text-xl">Waktu Pembayaran Habis</h1>
             <p class="mt-1.5 text-xs text-danger-text/90 leading-relaxed">
-                Batas waktu transfer telah berakhir dan kursi pesanan telah dilepaskan kembali ke publik.
+                Batas waktu transfer telah berakhir dan tempat pesanan telah dilepaskan kembali ke publik.
             </p>
             <div class="mt-5 flex flex-wrap justify-center gap-3">
                 <a href="{{ route('booking.create', ['session' => $booking->session_id]) }}"
@@ -351,6 +363,7 @@
                                    @change="handleFileChange($event)"
                                    class="mt-2 block w-full text-xs text-slate-300 file:mr-3 file:min-h-11 file:rounded-xl file:border file:border-amber-400/40 file:bg-amber-500/10 file:px-4 file:text-xs file:font-bold file:text-amber-400 hover:file:bg-amber-500/20 cursor-pointer">
                             <p x-show="selectedFileName" class="mt-2 text-xs font-bold text-amber-400" x-text="'Berkas dipilih: ' + selectedFileName"></p>
+                            <p x-show="fileError" class="mt-2 text-xs font-bold text-danger-text" x-text="fileError"></p>
                         </div>
 
                         {{-- Tombol Kirim Bukti Bayar --}}
@@ -362,10 +375,8 @@
                     </form>
                 </div>
 
-                {{-- Kelompok Aksi & Bantuan WhatsApp --}}
+                {{-- Kelompok Aksi & Bantuan Navigasi --}}
                 <div class="mt-6 space-y-3 max-w-[400px] mx-auto w-full border-t border-white/10 pt-5">
-                    <x-ui.whatsapp-button variant="inline" :booking="$booking" label="Kirim bukti lewat WhatsApp" message="Halo admin SynemaX, saya mau konfirmasi pembayaran booking {{ $booking->code }} ({{ $booking->film?->title }})." />
-
                     <div class="grid grid-cols-2 gap-3">
                         <a href="{{ route('home') }}"
                            class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 text-xs font-bold text-slate-300 hover:border-amber-400 hover:text-white transition shadow-none">
@@ -395,7 +406,7 @@
             <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0E131F] p-5 shadow-2xl">
                 <h3 class="text-base font-black text-white">Batalkan booking ini?</h3>
                 <p class="mt-2 text-xs leading-relaxed text-slate-300">
-                    Apakah Anda yakin ingin membatalkan pemesanan ini? Kursi yang telah dipesan akan dilepaskan kembali.
+                    Apakah Anda yakin ingin membatalkan pemesanan ini? Tempat yang telah dipesan akan dilepaskan kembali.
                 </p>
                 <form method="POST" action="{{ route('booking.cancel', ['code' => $booking->code]) }}" class="mt-5">
                     @csrf

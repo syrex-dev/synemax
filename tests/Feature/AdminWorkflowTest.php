@@ -250,7 +250,7 @@ class AdminWorkflowTest extends TestCase
             route('schedule.date', '2026-10-14'),
             route('booking.create', $session),
             route('booking.ticket', $booking->code),
-            route('booking.lookup.form'),
+            route('booking.ticket.index'),
             route('admin.dashboard'),
             route('admin.bookings.index'),
             route('admin.bookings.show', $booking),

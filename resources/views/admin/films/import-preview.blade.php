@@ -799,7 +799,7 @@
                                 @if (isset($cellErrors['age_rating']))
                                     <div class="mt-1 text-[10px] text-rose-500 text-left space-y-0.5 font-semibold">
                                         <p>{{ $cellErrors['age_rating'] }}</p>
-                                        <a href="{{ Route::has('admin.age_ratings.index') ? route('admin.age_ratings.index') : url('/admin/age-ratings') }}" target="_blank" class="inline-flex items-center gap-1 font-bold text-amber-500 hover:text-amber-400 underline">
+                                        <a href="{{ route('admin.age_ratings.index') }}" target="_blank" class="inline-flex items-center gap-1 font-bold text-amber-500 hover:text-amber-400 underline">
                                             <span>+ Tambah Klasifikasi</span>
                                             <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                                         </a>

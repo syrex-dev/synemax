@@ -294,7 +294,7 @@ class SnackOrderFlowTest extends TestCase
         ]);
 
         $this->post(route('booking.cancel', $booking->code), ['whatsapp' => '081234567890'])
-            ->assertRedirect(route('booking.lookup.form'));
+            ->assertRedirect(route('booking.ticket.index'));
 
         $this->assertSame('dibatalkan', $booking->fresh()->status);
         $this->assertSame('dibatalkan', $booking->items()->firstOrFail()->status);
@@ -341,7 +341,9 @@ class SnackOrderFlowTest extends TestCase
             parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
             $message = $query['text'] ?? '';
 
-            return str_contains($message, 'Jadwal: 2026-10-14 · 16:00 WIB')
+            $expectedSchedule = 'Jadwal: '.format_tanggal_id($booking->session->session_date).' · '.format_jam_id($booking->session->start_time);
+
+            return str_contains($message, $expectedSchedule)
                 && str_contains($message, 'Saya ingin mengubah pesanan jajan:')
                 && str_contains($message, 'Kode booking: '.$booking->code)
                 && str_contains($message, 'Air mineral × 2 (Tanpa es)');

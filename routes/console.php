@@ -18,3 +18,6 @@ Schedule::command('bookings:expire-unpaid')
 
 Schedule::command('sessions:resolve-quorum')
     ->everyMinute();
+
+Schedule::command('notifications:flush')
+    ->everyMinute();

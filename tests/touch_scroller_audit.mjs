@@ -2,7 +2,7 @@ import { chromium } from 'playwright-core';
 import fs from 'fs';
 
 const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const BASE_URL = process.env.BASE_URL || 'http://synemax.test';
+const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:8001';
 
 async function auditTouchScrollers() {
   console.log('=== MEMULAI AUDIT SCROLLER SENTUH MOBILE ===');

@@ -333,7 +333,7 @@ class QrisPaymentFlowTest extends TestCase
             ->assertSee('Studio SynemaX')
             ->assertSee('Salin nominal')
             ->assertSee('Simpan gambar QRIS')
-            ->assertSee('Kirim bukti lewat WhatsApp');
+            ->assertSee('Kirim bukti bayar');
 
         // Status Page
         $this->followingRedirects()

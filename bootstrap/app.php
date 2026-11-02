@@ -15,7 +15,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->trustProxies(at: '*');
+        $trustedProxies = env('TRUSTED_PROXIES');
+        $proxies = $trustedProxies !== null && trim($trustedProxies) !== ''
+            ? array_map('trim', explode(',', $trustedProxies))
+            : ['127.0.0.1', '::1'];
+
+        $headers = Request::HEADER_X_FORWARDED_FOR
+            | Request::HEADER_X_FORWARDED_PROTO
+            | Request::HEADER_X_FORWARDED_PORT;
+
+        $middleware->trustProxies(at: $proxies, headers: $headers);
 
         $middleware->alias([
             'admin' => EnsureAdmin::class,

@@ -94,7 +94,7 @@ class PublicPagesTest extends TestCase
 
         $this->get(route('booking.create', ['session' => $session->id]))
             ->assertOk()
-            ->assertSee('Amankan kursimu')
+            ->assertSee('Amankan tempatmu')
             ->assertSee('Misi Terakhir Pak Pos')
             ->assertSee('Sewa studio privat');
     }

@@ -79,10 +79,10 @@
                 </template>
 
                 {{-- Undo Button if available --}}
-                <template x-if="toast.undoRoute">
+                <template x-if="toast.undoRoute || toast.onUndo">
                     <button
                         type="button"
-                        @click="submitUndo(toast.undoRoute)"
+                        @click="handleUndo(toast)"
                         class="shrink-0 rounded-lg bg-amber-500/25 hover:bg-amber-500/40 text-amber-300 border border-amber-400/40 px-2.5 py-1 text-xs font-bold transition shadow-xs"
                     >
                         Urungkan (8s)
@@ -215,23 +215,31 @@ function inAppDialogsComponent() {
         isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
         touchStartY: 0,
         toasts: [],
-        addToast(type, message, duration, undoRoute = null, linkUrl = null, linkLabel = 'Lihat') {
+        addToast(type, message, duration, undoRoute = null, linkUrl = null, linkLabel = 'Lihat', onUndo = null) {
             const id = Date.now() + Math.random().toString(36).substr(2, 4);
-            // Durasi baku: error 8 detik, sukses/info 4 detik
-            const autoDismiss = duration !== undefined ? duration : (type === 'error' ? 8000 : 4000);
+            // Durasi baku: undo 8 detik, error 8 detik, sukses/info 4 detik
+            const autoDismiss = duration !== undefined ? duration : (undoRoute || onUndo || type === 'error' ? 8000 : 4000);
             
             // Maksimal 2 toast bertumpuk
             if (this.toasts.length >= 2) {
                 this.toasts.shift();
             }
 
-            const toast = { id, type, message, undoRoute, linkUrl, linkLabel };
+            const toast = { id, type, message, undoRoute, linkUrl, linkLabel, onUndo };
             this.toasts.push(toast);
 
             if (autoDismiss > 0) {
                 setTimeout(() => {
                     this.removeToast(id);
                 }, autoDismiss);
+            }
+        },
+        handleUndo(toast) {
+            this.removeToast(toast.id);
+            if (typeof toast.onUndo === 'function') {
+                toast.onUndo();
+            } else if (toast.undoRoute) {
+                this.submitUndo(toast.undoRoute);
             }
         },
         submitUndo(url) {
@@ -290,8 +298,12 @@ function inAppDialogsComponent() {
             window.showToast = (config) => {
                 const type = typeof config === 'string' ? 'info' : (config.type || 'info');
                 const message = typeof config === 'string' ? config : (config.message || '');
-                const duration = config.duration;
-                this.addToast(type, message, duration);
+                const duration = typeof config === 'object' ? config.duration : undefined;
+                const undoRoute = typeof config === 'object' ? (config.undoRoute || null) : null;
+                const linkUrl = typeof config === 'object' ? (config.linkUrl || null) : null;
+                const linkLabel = typeof config === 'object' ? (config.linkLabel || 'Lihat') : 'Lihat';
+                const onUndo = typeof config === 'object' && typeof config.onUndo === 'function' ? config.onUndo : null;
+                this.addToast(type, message, duration, undoRoute, linkUrl, linkLabel, onUndo);
             };
 
             window.openConfirmModal = (config) => {
@@ -414,12 +426,22 @@ function inAppDialogsComponent() {
 
             window.fetch = async (...args) => {
                 const requestUrl = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
+                const headersObj = args[1]?.headers;
+                const getHeader = (h, key) => {
+                    if (!h) return null;
+                    if (typeof h.get === 'function') return h.get(key);
+                    return h[key] || h[key.toLowerCase()] || null;
+                };
+
                 const isBackground = requestUrl.includes('/status') ||
                                      requestUrl.includes('/polling') ||
                                      requestUrl.includes('status.json') ||
                                      requestUrl.includes('/density') ||
                                      requestUrl.includes('/live_search') ||
-                                     args[1]?.headers?.['X-Background-Request'] === 'true';
+                                     requestUrl.includes('cari') ||
+                                     requestUrl.includes('match_ocr') ||
+                                     requestUrl.includes('process_single') ||
+                                     getHeader(headersObj, 'X-Background-Request') === 'true';
 
                 try {
                     const response = await originalFetch(...args);
@@ -428,7 +450,7 @@ function inAppDialogsComponent() {
                     }
                     return response;
                 } catch (err) {
-                    // Kegagalan background polling/prefetch tidak pernah memunculkan toast
+                    // Kegagalan background polling/prefetch/live-search tidak pernah memunculkan toast
                     if (isBackground || err.name === 'AbortError') {
                         console.warn('[Background Fetch Silenced]', requestUrl, err);
                         throw err;

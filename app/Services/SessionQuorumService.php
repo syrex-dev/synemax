@@ -79,6 +79,14 @@ class SessionQuorumService
                         'resolution_notes' => 'Dibatalkan otomatis: kuorum tidak terpenuhi hingga batas konfirmasi.',
                     ]);
 
+                    try {
+                        app(TelegramNotificationService::class)->queue('session_cancelled', null, [
+                            'message' => 'Sesi '.format_hari_tanggal_id($session->session_date).' · '.format_jam_id($session->start_time).' dibatalkan karena kuorum tidak terpenuhi.',
+                        ]);
+                    } catch (\Throwable) {
+                        // Fail safely
+                    }
+
                     return $bCount;
                 }, attempts: 3);
 

@@ -122,6 +122,9 @@
         :class="{ 'overflow-hidden': menuSheetOpen }"
         class="min-h-screen bg-bg font-sans text-text antialiased transition-colors duration-200"
     >
+        {{-- Unpaid Booking Global Banner (Section 2) --}}
+        <x-public.unpaid-booking-banner />
+
         {{-- Sticky Cinema Navbar (Translucent Glassmorphic Blur across mobile & desktop) --}}
         <header class="sticky top-0 z-40 border-b border-border/80 dark:border-white/10 bg-surface/80 dark:bg-[#07090E]/80 backdrop-blur-md supports-[backdrop-filter]:bg-surface/75 dark:supports-[backdrop-filter]:bg-[#07090E]/75 transition-colors duration-200 pt-[env(safe-area-inset-top)]">
             <div class="mx-auto flex h-14 md:h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
@@ -141,7 +144,7 @@
                             'nobar' => request()->routeIs('nobar.*') || request()->is('nobar*'),
                             'promo' => request()->routeIs('promos.*') || request()->is('promo*'),
                             'articles', 'kabar' => request()->routeIs('articles.*') || request()->is('kabar*'),
-                            'lookup', 'booking_lookup' => request()->routeIs('booking.lookup*') || request()->is('cek-booking*'),
+                            'lookup', 'booking_lookup', 'tickets', 'tiket' => request()->routeIs('booking.lookup*', 'booking.ticket*') || request()->is('cek-booking*', 'tiket*'),
                             default => request()->url() === url($item['url'] ?? ''),
                         };
                     };
@@ -163,18 +166,18 @@
                         @if (!empty($item['is_visible']))
                             @php
                                 $isActive = $activeChecker($item);
-                                $isBookingLookup = in_array($item['key'] ?? $item['id'] ?? '', ['lookup', 'booking_lookup'], true);
+                                $isBookingLookup = in_array($item['key'] ?? $item['id'] ?? '', ['lookup', 'booking_lookup', 'tickets', 'tiket'], true);
                             @endphp
 
                             @if ($isBookingLookup)
                                 <a
-                                    href="{{ url($item['url'] ?? '/cek-booking') }}"
+                                    href="{{ url($item['url'] ?? '/tiket') }}"
                                     class="btn-gold-cinema inline-flex min-h-10 shrink-0 items-center rounded-xl px-3.5 py-1.5 text-xs font-black shadow-xs ml-1 {{ $isActive ? 'ring-2 ring-amber-500 ring-offset-2' : '' }}"
                                 >
                                     <svg class="size-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                                     </svg>
-                                    <span>{{ $item['label'] ?? 'Cek booking' }}</span>
+                                    <span>{{ in_array($item['label'] ?? '', ['Cek booking', 'Booking'], true) ? 'Tiket' : ($item['label'] ?? 'Tiket') }}</span>
                                 </a>
                             @else
                                 <a
@@ -251,6 +254,10 @@
             </div>
         </header>
 
+        {{-- Banner In-App Booking Belum Dibayar --}}
+        <x-public.unpaid-booking-banner />
+
+
         {{-- Mobile Bottom Navigation Bar (CGV Pattern, Fixed bottom-0, Translucent Blur, < 768px) --}}
         @if (! $isActionPage)
             <nav
@@ -266,7 +273,7 @@
                             $bKey = $bItem['key'] ?? $bItem['id'] ?? '';
                             $mobileLabel = !empty($bItem['short_label'])
                                 ? $bItem['short_label']
-                                : (($bKey === 'lookup' || $bKey === 'booking_lookup') ? 'Booking' : $bItem['label']);
+                                : (in_array($bKey, ['lookup', 'booking_lookup', 'tickets', 'tiket'], true) ? 'Tiket' : $bItem['label']);
                         @endphp
                         <a
                             href="{{ url($bItem['url'] ?? '/') }}"
@@ -289,7 +296,7 @@
                                 <svg class="size-[22px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
                                 </svg>
-                            @elseif ($bKey === 'lookup' || $bKey === 'booking_lookup')
+                            @elseif ($bKey === 'lookup' || $bKey === 'booking_lookup' || $bKey === 'tickets' || $bKey === 'tiket')
                                 <svg class="size-[22px] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
                                 </svg>

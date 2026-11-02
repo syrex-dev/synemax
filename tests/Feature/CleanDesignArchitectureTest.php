@@ -18,8 +18,8 @@ class CleanDesignArchitectureTest extends TestCase
         $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($viewsPath));
         $violatingFiles = [];
 
-        // Pictographic / Emoji character pattern excluding basic latin symbols like copyright
-        $emojiPattern = '/[\x{1F300}-\x{1F9FF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]/u';
+        // Comprehensive pictographic, emoji, and dingbat pattern
+        $emojiPattern = '/[\p{Extended_Pictographic}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]/u';
 
         foreach ($files as $file) {
             if ($file->isDir() || ! str_ends_with($file->getFilename(), '.blade.php')) {
@@ -43,6 +43,29 @@ class CleanDesignArchitectureTest extends TestCase
             $violatingFiles,
             'Found UI emojis in blade views. Replace them with 1.5px stroke SVG icons: '.json_encode($violatingFiles)
         );
+    }
+
+    /**
+     * Proves that the architectural emoji detector strictly catches newly introduced emojis or pictograms.
+     */
+    public function test_architectural_detector_catches_newly_introduced_emojis(): void
+    {
+        $emojiPattern = '/[\p{Extended_Pictographic}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]/u';
+
+        $testCasesWithEmojis = [
+            '<button>⚡ Pasangkan Semua</button>',
+            '<span>✨ Berhasil disimpan</span>',
+            '<p>🎉 Selamat datang!</p>',
+            '<button>✕</button>',
+        ];
+
+        foreach ($testCasesWithEmojis as $snippet) {
+            $matched = preg_match_all($emojiPattern, $snippet, $matches);
+            $this->assertGreaterThan(0, $matched, "Expected detector to catch emoji in snippet: {$snippet}");
+        }
+
+        $cleanSnippet = '<button><svg class="size-4"></svg> Pasangkan Semua</button>';
+        $this->assertSame(0, preg_match_all($emojiPattern, $cleanSnippet, $matches), 'Expected no match on clean SVG button');
     }
 
     /**

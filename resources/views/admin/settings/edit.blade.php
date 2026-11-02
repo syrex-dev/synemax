@@ -22,6 +22,7 @@
                         'harga' => '5. Harga & FAQ',
                         'kontak' => '6. Kontak & Sosial',
                         'seo' => '7. SEO & Lanjutan',
+                        'notifikasi' => '8. Notifikasi',
                     ];
                 @endphp
                 @foreach ($tabs as $tabKey => $tabLabel)
@@ -379,6 +380,9 @@
                                  this.featuredIds.push(id);
                              }
                              this.selectedFilmId = '';
+                             window.dispatchEvent(new CustomEvent('synemax-select-set', {
+                                 detail: { name: 'featured_film_picker', value: '' }
+                             }));
                          },
                          removeFilm(id) {
                              this.featuredIds = this.featuredIds.filter(fId => fId !== id);
@@ -429,13 +433,14 @@
                     <div x-show="mode === 'custom'" x-transition class="space-y-4 pt-4 border-t border-border">
                         {{-- Input Penambah Film --}}
                         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-                            <div class="flex-1 min-w-[240px]">
-                                <select x-model="selectedFilmId" class="w-full rounded-xl border border-border bg-surface-2 text-text px-3 py-2 text-xs font-medium focus:border-amber-500 focus:outline-none">
-                                    <option value="">-- Pilih film untuk ditambahkan ke beranda --</option>
-                                    <template x-for="film in availableFilms" :key="film.id">
-                                        <option :value="film.id" x-text="`${film.title} (${film.release_year || '-'})`"></option>
-                                    </template>
-                                </select>
+                            <div class="flex-1 min-w-[240px]" @change="selectedFilmId = $event.target.value">
+                                <x-ui.select
+                                    name="featured_film_picker"
+                                    id="featured_film_picker"
+                                    placeholder="-- Pilih film untuk ditambahkan ke beranda --"
+                                    :options="$activeFilms->mapWithKeys(fn($f) => [(string)$f->id => $f->title . ' (' . ($f->release_year ?: '-') . ')'])->toArray()"
+                                    size="sm"
+                                />
                             </div>
                             <button
                                 type="button"
@@ -711,6 +716,27 @@
                                 <label class="block text-[11px] font-bold text-text-muted uppercase">Atas Nama (Pemilik)</label>
                                 <input type="text" name="transfer_accounts[0][account_holder]" value="{{ $accounts[0]['account_holder'] ?? 'SynemaX Cinema' }}" class="mt-1 min-h-[40px] w-full rounded-xl border px-3 text-xs">
                             </div>
+                        </div>
+                    </div>
+
+                    {{-- Batas Waktu Pembayaran --}}
+                    <div class="pt-4 border-t border-border">
+                        <div class="max-w-xs">
+                            <x-ui.select
+                                name="payment_time_limit_minutes"
+                                id="payment_time_limit_minutes"
+                                label="Batas Waktu Pembayaran"
+                                hint="Berlaku untuk booking baru."
+                                :value="old('payment_time_limit_minutes', (string) $settings->paymentTimeLimitMinutes())"
+                                :options="[
+                                    '10' => '10 Menit',
+                                    '15' => '15 Menit',
+                                    '20' => '20 Menit',
+                                    '30' => '30 Menit (Bawaan)',
+                                    '45' => '45 Menit',
+                                    '60' => '60 Menit (1 Jam)',
+                                ]"
+                            />
                         </div>
                     </div>
 
@@ -1151,6 +1177,444 @@
                         </form>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        {{-- ============================================================== --}}
+        {{-- TAB 8: NOTIFIKASI TELEGRAM --}}
+        {{-- ============================================================== --}}
+        <div x-show="activeTab === 'notifikasi'" x-cloak class="mt-6 space-y-6"
+             x-data="{
+                 isTesting: false,
+                 isDetecting: false,
+                 testResult: null,
+                 detectResult: null,
+                 detectedChats: [],
+                 chatIdsInput: @js($telegramSettings['chat_ids'] ?? ''),
+                 showToken: false,
+                 botToken: @js($telegramSettings['masked_token'] ?? ''),
+
+                 async runTest() {
+                     this.isTesting = true;
+                     this.testResult = null;
+                     try {
+                         const res = await fetch('{{ route('admin.settings.telegram.test') }}', {
+                             method: 'POST',
+                             headers: {
+                                 'Content-Type': 'application/json',
+                                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                 'Accept': 'application/json'
+                             },
+                             body: JSON.stringify({
+                                 chat_id: this.chatIdsInput.split(/[\r\n,]+/)[0]?.trim(),
+                                 token: this.botToken
+                             })
+                         });
+                         const data = await res.json();
+                         this.testResult = data;
+                     } catch (err) {
+                         this.testResult = { success: false, message: 'Gagal mengirim permintaan: ' + err.message };
+                     } finally {
+                         this.isTesting = false;
+                     }
+                 },
+
+                 async runDetect() {
+                     this.isDetecting = true;
+                     this.detectResult = null;
+                     this.detectedChats = [];
+                     try {
+                         const res = await fetch('{{ route('admin.settings.telegram.detect') }}', {
+                             method: 'POST',
+                             headers: {
+                                 'Content-Type': 'application/json',
+                                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                 'Accept': 'application/json'
+                             },
+                             body: JSON.stringify({
+                                 token: this.botToken
+                             })
+                         });
+                         const data = await res.json();
+                         this.detectResult = data;
+                         if (data.chats && data.chats.length > 0) {
+                             this.detectedChats = data.chats;
+                         }
+                     } catch (err) {
+                         this.detectResult = { success: false, message: 'Gagal mendeteksi: ' + err.message };
+                     } finally {
+                         this.isDetecting = false;
+                     }
+                 },
+
+                 addChatId(id) {
+                     const existing = this.chatIdsInput.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+                     if (!existing.includes(String(id))) {
+                         existing.push(String(id));
+                         this.chatIdsInput = existing.join('\n');
+                     }
+                 }
+             }">
+
+            <form method="POST" action="{{ route('admin.settings.update') }}" class="space-y-6">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="_tab" value="notifikasi">
+
+                {{-- Peringatan Keamanan & Privasi Data --}}
+                <div role="alert" class="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-5 text-amber-600 dark:text-amber-400">
+                    <div class="flex items-start gap-3">
+                        <svg class="size-5 shrink-0 mt-0.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div class="text-xs space-y-1">
+                            <p class="font-bold text-sm text-text">Peringatan Privasi Data Pelanggan</p>
+                            <p class="text-text-muted">Pesan notifikasi memuat rincian transaksi dan data pemesan. Pastikan bot hanya mengirim ke chat pribadi admin atau grup privat internal pengelola bioskop, jangan hubungkan ke grup atau channel publik.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Konfigurasi Utama Bot Telegram --}}
+                <div class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-5">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-base font-bold text-text">Integrasi Bot Telegram</h2>
+                            <p class="text-xs text-text-muted mt-0.5">Kirim notifikasi otomatis secara real-time ke Telegram admin tanpa perlu selalu membuka website.</p>
+                        </div>
+                        <x-form.switch
+                            name="telegram_notifications_enabled"
+                            label="Aktifkan Notifikasi Telegram"
+                            value="1"
+                            :checked="!empty($telegramSettings['enabled'])"
+                        />
+                    </div>
+
+                    {{-- Panduan Bertahap --}}
+                    <div class="rounded-xl border border-border bg-surface-2 p-4 text-xs text-text-muted space-y-2">
+                        <p class="font-bold text-text text-sm">Panduan Menyiapkan Bot Telegram:</p>
+                        <ol class="list-decimal list-inside space-y-1 pl-1">
+                            <li>Buka Telegram, cari <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" class="font-semibold text-amber-600 dark:text-amber-400 underline">@BotFather</a>, lalu kirim perintah <code class="rounded bg-surface px-1.5 py-0.5 border border-border font-mono text-[11px]">/newbot</code>.</li>
+                            <li>Beri nama dan username bot, lalu salin token API yang diberikan dan tempelkan ke kolom <strong>Token Bot Telegram</strong> di bawah.</li>
+                            <li>Buka bot baru Anda di Telegram, tekan tombol <strong>Start</strong> (atau kirim <code class="rounded bg-surface px-1.5 py-0.5 border border-border font-mono text-[11px]">/start</code>). Jika untuk grup, masukkan bot ke grup tersebut.</li>
+                            <li>Klik tombol <strong>Deteksi Chat ID</strong> di bawah untuk memilih ID obrolan secara instan.</li>
+                            <li>Klik <strong>Simpan Pengaturan Notifikasi</strong>, lalu tekan tombol <strong>Kirim Pesan Tes ke Telegram</strong> untuk memverifikasi.</li>
+                        </ol>
+                    </div>
+
+                    <div class="grid gap-5 md:grid-cols-2">
+                        {{-- Token Bot --}}
+                        <div class="space-y-1.5">
+                            <label for="telegram_bot_token" class="block text-xs font-bold uppercase tracking-wider text-text">
+                                Token Bot Telegram
+                            </label>
+                            <div class="relative">
+                                <input
+                                    :type="showToken ? 'text' : 'password'"
+                                    id="telegram_bot_token"
+                                    name="telegram_bot_token"
+                                    x-model="botToken"
+                                    placeholder="Contoh: 123456789:AAH_XYZ..."
+                                    autocomplete="new-password"
+                                    class="min-h-[44px] w-full rounded-xl border border-border bg-surface px-3 pr-10 text-sm font-mono text-text focus:border-amber-500 focus:outline-none"
+                                >
+                                <button
+                                    type="button"
+                                    @click="showToken = !showToken"
+                                    class="absolute inset-y-0 right-0 flex items-center px-3 text-text-muted hover:text-text"
+                                    aria-label="Lihat atau sembunyikan token"
+                                >
+                                    <svg x-show="!showToken" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    <svg x-show="showToken" x-cloak class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                                    </svg>
+                                </button>
+                            </div>
+                            <p class="text-[11px] text-text-muted">Disimpan secara terenkripsi di server (Crypt/AES). Nilai tersamar tidak ditampilkan ulang untuk keamanan.</p>
+                        </div>
+
+                        {{-- Chat ID --}}
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <label for="telegram_chat_ids" class="block text-xs font-bold uppercase tracking-wider text-text">
+                                    Chat ID Tujuan
+                                </label>
+                                <button
+                                    type="button"
+                                    @click="runDetect()"
+                                    :disabled="isDetecting || !botToken"
+                                    class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-text hover:border-amber-500 hover:text-amber-500 disabled:opacity-40"
+                                >
+                                    <span x-show="!isDetecting">Deteksi Chat ID</span>
+                                    <span x-show="isDetecting" x-cloak>Mendeteksi...</span>
+                                </button>
+                            </div>
+                            <textarea
+                                id="telegram_chat_ids"
+                                name="telegram_chat_ids"
+                                rows="3"
+                                x-model="chatIdsInput"
+                                placeholder="Contoh: 12345678&#10;-100987654321 (ID grup/channel)"
+                                class="w-full rounded-xl border border-border bg-surface p-2.5 text-xs font-mono text-text focus:border-amber-500 focus:outline-none"
+                            ></textarea>
+                            <p class="text-[11px] text-text-muted">Satu atau beberapa Chat ID (pisahkan dengan baris baru). ID grup/channel diawali tanda minus (-).</p>
+
+                            {{-- Hasil Deteksi Chat ID --}}
+                            <div x-show="detectedChats.length > 0" x-cloak class="mt-2 space-y-1.5 rounded-xl border border-border bg-surface-2 p-3 text-xs">
+                                <p class="font-bold text-text">Obrolan Ditemukan di Bot:</p>
+                                <div class="space-y-1 max-h-36 overflow-y-auto">
+                                    <template x-for="c in detectedChats" :key="c.id">
+                                        <div class="flex items-center justify-between gap-2 rounded-lg bg-surface border border-border px-2.5 py-1.5">
+                                            <div class="min-w-0">
+                                                <p class="font-bold text-text truncate" x-text="c.name"></p>
+                                                <p class="text-[10px] text-text-muted font-mono" x-text="c.id + ' (' + c.type + ')'"></p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                @click="addChatId(c.id)"
+                                                class="rounded-md border border-border bg-surface-2 px-2 py-0.5 text-[10px] font-bold text-text hover:bg-amber-500 hover:text-slate-950 transition"
+                                            >
+                                                Pilih
+                                            </button>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            <div x-show="detectResult && !detectResult.success" x-cloak class="mt-1 text-xs text-danger" x-text="detectResult.message"></div>
+                        </div>
+                    </div>
+
+                    {{-- Tombol Uji Pesan --}}
+                    <div class="pt-3 border-t border-border flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <button
+                                type="button"
+                                @click="runTest()"
+                                :disabled="isTesting || !botToken"
+                                class="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-border bg-surface-2 px-4 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 disabled:opacity-40 transition"
+                            >
+                                <span x-show="!isTesting">Kirim Pesan Tes ke Telegram</span>
+                                <span x-show="isTesting" x-cloak>Mengirim Uji Coba...</span>
+                            </button>
+                        </div>
+                        <div x-show="testResult" x-cloak class="text-xs font-semibold">
+                            <span :class="testResult?.success ? 'text-success' : 'text-danger'" x-text="testResult?.message"></span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Pilihan Peristiwa Notifikasi --}}
+                <div class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-4">
+                    <h2 class="text-base font-bold text-text">Pilihan Peristiwa Notifikasi</h2>
+                    <p class="text-xs text-text-muted">Pilih kejadian transaksi yang ingin dikirimkan langsung ke Telegram Anda.</p>
+
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div class="flex items-center justify-between rounded-xl border border-border p-3.5 bg-surface-2">
+                            <div>
+                                <p class="text-xs font-bold text-text">Booking Baru Diterima</p>
+                                <p class="text-[11px] text-text-muted">Notifikasi saat pelanggan mengirim checkout.</p>
+                            </div>
+                            <x-form.switch
+                                name="telegram_notify_booking_created"
+                                value="1"
+                                :checked="!empty($telegramSettings['notify_booking_created'])"
+                            />
+                        </div>
+
+                        <div class="flex items-center justify-between rounded-xl border border-border p-3.5 bg-surface-2">
+                            <div>
+                                <p class="text-xs font-bold text-text">Bukti Bayar Diunggah / Perlu Konfirmasi</p>
+                                <p class="text-[11px] text-text-muted">Saat bukti transfer atau QRIS diunggah pelanggan.</p>
+                            </div>
+                            <x-form.switch
+                                name="telegram_notify_proof_uploaded"
+                                value="1"
+                                :checked="!empty($telegramSettings['notify_proof_uploaded'])"
+                            />
+                        </div>
+
+                        <div class="flex items-center justify-between rounded-xl border border-border p-3.5 bg-surface-2">
+                            <div>
+                                <p class="text-xs font-bold text-text">Pembayaran Dikonfirmasi</p>
+                                <p class="text-[11px] text-text-muted">Saat admin menandai booking telah dibayar.</p>
+                            </div>
+                            <x-form.switch
+                                name="telegram_notify_payment_confirmed"
+                                value="1"
+                                :checked="!empty($telegramSettings['notify_payment_confirmed'])"
+                            />
+                        </div>
+
+                        <div class="flex items-center justify-between rounded-xl border border-border p-3.5 bg-surface-2">
+                            <div>
+                                <p class="text-xs font-bold text-text">Booking Dibatalkan Pelanggan</p>
+                                <p class="text-[11px] text-text-muted">Saat booking dibatalkan secara mandiri.</p>
+                            </div>
+                            <x-form.switch
+                                name="telegram_notify_booking_cancelled"
+                                value="1"
+                                :checked="!empty($telegramSettings['notify_booking_cancelled'])"
+                            />
+                        </div>
+
+                        <div class="flex items-center justify-between rounded-xl border border-border p-3.5 bg-surface-2">
+                            <div>
+                                <p class="text-xs font-bold text-text">Booking Kedaluwarsa</p>
+                                <p class="text-[11px] text-text-muted">Saat batas waktu bayar habis tanpa konfirmasi.</p>
+                            </div>
+                            <x-form.switch
+                                name="telegram_notify_booking_expired"
+                                value="1"
+                                :checked="!empty($telegramSettings['notify_booking_expired'])"
+                            />
+                        </div>
+
+                        <div class="flex items-center justify-between rounded-xl border border-border p-3.5 bg-surface-2">
+                            <div>
+                                <p class="text-xs font-bold text-text">Sesi Pasti Tayang</p>
+                                <p class="text-[11px] text-text-muted">Saat kuorum penonton tercapai atau sesi terkunci.</p>
+                            </div>
+                            <x-form.switch
+                                name="telegram_notify_session_confirmed"
+                                value="1"
+                                :checked="!empty($telegramSettings['notify_session_confirmed'])"
+                            />
+                        </div>
+
+                        <div class="flex items-center justify-between rounded-xl border border-border p-3.5 bg-surface-2 sm:col-span-2">
+                            <div>
+                                <p class="text-xs font-bold text-text">Sesi Dibatalkan Karena Penonton Kurang</p>
+                                <p class="text-[11px] text-text-muted">Saat batas konfirmasi kuorum habis dan sesi ditutup otomatis.</p>
+                            </div>
+                            <x-form.switch
+                                name="telegram_notify_session_cancelled"
+                                value="1"
+                                :checked="!empty($telegramSettings['notify_session_cancelled'])"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Pengaturan Privasi & Tampilan Pesan --}}
+                <div class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-4">
+                    <h2 class="text-base font-bold text-text">Privasi & Format Pesan</h2>
+                    <div class="grid gap-3 sm:grid-cols-2">
+                        <div class="flex items-center justify-between rounded-xl border border-border p-3.5 bg-surface-2">
+                            <div>
+                                <p class="text-xs font-bold text-text">Sembunyikan Nomor WhatsApp Pemesan</p>
+                                <p class="text-[11px] text-text-muted">Ganti nomor WhatsApp dengan label [Disembunyikan].</p>
+                            </div>
+                            <x-form.switch
+                                name="telegram_hide_customer_whatsapp"
+                                value="1"
+                                :checked="!empty($telegramSettings['hide_customer_whatsapp'])"
+                            />
+                        </div>
+
+                        <div class="flex items-center justify-between rounded-xl border border-border p-3.5 bg-surface-2">
+                            <div>
+                                <p class="text-xs font-bold text-text">Sertakan Catatan Pemesan</p>
+                                <p class="text-[11px] text-text-muted">Tampilkan catatan khusus pelanggan di badan pesan.</p>
+                            </div>
+                            <x-form.switch
+                                name="telegram_include_customer_notes"
+                                value="1"
+                                :checked="!empty($telegramSettings['include_customer_notes'])"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="submit" class="inline-flex min-h-[44px] items-center rounded-xl bg-amber-500 px-6 font-bold text-slate-950 shadow-sm hover:bg-amber-400">
+                        Simpan Pengaturan Notifikasi
+                    </button>
+                </div>
+            </form>
+
+            {{-- Log Pengiriman Telegram (50 Terakhir) --}}
+            <div class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-text">Log Pengiriman Notifikasi (Outbox)</h2>
+                        <p class="text-xs text-text-muted mt-0.5">50 pengiriman pesan Telegram terbaru dari antrean sistem.</p>
+                    </div>
+                </div>
+
+                @if ($telegramLogs->isEmpty())
+                    <div class="rounded-xl border border-dashed border-border p-8 text-center text-xs text-text-muted">
+                        Belum ada aktivitas pengiriman notifikasi Telegram.
+                    </div>
+                @else
+                    <div class="overflow-x-auto rounded-xl border border-border">
+                        <table class="w-full text-left text-xs">
+                            <thead class="border-b border-border bg-surface-2 text-text-muted font-bold uppercase tracking-wider text-[10px]">
+                                <tr>
+                                    <th class="px-4 py-3">Waktu</th>
+                                    <th class="px-4 py-3">Peristiwa</th>
+                                    <th class="px-4 py-3">Kode Booking</th>
+                                    <th class="px-4 py-3">Status</th>
+                                    <th class="px-4 py-3">Keterangan / Galat</th>
+                                    <th class="px-4 py-3 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border">
+                                @foreach ($telegramLogs as $log)
+                                    <tr class="hover:bg-surface-2 transition">
+                                        <td class="px-4 py-3 whitespace-nowrap text-text font-mono text-[11px]">
+                                            {{ format_hari_tanggal_id($log->created_at) }}<br>
+                                            <span class="text-text-muted">{{ format_jam_id($log->created_at) }}</span>
+                                        </td>
+                                        <td class="px-4 py-3 font-semibold text-text whitespace-nowrap">
+                                            {{ match ($log->event) {
+                                                'booking_created' => 'Booking Baru',
+                                                'proof_uploaded' => 'Bukti Diunggah',
+                                                'payment_confirmed' => 'Bayar Terkonfirmasi',
+                                                'booking_cancelled' => 'Booking Batal',
+                                                'booking_expired' => 'Kedaluwarsa',
+                                                'session_confirmed' => 'Pasti Tayang',
+                                                'session_cancelled' => 'Sesi Batal',
+                                                default => ucfirst($log->event),
+                                            } }}
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap font-mono font-bold text-text">
+                                            {{ $log->booking?->code ?? '-' }}
+                                        </td>
+                                        <td class="px-4 py-3 whitespace-nowrap">
+                                            <x-ui.status
+                                                :status="match ($log->status) {
+                                                    'sent' => 'terkonfirmasi',
+                                                    'failed' => 'dibatalkan',
+                                                    default => 'menunggu_pembayaran',
+                                                }"
+                                                :label="match ($log->status) {
+                                                    'sent' => 'Terkirim',
+                                                    'failed' => 'Gagal',
+                                                    default => 'Antrean (' . $log->attempts . ')',
+                                                }"
+                                            />
+                                        </td>
+                                        <td class="px-4 py-3 text-text-muted max-w-xs truncate">
+                                            {{ $log->last_error ?? ($log->status === 'sent' ? 'Berhasil terkirim ke Telegram' : '-') }}
+                                        </td>
+                                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                                            <form method="POST" action="{{ route('admin.settings.telegram.retry', $log->id) }}">
+                                                @csrf
+                                                <button
+                                                    type="submit"
+                                                    class="inline-flex items-center rounded-lg border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-text hover:border-amber-500 hover:text-amber-500 transition"
+                                                >
+                                                    Kirim Ulang
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </div>
         </div>
     </div>

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class Genre extends Model
@@ -182,6 +183,8 @@ class Genre extends Model
         return Cache::rememberForever('active_genres_names', function () {
             try {
                 if (! Schema::hasTable('genres')) {
+                    Log::warning('Tabel database genres belum dimigrasi. Menjalankan fallback darurat. Segera jalankan: php artisan migrate');
+
                     return self::defaultFallbackGenres();
                 }
 

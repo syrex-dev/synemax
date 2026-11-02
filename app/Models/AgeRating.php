@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 class AgeRating extends Model
@@ -107,6 +108,7 @@ class AgeRating extends Model
     {
         try {
             if (! Schema::hasTable('age_ratings')) {
+                Log::warning('Tabel database age_ratings belum dimigrasi. Menjalankan fallback darurat. Segera jalankan: php artisan migrate');
                 $options = self::defaultFallbackOptions();
                 if ($includeCode !== null && trim($includeCode) !== '' && ! isset($options[$includeCode])) {
                     $cleanInclude = trim($includeCode);

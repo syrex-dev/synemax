@@ -13,6 +13,8 @@ use App\Services\CinemaSettings;
 use App\Services\ScheduleResolver;
 use App\Services\SessionQuorumService;
 use App\Services\SnackOrderService;
+use App\Services\TelegramNotificationService;
+use App\Support\DeviceBookingTracker;
 use App\Support\WhatsAppNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +28,7 @@ use Symfony\Component\HttpFoundation\Response;
 class PublicBookingController extends Controller
 {
     public function create(
+        Request $request,
         Session $session,
         CinemaSettings $settings,
         SnackOrderService $snackOrders,
@@ -110,6 +113,7 @@ class PublicBookingController extends Controller
             'snackCategories' => $this->snackMenu($snackOrders, $session),
             'snacksEnabled' => $snackOrders->enabled(),
             'snackMaxQty' => $settings->integer('snack_max_qty_per_item', 10),
+            'existingUnpaidBooking' => DeviceBookingTracker::getUnpaidBookings($request)->first(),
         ]);
     }
 
@@ -197,12 +201,42 @@ class PublicBookingController extends Controller
         Session $session,
         BookingService $bookingService,
     ): RedirectResponse {
+        // Enforce max 1 unpaid booking per device (Section 2)
+        $unpaidBookings = DeviceBookingTracker::getUnpaidBookings($request);
+        if ($unpaidBookings->isNotEmpty()) {
+            $first = $unpaidBookings->first();
+            throw ValidationException::withMessages([
+                'session' => 'Kamu masih memiliki booking '.$first->code.' yang belum diselesaikan pembayarannya. Silakan lanjutkan atau batalkan booking tersebut sebelum membuat booking baru.',
+            ]);
+        }
+
+        // Enforce max 1 unpaid booking per WhatsApp number (Section 2)
+        $customerWa = WhatsAppNumber::normalize((string) $request->input('whatsapp'));
+        $unpaidForWa = Booking::query()
+            ->where('whatsapp', $customerWa)
+            ->where('status', 'menunggu_pembayaran')
+            ->where(function ($q) {
+                $q->whereNull('payment_expires_at')
+                    ->orWhere('payment_expires_at', '>', now());
+            })
+            ->first();
+
+        if ($unpaidForWa !== null) {
+            throw ValidationException::withMessages([
+                'whatsapp' => 'Nomor WhatsApp ini masih memiliki booking '.$unpaidForWa->code.' yang belum diselesaikan pembayarannya. Silakan selesaikan atau batalkan booking sebelumnya terlebih dahulu.',
+            ]);
+        }
+
         $booking = $bookingService->create(
             $session,
             $request->validated(),
         );
 
         $request->session()->put('verified_booking_'.$booking->code, true);
+        DeviceBookingTracker::addBooking($booking, null, $request);
+
+        app(TelegramNotificationService::class)->queue('booking_created', $booking);
+        app(TelegramNotificationService::class)->flush();
 
         if ($booking->payment_method === 'di_tempat') {
             return redirect()->route('booking.ticket', ['code' => $booking->code]);
@@ -258,7 +292,7 @@ class PublicBookingController extends Controller
                 'transferPaymentNotes' => $settings->transferPaymentNotes(),
                 'maxPaymentProofKb' => $settings->maxPaymentProofKb(),
             ])
-            ->header('Referrer-Policy', 'same-origin');
+            ->header('Referrer-Policy', 'strict-origin-when-cross-origin');
     }
 
     public function ticketView(
@@ -346,7 +380,7 @@ class PublicBookingController extends Controller
                 'canCancel' => $canCancel,
                 'cancellationCutoffHours' => $cancellationCutoff,
             ])
-            ->header('Referrer-Policy', 'same-origin');
+            ->header('Referrer-Policy', 'strict-origin-when-cross-origin');
     }
 
     public function changeFilm(
@@ -531,17 +565,82 @@ class PublicBookingController extends Controller
         string $code,
         BookingService $bookingService,
     ): RedirectResponse {
-        $data = $request->validate([
-            'whatsapp' => ['required', 'string', 'max:24'],
-        ], [
-            'whatsapp.required' => 'Nomor WhatsApp wajib diisi untuk membatalkan booking.',
-        ]);
+        $code = strtoupper(trim($code));
+        $booking = Booking::query()->where('code', $code)->firstOrFail();
 
-        $bookingService->cancel($code, $data['whatsapp']);
+        $isAuthorized = DeviceBookingTracker::isAuthorized($request, $booking);
+
+        if ($isAuthorized && empty($request->input('whatsapp'))) {
+            $bookingService->cancel($code, $booking->whatsapp);
+        } else {
+            $data = $request->validate([
+                'whatsapp' => ['required', 'string', 'max:24'],
+            ], [
+                'whatsapp.required' => 'Nomor WhatsApp wajib diisi untuk membatalkan booking.',
+            ]);
+
+            $bookingService->cancel($code, $data['whatsapp']);
+        }
+
+        DeviceBookingTracker::removeBooking($code, $request);
+
+        app(TelegramNotificationService::class)->queue('booking_cancelled', $booking);
+        app(TelegramNotificationService::class)->flush();
 
         return redirect()
-            ->route('booking.lookup.form')
-            ->with('status', 'Booking berhasil dibatalkan.');
+            ->route('booking.ticket.index')
+            ->with('status', 'Booking berhasil dibatalkan dan tempat telah dilepaskan.');
+    }
+
+    public function ticketIndex(Request $request): View
+    {
+        $categorizedBookings = DeviceBookingTracker::getCategorizedBookings($request);
+
+        return view('public.tickets-index', [
+            'categorizedBookings' => $categorizedBookings,
+        ]);
+    }
+
+    public function lookupAndAdd(
+        Request $request,
+        BookingService $bookingService,
+    ): RedirectResponse {
+        $data = Validator::make($request->all(), [
+            'code' => ['required', 'string', 'max:20'],
+            'whatsapp' => ['required', 'string', 'max:24'],
+        ], [
+            'code.required' => 'Kode booking wajib diisi.',
+            'whatsapp.required' => 'Nomor WhatsApp wajib diisi.',
+        ])->validate();
+
+        $whatsapp = WhatsAppNumber::normalize($data['whatsapp']);
+
+        if (! WhatsAppNumber::isValid($whatsapp)) {
+            throw ValidationException::withMessages([
+                'whatsapp' => 'Masukkan nomor WhatsApp Indonesia yang valid.',
+            ]);
+        }
+
+        $booking = Booking::query()
+            ->where('code', strtoupper(trim($data['code'])))
+            ->where('whatsapp', $whatsapp)
+            ->first();
+
+        if ($booking === null) {
+            throw ValidationException::withMessages([
+                'code' => 'Kode booking atau nomor WhatsApp tidak cocok.',
+            ]);
+        }
+
+        $booking = $bookingService->expireIfOverdue($booking);
+        $request->session()->put('verified_booking_'.$booking->code, true);
+        DeviceBookingTracker::addBooking($booking, null, $request);
+
+        if ($booking->isOnlinePayment() && $booking->status === 'menunggu_pembayaran' && ! $booking->isExpired()) {
+            return redirect()->route('booking.payment', ['code' => $booking->code]);
+        }
+
+        return redirect()->route('booking.ticket', ['code' => $booking->code]);
     }
 
     public function lookupForm(): View
@@ -615,6 +714,10 @@ class PublicBookingController extends Controller
         ]);
 
         $request->session()->put('verified_booking_'.$booking->code, true);
+        DeviceBookingTracker::addBooking($booking, null, $request);
+
+        app(TelegramNotificationService::class)->queue('proof_uploaded', $booking);
+        app(TelegramNotificationService::class)->flush();
 
         return redirect()
             ->route('booking.ticket', ['code' => $booking->code])
@@ -667,33 +770,48 @@ class PublicBookingController extends Controller
 
     private function authorizeBookingAccess(Request $request, Booking $booking, bool $redirectIfQueried = false): ?RedirectResponse
     {
+        // 1. Legacy WhatsApp query parameter (?wa= or ?whatsapp=)
         $hasWaQuery = $request->query->has('whatsapp') || $request->query->has('wa');
-
         if ($hasWaQuery) {
             $waParam = $request->query('whatsapp') ?? $request->query('wa');
             $normalizedWa = $waParam ? WhatsAppNumber::normalize((string) $waParam) : null;
 
             if ($normalizedWa !== null && $normalizedWa === $booking->whatsapp) {
                 $request->session()->put('verified_booking_'.$booking->code, true);
+                DeviceBookingTracker::addBooking($booking, null, $request);
 
-                if ($redirectIfQueried) {
-                    return redirect()->to($request->url());
-                }
-
-                return null;
+                // Strip query parameter to protect privacy and prevent WhatsApp leak in logs/Referer
+                return redirect()->to($request->url());
             }
 
-            abort(403, 'Akses ditolak. Silakan cek booking dengan nomor WhatsApp pemesan.');
+            abort(403, 'Akses ditolak. Silakan masukkan nomor WhatsApp yang sesuai.');
         }
 
-        $isVerifiedCustomer = $request->session()->get('verified_booking_'.$booking->code) === true;
-        $isAdmin = (bool) $request->user()?->is_admin;
+        // 2. Signed access token query parameter (?t=)
+        $hasTokenQuery = $request->query->has('t');
+        if ($hasTokenQuery) {
+            $tokenParam = trim((string) $request->query('t'));
+            if ($tokenParam !== '' && ! empty($booking->access_token_hash) && hash_equals($booking->access_token_hash, hash('sha256', $tokenParam))) {
+                $request->session()->put('verified_booking_'.$booking->code, true);
+                DeviceBookingTracker::addBooking($booking, $tokenParam, $request);
 
-        if (! $isAdmin && ! $isVerifiedCustomer) {
-            abort(403, 'Akses ditolak. Silakan cek booking dengan nomor WhatsApp pemesan.');
+                return redirect()->to($request->url());
+            }
+
+            abort(403, 'Akses ditolak. Token akses tiket tidak valid.');
         }
 
-        return null;
+        // 3. Device cookie or active session or admin
+        if (DeviceBookingTracker::isAuthorized($request, $booking)) {
+            return null;
+        }
+
+        if ($redirectIfQueried) {
+            return redirect()->route('booking.ticket.index')
+                ->with('error', 'Silakan masukkan kode booking dan nomor WhatsApp untuk membuka tiket.');
+        }
+
+        abort(403, 'Akses ditolak. Silakan buka tiket dengan nomor WhatsApp pemesan.');
     }
 
     private function paymentWhatsAppUrl(Booking $booking, CinemaSettings $settings): ?string
@@ -715,7 +833,7 @@ class PublicBookingController extends Controller
             'Kode: '.$booking->code,
             'Nama: '.$booking->customer_name,
             'Film: '.($booking->film?->title ?? 'Film sesi'),
-            'Jadwal: '.$booking->session->session_date.' · '.substr((string) $booking->session->start_time, 0, 5).' WIB',
+            'Jadwal: '.format_tanggal_id($booking->session->session_date).' · '.format_jam_id($booking->session->start_time),
             'Total: Rp '.number_format($booking->total_price, 0, ',', '.'),
             'Metode bayar: '.$paymentMethodLabel,
             'Bukti pembayaran saya lampirkan di pesan WhatsApp ini.',
@@ -754,7 +872,7 @@ class PublicBookingController extends Controller
             'Kode: '.$booking->code,
             'Nama: '.$booking->customer_name,
             'Film: '.($booking->film?->title ?? 'Film sesi'),
-            'Jadwal: '.$booking->session->session_date.' · '.substr((string) $booking->session->start_time, 0, 5).' WIB',
+            'Jadwal: '.format_tanggal_id($booking->session->session_date).' · '.format_jam_id($booking->session->start_time),
             $booking->booking_type === 'private'
                 ? 'Jumlah: Sewa Private (6 kursi)'
                 : 'Jumlah penonton: '.$booking->pax.' orang',
@@ -771,7 +889,7 @@ class PublicBookingController extends Controller
         $filmTitle = $booking->film?->title ?? 'film seru';
         $session = $booking->session;
         $startsAt = $session->startsAt();
-        $formattedDate = $startsAt->locale('id')->translatedFormat('l, j M').' jam '.substr((string) $session->start_time, 0, 5).' WIB';
+        $formattedDate = format_tanggal_id($startsAt).' jam '.format_jam_id($session->start_time);
 
         $occupiedForFilm = (int) $session->occupiedBookings()->where('film_id', $booking->film_id)->sum('seats_reserved');
         $needed = max(1, $session->quorum() - $occupiedForFilm);
@@ -797,7 +915,7 @@ class PublicBookingController extends Controller
             'Halo admin SynemaX, saya ingin mengajukan perubahan pesanan jajan.',
             'Kode booking: '.$booking->code,
             'Nama: '.$booking->customer_name,
-            'Jadwal: '.$booking->session->session_date.' · '.substr((string) $booking->session->start_time, 0, 5).' WIB',
+            'Jadwal: '.format_tanggal_id($booking->session->session_date).' · '.format_jam_id($booking->session->start_time),
             'Pesanan jajan saat ini: '.($items->isNotEmpty() ? $items->implode(', ') : 'Belum ada jajan'),
             'Saya ingin mengubah pesanan jajan: [tuliskan perubahan yang diinginkan].',
         ]);

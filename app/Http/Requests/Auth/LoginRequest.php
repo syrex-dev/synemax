@@ -83,4 +83,12 @@ class LoginRequest extends FormRequest
     {
         return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
     }
+
+    public function attributes(): array
+    {
+        return [
+            'email' => 'Alamat email',
+            'password' => 'Kata sandi',
+        ];
+    }
 }

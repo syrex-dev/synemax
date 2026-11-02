@@ -376,6 +376,9 @@
                                         <template x-if="item.status === 'failed'">
                                             <p class="text-[11px] text-rose-600 dark:text-rose-400 truncate" x-text="item.message"></p>
                                         </template>
+                                        <template x-if="item.compression">
+                                            <p class="text-[10px] text-text-muted truncate" x-text="`Kompresi: ${item.compression.before} → ${item.compression.after} (${item.compression.format})`"></p>
+                                        </template>
                                     </div>
                                 </div>
 
@@ -483,7 +486,7 @@
                     {{-- Pasangkan Semua yang Dipilih --}}
                     <button
                         type="button"
-                        @click="assignAllSelected()"
+                        @click="openBatchPreviewModal()"
                         :disabled="selectedCount === 0 || isSubmittingBatch || isScanningOcr"
                         class="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-slate-950 hover:bg-amber-400 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
@@ -503,6 +506,69 @@
                 </div>
             </div>
 
+            {{-- ==================== MODAL PRATINJAU PEMASANGAN MASSAL ==================== --}}
+            <div
+                x-show="previewBatchModal"
+                x-cloak
+                class="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Konfirmasi Pasangkan Poster Massal"
+            >
+                <div class="fixed inset-0 bg-black/80 backdrop-blur-sm" @click="previewBatchModal = false"></div>
+                <div class="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-3xl border border-border bg-surface p-6 shadow-2xl space-y-4">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="text-base font-black text-text">Pratinjau Pemasangan Poster Massal</h3>
+                            <p class="text-xs text-text-muted mt-1">Periksa kembali daftar poster dan film penerima sebelum dipasangkan.</p>
+                        </div>
+                        <button type="button" @click="previewBatchModal = false" class="p-1.5 rounded-xl hover:bg-surface-2 text-text-muted hover:text-text transition" aria-label="Tutup pratinjau">
+                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto divide-y divide-border rounded-xl border border-border">
+                        <template x-for="(item, idx) in batchPreviewItems" :key="idx">
+                            <div class="p-3 flex items-center justify-between gap-3 text-xs bg-surface-2/20">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <input type="checkbox" x-model="item.checked" class="rounded border-border text-amber-500 focus:ring-amber-500 size-4">
+                                    <img :src="item.url" :alt="item.filename" class="size-12 rounded object-cover border border-border bg-surface shrink-0">
+                                    <div class="min-w-0">
+                                        <p class="font-bold text-text truncate" x-text="item.filename"></p>
+                                        <p class="text-[11px] text-amber-500 font-semibold truncate" x-text="`→ ${item.filmTitle}`"></p>
+                                        <template x-if="item.ocrText">
+                                            <p class="text-[10px] text-text-muted truncate" x-text="`OCR: ${item.ocrText}`"></p>
+                                        </template>
+                                    </div>
+                                </div>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shrink-0">
+                                    Siap dipasang
+                                </span>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-border">
+                        <span class="text-xs text-text-muted">
+                            <strong class="text-text" x-text="batchPreviewItems.filter(i => i.checked).length"></strong> poster dipilih
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <button type="button" @click="previewBatchModal = false" class="px-4 py-2 rounded-xl border border-border text-xs font-semibold text-text hover:bg-surface-2">
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                @click="executeBatchAssignment()"
+                                :disabled="batchPreviewItems.filter(i => i.checked).length === 0 || isSubmittingBatch"
+                                class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs disabled:opacity-50"
+                            >
+                                <span x-text="isSubmittingBatch ? 'Memasangkan...' : 'Pasangkan Sekarang'"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {{-- Toast / Banner --}}
             <template x-if="banner">
                 <div
@@ -514,7 +580,11 @@
                     }"
                 >
                     <span x-text="banner.message"></span>
-                    <button type="button" @click="banner = null" class="opacity-70 hover:opacity-100 text-sm font-bold">✕</button>
+                    <button type="button" @click="banner = null" class="opacity-70 hover:opacity-100 p-1 rounded-lg text-text hover:bg-surface-2 transition shrink-0" aria-label="Tutup pemberitahuan">
+                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
             </template>
 
@@ -627,6 +697,25 @@
                                     :options="$filmOptions"
                                     @change="onFilmSelected('{{ $poster['filename'] }}', $event.target.value)"
                                 />
+
+                                {{-- Suggested Candidates if Needs Review --}}
+                                <template x-if="candidateSuggestions['{{ $poster['filename'] }}']?.length > 0">
+                                    <div class="mt-2 p-2 rounded-lg border border-amber-500/30 bg-amber-500/10 space-y-1.5">
+                                        <p class="text-[10px] font-bold text-amber-500 uppercase tracking-wide">Perlu Ditinjau (Saran AI):</p>
+                                        <div class="flex flex-wrap gap-1">
+                                            <template x-for="s in candidateSuggestions['{{ $poster['filename'] }}']" :key="s.id">
+                                                <button
+                                                    type="button"
+                                                    @click="applySuggestion('{{ $poster['filename'] }}', s.id, s.title, 'film_id_{{ $posterKey }}')"
+                                                    class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md bg-surface border border-border hover:border-amber-400 text-text transition"
+                                                >
+                                                    <span x-text="s.title"></span>
+                                                    <span class="text-text-muted" x-text="`(${Math.round(s.score * 100)}%)`"></span>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
 
                             <div class="flex items-center justify-between gap-2 pt-1">
@@ -677,7 +766,15 @@
                         script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
                         script.async = true;
                         script.onload = resolve;
-                        script.onerror = () => reject(new Error('Gagal memuat modul OCR Tesseract dari CDN.'));
+                        script.onerror = () => {
+                            if (typeof window.showToast === 'function') {
+                                window.showToast({
+                                    type: 'warning',
+                                    message: 'Gagal memuat pustaka OCR Tesseract dari CDN. Unggahan dan pemasangan manual tetap berfungsi normal.'
+                                });
+                            }
+                            reject(new Error('Gagal memuat modul OCR Tesseract dari CDN.'));
+                        };
                         document.head.appendChild(script);
                     });
                 }
@@ -692,6 +789,108 @@
             })();
         }
         return await _sharedOcrWorkerPromise;
+    }
+
+    async function compressPosterClientSide(file) {
+        if (!file || !file.type.startsWith('image/')) {
+            return { file, originalSize: file?.size || 0, compressedSize: file?.size || 0, isCompressed: false, format: 'Asli' };
+        }
+
+        return new Promise((resolve) => {
+            const originalSize = file.size;
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+
+            img.onload = () => {
+                try {
+                    let w = img.naturalWidth || img.width;
+                    let h = img.naturalHeight || img.height;
+
+                    if (!w || !h) {
+                        return resolve({ file, originalSize, compressedSize: originalSize, isCompressed: false, format: 'Asli' });
+                    }
+
+                    // Strict dimension guard: do not downscale below 600x900
+                    const maxDim = 1500;
+                    if (w > maxDim || h > maxDim) {
+                        if (w > h) {
+                            const newW = maxDim;
+                            const newH = Math.round((h * maxDim) / w);
+                            if (newW >= 600 && newH >= 900) {
+                                w = newW;
+                                h = newH;
+                            }
+                        } else {
+                            const newH = maxDim;
+                            const newW = Math.round((w * maxDim) / h);
+                            if (newW >= 600 && newH >= 900) {
+                                w = newW;
+                                h = newH;
+                            }
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        return resolve({ file, originalSize, compressedSize: originalSize, isCompressed: false, format: 'Asli' });
+                    }
+
+                    ctx.drawImage(img, 0, 0, w, h);
+
+                    // Check WebP support via canvas.toBlob
+                    canvas.toBlob((webpBlob) => {
+                        // Older Safari / WebKit may return PNG or null when WebP is unsupported
+                        if (webpBlob && webpBlob.type === 'image/webp' && webpBlob.size < originalSize) {
+                            const compressedFile = new File([webpBlob], file.name.replace(/\.[^.]+$/, '') + '.webp', {
+                                type: 'image/webp',
+                                lastModified: Date.now()
+                            });
+                            return resolve({
+                                file: compressedFile,
+                                originalSize,
+                                compressedSize: webpBlob.size,
+                                format: 'WebP',
+                                isCompressed: true
+                            });
+                        }
+
+                        // Fallback to JPEG quality 0.85
+                        canvas.toBlob((jpegBlob) => {
+                            if (jpegBlob && jpegBlob.size < originalSize) {
+                                const compressedFile = new File([jpegBlob], file.name.replace(/\.[^.]+$/, '') + '.jpg', {
+                                    type: 'image/jpeg',
+                                    lastModified: Date.now()
+                                });
+                                return resolve({
+                                    file: compressedFile,
+                                    originalSize,
+                                    compressedSize: jpegBlob.size,
+                                    format: 'JPEG',
+                                    isCompressed: true
+                                });
+                            }
+
+                            // Keep original file
+                            resolve({ file, originalSize, compressedSize: originalSize, isCompressed: false, format: 'Asli' });
+                        }, 'image/jpeg', 0.85);
+
+                    }, 'image/webp', 0.85);
+
+                } catch (err) {
+                    console.warn('Compression error, using raw file:', err);
+                    resolve({ file, originalSize, compressedSize: originalSize, isCompressed: false, format: 'Asli' });
+                }
+            };
+
+            img.onerror = () => {
+                resolve({ file, originalSize, compressedSize: originalSize, isCompressed: false, format: 'Asli' });
+            };
+
+            img.src = URL.createObjectURL(file);
+        });
     }
 
     async function preprocessImageForOcr(source) {
@@ -866,10 +1065,14 @@
                         }
                     }
 
+                    this.statusMessage = 'Mengompresi gambar (' + this.currentIndex + '/' + this.totalCount + '): ' + file.name + '...';
+                    const compResult = await compressPosterClientSide(file);
+                    const uploadFile = compResult.file;
+
                     this.statusMessage = 'Memproses & mencocokkan poster (' + this.currentIndex + '/' + this.totalCount + '): ' + file.name + '...';
 
                     const fd = new FormData();
-                    fd.append('image', file);
+                    fd.append('image', uploadFile);
                     fd.append('_token', '{{ csrf_token() }}');
                     if (ocrText) {
                         fd.append('ocr_text', ocrText);
@@ -888,6 +1091,13 @@
                         const resData = await response.json();
 
                         if (response.ok && resData.success) {
+                            if (compResult.isCompressed) {
+                                resData.compression = {
+                                    before: this.formatSize(compResult.originalSize),
+                                    after: this.formatSize(compResult.compressedSize),
+                                    format: compResult.format
+                                };
+                            }
                             this.results.unshift(resData);
                             if (resData.status === 'matched') {
                                 this.stats.matched++;
@@ -1032,6 +1242,7 @@
             removedPosters: {},
             selectedFilms: {},
             ocrMatches: {},
+            candidateSuggestions: {},
             scanningFiles: {},
             processingFiles: {},
             isScanningOcr: false,
@@ -1040,6 +1251,8 @@
             ocrProgressPercent: 0,
             ocrProgressText: '',
             isSubmittingBatch: false,
+            previewBatchModal: false,
+            batchPreviewItems: [],
             banner: null,
             _bannerTimer: null,
 
@@ -1061,6 +1274,29 @@
 
             onFilmSelected(filename, filmId) {
                 this.selectedFilms[filename] = filmId || '';
+                if (!filmId) {
+                    delete this.ocrMatches[filename];
+                }
+            },
+
+            applySuggestion(filename, filmId, filmTitle, selectName) {
+                this.selectedFilms[filename] = String(filmId);
+                this.ocrMatches[filename] = {
+                    film_id: filmId,
+                    film_title: filmTitle,
+                    confidence: 1.0,
+                    match_type: 'saran_manual'
+                };
+                delete this.candidateSuggestions[filename];
+
+                window.dispatchEvent(new CustomEvent('synemax-select-set', {
+                    detail: {
+                        name: selectName,
+                        value: String(filmId)
+                    }
+                }));
+
+                this.notify('success', 'Film "' + filmTitle + '" dipilih untuk poster ini.');
             },
 
             showBanner(type, message) {
@@ -1110,14 +1346,16 @@
                     });
 
                     const data = await res.json();
-                    if (res.ok && data.success && data.matched && data.film_id) {
+                    if (res.ok && data.success && data.matched && !data.needs_review && data.film_id) {
                         this.selectedFilms[filename] = String(data.film_id);
                         this.ocrMatches[filename] = {
                             film_id: data.film_id,
                             film_title: data.film_title,
                             confidence: data.confidence,
-                            match_type: data.match_type
+                            match_type: data.match_type,
+                            ocr_text: text
                         };
+                        delete this.candidateSuggestions[filename];
 
                         // Update custom x-ui.select component value & label
                         window.dispatchEvent(new CustomEvent('synemax-select-set', {
@@ -1127,7 +1365,10 @@
                             }
                         }));
 
-                        this.notify('success', '✨ Poster "' + filename + '" cocok dengan film "' + data.film_title + '"!');
+                        this.notify('success', 'Poster "' + filename + '" cocok otomatis dengan film "' + data.film_title + '" (keyakinan: ' + Math.round(data.confidence * 100) + '%).');
+                    } else if (data.needs_review && data.suggestions && data.suggestions.length > 0) {
+                        this.candidateSuggestions[filename] = data.suggestions;
+                        this.notify('info', data.message || 'Teks terdeteksi pada poster, namun skor memerlukan peninjauan. Silakan pilih salah satu saran.');
                     } else {
                         const preview = data.preview_ocr ? ' (Teks terbaca: "' + data.preview_ocr + '")' : '';
                         this.notify('info', (data.message || 'Tidak ditemukan film katalog yang cocok dengan teks pada poster ini.') + preview);
@@ -1162,6 +1403,7 @@
                 this.ocrProgressText = 'Menyiapkan modul OCR AI di peramban...';
 
                 let matchedCount = 0;
+                let reviewCount = 0;
 
                 try {
                     for (let i = 0; i < pendingPosters.length; i++) {
@@ -1190,14 +1432,16 @@
                                 });
 
                                 const data = await res.json();
-                                if (res.ok && data.success && data.matched && data.film_id) {
+                                if (res.ok && data.success && data.matched && !data.needs_review && data.film_id) {
                                     this.selectedFilms[poster.filename] = String(data.film_id);
                                     this.ocrMatches[poster.filename] = {
                                         film_id: data.film_id,
                                         film_title: data.film_title,
                                         confidence: data.confidence,
-                                        match_type: data.match_type
+                                        match_type: data.match_type,
+                                        ocr_text: text
                                     };
+                                    delete this.candidateSuggestions[poster.filename];
 
                                     // Update custom x-ui.select component value & label
                                     window.dispatchEvent(new CustomEvent('synemax-select-set', {
@@ -1208,6 +1452,9 @@
                                     }));
 
                                     matchedCount++;
+                                } else if (data.needs_review && data.suggestions && data.suggestions.length > 0) {
+                                    this.candidateSuggestions[poster.filename] = data.suggestions;
+                                    reviewCount++;
                                 }
                             }
                         } catch (err) {
@@ -1216,7 +1463,10 @@
                     }
 
                     if (matchedCount > 0) {
-                        this.notify('success', '✨ Selesai! Berhasil mengenali ' + matchedCount + ' judul film dari foto poster. Silakan tinjau dan klik "Pasangkan Semua yang Dipilih".');
+                        const reviewMsg = reviewCount > 0 ? ' (' + reviewCount + ' poster memerlukan tinjauan saran).' : '.';
+                        this.notify('success', 'Selesai! Berhasil mencocokkan ' + matchedCount + ' poster secara otomatis' + reviewMsg);
+                    } else if (reviewCount > 0) {
+                        this.notify('info', 'Pemindaian selesai. Ditemukan ' + reviewCount + ' poster dengan saran judul yang perlu ditinjau.');
                     } else {
                         this.notify('info', 'Pemindaian selesai, namun tidak ditemukan judul film katalog yang cocok pada teks foto. Anda dapat memilih film secara manual.');
                     }
@@ -1256,8 +1506,9 @@
                         this.removedPosters[filename] = true;
                         delete this.selectedFilms[filename];
                         delete this.ocrMatches[filename];
+                        delete this.candidateSuggestions[filename];
                         this.notifyCountChange();
-                        this.notify('success', '🎉 ' + (data.message || 'Poster berhasil dipasangkan!'));
+                        this.notify('success', data.message || 'Poster berhasil dipasangkan.');
                     } else {
                         this.notify('error', data.message || 'Gagal memasangkan poster.');
                     }
@@ -1268,28 +1519,59 @@
                 }
             },
 
-            async assignAllSelected() {
-                const assignments = [];
+            openBatchPreviewModal() {
+                const items = [];
                 for (let i = 0; i < this.posterList.length; i++) {
                     const poster = this.posterList[i];
                     if (!this.removedPosters[poster.filename]) {
                         const filmId = this.selectedFilms[poster.filename];
                         if (filmId) {
-                            assignments.push({
-                                poster_filename: poster.filename,
-                                film_id: parseInt(filmId, 10)
+                            const matchInfo = this.ocrMatches[poster.filename];
+                            let filmTitle = matchInfo?.film_title || 'Film ID ' + filmId;
+                            
+                            // Try finding title from select trigger text if available
+                            const selectEl = document.querySelector(`[name="${poster.selectName}"]`);
+                            const triggerText = selectEl?.closest('[x-data]')?.querySelector('.synemax-select-trigger span')?.textContent;
+                            if (triggerText && triggerText.trim() && !triggerText.includes('Pilih')) {
+                                filmTitle = triggerText.trim();
+                            }
+
+                            items.push({
+                                filename: poster.filename,
+                                url: poster.url,
+                                filmId: filmId,
+                                filmTitle: filmTitle,
+                                ocrText: matchInfo?.ocr_text || null,
+                                confidence: matchInfo?.confidence || null,
+                                checked: true
                             });
                         }
                     }
                 }
 
-                if (assignments.length === 0) {
+                if (items.length === 0) {
                     this.notify('warning', 'Pilih minimal satu film penerima terlebih dahulu pada poster yang ingin dipasangkan.');
+                    return;
+                }
+
+                this.batchPreviewItems = items;
+                this.previewBatchModal = true;
+            },
+
+            async executeBatchAssignment() {
+                const selected = this.batchPreviewItems.filter(i => i.checked);
+                if (selected.length === 0) {
+                    this.notify('warning', 'Pilih minimal satu poster pada tabel pratinjau.');
                     return;
                 }
 
                 this.isSubmittingBatch = true;
                 try {
+                    const assignments = selected.map(i => ({
+                        poster_filename: i.filename,
+                        film_id: parseInt(i.filmId, 10)
+                    }));
+
                     const res = await fetch('{{ route('admin.films.posters.assign_batch') }}', {
                         method: 'POST',
                         headers: {
@@ -1303,14 +1585,25 @@
 
                     const data = await res.json();
                     if (res.ok && data.success) {
-                        for (let i = 0; i < assignments.length; i++) {
-                            const item = assignments[i];
-                            this.removedPosters[item.poster_filename] = true;
-                            delete this.selectedFilms[item.poster_filename];
-                            delete this.ocrMatches[item.poster_filename];
+                        for (let i = 0; i < selected.length; i++) {
+                            const item = selected[i];
+                            this.removedPosters[item.filename] = true;
+                            delete this.selectedFilms[item.filename];
+                            delete this.ocrMatches[item.filename];
+                            delete this.candidateSuggestions[item.filename];
                         }
                         this.notifyCountChange();
-                        this.notify('success', '🎉 ' + (data.message || 'Berhasil memasangkan kumpulan poster!'));
+                        this.previewBatchModal = false;
+
+                        const reverts = data.items || [];
+                        if (typeof window.showToast === 'function') {
+                            window.showToast({
+                                type: 'success',
+                                message: `Berhasil memasangkan ${data.assigned_count} poster ke katalog.`,
+                                duration: 8000,
+                                onUndo: () => this.undoBatchAssignment(reverts)
+                            });
+                        }
                     } else {
                         this.notify('error', data.message || 'Gagal memasangkan kumpulan poster.');
                     }
@@ -1318,6 +1611,42 @@
                     this.notify('error', 'Gagal menghubungi server: ' + err.message);
                 } finally {
                     this.isSubmittingBatch = false;
+                }
+            },
+
+            async undoBatchAssignment(reverts) {
+                if (!reverts || reverts.length === 0) return;
+
+                try {
+                    const res = await fetch('{{ route('admin.films.posters.undo_batch') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ reverts })
+                    });
+
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        for (let i = 0; i < reverts.length; i++) {
+                            const r = reverts[i];
+                            delete this.removedPosters[r.filename];
+                        }
+                        this.notifyCountChange();
+                        if (typeof window.showToast === 'function') {
+                            window.showToast({
+                                type: 'info',
+                                message: data.message || 'Pemasangan poster berhasil diurungkan. Poster kembali ke antrean.'
+                            });
+                        }
+                    } else {
+                        this.notify('error', data.message || 'Gagal mengurungkan pemasangan poster.');
+                    }
+                } catch (e) {
+                    this.notify('error', 'Gagal menghubungi server saat mengurungkan: ' + e.message);
                 }
             },
 
@@ -1356,6 +1685,7 @@
                         this.removedPosters[filename] = true;
                         delete this.selectedFilms[filename];
                         delete this.ocrMatches[filename];
+                        delete this.candidateSuggestions[filename];
                         this.notifyCountChange();
                         this.notify('info', 'Poster berhasil dihapus dari antrean.');
                     } else {

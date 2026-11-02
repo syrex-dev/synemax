@@ -109,15 +109,14 @@
         <div>
             <span class="text-[12px] font-medium text-[#475569] block">Paket</span>
             <span class="text-[16px] font-bold text-[#0F172A] block">
-                {{ $booking->isPrivate() ? 'Sewa Private (6 kursi)' : ($booking->isCouple() ? 'Paket Couple' : 'Reguler') }}
+                {{ $booking->isPrivate() ? 'Sewa Private (6 orang)' : ($booking->isCouple() ? 'Paket Couple' : 'Reguler') }}
             </span>
             <span class="sr-only">Paket & Kursi</span>
         </div>
         <div>
-            <span class="text-[12px] font-medium text-[#475569] block">Kursi</span>
+            <span class="text-[12px] font-medium text-[#475569] block">Jumlah</span>
             <span class="text-[16px] font-bold text-[#0F172A] block tabular-nums">
-                {{ $booking->seats_reserved > 0 ? $booking->seats_reserved . ' Kursi' : '6 Kursi' }}
-                <span class="sr-only">({{ $booking->pax }} orang)</span>
+                Jumlah: {{ $booking->people_count ?? $booking->seats_reserved ?? $booking->pax }} orang
             </span>
         </div>
         <div>
@@ -204,7 +203,7 @@
         {{-- Baris Tiket --}}
         <div class="flex justify-between text-slate-600">
             <span>
-                Tiket ({{ $booking->isPrivate() ? 'Sewa Private (6 kursi)' : ($booking->isCouple() ? 'Paket Couple' : ($booking->seat_price ? $booking->pax . ' × Rp ' . number_format($booking->seat_price, 0, ',', '.') : 'Reguler')) }})
+                Tiket ({{ $booking->isPrivate() ? 'Sewa Private (6 orang)' : ($booking->isCouple() ? 'Paket Couple' : ($booking->seat_price ? $booking->pax . ' × Rp ' . number_format($booking->seat_price, 0, ',', '.') : 'Reguler')) }})
             </span>
             <span class="font-semibold text-slate-900 tabular-nums">
                 Rp {{ number_format($booking->ticket_total, 0, ',', '.') }}

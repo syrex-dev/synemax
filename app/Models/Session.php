@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\CinemaSettings;
+use App\Services\TelegramNotificationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -163,6 +164,14 @@ class Session extends Model
             $this->is_private = true;
         }
         $this->save();
+
+        try {
+            app(TelegramNotificationService::class)->queue('session_confirmed', null, [
+                'message' => 'Sesi '.format_hari_tanggal_id($this->session_date).' · '.format_jam_id($this->start_time).' telah Pasti Tayang dengan film '.($this->film?->title ?? 'pilihan').'.',
+            ]);
+        } catch (\Throwable) {
+            // Fail safely
+        }
     }
 
     /**
@@ -315,18 +324,6 @@ class Session extends Model
             ];
         }
 
-        $occupiedQuery = $this->occupiedBookings();
-        if ($excludeBookingId !== null) {
-            $occupiedQuery->where('id', '!=', $excludeBookingId);
-        }
-        $occupiedSeats = (int) $occupiedQuery->sum('seats_reserved');
-        if ($occupiedSeats > 0 || ($excludeBookingId === null && $this->hasActivePerPersonBookings())) {
-            return [
-                'allowed' => false,
-                'reason' => 'Sudah ada pemesan di sesi ini, jadi Paket Couple tidak tersedia.',
-            ];
-        }
-
         if ($this->remainingSeats() < 2) {
             return [
                 'allowed' => false,
@@ -337,7 +334,7 @@ class Session extends Model
         $tallies = $this->candidateFilmTallies();
 
         if ($filmId !== null) {
-            $otherFilms = $tallies->filter(fn ($t) => $t['film_id'] !== $filmId);
+            $otherFilms = $tallies->filter(fn ($t) => (int) $t['film_id'] !== (int) $filmId);
 
             if ($otherFilms->isNotEmpty()) {
                 $leadingOther = $otherFilms->first();

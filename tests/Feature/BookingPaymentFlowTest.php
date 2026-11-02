@@ -487,7 +487,7 @@ class BookingPaymentFlowTest extends TestCase
             ->assertSee('Pindai kode QRIS')
             ->assertSee('Kirim bukti bayar')
             ->assertDontSee('Konfirmasi via WhatsApp')
-            ->assertSee('Kirim bukti lewat WhatsApp');
+            ->assertDontSee('Kirim bukti lewat WhatsApp');
 
         // Accessing ticket page while awaiting payment redirects to payment page
         $this->get(route('booking.ticket', ['code' => $booking->code]))
@@ -528,10 +528,10 @@ class BookingPaymentFlowTest extends TestCase
             'status' => 'menunggu_konfirmasi',
         ]);
 
-        // Unauthenticated guest without verified session gets 403
+        // Unauthenticated guest without verified session gets redirected to ticket lookup index
         $this->flushSession();
         $this->get(route('booking.ticket', ['code' => $booking->code]))
-            ->assertForbidden();
+            ->assertRedirect(route('booking.ticket.index'));
 
         $this->get(route('booking.status.json', ['code' => $booking->code]))
             ->assertForbidden();
@@ -544,10 +544,10 @@ class BookingPaymentFlowTest extends TestCase
         $verifyResponse = $this->get(route('booking.ticket', ['code' => $booking->code, 'wa' => '081234567000']));
         $verifyResponse->assertRedirect(route('booking.ticket', ['code' => $booking->code]));
 
-        // Subsequent request using established session succeeds on clean URL with same-origin referrer policy
+        // Subsequent request using established session succeeds on clean URL with Referrer-Policy
         $ticketResponse = $this->get(route('booking.ticket', ['code' => $booking->code]));
         $ticketResponse->assertOk();
-        $this->assertSame('same-origin', $ticketResponse->headers->get('Referrer-Policy'));
+        $this->assertSame('strict-origin-when-cross-origin', $ticketResponse->headers->get('Referrer-Policy'));
 
         // Online payment page also redirects WA query to clean URL and attaches Referrer-Policy
         $onlineBooking = Booking::query()->create([
@@ -567,14 +567,14 @@ class BookingPaymentFlowTest extends TestCase
 
         $this->flushSession();
         $this->get(route('booking.payment', ['code' => $onlineBooking->code]))
-            ->assertForbidden();
+            ->assertRedirect(route('booking.ticket.index'));
 
         $payRedirect = $this->get(route('booking.payment', ['code' => $onlineBooking->code, 'wa' => '081234567888']));
         $payRedirect->assertRedirect(route('booking.payment', ['code' => $onlineBooking->code]));
 
         $paymentPage = $this->get(route('booking.payment', ['code' => $onlineBooking->code]));
         $paymentPage->assertOk();
-        $this->assertSame('same-origin', $paymentPage->headers->get('Referrer-Policy'));
+        $this->assertSame('strict-origin-when-cross-origin', $paymentPage->headers->get('Referrer-Policy'));
     }
 
     public function test_status_json_endpoint_returns_clean_payload_for_polling(): void
