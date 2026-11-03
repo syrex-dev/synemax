@@ -16,6 +16,10 @@ class WhatsAppNumber
             return substr($number, 1);
         }
 
+        if (str_starts_with($number, '8')) {
+            return '62'.$number;
+        }
+
         return $number;
     }
 

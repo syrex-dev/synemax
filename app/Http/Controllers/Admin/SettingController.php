@@ -337,11 +337,11 @@ class SettingController extends Controller
             'cancellation_cutoff_hours' => $request->input('cancellation_cutoff_hours', $settings->integer('cancellation_cutoff_hours', 6)),
             'admin_whatsapp' => WhatsAppNumber::normalize((string) $request->input('admin_whatsapp', $settings->string('admin_whatsapp', '6281234567890'))),
             'electricity_cost_per_session' => $request->input('electricity_cost_per_session', $settings->integer('electricity_cost_per_session', 0)),
-            'snacks_enabled' => $request->boolean('snacks_enabled', $settings->boolean('snacks_enabled', true)) ? 1 : 0,
+            'snacks_enabled' => $request->boolean('snacks_enabled') ? 1 : 0,
             'snack_prep_buffer_minutes' => $request->input('snack_prep_buffer_minutes', $settings->integer('snack_prep_buffer_minutes', 15)),
             'snack_max_qty_per_item' => $request->input('snack_max_qty_per_item', $settings->integer('snack_max_qty_per_item', 10)),
-            'info_nobar_enabled' => $request->boolean('info_nobar_enabled', $settings->boolean('info_nobar_enabled', true)) ? 1 : 0,
-            'maintenance_mode' => $request->boolean('maintenance_mode', false) ? 1 : 0,
+            'info_nobar_enabled' => $request->boolean('info_nobar_enabled') ? 1 : 0,
+            'maintenance_mode' => $request->boolean('maintenance_mode') ? 1 : 0,
             'ticket_arrive_minutes' => $request->input('ticket_arrive_minutes', $settings->integer('ticket_arrive_minutes', 15)),
             'ticket_studio_name' => $request->input('ticket_studio_name', $settings->string('ticket_studio_name', 'Studio 1')),
             'ticket_notes' => $request->input('ticket_notes', $settings->string('ticket_notes', 'Tunjukkan e-tiket ini kepada petugas di pintu masuk bioskop.')),
@@ -389,27 +389,28 @@ class SettingController extends Controller
         $hasNewQris = $request->hasFile('qris_image');
         $hasExistingQris = $settings->hasValidQrisImage();
 
-        if (in_array('qris', $paymentMethods, true)) {
-            if ($deleteQris || (! $hasNewQris && ! $hasExistingQris)) {
-                throw ValidationException::withMessages([
-                    'payment_methods' => 'Metode QRIS tidak dapat diaktifkan sebelum gambar QRIS diunggah.',
-                ]);
-            }
+        $warnings = [];
+
+        if (in_array('qris', $paymentMethods, true) && ! $hasNewQris && ! $hasExistingQris) {
+            $warnings[] = 'Metode QRIS dicentang aktif, namun belum akan muncul ke pelanggan sampai file gambar QRIS diunggah.';
         }
 
         // Process transfer accounts
-        $rawTransferAccounts = $data['transfer_accounts'] ?? [];
+        $rawTransferAccounts = $request->input('transfer_accounts', []);
         $cleanTransferAccounts = [];
         if (is_array($rawTransferAccounts)) {
             foreach ($rawTransferAccounts as $item) {
+                if (! is_array($item)) {
+                    continue;
+                }
                 $bankName = trim((string) ($item['bank_name'] ?? ''));
                 $accNum = trim((string) ($item['account_number'] ?? ''));
                 $accHolder = trim((string) ($item['account_holder'] ?? ''));
-                if ($bankName !== '' && $accNum !== '' && $accHolder !== '') {
+                if ($bankName !== '' && $accNum !== '') {
                     $cleanTransferAccounts[] = [
                         'bank_name' => $bankName,
                         'account_number' => $accNum,
-                        'account_holder' => $accHolder,
+                        'account_holder' => $accHolder !== '' ? $accHolder : ($settings->string('site_name') ?: 'SynemaX Cinema'),
                     ];
                 }
             }
@@ -417,14 +418,11 @@ class SettingController extends Controller
         unset($data['transfer_accounts']);
 
         if (in_array('transfer', $paymentMethods, true) && count($cleanTransferAccounts) === 0) {
-            throw ValidationException::withMessages([
-                'payment_methods' => 'Metode Transfer tidak dapat diaktifkan sebelum minimal satu rekening bank/e-wallet ditambahkan.',
-            ]);
+            $warnings[] = 'Metode Transfer dicentang aktif, namun belum memiliki data rekening yang lengkap.';
         }
 
         $settings->set('transfer_accounts', $cleanTransferAccounts, 'operasional');
 
-        $ratioWarning = false;
         if ($deleteQris) {
             $oldPath = $settings->string('qris_image_path');
             if ($oldPath !== '' && Storage::disk('local')->exists($oldPath)) {
@@ -439,7 +437,7 @@ class SettingController extends Controller
             if ($size && $size[1] > 0) {
                 $ratio = $size[0] / $size[1];
                 if ($ratio < 0.8 || $ratio > 1.25) {
-                    $ratioWarning = true;
+                    $warnings[] = 'QRIS sebaiknya persegi dan rapi; pangkas bagian lain.';
                 }
             }
             $qrisPath = $this->processAndStoreQrisImage($uploaded, $settings);
@@ -456,8 +454,8 @@ class SettingController extends Controller
 
         $settings->set('enabled_payment_methods', $paymentMethods, 'operasional');
 
-        if ($ratioWarning) {
-            session()->flash('warning', 'QRIS sebaiknya persegi dan rapi; pangkas bagian lain.');
+        if (count($warnings) > 0) {
+            session()->flash('warning', implode(' ', $warnings));
         }
     }
 

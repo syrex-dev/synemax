@@ -3,12 +3,52 @@
 @section('title', 'Pengaturan Bioskop')
 
 @section('content')
-    <div x-data="{ activeTab: '{{ $currentTab ?? 'identitas' }}' }">
+    <div x-data="{ activeTab: '{{ old('_tab', $currentTab ?? 'identitas') }}' }">
         <x-admin.page-header
             eyebrow="Konfigurasi Sistem"
             title="Pengaturan Home Cinema"
             subtitle="Pengaturan bioskop SynemaX: kelola identitas, logo, navbar, operasional, tarif tiket, FAQ, dan SEO tanpa mengubah kode."
         />
+
+        {{-- Notifikasi Status Berhasil --}}
+        @if (session('status'))
+            <div role="alert" class="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-600 dark:text-emerald-400">
+                <svg class="size-5 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="font-bold">{{ session('status') }}</span>
+            </div>
+        @endif
+
+        {{-- Notifikasi Peringatan / Catatan --}}
+        @if (session('warning'))
+            <div role="alert" class="mt-4 flex items-start gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-600 dark:text-amber-400">
+                <svg class="size-5 shrink-0 mt-0.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div class="space-y-0.5">
+                    <p class="font-bold">Perhatian</p>
+                    <p class="text-xs text-text-muted">{{ session('warning') }}</p>
+                </div>
+            </div>
+        @endif
+
+        {{-- Notifikasi Kesalahan Validasi --}}
+        @if ($errors->any())
+            <div role="alert" class="mt-4 rounded-2xl border border-red-500/50 bg-red-500/10 p-4 text-sm text-red-600 dark:text-red-400 space-y-1.5">
+                <p class="font-bold flex items-center gap-2">
+                    <svg class="size-5 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>Pengaturan belum dapat disimpan karena ada isian yang perlu diperiksa:</span>
+                </p>
+                <ul class="list-disc pl-7 text-xs space-y-0.5">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
         {{-- Tab Navigation Bar --}}
         <div class="mt-6 border-b border-border">
@@ -714,23 +754,99 @@
                         </div>
                     </div>
 
-                    {{-- Transfer Details --}}
-                    <div class="pt-4 border-t border-border space-y-3">
-                        <h3 class="text-sm font-bold text-text">Rekening Bank / E-Wallet untuk Transfer</h3>
-                        @php($accounts = $settings->transferAccounts())
-                        <div class="grid gap-3 sm:grid-cols-3">
+                    {{-- Transfer Details: Multi Rekening & E-Wallet --}}
+                    @php($savedAccounts = old('transfer_accounts', $settings->transferAccounts()) ?: [['bank_name' => 'BCA', 'account_number' => '', 'account_holder' => $settings->string('site_name', 'SynemaX Cinema')]])
+                    <div class="pt-4 border-t border-border space-y-4"
+                         x-data="{
+                            accounts: @js(array_values($savedAccounts)),
+                            addAccount() {
+                                this.accounts.push({
+                                    bank_name: '',
+                                    account_number: '',
+                                    account_holder: '{{ addslashes($settings->string('site_name', 'SynemaX Cinema')) }}'
+                                });
+                            },
+                            removeAccount(idx) {
+                                if (this.accounts.length > 1) {
+                                    this.accounts.splice(idx, 1);
+                                } else {
+                                    this.accounts = [{
+                                        bank_name: '',
+                                        account_number: '',
+                                        account_holder: '{{ addslashes($settings->string('site_name', 'SynemaX Cinema')) }}'
+                                    }];
+                                }
+                            }
+                         }">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
                             <div>
-                                <label class="block text-[11px] font-bold text-text-muted uppercase">Nama Bank / E-Wallet</label>
-                                <input type="text" name="transfer_accounts[0][bank_name]" value="{{ $accounts[0]['bank_name'] ?? 'BCA' }}" class="mt-1 min-h-[40px] w-full rounded-xl border px-3 text-xs">
+                                <h3 class="text-sm font-bold text-text">Daftar Rekening Bank & E-Wallet untuk Transfer</h3>
+                                <p class="text-xs text-text-muted mt-0.5">Tambahkan beberapa rekening (BCA, Mandiri, BRI, BNI, Dana, GoPay, OVO, dll.) agar pelanggan memiliki banyak opsi transfer saat checkout.</p>
                             </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-text-muted uppercase">Nomor Rekening</label>
-                                <input type="text" name="transfer_accounts[0][account_number]" value="{{ $accounts[0]['account_number'] ?? '1234567890' }}" class="mt-1 min-h-[40px] w-full rounded-xl border px-3 text-xs">
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-text-muted uppercase">Atas Nama (Pemilik)</label>
-                                <input type="text" name="transfer_accounts[0][account_holder]" value="{{ $accounts[0]['account_holder'] ?? 'SynemaX Cinema' }}" class="mt-1 min-h-[40px] w-full rounded-xl border px-3 text-xs">
-                            </div>
+                            <button
+                                type="button"
+                                @click="addAccount()"
+                                class="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 px-3.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 transition cursor-pointer"
+                            >
+                                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                </svg>
+                                <span>+ Tambah Bank / E-Wallet</span>
+                            </button>
+                        </div>
+
+                        <div class="space-y-3">
+                            <template x-for="(account, index) in accounts" :key="index">
+                                <div class="rounded-xl border border-border bg-surface-2 p-4 space-y-3 relative">
+                                    <div class="flex items-center justify-between border-b border-border/60 pb-2">
+                                        <span class="text-xs font-bold text-amber-600 dark:text-amber-400" x-text="`Rekening / E-Wallet #${index + 1}`"></span>
+                                        <button
+                                            type="button"
+                                            @click="removeAccount(index)"
+                                            class="text-xs font-bold text-danger hover:underline inline-flex items-center gap-1 cursor-pointer"
+                                            title="Hapus rekening ini"
+                                        >
+                                            <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            <span>Hapus Rekening</span>
+                                        </button>
+                                    </div>
+
+                                    <div class="grid gap-3 sm:grid-cols-3">
+                                        <div>
+                                            <label class="block text-[11px] font-bold text-text uppercase">Nama Bank / E-Wallet <span class="text-danger">*</span></label>
+                                            <input
+                                                type="text"
+                                                :name="`transfer_accounts[${index}][bank_name]`"
+                                                x-model="account.bank_name"
+                                                placeholder="Contoh: BCA, Mandiri, Dana, GoPay"
+                                                class="mt-1 min-h-[42px] w-full rounded-xl border border-border bg-surface px-3 text-xs text-text focus:border-amber-400 focus:outline-none"
+                                            >
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] font-bold text-text uppercase">Nomor Rekening / No. HP <span class="text-danger">*</span></label>
+                                            <input
+                                                type="text"
+                                                :name="`transfer_accounts[${index}][account_number]`"
+                                                x-model="account.account_number"
+                                                placeholder="Contoh: 1234567890 / 08123456789"
+                                                class="mt-1 min-h-[42px] w-full rounded-xl border border-border bg-surface px-3 text-xs font-mono text-text focus:border-amber-400 focus:outline-none"
+                                            >
+                                        </div>
+                                        <div>
+                                            <label class="block text-[11px] font-bold text-text uppercase">Atas Nama (Pemilik Rekening)</label>
+                                            <input
+                                                type="text"
+                                                :name="`transfer_accounts[${index}][account_holder]`"
+                                                x-model="account.account_holder"
+                                                placeholder="Contoh: SynemaX Cinema / Nama Pemilik"
+                                                class="mt-1 min-h-[42px] w-full rounded-xl border border-border bg-surface px-3 text-xs text-text focus:border-amber-400 focus:outline-none"
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
                         </div>
                     </div>
 
