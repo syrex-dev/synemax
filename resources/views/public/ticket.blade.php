@@ -633,11 +633,11 @@
         {{-- Modal Pembatalan --}}
         @if ($canCancel)
             <div x-show="cancelModal" x-cloak
-                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
                  @click.self="cancelModal = false">
-                <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0E131F] p-5 shadow-2xl">
-                    <h3 class="text-base font-bold text-white">Batalkan booking ini?</h3>
-                    <p class="mt-2 text-xs leading-relaxed text-slate-300">
+                <div class="w-full max-w-sm rounded-2xl border border-border dark:border-white/10 bg-surface dark:bg-[#0E131F] p-5 shadow-2xl">
+                    <h3 class="text-base font-bold text-text dark:text-white">Batalkan booking ini?</h3>
+                    <p class="mt-2 text-xs leading-relaxed text-text-muted">
                         @if (! ($session?->isConfirmed() ?? false))
                             Sesi belum pasti tayang. Pembatalan ini bebas biaya (gratis). Tempat Anda akan dilepaskan kembali.
                         @else
@@ -649,11 +649,11 @@
                         <input type="hidden" name="whatsapp" value="{{ $booking->whatsapp }}">
                         <div class="flex justify-end gap-2">
                             <button type="button" @click="cancelModal = false"
-                                    class="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/20 px-3.5 text-xs font-bold text-slate-300">
+                                    class="inline-flex min-h-10 items-center justify-center rounded-xl border border-border bg-surface-2 dark:bg-transparent dark:border-white/20 px-3.5 text-xs font-bold text-text hover:bg-surface transition">
                                 Jangan batalkan
                             </button>
                             <button type="submit"
-                                    class="inline-flex min-h-10 items-center justify-center rounded-xl bg-danger px-4 text-xs font-bold text-white hover:opacity-90">
+                                    class="inline-flex min-h-10 items-center justify-center rounded-xl bg-danger px-4 text-xs font-bold text-white hover:opacity-90 transition">
                                 Ya, batalkan
                             </button>
                         </div>

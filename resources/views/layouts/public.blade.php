@@ -181,7 +181,7 @@
                                 </a>
                             @else
                                 <a
-                                    href="{{ url($item['url'] ?? '/') }}"
+                                    href="{{ url(rtrim(trim((string) ($item['url'] ?? '/')), chr(39).chr(34))) }}"
                                     class="relative inline-flex min-h-10 shrink-0 items-center px-3 py-1.5 font-bold transition rounded-lg {{ $isActive ? 'text-[#0F172A] font-extrabold after:content-[\'\'] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-[3px] after:bg-[#F59E0B] after:rounded-full dark:after:hidden dark:bg-amber-500/15 dark:text-amber-400 dark:border dark:border-amber-400/40' : 'text-slate-600 hover:bg-[#F1F5F9] hover:text-[#0F172A] dark:text-text-muted dark:hover:bg-surface-2 dark:hover:text-amber-400' }}"
                                 >
                                     {{ $item['label'] }}
@@ -273,7 +273,7 @@
                                 : (in_array($bKey, ['lookup', 'booking_lookup', 'tickets', 'tiket'], true) ? 'Tiket' : $bItem['label']);
                         @endphp
                         <a
-                            href="{{ url($bItem['url'] ?? '/') }}"
+                            href="{{ url(rtrim(trim((string) ($bItem['url'] ?? '/')), chr(39).chr(34))) }}"
                             aria-current="{{ $isActive ? 'page' : 'false' }}"
                             class="flex-1 min-h-[60px] flex flex-col items-center justify-center relative py-1 px-1 transition-colors {{ $isActive ? 'text-slate-950 dark:text-amber-400 font-extrabold' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium' }}"
                         >
@@ -388,7 +388,7 @@
                         <div class="grid grid-cols-2 gap-2">
                             @foreach ($menuSheetItems as $sheetItem)
                                 <a
-                                    href="{{ url($sheetItem['url'] ?? '/') }}"
+                                    href="{{ url(rtrim(trim((string) ($sheetItem['url'] ?? '/')), chr(39).chr(34))) }}"
                                     @click="menuSheetOpen = false"
                                     class="flex min-h-[44px] items-center justify-between rounded-xl border border-border bg-surface-2 px-3.5 py-2 font-bold text-text hover:border-amber-500 transition-colors shadow-xs"
                                 >

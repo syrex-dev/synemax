@@ -51,6 +51,15 @@ Route::get('/nobar/{slug}/kalender', [PublicInfoController::class, 'nobarCalenda
 
 Route::get('/kabar', [PublicInfoController::class, 'articleIndex'])->name('articles.index');
 Route::get('/kabar/{slug}', [PublicInfoController::class, 'articleShow'])->name('articles.show');
+
+// Helpful aliases & graceful redirects for FAQ & Harga and accidental trailing quotes
+Route::redirect('/faq', '/kabar?tab=harga-faq');
+Route::redirect('/harga', '/kabar?tab=harga-faq');
+Route::redirect('/harga-faq', '/kabar?tab=harga-faq');
+Route::redirect('/faq-harga', '/kabar?tab=harga-faq');
+Route::redirect('/faq&harga', '/kabar?tab=harga-faq');
+Route::redirect('/tarif', '/kabar?tab=harga-faq');
+Route::redirect('/kabar\'', '/kabar?tab=harga-faq');
 Route::get('/booking/{session}', [PublicBookingController::class, 'create'])->name('booking.create');
 Route::get('/booking/{session}/ketersediaan', [PublicBookingController::class, 'availabilityJson'])
     ->middleware('throttle:60,1')

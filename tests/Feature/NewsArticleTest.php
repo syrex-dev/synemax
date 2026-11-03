@@ -241,4 +241,46 @@ class NewsArticleTest extends TestCase
             'id' => $article->id,
         ]);
     }
+
+    public function test_faq_and_harga_urls_and_stray_quotes_redirect_gracefully(): void
+    {
+        $this->get('/faq')
+            ->assertRedirect('/kabar?tab=harga-faq');
+
+        $this->get('/harga')
+            ->assertRedirect('/kabar?tab=harga-faq');
+
+        $this->get('/harga-faq')
+            ->assertRedirect('/kabar?tab=harga-faq');
+
+        $this->get('/faq-harga')
+            ->assertRedirect('/kabar?tab=harga-faq');
+
+        $this->get('/tarif')
+            ->assertRedirect('/kabar?tab=harga-faq');
+
+        // Stray quote at the end of /kabar (e.g. /kabar')
+        $this->get("/kabar'")
+            ->assertRedirect(route('articles.index', ['tab' => 'harga-faq']));
+
+        // /kabar/faq subroute
+        $this->get('/kabar/faq')
+            ->assertRedirect(route('articles.index', ['tab' => 'harga-faq']));
+
+        // Article with stray quote in slug
+        $article = NewsArticle::create([
+            'judul' => 'Artikel Uji Coba Kutip',
+            'slug' => 'artikel-uji-coba-kutip',
+            'kategori' => 'Berita',
+            'ringkasan' => 'Ringkasan artikel',
+            'konten' => 'Konten artikel',
+            'status_publikasi' => 'terbit',
+            'tanggal_terbit' => now()->subHour(),
+            'is_pinned' => false,
+        ]);
+
+        $this->get("/kabar/artikel-uji-coba-kutip'")
+            ->assertOk()
+            ->assertSee('Artikel Uji Coba Kutip');
+    }
 }

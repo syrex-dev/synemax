@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\NewsArticle;
 use App\Models\NobarEvent;
 use App\Services\CinemaSettings;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\View\View;
@@ -125,14 +126,24 @@ class PublicInfoController extends Controller
         ]);
     }
 
-    public function articleShow(Request $request, string $slug): View
+    public function articleShow(Request $request, string $slug): View|RedirectResponse
     {
         $this->ensureFeatureEnabled();
+
+        $cleanSlug = trim($slug, " '\t\n\r\0\x0B\"`");
+
+        if ($cleanSlug === '' || $cleanSlug === 'kabar') {
+            return redirect()->route('articles.index', ['tab' => 'harga-faq']);
+        }
+
+        if (in_array(strtolower($cleanSlug), ['faq', 'harga', 'harga-faq', 'faq-harga', 'tarif'], true)) {
+            return redirect()->route('articles.index', ['tab' => 'harga-faq']);
+        }
 
         $isAdmin = (bool) $request->user()?->is_admin;
 
         $article = NewsArticle::query()
-            ->where('slug', $slug)
+            ->where('slug', $cleanSlug)
             ->when(! $isAdmin, fn ($q) => $q->published())
             ->firstOrFail();
 

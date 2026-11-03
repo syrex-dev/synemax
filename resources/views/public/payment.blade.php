@@ -259,7 +259,7 @@
 
                 {{-- ==================== METODE 1: QRIS INSTAN ==================== --}}
                 @if ($booking->payment_method === 'qris')
-                    <div class="mt-6 border-t border-border pt-6">
+                    <div class="mt-6 border-t border-border dark:border-white/10 pt-6">
                         <div class="flex items-center justify-between gap-2">
                             <h2 class="text-sm font-black text-text">Pindai kode QRIS</h2>
                             <span class="badge-accent-soft rounded-lg px-2.5 py-0.5 text-xs font-bold">
@@ -287,13 +287,13 @@
                                     <p class="mt-3 font-tabular text-[11px] font-black tracking-wider text-neutral-900 uppercase">QRIS STANDAR PEMBAYARAN NASIONAL</p>
                                     <p class="mt-0.5 text-[10px] text-neutral-500">M-Banking & Dompet Digital (BCA, Mandiri, BRI, BNI, GoPay, OVO, Dana)</p>
                                 </div>
-                                <p class="mt-2.5 text-xs text-slate-400">Ketuk gambar QRIS untuk memperbesar.</p>
+                                <p class="mt-2.5 text-xs text-text-muted">Ketuk gambar QRIS untuk memperbesar.</p>
 
                                 <div class="mt-3">
                                     <a href="{{ route('payment.qris', ['download' => 1]) }}"
                                        download="QRIS-SynemaX"
-                                       class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/5 px-4 text-xs font-bold text-white hover:border-amber-400">
-                                        <svg class="size-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                       class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-border dark:border-white/20 bg-surface dark:bg-white/5 px-4 text-xs font-bold text-text dark:text-white hover:border-amber-400 transition">
+                                        <svg class="size-4 text-amber-500 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                         </svg>
                                         <span>Simpan gambar QRIS</span>
@@ -313,16 +313,16 @@
                             </div>
                         @endif
 
-                        <div class="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-slate-300">
-                            <h3 class="font-bold text-white flex items-center gap-1.5">
-                                <span class="size-1.5 rounded-full bg-amber-400"></span>
+                        <div class="mt-5 rounded-2xl border border-border dark:border-white/10 bg-surface dark:bg-white/5 p-4 text-xs text-text-muted shadow-xs">
+                            <h3 class="font-bold text-text dark:text-white flex items-center gap-1.5">
+                                <span class="size-1.5 rounded-full bg-amber-500"></span>
                                 <span>Petunjuk Bayar via QRIS</span>
                             </h3>
-                            <ol class="mt-2 list-decimal space-y-1 pl-4 text-slate-400">
+                            <ol class="mt-2 list-decimal space-y-1.5 pl-4 text-text-muted">
                                 <li>Buka aplikasi m-Banking atau dompet digital favorit Anda.</li>
-                                <li>Pilih menu <strong>Scan QRIS</strong>.</li>
+                                <li>Pilih menu <strong class="text-text font-bold">Scan QRIS</strong>.</li>
                                 <li>Arahkan kamera ke gambar QR di atas atau unggah dari galeri.</li>
-                                <li>Pastikan nominal bayar tepat <strong class="font-tabular text-amber-400">Rp {{ number_format($booking->total_price, 0, ',', '.') }}</strong>.</li>
+                                <li>Pastikan nominal bayar tepat <strong class="font-tabular font-bold text-amber-700 dark:text-amber-400">Rp {{ number_format($booking->total_price, 0, ',', '.') }}</strong>.</li>
                                 <li>Simpan bukti transfer dan unggah pada formulir di bawah.</li>
                             </ol>
                         </div>
@@ -330,25 +330,25 @@
 
                 {{-- ==================== METODE 2: TRANSFER BANK ==================== --}}
                 @elseif ($booking->payment_method === 'transfer')
-                    <div class="mt-6 border-t border-white/10 pt-6">
+                    <div class="mt-6 border-t border-border dark:border-white/10 pt-6">
                         <div class="flex items-center justify-between gap-2">
-                            <h2 class="text-sm font-black text-white">Rekening Tujuan Transfer</h2>
-                            <span class="text-xs text-slate-400">{{ count($transferAccounts) }} Rekening Tersedia</span>
+                            <h2 class="text-sm font-black text-text dark:text-white">Rekening Tujuan Transfer</h2>
+                            <span class="text-xs text-text-muted">{{ count($transferAccounts) }} Rekening Tersedia</span>
                         </div>
 
                         <div class="mt-3.5 space-y-3">
                             @forelse ($transferAccounts as $acc)
-                                <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
+                                <div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border dark:border-white/10 bg-surface dark:bg-white/5 p-4 shadow-xs">
                                     <div>
-                                        <span class="rounded-md bg-amber-500/20 px-2 py-0.5 text-xs font-black text-amber-400 uppercase">
+                                        <span class="rounded-md bg-amber-500/15 dark:bg-amber-500/20 px-2 py-0.5 text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-wide">
                                             {{ $acc['bank_name'] }}
                                         </span>
-                                        <p class="mt-2 font-tabular text-xl font-black text-white">{{ $acc['account_number'] }}</p>
-                                        <p class="mt-0.5 text-xs text-slate-400">Atas Nama: <strong class="text-slate-200">{{ $acc['account_holder'] }}</strong></p>
+                                        <p class="mt-2 font-tabular text-xl sm:text-2xl font-black text-text dark:text-white tracking-wider">{{ $acc['account_number'] }}</p>
+                                        <p class="mt-0.5 text-xs text-text-muted">Atas Nama: <strong class="text-text dark:text-slate-200 font-bold">{{ $acc['account_holder'] }}</strong></p>
                                     </div>
                                     <button type="button"
                                             @click="copyAccount('{{ $acc['account_number'] }}')"
-                                            class="btn-gold-cinema inline-flex min-h-9 items-center rounded-lg px-3.5 text-xs font-bold">
+                                            class="btn-gold-cinema inline-flex min-h-9 items-center rounded-lg px-3.5 text-xs font-bold shrink-0">
                                         <span x-text="copiedAccount === '{{ $acc['account_number'] }}' ? 'Tersalin!' : 'Salin Nomor'">Salin Nomor</span>
                                     </button>
                                 </div>
@@ -366,14 +366,14 @@
                             </div>
                         @endif
 
-                        <div class="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-slate-300">
-                            <h3 class="font-bold text-white flex items-center gap-1.5">
-                                <span class="size-1.5 rounded-full bg-amber-400"></span>
+                        <div class="mt-5 rounded-2xl border border-border dark:border-white/10 bg-surface dark:bg-white/5 p-4 text-xs text-text-muted shadow-xs">
+                            <h3 class="font-bold text-text dark:text-white flex items-center gap-1.5">
+                                <span class="size-1.5 rounded-full bg-amber-500"></span>
                                 <span>Petunjuk Bayar via Transfer</span>
                             </h3>
-                            <ol class="mt-2 list-decimal space-y-1 pl-4 text-slate-400">
+                            <ol class="mt-2 list-decimal space-y-1.5 pl-4 text-text-muted">
                                 <li>Transfer ke rekening atau nomor e-wallet di atas.</li>
-                                <li>Pastikan nominal transfer tepat <strong class="font-tabular text-amber-400">Rp {{ number_format($booking->total_price, 0, ',', '.') }}</strong>.</li>
+                                <li>Pastikan nominal transfer tepat <strong class="font-tabular font-bold text-amber-700 dark:text-amber-400">Rp {{ number_format($booking->total_price, 0, ',', '.') }}</strong>.</li>
                                 <li>Simpan bukti tangkapan layar atau struk ATM untuk diunggah.</li>
                             </ol>
                         </div>
@@ -381,29 +381,29 @@
                 @endif
 
                 {{-- ==================== FORMULIR UNGGAH BUKTI BAYAR ==================== --}}
-                <div class="mt-8 border-t border-white/10 pt-6">
-                    <h3 class="text-sm font-black text-white">Kirim Bukti Pembayaran</h3>
-                    <p class="mt-0.5 text-xs text-slate-400">
+                <div class="mt-8 border-t border-border dark:border-white/10 pt-6">
+                    <h3 class="text-sm font-black text-text dark:text-white">Kirim Bukti Pembayaran</h3>
+                    <p class="mt-0.5 text-xs text-text-muted">
                         Unggah foto atau tangkapan layar bukti transfer (JPG, PNG, atau WebP maks. {{ round($maxPaymentProofKb / 1024) }} MB).
                     </p>
 
                     <form method="POST"
                           action="{{ route('booking.proof.upload', ['code' => $booking->code]) }}"
                           enctype="multipart/form-data"
-                          class="mt-4 space-y-4 rounded-2xl border border-white/10 bg-white/5 p-5">
+                          class="mt-4 space-y-4 rounded-2xl border border-border dark:border-white/10 bg-surface dark:bg-white/5 p-5 shadow-xs">
                         @csrf
                         <input type="hidden" name="whatsapp" value="{{ $booking->whatsapp }}">
 
                         <div>
-                            <label for="payment_proof" class="block text-xs font-bold uppercase tracking-wider text-slate-300">Pilih Berkas Bukti Transfer</label>
+                            <label for="payment_proof" class="block text-xs font-bold uppercase tracking-wider text-text-muted">Pilih Berkas Bukti Transfer</label>
                             <input id="payment_proof"
                                    name="payment_proof"
                                    type="file"
                                    required
                                    accept="image/jpeg,image/png,image/webp"
                                    @change="handleFileChange($event)"
-                                   class="mt-2 block w-full text-xs text-slate-300 file:mr-3 file:min-h-11 file:rounded-xl file:border file:border-amber-400/40 file:bg-amber-500/10 file:px-4 file:text-xs file:font-bold file:text-amber-400 hover:file:bg-amber-500/20 cursor-pointer">
-                            <p x-show="selectedFileName" class="mt-2 text-xs font-bold text-amber-400" x-text="'Berkas dipilih: ' + selectedFileName"></p>
+                                   class="mt-2 block w-full text-xs text-text file:mr-3 file:min-h-11 file:rounded-xl file:border file:border-amber-500/40 file:bg-amber-500/10 file:px-4 file:text-xs file:font-bold file:text-amber-700 dark:file:text-amber-400 hover:file:bg-amber-500/20 cursor-pointer">
+                            <p x-show="selectedFileName" class="mt-2 text-xs font-bold text-amber-700 dark:text-amber-400" x-text="'Berkas dipilih: ' + selectedFileName"></p>
                             <p x-show="fileError" class="mt-2 text-xs font-bold text-danger-text" x-text="fileError"></p>
                         </div>
 
@@ -417,10 +417,10 @@
                 </div>
 
                 {{-- Aksi Pembatalan --}}
-                <div class="mt-6 pt-5 border-t border-white/10 text-center max-w-[400px] mx-auto w-full">
+                <div class="mt-6 pt-5 border-t border-border dark:border-white/10 text-center max-w-[400px] mx-auto w-full">
                     <button type="button"
                             @click="cancelModal = true"
-                            class="text-xs text-slate-400 hover:text-red-400 hover:underline">
+                            class="text-xs text-text-muted hover:text-red-500 dark:hover:text-red-400 hover:underline transition-colors">
                         Batalkan booking ini
                     </button>
                 </div>
@@ -431,9 +431,9 @@
         <div x-show="cancelModal" x-cloak
              class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
              @click.self="cancelModal = false">
-            <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0E131F] p-5 shadow-2xl">
-                <h3 class="text-base font-black text-white">Batalkan booking ini?</h3>
-                <p class="mt-2 text-xs leading-relaxed text-slate-300">
+            <div class="w-full max-w-sm rounded-2xl border border-border dark:border-white/10 bg-surface dark:bg-[#0E131F] p-5 shadow-2xl">
+                <h3 class="text-base font-black text-text dark:text-white">Batalkan booking ini?</h3>
+                <p class="mt-2 text-xs leading-relaxed text-text-muted">
                     Apakah Anda yakin ingin membatalkan pemesanan ini? Tempat yang telah dipesan akan dilepaskan kembali.
                 </p>
                 <form method="POST" action="{{ route('booking.cancel', ['code' => $booking->code]) }}" class="mt-5">
@@ -441,11 +441,11 @@
                     <input type="hidden" name="whatsapp" value="{{ $booking->whatsapp }}">
                     <div class="flex justify-end gap-2.5">
                         <button type="button" @click="cancelModal = false"
-                                class="inline-flex min-h-10 items-center justify-center rounded-xl border border-white/20 px-3.5 text-xs font-bold text-slate-300">
+                                class="inline-flex min-h-10 items-center justify-center rounded-xl border border-border bg-surface-2 dark:bg-transparent dark:border-white/20 px-3.5 text-xs font-bold text-text hover:bg-surface transition">
                             Jangan batalkan
                         </button>
                         <button type="submit"
-                                class="inline-flex min-h-10 items-center justify-center rounded-xl bg-danger px-4 text-xs font-bold text-white hover:opacity-90">
+                                class="inline-flex min-h-10 items-center justify-center rounded-xl bg-danger px-4 text-xs font-bold text-white hover:opacity-90 transition">
                             Ya, batalkan
                         </button>
                     </div>

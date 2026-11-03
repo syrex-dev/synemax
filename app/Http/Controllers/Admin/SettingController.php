@@ -254,11 +254,14 @@ class SettingController extends Controller
                 ? trim((string) $item['short_label'])
                 : (in_array($key, ['lookup', 'booking_lookup'], true) ? 'Booking' : ($item['label'] ?? ucfirst($key)));
 
+            $rawUrl = trim((string) ($item['url'] ?? '/'), " '\"\t\n\r");
+            $sanitizedUrl = $rawUrl !== '' ? $rawUrl : '/';
+
             $cleanMenu[] = [
                 'key' => $key,
                 'label' => $item['label'] ?? ucfirst($key),
                 'short_label' => $shortLabel,
-                'url' => $item['url'] ?? '/',
+                'url' => $sanitizedUrl,
                 'route' => $item['route'] ?? '',
                 'mobile_position' => $mobilePos,
                 'is_visible' => $isVisible,
