@@ -11,7 +11,7 @@
 @endsection
 
 @section('content')
-    <div class="mx-auto max-w-xl px-4 py-5 sm:px-6 sm:py-8"
+    <div class="mx-auto max-w-[520px] w-full px-4 py-5 sm:py-8"
          x-data="{
              code: @js($booking->code),
              expiresAt: @js($booking->payment_expires_at?->toIso8601String()),
@@ -108,6 +108,33 @@
             </a>
         </div>
 
+        {{-- Stepper 3 Tahap Alur Booking Online --}}
+        <nav aria-label="Tahapan Booking" class="mb-5 no-print">
+            <ol class="grid grid-cols-3 gap-2 text-center text-xs">
+                {{-- Langkah 1: Booking (Selesai) --}}
+                <li class="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-600/30 bg-emerald-500/10 p-2 font-medium">
+                    <span class="grid size-5 place-items-center rounded-full bg-emerald-700 text-white" aria-hidden="true">
+                        <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                    </span>
+                    <span class="font-bold text-slate-800 dark:text-slate-100">Booking</span>
+                </li>
+
+                {{-- Langkah 2: Bayar (Aktif) --}}
+                <li class="flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/50 bg-amber-500/10 p-2 font-bold">
+                    <span class="grid size-5 place-items-center rounded-full bg-amber-400 text-slate-950 text-[11px] font-black" aria-hidden="true">2</span>
+                    <span class="text-amber-900 dark:text-amber-200">Bayar</span>
+                </li>
+
+                {{-- Langkah 3: Tiket (Belum) --}}
+                <li class="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-surface p-2 font-medium text-text-muted">
+                    <span class="grid size-5 place-items-center rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold" aria-hidden="true">3</span>
+                    <span>Tiket</span>
+                </li>
+            </ol>
+        </nav>
+
         {{-- Flash Pesan / Alert Status --}}
         @if (session('status'))
             <div role="status" class="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-xs font-bold text-emerald-400">
@@ -174,12 +201,6 @@
                    class="btn-gold-cinema inline-flex min-h-11 items-center justify-center rounded-xl px-5 text-xs font-bold">
                     Buat Booking Baru
                 </a>
-                @if ($whatsAppUrl)
-                    <a href="{{ $whatsAppUrl }}" target="_blank" rel="noopener noreferrer"
-                       class="inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-amber-400">
-                        Hubungi Admin
-                    </a>
-                @endif
             </div>
         </div>
 

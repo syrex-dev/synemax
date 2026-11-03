@@ -17,6 +17,41 @@
             <p class="mt-1 text-xs text-text-muted">Kapasitas maksimal 6 kursi per sesi. Status kursi diperbarui otomatis saat ada pemesanan baru.</p>
         </div>
 
+        {{-- Film Pilihan Banner (Jika pengguna memilih film terlebih dahulu) --}}
+        @if ($selectedFilm)
+            <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 sm:p-4">
+                <div class="flex items-center gap-3.5 min-w-0">
+                    <div class="w-11 h-16 shrink-0 rounded-lg overflow-hidden bg-slate-800 border border-white/10 relative">
+                        @if ($selectedFilm->posterUrl())
+                            <img src="{{ $selectedFilm->posterUrl() }}" alt="{{ $selectedFilm->title }}" class="size-full object-cover" onerror="this.style.display='none'">
+                        @else
+                            <div class="flex size-full items-center justify-center text-[10px] text-amber-200/80 font-bold p-1 text-center">
+                                {{ Str::limit($selectedFilm->title, 12) }}
+                            </div>
+                        @endif
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Film yang kamu pilih</p>
+                        <h2 class="text-sm sm:text-base font-black text-text truncate">{{ $selectedFilm->title }}</h2>
+                        <p class="text-xs text-text-muted truncate">
+                            {{ $selectedFilm->formattedGenresText(2) }} · {{ format_durasi_id($selectedFilm->duration_minutes) }} @if($selectedFilm->age_rating)· {{ $selectedFilm->age_rating }}@endif
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <a href="{{ route('films.show', $selectedFilm->slug ?: $selectedFilm->id) }}"
+                       class="inline-flex min-h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text hover:bg-surface-2 transition">
+                        Detail Film
+                    </a>
+                    <a href="{{ route('schedule.date', ['date' => $date->toDateString()]) }}"
+                       class="inline-flex min-h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text-muted hover:text-danger hover:bg-surface-2 transition"
+                       title="Batalkan pilihan film dan tampilkan semua jadwal">
+                        Ganti Film
+                    </a>
+                </div>
+            </div>
+        @endif
+
         {{-- Pemilih Tanggal (Horizontal Scrollable Pills dengan Fade Tepi) --}}
         <div class="relative -mx-4 px-4 sm:mx-0 sm:px-0">
             <nav class="mt-6 flex snap-x gap-2 overflow-x-auto pb-3 scrollbar-none scroll-smooth" style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch;" aria-label="Pilih tanggal nonton">
@@ -25,7 +60,7 @@
                         $dateKey = $availableDate->toDateString();
                         $isSelected = $dateKey === $date->toDateString();
                     @endphp
-                    <a href="{{ route('schedule.date', ['date' => $dateKey]) }}"
+                    <a href="{{ route('schedule.date', array_filter(['date' => $dateKey, 'film' => $selectedFilm?->id])) }}"
                        @if ($isSelected) aria-current="date" @endif
                        class="min-w-24 shrink-0 snap-start rounded-xl border p-2.5 text-center transition-colors {{ $isSelected ? 'border-amber-500 bg-amber-500/15 text-text font-bold' : 'border-border bg-surface text-text-muted hover:border-amber-400/50 hover:text-text' }}">
                         <span class="block text-[11px] font-bold uppercase tracking-wider {{ $isSelected ? 'text-amber-700 dark:text-amber-400' : 'text-text-muted' }}">
@@ -178,22 +213,28 @@
                                             ({{ $occupied }} dari {{ $session->seatCapacity() }} terisi)
                                         </p>
                                     </div>
-                                    @if ($canBook)
+                                    @php
+                                        $isLockedOtherFilm = $selectedFilm && $session->isConfirmed() && $session->film_id && $session->film_id !== $selectedFilm->id;
+                                        $canBookThisSession = $canBook && ! $isLockedOtherFilm;
+                                    @endphp
+
+                                    @if ($canBookThisSession)
                                         @php
                                             $btnLabel = match (true) {
+                                                $selectedFilm !== null => 'Pilih jam ini',
                                                 $confirmed => 'Pesan kursi',
                                                 $leadingTally !== null => 'Gabung film ini',
                                                 default => 'Pilih paket',
                                             };
                                         @endphp
-                                        <a href="{{ route('booking.create', array_filter(['session' => $session->id, 'film' => request('film')])) }}"
+                                        <a href="{{ route('booking.create', array_filter(['session' => $session->id, 'film' => $selectedFilm?->id ?: request('film')])) }}"
                                            @click="sessionStorage.setItem('synemax:booking-wizard', JSON.stringify({ sessionId: {{ $session->id }}, date: @js($date->toDateString()), step: 1 }))"
                                            class="btn-gold-cinema inline-flex min-h-11 min-w-28 items-center justify-center rounded-xl px-4 text-xs font-bold shadow-md">
                                             {{ $btnLabel }}
                                         </a>
                                     @else
                                         <span class="inline-flex min-h-11 min-w-28 items-center justify-center rounded-xl border border-border dark:border-white/10 bg-surface-2 dark:bg-white/5 px-3 text-center text-xs font-semibold text-text-muted">
-                                            {{ $sw['label'] }}
+                                            {{ $isLockedOtherFilm ? 'Film lain' : $sw['label'] }}
                                         </span>
                                     @endif
                                 </div>

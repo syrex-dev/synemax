@@ -9,6 +9,8 @@ class FlushNotificationOutbox extends Command
 {
     protected $signature = 'notifications:flush {--limit=20 : Jumlah maksimal pesan yang diproses}';
 
+    protected $aliases = ['telegrams:flush'];
+
     protected $description = 'Kirim antrean notifikasi outbox (Telegram) yang tertunda ke server tujuan';
 
     public function handle(TelegramNotificationService $telegram): int

@@ -343,7 +343,7 @@ class BookingService
                     $this->reject('capacity', 'Sesi ini sudah disewa private.');
                 }
                 if ($occupiedSeats + $lockedBooking->pax > $seatCapacity) {
-                    $this->reject('capacity', 'Tidak dapat memulihkan: kursi pada sesi ini sudah tidak mencukupi.');
+                    $this->reject('capacity', 'Tidak dapat memulihkan: kapasitas tempat pada sesi ini sudah tidak mencukupi.');
                 }
             }
 

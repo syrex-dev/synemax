@@ -201,19 +201,6 @@ class PublicCinemaController extends Controller
             ->take(3)
             ->get();
 
-        // First available open session (without film or with this film)
-        $firstAvailableSession = Session::query()
-            ->where('session_date', '>=', $today->toDateString())
-            ->where('status', 'tersedia')
-            ->where('is_private', false)
-            ->where(function ($q) use ($film) {
-                $q->whereNull('film_id')
-                    ->orWhere('film_id', $film->id);
-            })
-            ->orderBy('session_date')
-            ->orderBy('start_time')
-            ->first();
-
         $otherFilms = Film::query()
             ->where('is_active', true)
             ->where('id', '!=', $film->id)
@@ -224,7 +211,6 @@ class PublicCinemaController extends Controller
         return view('public.films.show', [
             'film' => $film,
             'sessions' => $sessions,
-            'firstAvailableSession' => $firstAvailableSession,
             'otherFilms' => $otherFilms,
         ]);
     }
@@ -285,6 +271,17 @@ class PublicCinemaController extends Controller
         $bookingCutoffMinutes = $settings->integer('booking_cutoff_minutes', 30);
         $candidateDate = null;
 
+        $selectedFilm = null;
+        $filmParam = request('film');
+        if (filled($filmParam)) {
+            $selectedFilm = Film::query()
+                ->where('is_active', true)
+                ->where(function ($q) use ($filmParam) {
+                    $q->where('id', $filmParam)->orWhere('slug', $filmParam);
+                })
+                ->first();
+        }
+
         if ($date === null) {
             // Find the first date from today onwards that still has bookable sessions
             for ($offset = 0; $offset < 14; $offset++) {
@@ -297,8 +294,18 @@ class PublicCinemaController extends Controller
                     ->withSum('occupiedBookings as occupied_seats', 'seats_reserved')
                     ->get();
 
-                $hasAvailable = $daySessions->contains(function ($s) use ($bookingCutoffMinutes) {
-                    return $s->statusWaktu($bookingCutoffMinutes)['can_book'];
+                $hasAvailable = $daySessions->contains(function ($s) use ($bookingCutoffMinutes, $selectedFilm) {
+                    $canBook = $s->statusWaktu($bookingCutoffMinutes)['can_book'];
+                    if (! $canBook) {
+                        return false;
+                    }
+
+                    // If a film is selected, prefer sessions that are not locked to another film
+                    if ($selectedFilm && $s->isConfirmed() && $s->film_id !== $selectedFilm->id) {
+                        return false;
+                    }
+
+                    return true;
                 });
 
                 if ($hasAvailable) {
@@ -314,7 +321,7 @@ class PublicCinemaController extends Controller
 
         // Allow looking up to 14 days ahead
         if ($targetDate->lessThan($today) || $targetDate->greaterThan($today->addDays(13))) {
-            return redirect()->route('schedule.date', ['date' => $today->toDateString()]);
+            return redirect()->route('schedule.date', array_filter(['date' => $today->toDateString(), 'film' => $selectedFilm?->id]));
         }
 
         $dayType = $resolver->dayTypeFor($targetDate);
@@ -358,6 +365,7 @@ class PublicCinemaController extends Controller
             'weekendPrice' => $settings->weekendPrice(),
             'holidayPrice' => $settings->holidayPrice(),
             'privatePrice' => $settings->privatePrice(),
+            'selectedFilm' => $selectedFilm,
         ]);
     }
 }

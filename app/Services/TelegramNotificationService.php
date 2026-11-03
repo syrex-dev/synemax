@@ -324,9 +324,19 @@ class TelegramNotificationService
             }
 
             $body = $response->json();
-            $desc = $body['description'] ?? 'Galat HTTP '.$response->status();
+            $status = $response->status();
+            $desc = $body['description'] ?? 'Galat HTTP '.$status;
 
-            return ['success' => false, 'message' => "Telegram menolak pengiriman: {$desc}"];
+            $friendlyReason = match ($status) {
+                401 => 'Token bot tidak valid atau salah format. Pastikan token dari @BotFather sudah benar.',
+                400 => str_contains(strtolower($desc), 'chat not found')
+                    ? 'Chat ID tidak ditemukan. Pastikan Anda sudah menekan tombol Start pada bot di Telegram.'
+                    : "Permintaan ditolak oleh Telegram: {$desc}",
+                403 => 'Bot diblokir atau belum diberikan izin mengirim pesan ke Chat ID ini.',
+                default => "Telegram menolak pengiriman: {$desc}",
+            };
+
+            return ['success' => false, 'message' => $friendlyReason];
         } catch (Throwable $e) {
             return ['success' => false, 'message' => 'Gagal menghubungi server Telegram: '.$e->getMessage()];
         }
@@ -351,9 +361,15 @@ class TelegramNotificationService
 
             if (! $response->successful()) {
                 $body = $response->json();
-                $desc = $body['description'] ?? 'Galat HTTP '.$response->status();
+                $status = $response->status();
+                $desc = $body['description'] ?? 'Galat HTTP '.$status;
 
-                return ['success' => false, 'chats' => [], 'message' => "Gagal membaca getUpdates: {$desc}"];
+                $friendlyReason = match ($status) {
+                    401 => 'Token bot tidak valid atau salah format. Periksa kembali token dari @BotFather.',
+                    default => "Gagal membaca getUpdates: {$desc}",
+                };
+
+                return ['success' => false, 'chats' => [], 'message' => $friendlyReason];
             }
 
             $results = $response->json('result') ?? [];
@@ -395,13 +411,14 @@ class TelegramNotificationService
      */
     public function buildMessageText(string $event, ?Booking $booking, array $payload = []): string
     {
+        $isUnpaid = $booking && ($booking->status === 'menunggu_pembayaran' || ! $booking->isPaid());
         $title = match ($event) {
-            'booking_created' => '<b>[Booking Baru Diterima]</b>',
+            'booking_created' => $isUnpaid ? '<b>[Booking Baru, Menunggu Pembayaran]</b>' : '<b>[Booking Baru Diterima]</b>',
             'proof_uploaded' => '<b>[Bukti Bayar Diunggah - Perlu Konfirmasi]</b>',
             'payment_confirmed' => '<b>[Pembayaran Booking Dikonfirmasi]</b>',
             'booking_cancelled' => '<b>[Booking Dibatalkan Pelanggan]</b>',
             'booking_expired' => '<b>[Booking Kedaluwarsa - Belum Dibayar]</b>',
-            'session_confirmed' => '<b>[Sesi Pasti Tayang - Kuorum Terpenuhi]</b>',
+            'session_confirmed' => '<b>[Sesi Pasti Tayang - Penonton Terpenuhi]</b>',
             'session_cancelled' => '<b>[Sesi Dibatalkan - Penonton Kurang]</b>',
             default => '<b>[Pemberitahuan SynemaX]</b>',
         };
@@ -425,11 +442,11 @@ class TelegramNotificationService
 
         $session = $booking->session;
         $scheduleDisplay = $session
-            ? htmlspecialchars(format_tanggal_id($session->session_date).' · '.format_jam_id($session->start_time), ENT_QUOTES, 'UTF-8')
+            ? htmlspecialchars(format_hari_tanggal_id($session->session_date).' · '.format_jam_id($session->start_time), ENT_QUOTES, 'UTF-8')
             : '-';
 
-        $packageLabel = match ($booking->package) {
-            'private' => 'Sewa Studio Privat',
+        $packageLabel = match ($booking->package ?? $booking->booking_type) {
+            'private' => 'Sewa Private',
             'couple' => 'Paket Couple',
             default => 'Reguler',
         };
@@ -442,8 +459,9 @@ class TelegramNotificationService
             $snackLines = [];
             $visibleSnacks = $snackItems->take(5);
             foreach ($visibleSnacks as $item) {
-                $name = htmlspecialchars($item->menuItem?->name ?? 'Jajan', ENT_QUOTES, 'UTF-8');
-                $snackLines[] = "• {$name} × {$item->quantity}";
+                $name = htmlspecialchars($item->name_snapshot ?? $item->menuItem?->name ?? 'Jajan', ENT_QUOTES, 'UTF-8');
+                $qty = (int) ($item->qty ?? $item->quantity ?? 1);
+                $snackLines[] = "• {$name} × {$qty}";
             }
             if ($snackItems->count() > 5) {
                 $extra = $snackItems->count() - 5;

@@ -78,7 +78,7 @@
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
             <div>
                 <div class="flex items-center gap-3">
-                    <a href="{{ route('schedule.date', ['date' => $session->session_date]) }}"
+                    <a href="{{ route('schedule.date', array_filter(['date' => $session->session_date, 'film' => request('film') ?: ($session->isConfirmed() ? null : $session->film_id)])) }}"
                        class="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold text-[#B45309] dark:text-amber-400 hover:underline">
                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />

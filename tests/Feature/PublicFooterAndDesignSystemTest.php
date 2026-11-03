@@ -37,10 +37,16 @@ class PublicFooterAndDesignSystemTest extends TestCase
             $footerCount = substr_count($content, '<footer');
             $this->assertEquals(1, $footerCount, "Page {$uri} should have exactly one footer element, found {$footerCount}");
 
-            // Assert footer structure
+            // Assert footer structure & gap-x-6
+            $this->assertStringContainsString('gap-x-6', $content);
             $response->assertSee('Jadwal', false);
             $response->assertSee('Harga & FAQ', false);
             $response->assertSee('Tiket', false);
+
+            // Assert exactly one copyright section
+            preg_match('/<footer.*?<\/footer>/s', $content, $footerMatches);
+            $footerHtml = $footerMatches[0] ?? '';
+            $this->assertSame(1, substr_count($footerHtml, 'Hak cipta dilindungi'));
 
             // Assert Design System is NOT in the public area
             $response->assertDontSee('Design System', false);

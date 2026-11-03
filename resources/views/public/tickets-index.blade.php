@@ -27,7 +27,7 @@
         }
     @endphp
 
-    <div class="mx-auto max-w-2xl px-4 py-5 sm:px-6 sm:py-8"
+    <div class="mx-auto max-w-[520px] w-full px-4 py-5 sm:py-8"
          x-data="{
              activeTab: '{{ $initialTab }}',
              cancelModalOpen: false,

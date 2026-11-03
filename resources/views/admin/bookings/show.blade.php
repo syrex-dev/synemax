@@ -97,11 +97,11 @@
                     </button>
                 </form>
             @elseif ($booking->status === 'kedaluwarsa')
-                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Pulihkan booking ini? Kursi akan ditahan kembali jika sesi masih memiliki kapasitas." data-confirm-title="Pulihkan Booking" data-confirm-action="Pulihkan" novalidate>
+                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Booking ini sudah kedaluwarsa dan tempat sudah dilepas. Aktifkan kembali?" data-confirm-title="Aktifkan Kembali Booking" data-confirm-action="Aktifkan Kembali" novalidate>
                     @csrf @method('PATCH')
-                    <input type="hidden" name="action" value="pulihkan">
+                    <input type="hidden" name="action" value="konfirmasi">
                     <button class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-amber-500 px-5 text-xs sm:text-sm font-bold text-slate-950 hover:bg-amber-400 transition shadow-sm">
-                        Pulihkan Booking
+                        Aktifkan & Konfirmasi
                     </button>
                 </form>
             @endif
@@ -181,7 +181,7 @@
 
                     @if ($booking->status !== 'dibatalkan')
                         <div class="border-t border-slate-200 dark:border-white/10 my-1"></div>
-                        <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Batalkan booking ini? Kursi yang dipesan akan dilepas kembali ke sesi." data-confirm-title="Batalkan Booking" data-confirm-action="Batalkan Booking" data-confirm-is-danger="true" novalidate>
+                        <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Batalkan booking ini? Tempat yang dipesan akan dilepas kembali ke sesi." data-confirm-title="Batalkan Booking" data-confirm-action="Batalkan Booking" data-confirm-is-danger="true" novalidate>
                             @csrf @method('PATCH')
                             <input type="hidden" name="action" value="batal">
                             <button class="flex w-full min-h-[38px] items-center gap-2 rounded-xl px-3 py-2 font-semibold text-danger hover:bg-danger-surface transition text-left">

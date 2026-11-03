@@ -17,9 +17,7 @@
     $hasPoster = filled($film->posterUrl());
     $genres = $film->genresList();
     $durationText = format_durasi_id($film->duration_minutes);
-    $bookingUrl = $firstAvailableSession
-        ? route('booking.create', ['session' => $firstAvailableSession->id, 'film' => $film->id])
-        : route('schedule.index', ['film' => $film->id]);
+    $bookingUrl = route('schedule.index', ['film' => $film->id]);
 @endphp
 
 {{-- Shared Trailer Modal --}}
@@ -149,10 +147,10 @@
                         <span>Pilih Film Ini</span>
                     </a>
                     <a
-                        href="{{ route('schedule.index', ['film' => $film->id]) }}"
+                        href="{{ route('schedule.index') }}"
                         class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface px-5 text-xs font-bold text-text hover:bg-surface-2 transition"
                     >
-                        <span>Lihat jadwal</span>
+                        <span>Semua Jadwal</span>
                     </a>
                 </div>
             </div>
@@ -242,10 +240,10 @@
                     Pilih Film Ini
                 </a>
                 <a
-                    href="{{ route('schedule.index', ['film' => $film->id]) }}"
+                    href="{{ route('schedule.index') }}"
                     class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface text-xs font-bold text-text text-center hover:bg-surface-2"
                 >
-                    Lihat jadwal
+                    Semua Jadwal
                 </a>
             </div>
         </div>

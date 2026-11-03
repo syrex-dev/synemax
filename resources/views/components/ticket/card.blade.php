@@ -4,15 +4,18 @@
 ])
 
 @php
+    $flowState = $booking->flowState();
     $film = $booking->film;
     $session = $booking->session;
-    $isConfirmed = $session ? $session->isConfirmed() : false;
-    $isCancelled = $booking->status === 'dibatalkan';
-    $isCompleted = in_array($booking->status, ['selesai', 'terlewat', 'hadir'], true);
-    $isWaiting = ! $isConfirmed && ! $isCancelled;
+    $isCancelled = $flowState === 'dibatalkan';
+    $isExpired = $flowState === 'kedaluwarsa';
+    $isCompleted = in_array($flowState, ['selesai', 'terlewat', 'hadir', 'tidak_datang'], true);
+    $isWaitingPenonton = $flowState === 'menunggu_penonton';
+    $isDiproses = $flowState === 'diproses';
+    $isAktif = $flowState === 'aktif';
 
     $candidateTallies = ($session && method_exists($session, 'candidateFilmTallies')) ? $session->candidateFilmTallies() : collect();
-    $currentSeats = $booking->seats_reserved > 0 ? $booking->seats_reserved : 6;
+    $currentSeats = $booking->seats_reserved > 0 ? $booking->seats_reserved : ($booking->people_count ?? 6);
     $myFilmTally = $session ? ($candidateTallies->firstWhere('film_id', $booking->film_id)['seats'] ?? $currentSeats) : $currentSeats;
     $quorum = $session ? $session->quorum() : 3;
     $shortage = max(0, $quorum - $myFilmTally);
@@ -31,7 +34,7 @@
     }
 @endphp
 
-<div id="printable-ticket" class="print-ticket max-w-[400px] w-full mx-auto bg-white text-slate-900 rounded-[12px] border border-slate-300 dark:border-slate-300 shadow-none overflow-hidden select-none break-inside-avoid [page-break-inside:avoid] print:max-w-none print:w-full print:border-none print:rounded-none">
+<div id="printable-ticket" class="print-ticket w-full mx-auto bg-white text-slate-900 rounded-[12px] border border-slate-300 dark:border-slate-300 shadow-none overflow-hidden select-none break-inside-avoid [page-break-inside:avoid] print:max-w-none print:w-full print:border-none print:rounded-none">
 
     {{-- 1. STRIP MEREK (Tinggi 48px, Latar Putih) --}}
     <div class="h-12 px-4 flex items-center justify-between border-b border-slate-200 bg-white">
@@ -43,12 +46,16 @@
         <div>
             @if ($isCancelled)
                 <x-ui.status status="dibatalkan">Dibatalkan</x-ui.status>
-            @elseif ($isWaiting)
-                <x-ui.status status="menunggu_penonton">Menunggu Penonton</x-ui.status>
+            @elseif ($isExpired)
+                <x-ui.status status="kedaluwarsa">Kedaluwarsa</x-ui.status>
+            @elseif ($isDiproses)
+                <x-ui.status status="menunggu_konfirmasi">Menunggu konfirmasi</x-ui.status>
+            @elseif ($isWaitingPenonton)
+                <x-ui.status status="menunggu_penonton">Menunggu penonton</x-ui.status>
             @elseif ($isCompleted)
                 <x-ui.status status="selesai">Selesai</x-ui.status>
             @else
-                <x-ui.status status="terkonfirmasi">Tiket Aktif</x-ui.status>
+                <x-ui.status status="terkonfirmasi">Tiket aktif</x-ui.status>
             @endif
         </div>
     </div>
@@ -66,14 +73,13 @@
         {{-- Dark 55% Overlay for Text Contrast --}}
         <div class="absolute inset-0 bg-black/55"></div>
 
-        {{-- Sharp Poster 72x108 --}}
-        <div class="relative z-10 shrink-0">
+        {{-- Sharp Poster 72x108 dengan Fallback Warna Polos Tanpa Bocoran Teks Alt --}}
+        <div class="relative z-10 bg-slate-800 shrink-0 w-[72px] h-[108px] rounded-lg border-2 border-white overflow-hidden shadow-sm flex items-center justify-center">
             @if ($film && $film->posterUrl())
                 <img src="{{ $film->posterUrl() }}"
-                     alt="{{ $film->title }}"
-                     class="w-[72px] h-[108px] rounded-lg border-2 border-white object-cover shadow-sm bg-slate-800 {{ $isCancelled ? 'grayscale' : '' }}">
-            @else
-                <div class="w-[72px] h-[108px] rounded-lg border-2 border-white/20 bg-slate-800 shrink-0"></div>
+                     alt=""
+                     onerror="this.style.display='none'"
+                     class="w-full h-full object-cover {{ ($isCancelled || $isExpired) ? 'grayscale' : '' }}">
             @endif
         </div>
 
@@ -113,14 +119,14 @@
         <div>
             <span class="text-[12px] font-medium text-[#475569] block">Paket</span>
             <span class="text-[16px] font-bold text-[#0F172A] block">
-                {{ $booking->isPrivate() ? 'Sewa Private (6 orang)' : ($booking->isCouple() ? 'Paket Couple' : 'Reguler') }}
+                {{ $booking->isPrivate() ? 'Sewa Private · 6 orang' : ($booking->isCouple() ? 'Paket Couple · 2 orang' : 'Reguler · ' . ($booking->people_count ?? $booking->pax) . ' orang') }}
             </span>
-            <span class="sr-only">Paket & Kursi</span>
+            <span class="sr-only">Paket</span>
         </div>
         <div>
             <span class="text-[12px] font-medium text-[#475569] block">Jumlah</span>
             <span class="text-[16px] font-bold text-[#0F172A] block tabular-nums">
-                Jumlah: {{ $booking->people_count ?? $booking->seats_reserved ?? $booking->pax }} orang
+                {{ $booking->people_count ?? $booking->seats_reserved ?? $booking->pax }} orang
             </span>
         </div>
         <div>
@@ -151,11 +157,32 @@
                 <p class="text-xs font-semibold text-[#475569]">Kode booking</p>
                 <p class="font-mono text-xl font-bold tracking-widest text-[#0F172A]">{{ $booking->code }}</p>
             </div>
-        @elseif ($isWaiting)
+        @elseif ($isExpired)
+            {{-- Status: Kedaluwarsa --}}
+            <div class="p-3.5 bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-xs space-y-1 text-left">
+                <p class="font-bold text-slate-900">Tiket Kedaluwarsa</p>
+                <p class="leading-relaxed">Batas waktu pembayaran telah berakhir dan tempat pesanan telah dilepas.</p>
+                <p class="text-[11px] text-slate-600">Silakan lakukan pemesanan sesi baru.</p>
+            </div>
+            <div class="space-y-0.5 pt-1">
+                <p class="text-xs font-semibold text-[#475569]">Kode booking</p>
+                <p class="font-mono text-xl font-bold tracking-widest text-[#0F172A]">{{ $booking->code }}</p>
+            </div>
+        @elseif ($isDiproses)
+            {{-- Status: Menunggu Konfirmasi Admin --}}
+            <div class="p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-xs space-y-1 text-left">
+                <p class="font-bold">Bukti Pembayaran Diterima</p>
+                <p class="leading-relaxed">Admin sedang memverifikasi bukti transfer. Tiket aktif akan muncul setelah dikonfirmasi.</p>
+            </div>
+            <div class="space-y-0.5 pt-1">
+                <p class="text-xs font-semibold text-[#475569]">Kode booking</p>
+                <p class="font-mono text-xl font-bold tracking-widest text-[#0F172A]">{{ $booking->code }}</p>
+            </div>
+        @elseif ($isWaitingPenonton)
             {{-- Status: Menunggu Penonton --}}
             <div class="p-3.5 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-xs space-y-1">
                 <p class="font-bold">Tiket aktif setelah sesi dipastikan tayang.</p>
-                <p>Butuh {{ $shortage }} penonton lagi untuk sesi ini.</p>
+                <p class="text-[11px] text-amber-800">QR Code masuk studio akan otomatis muncul setelah sesi pasti tayang.</p>
             </div>
             <div class="space-y-0.5 pt-1">
                 <p class="text-xs font-semibold text-[#475569]">Kode booking</p>
@@ -164,7 +191,7 @@
         @elseif ($isCompleted)
             {{-- Status: Selesai / Sudah Dipakai --}}
             <div class="p-3.5 bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-xs">
-                <p class="font-bold text-sm text-slate-900">Tiket sudah dipakai</p>
+                <p class="font-bold text-sm text-slate-900">Tiket sudah digunakan</p>
             </div>
             <div class="space-y-0.5 pt-1">
                 <p class="text-xs font-semibold text-[#475569]">Kode booking</p>
@@ -173,7 +200,7 @@
         @else
             {{-- Status: Aktif (QR inline SVG 150px / 36mm cetak + Monospace 20px) --}}
             <div class="flex flex-col items-center justify-center space-y-2">
-                <div data-ticket-qr class="size-[150px] border border-slate-200 rounded p-1 bg-white flex items-center justify-center print:size-[36mm] [&>svg]:w-full [&>svg]:h-full [&>svg]:block">
+                <div id="ticket-qr" data-ticket-qr class="size-[150px] border border-slate-200 rounded p-1 bg-white flex items-center justify-center print:size-[36mm] [&>svg]:w-full [&>svg]:h-full [&>svg]:block">
                     {!! generate_inline_qr_svg($booking->code, 150, 1) !!}
                 </div>
                 
@@ -207,7 +234,7 @@
         {{-- Baris Tiket --}}
         <div class="flex justify-between text-slate-600">
             <span>
-                Tiket ({{ $booking->isPrivate() ? 'Sewa Private (6 orang)' : ($booking->isCouple() ? 'Paket Couple' : ($booking->seat_price ? $booking->pax . ' × Rp ' . number_format($booking->seat_price, 0, ',', '.') : 'Reguler')) }})
+                Tiket ({{ $booking->isPrivate() ? 'Sewa Private · 6 orang' : ($booking->isCouple() ? 'Paket Couple · 2 orang' : 'Reguler · ' . ($booking->people_count ?? $booking->pax) . ' orang') }})
             </span>
             <span class="font-semibold text-slate-900 tabular-nums">
                 Rp {{ number_format($booking->ticket_total, 0, ',', '.') }}
@@ -247,18 +274,24 @@
             </span>
         </div>
 
-        {{-- Metode & Status Bayar --}}
+        {{-- Metode & Status Pembayaran Terpisah Transparan --}}
         @php
             $statusBayarLabel = $booking->paymentStatusLabel();
             $statusBayarColor = $booking->paymentStatusColor();
         @endphp
-        <div class="flex justify-between text-[11px] text-slate-500 pt-0.5">
-            <span>
-                Metode: {{ ['di_tempat' => 'Bayar di tempat', 'qris' => 'QRIS', 'transfer' => 'Transfer'][$booking->payment_method] ?? ucfirst($booking->payment_method) }}
-            </span>
-            <span class="font-bold {{ $statusBayarColor }}">
-                {{ $statusBayarLabel }}
-            </span>
+        <div class="pt-2 border-t border-slate-100 space-y-1 text-[11px] text-slate-600">
+            <div class="flex justify-between items-center">
+                <span>Metode Pembayaran</span>
+                <span class="font-semibold text-slate-900">
+                    {{ ['di_tempat' => 'Bayar di tempat', 'qris' => 'QRIS', 'transfer' => 'Transfer'][$booking->payment_method] ?? ucfirst($booking->payment_method) }}
+                </span>
+            </div>
+            <div class="flex justify-between items-center">
+                <span>Status Pembayaran</span>
+                <span class="font-bold {{ $statusBayarColor }}">
+                    {{ $statusBayarLabel }}
+                </span>
+            </div>
         </div>
     </div>
 

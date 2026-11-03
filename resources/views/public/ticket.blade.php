@@ -64,25 +64,31 @@
 
 @section('content')
     @php
+        $flowState = $booking->flowState();
         $myFilm = $booking->film;
         $session = $booking->session;
-        $isConfirmed = $session->isConfirmed();
-        $isCancelled = $booking->status === 'dibatalkan';
-        $isCompleted = in_array($booking->status, ['selesai', 'terlewat', 'hadir'], true);
+        $isCancelled = $flowState === 'dibatalkan';
+        $isExpired = $flowState === 'kedaluwarsa';
+        $isCompleted = in_array($flowState, ['selesai', 'terlewat', 'hadir', 'tidak_datang'], true);
         $isPaid = $booking->isPaid();
-        $isWaitingQuorum = ! $isConfirmed && ! $isCancelled;
-        $myFilmTally = $candidateTallies->firstWhere('film_id', $booking->film_id)['seats'] ?? $booking->seats_reserved;
-        $quorum = $session->quorum();
+        $isWaitingPenonton = $flowState === 'menunggu_penonton';
+        $isDiproses = $flowState === 'diproses';
+        $isAktif = $flowState === 'aktif';
+
+        $candidateTallies = ($session && method_exists($session, 'candidateFilmTallies')) ? $session->candidateFilmTallies() : collect();
+        $myFilmTally = $candidateTallies->firstWhere('film_id', $booking->film_id)['seats'] ?? ($booking->people_count ?? $booking->seats_reserved);
+        $quorum = $session ? $session->quorum() : 3;
         $shortage = max(0, $quorum - $myFilmTally);
+
         $settings = app(\App\Services\CinemaSettings::class);
         $studioName = $settings->ticketStudioName();
         $arriveMinutes = $settings->ticketArriveMinutes();
         $ticketNotes = $settings->ticketNotes();
-        $canPrint = $isConfirmed;
-        $statusWaktu = $sessionStatus ?? $session->statusWaktu();
+        $canPrint = $isAktif || $isCompleted;
+        $statusWaktu = $sessionStatus ?? $session?->statusWaktu();
     @endphp
 
-    <div class="mx-auto max-w-xl px-4 py-5 sm:px-6 sm:py-8 print-ticket-container"
+    <div class="mx-auto max-w-[520px] w-full px-4 py-5 sm:py-8 print-ticket-container"
          x-data="{
              code: @js($booking->code),
              status: @js($booking->status),
@@ -103,7 +109,7 @@
                      }
                  } catch (e) {}
 
-                 if (this.status === 'menunggu_konfirmasi' || !@js($isConfirmed)) {
+                 if (this.status === 'menunggu_konfirmasi' || !@js($session?->isConfirmed() ?? false)) {
                      this.startPolling();
                  }
              },
@@ -120,7 +126,7 @@
                      .then(res => res.json())
                      .then(data => {
                          this.polling = false;
-                         if (data.status && (data.status !== this.status || Boolean(data.session_confirmed) !== @js($isConfirmed))) {
+                         if (data.status && (data.status !== this.status || Boolean(data.session_confirmed) !== @js($session?->isConfirmed() ?? false))) {
                              window.location.reload();
                          }
                      })
@@ -163,41 +169,48 @@
             </div>
         @endif
 
-        {{-- Indikator Tahapan Pesanan / Status Batal --}}
-        @if ($booking->status === 'dibatalkan')
-            <div class="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3.5 text-xs no-print">
-                <x-ui.status status="dibatalkan" variant="solid" />
-                <span class="font-medium text-red-800 dark:text-red-200">
-                    {{ $booking->cancellation_reason ?: 'Booking ini telah dibatalkan.' }}
-                </span>
-            </div>
-            @if ($booking->refund_needed)
-                <div class="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-800 dark:text-red-200 flex items-center gap-2 no-print">
-                    <svg class="size-4 shrink-0 text-red-600 dark:text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
-                    <span>Pembayaran Anda telah ditandai untuk proses Refund oleh Admin. Admin akan menghubungi lewat WhatsApp.</span>
+        {{-- ==================== STEPPER / STATUS HEADER ==================== --}}
+        @if ($isCancelled || $isExpired)
+            {{-- Satu baris status merah + alasan untuk booking batal atau kedaluwarsa --}}
+            <div class="mb-5 rounded-xl border border-danger/40 bg-danger-surface p-4 text-xs font-semibold text-danger-text no-print">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <x-ui.status :status="$isExpired ? 'kedaluwarsa' : 'dibatalkan'" variant="solid" />
+                        <span>
+                            {{ $isExpired ? 'Batas waktu pembayaran habis dan tempat pesanan telah dilepas.' : ($booking->cancellation_reason ?: 'Booking ini telah dibatalkan.') }}
+                        </span>
+                    </div>
+                    @if ($booking->refund_needed)
+                        <span class="text-[11px] font-bold text-danger-text/90">Perlu proses refund oleh admin via WhatsApp.</span>
+                    @endif
                 </div>
-            @endif
+            </div>
         @else
+            {{-- Stepper 2 Langkah (Bayar di tempat) atau 3 Langkah (Online) --}}
             @if ($booking->payment_method === 'di_tempat')
-                {{-- Alur Bayar di tempat: 2 tahap (Booking -> Selesai / Menunggu Penonton) --}}
+                {{-- Alur Bayar di tempat: 2 tahap (Booking -> Tiket / Menunggu penonton / Tiket aktif) --}}
                 @php
-                    $step2Label = $isWaitingQuorum ? 'Menunggu penonton' : 'Selesai';
-                    $step2Done = ! $isWaitingQuorum && ($isConfirmed || $isCompleted);
-                    $step2Active = $isWaitingQuorum || ! $step2Done;
+                    $step2Label = match ($flowState) {
+                        'menunggu_penonton' => 'Menunggu penonton',
+                        'aktif' => 'Tiket aktif',
+                        default => 'Tiket',
+                    };
+                    $step2Active = $flowState === 'menunggu_penonton';
+                    $step2Done = in_array($flowState, ['aktif', 'selesai', 'hadir'], true);
                 @endphp
                 <nav aria-label="Tahapan Pesanan" class="mb-5 no-print">
                     <ol class="grid grid-cols-2 gap-2 text-center text-xs">
-                        {{-- Langkah 1: Booking --}}
+                        {{-- Langkah 1: Booking (Selesai) --}}
                         <li class="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-600/30 bg-emerald-500/10 p-2 font-medium">
                             <span class="grid size-5 place-items-center rounded-full bg-emerald-700 text-white" aria-hidden="true">
                                 <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                                 </svg>
                             </span>
-                            <span class="font-bold text-slate-800 dark:text-slate-100"><span class="sr-only">1. Booking</span><span aria-hidden="true">Booking</span></span>
+                            <span class="font-bold text-slate-800 dark:text-slate-100">Booking</span>
                         </li>
 
-                        {{-- Langkah 2: Selesai / Menunggu Penonton --}}
+                        {{-- Langkah 2: Tiket aktif / Menunggu penonton --}}
                         @if ($step2Done)
                             <li class="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-600/30 bg-emerald-500/10 p-2 font-medium">
                                 <span class="grid size-5 place-items-center rounded-full bg-emerald-700 text-white" aria-hidden="true">
@@ -205,36 +218,40 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                                     </svg>
                                 </span>
-                                <span class="font-bold text-slate-800 dark:text-slate-100"><span class="sr-only">2. {{ $step2Label }}</span><span aria-hidden="true">{{ $step2Label }}</span></span>
+                                <span class="font-bold text-slate-800 dark:text-slate-100">{{ $step2Label }}</span>
                             </li>
                         @else
                             <li class="flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/50 bg-amber-500/10 p-2 font-bold">
                                 <span class="grid size-5 place-items-center rounded-full bg-amber-400 text-slate-950 text-[11px] font-black" aria-hidden="true">2</span>
-                                <span class="text-amber-900 dark:text-amber-200"><span class="sr-only">2. {{ $step2Label }}</span><span aria-hidden="true">{{ $step2Label }}</span></span>
+                                <span class="text-amber-900 dark:text-amber-200">{{ $step2Label }}</span>
                             </li>
                         @endif
                     </ol>
                 </nav>
             @else
-                {{-- Alur Online (QRIS / Transfer): 3 tahap (Booking -> Bayar -> Selesai) --}}
+                {{-- Alur Online (QRIS / Transfer): 3 tahap (Booking -> Bayar -> Tiket) --}}
                 @php
-                    $step1Done = true;
-                    $step2Done = $isPaid;
-                    $step2Active = ! $isPaid;
-                    $step3Label = $isWaitingQuorum ? 'Menunggu penonton' : 'Selesai';
-                    $step3Done = $step2Done && ! $isWaitingQuorum && ($isConfirmed || $isCompleted);
-                    $step3Active = $step2Done && $isWaitingQuorum;
+                    $step2Done = in_array($flowState, ['diproses', 'menunggu_penonton', 'aktif', 'selesai', 'hadir'], true);
+                    $step2Active = $flowState === 'menunggu_bayar';
+
+                    $step3Label = match ($flowState) {
+                        'menunggu_penonton' => 'Menunggu penonton',
+                        'aktif' => 'Tiket aktif',
+                        default => 'Tiket',
+                    };
+                    $step3Done = in_array($flowState, ['aktif', 'selesai', 'hadir'], true);
+                    $step3Active = in_array($flowState, ['diproses', 'menunggu_penonton'], true);
                 @endphp
                 <nav aria-label="Tahapan Pesanan" class="mb-5 no-print">
                     <ol class="grid grid-cols-3 gap-2 text-center text-xs">
-                        {{-- Langkah 1: Booking --}}
+                        {{-- Langkah 1: Booking (Selesai) --}}
                         <li class="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-600/30 bg-emerald-500/10 p-2 font-medium">
                             <span class="grid size-5 place-items-center rounded-full bg-emerald-700 text-white" aria-hidden="true">
                                 <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                                 </svg>
                             </span>
-                            <span class="font-bold text-slate-800 dark:text-slate-100"><span class="sr-only">1. Booking</span><span aria-hidden="true">Booking</span></span>
+                            <span class="font-bold text-slate-800 dark:text-slate-100">Booking</span>
                         </li>
 
                         {{-- Langkah 2: Bayar --}}
@@ -245,21 +262,21 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                                     </svg>
                                 </span>
-                                <span class="font-bold text-slate-800 dark:text-slate-100"><span class="sr-only">2. Bayar</span><span aria-hidden="true">Bayar</span></span>
+                                <span class="font-bold text-slate-800 dark:text-slate-100">Bayar</span>
                             </li>
                         @elseif ($step2Active)
                             <li class="flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/50 bg-amber-500/10 p-2 font-bold">
                                 <span class="grid size-5 place-items-center rounded-full bg-amber-400 text-slate-950 text-[11px] font-black" aria-hidden="true">2</span>
-                                <span class="text-amber-900 dark:text-amber-200"><span class="sr-only">2. Bayar</span><span aria-hidden="true">Bayar</span></span>
+                                <span class="text-amber-900 dark:text-amber-200">Bayar</span>
                             </li>
                         @else
                             <li class="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-surface p-2 font-medium text-text-muted">
                                 <span class="grid size-5 place-items-center rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold" aria-hidden="true">2</span>
-                                <span><span class="sr-only">2. Bayar</span><span aria-hidden="true">Bayar</span></span>
+                                <span>Bayar</span>
                             </li>
                         @endif
 
-                        {{-- Langkah 3: Selesai / Menunggu Penonton --}}
+                        {{-- Langkah 3: Tiket / Menunggu penonton / Tiket aktif --}}
                         @if ($step3Done)
                             <li class="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-600/30 bg-emerald-500/10 p-2 font-medium">
                                 <span class="grid size-5 place-items-center rounded-full bg-emerald-700 text-white" aria-hidden="true">
@@ -267,17 +284,17 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                                     </svg>
                                 </span>
-                                <span class="font-bold text-slate-800 dark:text-slate-100"><span class="sr-only">3. {{ $step3Label }}</span><span aria-hidden="true">{{ $step3Label }}</span></span>
+                                <span class="font-bold text-slate-800 dark:text-slate-100">{{ $step3Label }}</span>
                             </li>
                         @elseif ($step3Active)
                             <li class="flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/50 bg-amber-500/10 p-2 font-bold">
                                 <span class="grid size-5 place-items-center rounded-full bg-amber-400 text-slate-950 text-[11px] font-black" aria-hidden="true">3</span>
-                                <span class="text-amber-900 dark:text-amber-200"><span class="sr-only">3. {{ $step3Label }}</span><span aria-hidden="true">{{ $step3Label }}</span></span>
+                                <span class="text-amber-900 dark:text-amber-200">{{ $step3Label }}</span>
                             </li>
                         @else
                             <li class="flex items-center justify-center gap-1.5 rounded-xl border border-border bg-surface p-2 font-medium text-text-muted">
                                 <span class="grid size-5 place-items-center rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-[11px] font-bold" aria-hidden="true">3</span>
-                                <span><span class="sr-only">3. {{ $step3Label }}</span><span aria-hidden="true">{{ $step3Label }}</span></span>
+                                <span>{{ $step3Label }}</span>
                             </li>
                         @endif
                     </ol>
@@ -285,289 +302,177 @@
             @endif
         @endif
 
-        {{-- ==================== BANNERS STATUS SESI & MINIMAL PENONTON ==================== --}}
-        @if ($booking->status !== 'dibatalkan')
-            <div class="mb-5 no-print space-y-3">
-                @if ($booking->status === 'menunggu_konfirmasi')
-                    <div class="rounded-xl border border-amber-500/40 bg-surface p-4 text-xs text-text shadow-sm">
-                        <div class="flex items-start justify-between gap-3">
-                            <div>
-                                <p class="font-bold text-amber-500 text-sm">Menunggu konfirmasi admin</p>
-                                <p class="mt-1 text-text-muted leading-relaxed">
-                                    @if ($booking->payment_method === 'di_tempat')
-                                        Booking diterima. Bayar tunai di lokasi sebelum film mulai. Admin akan mengonfirmasi tiket setelah pembayaran di kasir.
-                                    @else
-                                        Bukti bayar diterima. Admin akan memeriksa dan mengonfirmasi tiketmu.
-                                    @endif
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-
-                @if ($booking->needsReselect())
-                <div class="rounded-xl border border-amber-400/50 bg-amber-500/10 p-4 text-xs shadow-sm">
-                    <span class="rounded bg-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase text-black">Perlu Pilih Ulang</span>
-                    <h3 class="mt-2 text-sm font-bold text-text">Film Pilihan Anda Belum Mencapai Minimal Penonton</h3>
-                    <p class="mt-1 text-text-muted leading-relaxed">
-                        Sesi ini telah terkonfirmasi pasti tayang untuk film <span class="font-bold text-text">{{ $session->activeFilm()?->title }}</span>. Anda dapat ikut menonton film ini atau pindah ke sesi lain secara gratis.
-                    </p>
-                    <div class="mt-3 flex flex-wrap gap-2">
-                        <form method="POST" action="{{ route('booking.change-film', ['code' => $booking->code]) }}">
-                            @csrf
-                            <input type="hidden" name="film_id" value="{{ $session->film_id }}">
-                            <button type="submit" class="btn-gold-cinema inline-flex min-h-9 items-center rounded-xl px-3.5 text-xs font-bold">
-                                Ikut Film Terkunci ({{ $session->activeFilm()?->title }})
-                            </button>
-                        </form>
-                        <button type="button" @click="rescheduleModal = true" class="inline-flex min-h-9 items-center rounded-xl border border-border bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-400">
-                            Pindah Sesi Lain (Gratis)
-                        </button>
+        {{-- ==================== KARTU STATUS KHUSUS ==================== --}}
+        {{-- 1. Kartu Status: Bukti Pembayaran Diterima / Diproses --}}
+        @if ($flowState === 'diproses')
+            <div class="mb-5 rounded-2xl border border-amber-500/30 bg-surface p-5 text-xs text-text shadow-sm no-print">
+                <div class="flex items-start gap-3">
+                    <span class="flex size-8 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold">
+                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-sm font-bold text-amber-600 dark:text-amber-400">Bukti pembayaran diterima, menunggu konfirmasi admin</h2>
+                        <p class="mt-1 text-text-muted leading-relaxed">
+                            Admin bioskop sedang memverifikasi bukti transfer Anda. Tiket aktif akan diterbitkan segera setelah pembayaran diverifikasi.
+                        </p>
                     </div>
                 </div>
-            @elseif ($isConfirmed)
-                <div class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-emerald-400 shadow-sm flex items-center justify-between gap-3">
-                    <div class="flex items-center gap-3">
-                        <span class="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
-                            <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                            </svg>
-                        </span>
-                        <div>
-                            <p class="font-bold text-sm">Pasti Tayang: {{ $session->activeFilm()?->title ?? $myFilm?->title }}</p>
-                            <p class="text-xs opacity-90 text-text-muted">
-                                Sesi ini telah terkonfirmasi pasti diputar ({{ match ($session->confirmation_method) {
-                                    'couple' => 'Paket Couple',
-                                    'private' => 'Sewa Private',
-                                    'admin' => 'Dikonfirmasi Admin',
-                                    default => 'Minimal 4 Kursi Terpenuhi',
-                                } }}).
-                            </p>
-                        </div>
-                    </div>
-                    @if ($booking->isOnlinePayment() && $booking->status === 'menunggu_pembayaran')
-                        <a href="{{ route('booking.payment', ['code' => $booking->code]) }}"
-                           class="btn-gold-cinema inline-flex min-h-9 shrink-0 items-center rounded-xl px-3.5 text-xs font-bold shadow-md">
-                            Bayar Sekarang
-                        </a>
-                    @endif
-                </div>
-            @elseif ($statusWaktu === 'Butuh kesepakatan')
-                <div class="relative overflow-hidden rounded-2xl border border-amber-500/40 bg-surface dark:bg-gradient-to-b dark:from-[#141A28] dark:via-[#0E1320] dark:to-[#080B12] p-4 sm:p-5 shadow-sm dark:shadow-md">
-                    <div class="pointer-events-none absolute -right-12 -top-12 size-36 rounded-full bg-amber-500/10 blur-2xl"></div>
-
-                    <div class="flex items-start justify-between gap-2">
-                        <div>
-                            <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">
-                                <span class="size-2 rounded-full bg-amber-500 animate-pulse"></span>
-                                <span>Butuh Kesepakatan</span>
-                            </span>
-                            <h3 class="mt-2 text-sm sm:text-base font-black text-text tracking-tight leading-snug">Sesi Memasuki Jendela Kesepakatan</h3>
-                            <p class="mt-1 text-xs text-text-muted leading-relaxed">
-                                Jam tayang tersisa kurang dari 3 jam dan belum ada film yang mencapai 4 kursi. Gabung ke film dengan peminat terbanyak atau ajak teman agar sesi tidak dibatalkan!
-                            </p>
-                        </div>
-                    </div>
-
-                    @if ($candidateTallies->isNotEmpty())
-                        <div class="mt-3 rounded-xl border border-border bg-surface-2 p-3 space-y-2">
-                            <span class="text-[11px] font-bold text-text-muted uppercase tracking-wider block">Peminat Saat Ini:</span>
-                            @foreach ($candidateTallies as $tally)
-                                <div class="flex items-center justify-between text-xs">
-                                    <span class="font-bold text-text truncate max-w-[200px]">{{ $tally['title'] }}</span>
-                                    <span class="font-tabular font-bold text-amber-600 dark:text-amber-400">{{ $tally['seats'] }}/{{ $quorum }} kursi</span>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-
-                    <div class="mt-4 flex flex-wrap gap-2 border-t border-border/70 pt-3">
-                        @if ($ajakTemanUrl)
-                            <a href="{{ $ajakTemanUrl }}" target="_blank" rel="noopener noreferrer"
-                               class="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] px-3.5 text-xs font-bold text-white shadow-xs transition active:scale-95">
-                                <svg class="size-3.5 fill-current" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                                <span>Ajak Teman via WA</span>
-                            </a>
-                        @endif
-                        <button type="button" @click="changeFilmModal = true"
-                                class="inline-flex min-h-9 items-center justify-center rounded-xl border border-border-input bg-surface-2 hover:bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-400 transition active:scale-95 shadow-xs">
-                            Ikut Film Lain
-                        </button>
-                        <button type="button" @click="rescheduleModal = true"
-                                class="inline-flex min-h-9 items-center justify-center rounded-xl border border-border-input bg-surface-2 hover:bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-400 transition active:scale-95 shadow-xs">
-                            Pindah Sesi
-                        </button>
-                    </div>
-                </div>
-            @else
-                {{-- Status Default: Menunggu Minimal Penonton (Redesigned: Clean, Elegant, Cinema-Grade) --}}
-                <div class="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-surface dark:bg-gradient-to-b dark:from-[#141A28] dark:via-[#0E1320] dark:to-[#080B12] p-4 sm:p-5 shadow-sm dark:shadow-md">
-                    {{-- Ambient Gold Light in the background --}}
-                    <div class="pointer-events-none absolute -right-12 -top-12 size-36 rounded-full bg-amber-500/10 blur-2xl"></div>
-
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="flex-1 min-w-0">
-                            {{-- Badges Row --}}
-                            <div class="flex flex-wrap items-center gap-2">
-                                <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">
-                                    <span class="size-2 rounded-full bg-amber-500 animate-pulse"></span>
-                                    <span>Menunggu Penonton</span>
-                                </span>
-                                <span class="inline-flex items-center gap-1 rounded-full bg-surface-2 border border-border px-2.5 py-0.5 text-xs font-bold text-text">
-                                    <span class="font-tabular text-amber-600 dark:text-amber-400">{{ $myFilmTally }}</span>/{{ $quorum }} Kursi
-                                </span>
-                            </div>
-
-                            {{-- Title & Guidance Text --}}
-                            <h3 class="mt-2.5 text-sm sm:text-base font-black text-text tracking-tight leading-snug">
-                                Butuh <span class="text-amber-600 dark:text-amber-400">{{ $shortage }} penonton lagi</span> untuk film {{ $myFilm?->title }}
-                            </h3>
-                            <p class="mt-1 text-xs text-text-muted leading-relaxed">
-                                @if ($booking->isOnlinePayment() && $booking->payment_expires_at === null)
-                                    Instruksi pembayaran akan muncul otomatis segera setelah film mencapai 4 penonton, sehingga Anda tidak perlu khawatir tentang refund bila minimal penonton belum terpenuhi.
-                                @else
-                                    Ajak teman atau penonton lain untuk bergabung menonton film ini agar sesi segera terkonfirmasi pasti tayang.
-                                @endif
-                            </p>
-
-                            {{-- Progress Bar Minimal Penonton --}}
-                            <div class="mt-3 space-y-1">
-                                <div class="flex items-center justify-between text-[11px] font-semibold text-text-muted">
-                                    <span>Progres Kuorum Sesi</span>
-                                    <span class="font-tabular font-bold text-amber-600 dark:text-amber-400">{{ min(100, round(($myFilmTally / $quorum) * 100)) }}% Terpenuhi</span>
-                                </div>
-                                <div class="h-2.5 w-full overflow-hidden rounded-full bg-surface-sunken border border-border/60">
-                                    <div class="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-400 transition-all duration-500 shadow-xs" style="width: {{ min(100, round(($myFilmTally / $quorum) * 100)) }}%"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Tombol Refresh --}}
-                        <button type="button"
-                                @click="checkStatus(true)"
-                                :disabled="polling"
-                                class="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-border-input bg-surface-2 hover:bg-surface px-3 text-xs font-bold text-text hover:border-amber-400 transition active:scale-95 shadow-xs">
-                            <svg class="size-3.5 text-text-muted" :class="{ 'animate-spin': polling }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                            </svg>
-                            <span x-text="polling ? 'Cek...' : 'Refresh'">Refresh</span>
-                        </button>
-                    </div>
-
-                    {{-- Tombol Ajak Teman & Aksi Cepat --}}
-                    <div class="mt-4 flex flex-wrap gap-2 border-t border-border/70 pt-3">
-                        @if ($ajakTemanUrl)
-                            <a href="{{ $ajakTemanUrl }}" target="_blank" rel="noopener noreferrer"
-                               class="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] px-3.5 text-xs font-bold text-white shadow-xs transition active:scale-95">
-                                <svg class="size-3.5 fill-current" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                                <span>Ajak Teman via WA</span>
-                            </a>
-                        @endif
-                        <button type="button" @click="changeFilmModal = true"
-                                class="inline-flex min-h-9 items-center justify-center rounded-xl border border-border-input bg-surface-2 hover:bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-400 transition active:scale-95 shadow-xs">
-                            Ikut Film Lain
-                        </button>
-                        <button type="button" @click="rescheduleModal = true"
-                                class="inline-flex min-h-9 items-center justify-center rounded-xl border border-border-input bg-surface-2 hover:bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-400 transition active:scale-95 shadow-xs">
-                            Pindah Sesi
-                        </button>
-                        @if ($canUpgradeCouple || $canUpgradePrivate)
-                            <button type="button" @click="upgradeModal = true"
-                                    class="inline-flex min-h-9 items-center justify-center rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 px-3.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:border-amber-400 transition active:scale-95 shadow-xs">
-                                Upgrade Paket
-                            </button>
-                        @endif
-                    </div>
-                </div>
-            @endif
-        </div>
+            </div>
         @endif
 
-                {{-- ==================== KARTU E-TIKET RESMI ==================== --}}
-        <div class="flex justify-center">
+        {{-- 2. Banner Perlu Pilih Ulang --}}
+        @if ($booking->needsReselect())
+            <div class="mb-5 rounded-xl border border-amber-400/50 bg-amber-500/10 p-4 text-xs shadow-sm no-print">
+                <span class="rounded bg-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase text-black">Perlu Pilih Ulang</span>
+                <h3 class="mt-2 text-sm font-bold text-text">Film Pilihan Anda Belum Mencapai Minimal Penonton</h3>
+                <p class="mt-1 text-text-muted leading-relaxed">
+                    Sesi ini telah terkonfirmasi pasti tayang untuk film <span class="font-bold text-text">{{ $session->activeFilm()?->title }}</span>. Anda dapat ikut menonton film ini atau pindah ke sesi lain secara gratis.
+                </p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <form method="POST" action="{{ route('booking.change-film', ['code' => $booking->code]) }}">
+                        @csrf
+                        <input type="hidden" name="film_id" value="{{ $session->film_id }}">
+                        <button type="submit" class="btn-gold-cinema inline-flex min-h-9 items-center rounded-xl px-3.5 text-xs font-bold">
+                            Ikut Film Terkunci ({{ $session->activeFilm()?->title }})
+                        </button>
+                    </form>
+                    <button type="button" @click="rescheduleModal = true" class="inline-flex min-h-9 items-center rounded-xl border border-border bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-400">
+                        Pindah Sesi Lain (Gratis)
+                    </button>
+                </div>
+            </div>
+        @endif
+
+        {{-- 3. KOTAK "MENUNGGU PENONTON" DIRAPIKAN (Hanya Tampil Saat flowState == 'menunggu_penonton' dan shortage >= 1) --}}
+        @if ($flowState === 'menunggu_penonton' && $shortage >= 1)
+            <div id="menunggu-penonton-box" class="mb-5 rounded-2xl border border-amber-500/40 bg-surface p-5 shadow-sm space-y-4 no-print">
+                {{-- Baris Atas: Chip Status (Kiri) dan Tombol Perbarui (Kanan) --}}
+                <div class="flex items-center justify-between gap-3">
+                    <x-ui.status status="menunggu_penonton">Menunggu penonton</x-ui.status>
+
+                    <button type="button"
+                            @click="checkStatus(true)"
+                            :disabled="polling"
+                            class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-xl border border-border bg-surface-2 hover:bg-surface px-3 text-xs font-bold text-text hover:border-amber-400 transition"
+                            aria-label="Perbarui status pemesanan">
+                        <svg class="size-4 text-text-muted" :class="{ 'animate-spin': polling }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                        </svg>
+                        <span class="hidden sm:inline" x-text="polling ? 'Memperbarui...' : 'Perbarui'">Perbarui</span>
+                    </button>
+                </div>
+
+                {{-- Judul & Progres --}}
+                <div>
+                    <h2 class="text-sm sm:text-base font-black text-text tracking-tight">
+                        Butuh {{ $shortage }} orang lagi untuk film {{ $myFilm?->title ?? 'Pilihan' }}
+                    </h2>
+                    
+                    {{-- Progres Bar Tipis --}}
+                    <div class="mt-2.5 space-y-1">
+                        <div class="h-1.5 w-full overflow-hidden rounded-full bg-surface-2 border border-border">
+                            <div class="h-full rounded-full bg-amber-500 transition-all duration-500" style="width: {{ min(100, round(($myFilmTally / $quorum) * 100)) }}%"></div>
+                        </div>
+                        <p class="text-[11px] font-semibold text-text-muted">
+                            {{ $myFilmTally }} dari {{ $quorum }} orang
+                        </p>
+                    </div>
+
+                    {{-- Satu Kalimat Batas --}}
+                    <p class="mt-2 text-xs text-text-muted leading-relaxed">
+                        Sesi dipastikan paling lambat {{ $session ? format_jam_id($session->confirmationDeadline()) : '-' }}. Jika belum cukup, booking dibatalkan tanpa biaya.
+                    </p>
+                </div>
+
+                {{-- Tombol Aksi: Baris 1 Tombol Utama Penuh, Baris 2 Grid 3 Kolom Outline --}}
+                <div class="space-y-2 pt-1 border-t border-border">
+                    {{-- Baris 1: Ajak Teman via WhatsApp (Full Width) --}}
+                    @if ($ajakTemanUrl)
+                        <a href="{{ $ajakTemanUrl }}" target="_blank" rel="noopener noreferrer"
+                           class="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] px-4 text-xs font-bold text-white transition">
+                            <svg class="size-4 fill-current" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                            <span>Ajak teman via WhatsApp</span>
+                        </a>
+                    @endif
+
+                    {{-- Baris 2: Grid 3 Kolom Outline Berukuran Sama di Desktop, Tumpuk 1 Kolom di Mobile --}}
+                    @php
+                        $hasOtherFilms = $allFilms->where('id', '!=', $booking->film_id)->isNotEmpty();
+                        $canUpgrade = $canUpgradeCouple || $canUpgradePrivate;
+                    @endphp
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        @if ($hasOtherFilms)
+                            <button type="button" @click="changeFilmModal = true"
+                                    class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface-2 hover:bg-surface px-3 text-xs font-semibold text-text hover:border-slate-400 dark:hover:border-white/30 transition">
+                                Ikut film lain
+                            </button>
+                        @endif
+
+                        <button type="button" @click="rescheduleModal = true"
+                                class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface-2 hover:bg-surface px-3 text-xs font-semibold text-text hover:border-slate-400 dark:hover:border-white/30 transition">
+                            Pindah sesi
+                        </button>
+
+                        @if ($canUpgrade)
+                            <button type="button" @click="upgradeModal = true"
+                                    class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface-2 hover:bg-surface px-3 text-xs font-semibold text-text hover:border-slate-400 dark:hover:border-white/30 transition">
+                                Upgrade paket
+                            </button>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- ==================== KARTU E-TIKET RESMI ==================== --}}
+        <div class="w-full">
             <x-ticket.card :booking="$booking" mode="customer" />
         </div>
 
         {{-- ==================== TOMBOL AKSI TIKET (NO-PRINT) ==================== --}}
-        <div class="mt-6 space-y-3 no-print action-buttons max-w-[400px] mx-auto w-full">
-            {{-- Keterangan / Guidance Status Tiket --}}
-            <p class="text-xs text-text-muted text-center leading-relaxed">
-                {{ $booking->ticketGuidanceText() }}
-            </p>
-
-            {{-- 1. Aksi Utama Menurut Status (Tinggi 48px, Solid Amber, Tanpa Gradasi) --}}
-            @if ($canPrint)
+        <div class="mt-6 space-y-3 no-print w-full">
+            {{-- Status Aktif: Simpan Tiket PDF (Utama) & Ubah Jajan (Sekunder) --}}
+            @if ($isAktif)
                 <button type="button"
                         @click="printTicket()"
-                        class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 px-5 text-sm font-bold border border-amber-500/30 transition shadow-none">
+                        class="btn-gold-cinema flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold shadow-none">
                     <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24-1.076-.667-2.197-1.28-3.183A9.972 9.972 0 0112 3a9.972 9.972 0 016.56 2.646c-.613.986-1.04 2.107-1.28 3.183m-10.56 0A9.96 9.96 0 003 12c0 2.478.9 4.747 2.395 6.486M17.28 13.829A9.96 9.96 0 0121 12c0-2.478-.9-4.747-2.395-6.486m0 0a9.98 9.98 0 00-2.165-2.004M6.72 13.829a9.974 9.974 0 00-2.165 2.004M12 15a3 3 0 100-6 3 3 0 000 6z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                     </svg>
                     <span>Simpan tiket (PDF)</span>
                 </button>
-            @elseif ($isWaitingQuorum && $ajakTemanUrl)
-                <a href="{{ $ajakTemanUrl }}"
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 px-5 text-sm font-bold border border-amber-500/30 transition shadow-none">
-                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"/>
-                    </svg>
-                    <span>Ajak teman</span>
-                </a>
-            @elseif ($isCancelled || $isCompleted)
-                <a href="{{ route('schedule.date', ['date' => $booking->session->session_date]) }}"
-                   class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 px-5 text-sm font-bold border border-amber-500/30 transition shadow-none">
-                    <span>Pesan sesi lain</span>
-                </a>
-            @elseif ($booking->isOnlinePayment() && $booking->status === 'menunggu_pembayaran')
-                <a href="{{ route('booking.payment', ['code' => $booking->code]) }}"
-                   class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 px-5 text-sm font-bold border border-amber-500/30 transition shadow-none">
-                    <span>Lanjutkan Pembayaran</span>
-                </a>
+
+                @if ($snackWhatsAppUrl && $booking->items->isNotEmpty())
+                    <a href="{{ $snackWhatsAppUrl }}"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-slate-400 dark:hover:border-white/30 transition shadow-none">
+                        Ubah jajan
+                    </a>
+                @endif
             @endif
 
-            {{-- 2. "Ubah jajan" Sekunder Outline (bila masih diperbolehkan) --}}
-            @if ($snackWhatsAppUrl && $booking->items->isNotEmpty() && ! $isCancelled && ! $isCompleted)
-                <a href="{{ $snackWhatsAppUrl }}"
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-amber-400 transition shadow-none">
-                    Ubah jajan
-                </a>
-            @endif
-
-            {{-- 3. Tombol WhatsApp Bantuan (Solid Green #15803D, Unified Component) --}}
-            <x-ui.whatsapp-button variant="inline" :booking="$booking" label="Hubungi admin via WhatsApp">
-                <span class="sr-only">Konfirmasi via WhatsApp</span>
-            </x-ui.whatsapp-button>
-
-            {{-- 4. Dua Tombol Outline Sejajar (atau Satu Tombol Beranda jika Batal/Selesai) --}}
-            @if ($isCancelled || $isCompleted)
+            {{-- Semua Status: Dua Tombol Outline Sama Lebar --}}
+            <div class="grid grid-cols-2 gap-3">
                 <a href="{{ route('home') }}"
-                   class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-amber-400 transition shadow-none">
+                   class="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-slate-400 dark:hover:border-white/30 transition shadow-none">
                     Kembali ke Beranda
                 </a>
-            @else
-                <div class="grid grid-cols-2 gap-3">
-                    <a href="{{ route('home') }}"
-                       class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-amber-400 transition shadow-none">
-                        Kembali ke Beranda
-                    </a>
-                    <a href="{{ route('schedule.date', ['date' => $booking->session->session_date]) }}"
-                       class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-amber-400 transition shadow-none">
-                        Pesan sesi lain
-                    </a>
-                </div>
-            @endif
+                <a href="{{ route('schedule.date', ['date' => $session?->session_date ?? now()->toDateString()]) }}"
+                   class="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-slate-400 dark:hover:border-white/30 transition shadow-none">
+                    Pesan sesi lain
+                </a>
+            </div>
 
-            {{-- 5. Tautan Teks Kecil "Batalkan booking ini" (Terpisah 24px) --}}
-            @if ($canCancel)
-                <div class="pt-6 text-center">
+            {{-- Tautan Teks Batalkan Booking Bila Boleh --}}
+            @if ($canCancel && ! in_array($flowState, ['dibatalkan', 'kedaluwarsa', 'selesai', 'hadir', 'tidak_datang'], true))
+                <div class="pt-4 text-center">
                     <button type="button"
                             @click="cancelModal = true"
                             class="text-xs text-text-muted hover:text-red-500 hover:underline transition">
-                        Batalkan booking ini {{ ! $isConfirmed ? '(Gratis)' : '' }}
+                        Batalkan booking ini {{ ! ($session?->isConfirmed() ?? false) ? '(Gratis)' : '' }}
                     </button>
                 </div>
             @endif
@@ -748,7 +653,7 @@
                 <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-[#0E131F] p-5 shadow-2xl">
                     <h3 class="text-base font-bold text-white">Batalkan booking ini?</h3>
                     <p class="mt-2 text-xs leading-relaxed text-slate-300">
-                        @if (! $isConfirmed)
+                        @if (! ($session?->isConfirmed() ?? false))
                             Sesi belum pasti tayang. Pembatalan ini bebas biaya (gratis). Tempat Anda akan dilepaskan kembali.
                         @else
                             Tempat yang sudah Anda pesan akan dilepaskan kembali agar dapat dipesan penonton lain.

@@ -7,7 +7,6 @@ use App\Services\BookingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class DeviceBookingTracker
@@ -81,27 +80,15 @@ class DeviceBookingTracker
             $plainToken = Str::random(40);
             $tokenHash = hash('sha256', $plainToken);
 
-            try {
-                if (Schema::hasColumn('bookings', 'access_token_hash')) {
-                    $booking->updateQuietly([
-                        'access_token_hash' => $tokenHash,
-                    ]);
-                }
-            } catch (\Throwable) {
-                // Silently ignore if column has not been migrated yet
-            }
+            $booking->updateQuietly([
+                'access_token_hash' => $tokenHash,
+            ]);
         } else {
             $tokenHash = hash('sha256', $plainToken);
             if ($booking->access_token_hash !== $tokenHash) {
-                try {
-                    if (Schema::hasColumn('bookings', 'access_token_hash')) {
-                        $booking->updateQuietly([
-                            'access_token_hash' => $tokenHash,
-                        ]);
-                    }
-                } catch (\Throwable) {
-                    // Silently ignore if column has not been migrated yet
-                }
+                $booking->updateQuietly([
+                    'access_token_hash' => $tokenHash,
+                ]);
             }
         }
 

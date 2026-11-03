@@ -154,6 +154,10 @@ class Session extends Model
 
     public function confirmAndLock(int $filmId, string $method, ?string $notes = null): void
     {
+        if ($filmId <= 0) {
+            return;
+        }
+
         $this->film_id = $filmId;
         $this->confirmation_method = $method;
         $this->confirmed_at = now();
@@ -175,13 +179,59 @@ class Session extends Model
     }
 
     /**
+     * Evaluasi kuorum sesi secara otomatis:
+     * Jika peminat untuk suatu film telah mencapai atau melampaui minimal orang (shortage <= 0),
+     * atau terdapat booking privat/couple, sesi otomatis dikunci dan dipastikan tayang.
+     *
+     * @return bool True jika sesi terkonfirmasi pasti tayang
+     */
+    public function evaluateQuorum(): bool
+    {
+        if ($this->isConfirmed()) {
+            return true;
+        }
+
+        // Jika ada booking privat aktif, kunci privat
+        if ($this->hasActivePrivateBooking() || (bool) $this->is_private) {
+            $privateBooking = $this->occupiedBookings()->where('booking_type', 'private')->first();
+            $filmId = $privateBooking?->film_id ?? $this->film_id;
+            if ($filmId && $filmId > 0) {
+                $this->confirmAndLock((int) $filmId, 'private');
+
+                return true;
+            }
+        }
+
+        $tallies = $this->candidateFilmTallies();
+        $quorum = $this->quorum();
+
+        foreach ($tallies as $tally) {
+            $fId = (int) ($tally['film_id'] ?? 0);
+            if ($fId > 0 && $tally['seats'] >= $quorum) {
+                $this->confirmAndLock($fId, 'quorum');
+
+                // Pemesan film lain di sesi ini perlu pilih ulang
+                Booking::query()
+                    ->where('session_id', $this->id)
+                    ->where('film_id', '!=', $fId)
+                    ->whereNotIn('status', ['dibatalkan', 'kedaluwarsa'])
+                    ->update(['reselect_needed' => true]);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Hitung akumulasi kursi per film dari pemesan aktif di sesi ini.
      *
      * @return Collection<int, array{film_id: int, film: ?Film, title: string, seats: int, count: int, is_quorum_reached: bool, needed_seats: int}>
      */
     public function candidateFilmTallies(): Collection
     {
-        $bookings = $this->occupiedBookings()->with('film')->get();
+        $bookings = $this->occupiedBookings()->whereNotNull('film_id')->with('film')->get();
         $grouped = $bookings->groupBy('film_id');
         $quorum = $this->quorum();
 

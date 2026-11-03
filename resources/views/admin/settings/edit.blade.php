@@ -1292,19 +1292,19 @@
                     {{-- Panduan Bertahap --}}
                     <div class="rounded-xl border border-border bg-surface-2 p-4 text-xs text-text-muted space-y-2">
                         <p class="font-bold text-text text-sm">Panduan Menyiapkan Bot Telegram:</p>
-                        <ol class="list-decimal list-inside space-y-1 pl-1">
+                        <ol class="list-decimal list-inside space-y-1.5 pl-1 leading-relaxed">
                             <li>Buka Telegram, cari <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" class="font-semibold text-amber-600 dark:text-amber-400 underline">@BotFather</a>, lalu kirim perintah <code class="rounded bg-surface px-1.5 py-0.5 border border-border font-mono text-[11px]">/newbot</code>.</li>
                             <li>Beri nama dan username bot, lalu salin token API yang diberikan dan tempelkan ke kolom <strong>Token Bot Telegram</strong> di bawah.</li>
                             <li>Buka bot baru Anda di Telegram, tekan tombol <strong>Start</strong> (atau kirim <code class="rounded bg-surface px-1.5 py-0.5 border border-border font-mono text-[11px]">/start</code>). Jika untuk grup, masukkan bot ke grup tersebut.</li>
-                            <li>Klik tombol <strong>Deteksi Chat ID</strong> di bawah untuk memilih ID obrolan secara instan.</li>
-                            <li>Klik <strong>Simpan Pengaturan Notifikasi</strong>, lalu tekan tombol <strong>Kirim Pesan Tes ke Telegram</strong> untuk memverifikasi.</li>
+                            <li>Klik tombol <strong>Deteksi Chat ID</strong> di bawah untuk memilih ID obrolan secara instan (dapat digunakan langsung dengan token yang sedang diketik).</li>
+                            <li>Tekan tombol <strong>Kirim Pesan Tes ke Telegram</strong> untuk memverifikasi, lalu klik <strong>Simpan Pengaturan Notifikasi</strong> di bagian bawah halaman.</li>
                         </ol>
                     </div>
 
-                    <div class="grid gap-5 md:grid-cols-2">
+                    <div class="grid gap-5 md:grid-cols-2 items-start">
                         {{-- Token Bot --}}
                         <div class="space-y-1.5">
-                            <label for="telegram_bot_token" class="block text-xs font-bold uppercase tracking-wider text-text">
+                            <label for="telegram_bot_token" class="block text-xs font-bold uppercase tracking-wider text-text h-5 flex items-center">
                                 Token Bot Telegram
                             </label>
                             <div class="relative">
@@ -1336,20 +1336,9 @@
 
                         {{-- Chat ID --}}
                         <div class="space-y-1.5">
-                            <div class="flex items-center justify-between">
-                                <label for="telegram_chat_ids" class="block text-xs font-bold uppercase tracking-wider text-text">
-                                    Chat ID Tujuan
-                                </label>
-                                <button
-                                    type="button"
-                                    @click="runDetect()"
-                                    :disabled="isDetecting || !botToken"
-                                    class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-text hover:border-amber-500 hover:text-amber-500 disabled:opacity-40"
-                                >
-                                    <span x-show="!isDetecting">Deteksi Chat ID</span>
-                                    <span x-show="isDetecting" x-cloak>Mendeteksi...</span>
-                                </button>
-                            </div>
+                            <label for="telegram_chat_ids" class="block text-xs font-bold uppercase tracking-wider text-text h-5 flex items-center">
+                                Chat ID Tujuan
+                            </label>
                             <textarea
                                 id="telegram_chat_ids"
                                 name="telegram_chat_ids"
@@ -1358,7 +1347,21 @@
                                 placeholder="Contoh: 12345678&#10;-100987654321 (ID grup/channel)"
                                 class="w-full rounded-xl border border-border bg-surface p-2.5 text-xs font-mono text-text focus:border-amber-500 focus:outline-none"
                             ></textarea>
-                            <p class="text-[11px] text-text-muted">Satu atau beberapa Chat ID (pisahkan dengan baris baru). ID grup/channel diawali tanda minus (-).</p>
+                            <div class="flex items-center justify-between gap-2 pt-0.5">
+                                <p class="text-[11px] text-text-muted">Satu atau beberapa Chat ID (pisahkan dengan baris baru). ID grup diawali tanda minus (-).</p>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <button
+                                        type="button"
+                                        @click="runDetect()"
+                                        :disabled="isDetecting || !botToken"
+                                        class="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-slate-400 dark:border-white/20 bg-surface px-3 py-1 text-xs font-semibold text-text hover:border-amber-500 hover:text-amber-500 disabled:border-slate-600 disabled:text-slate-400 dark:disabled:text-slate-300 disabled:cursor-not-allowed transition"
+                                    >
+                                        <span x-show="!isDetecting">Deteksi Chat ID</span>
+                                        <span x-show="isDetecting" x-cloak>Mendeteksi...</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div x-show="!botToken" class="text-[11px] text-amber-500 font-medium">Isi token dulu untuk mendeteksi chat ID secara otomatis.</div>
 
                             {{-- Hasil Deteksi Chat ID --}}
                             <div x-show="detectedChats.length > 0" x-cloak class="mt-2 space-y-1.5 rounded-xl border border-border bg-surface-2 p-3 text-xs">
@@ -1381,22 +1384,23 @@
                                     </template>
                                 </div>
                             </div>
-                            <div x-show="detectResult && !detectResult.success" x-cloak class="mt-1 text-xs text-danger" x-text="detectResult.message"></div>
+                            <div x-show="detectResult && !detectResult.success" x-cloak class="mt-1 text-xs text-danger font-semibold" x-text="detectResult?.message"></div>
                         </div>
                     </div>
 
                     {{-- Tombol Uji Pesan --}}
                     <div class="pt-3 border-t border-border flex flex-wrap items-center justify-between gap-3">
-                        <div>
+                        <div class="flex items-center gap-3">
                             <button
                                 type="button"
                                 @click="runTest()"
                                 :disabled="isTesting || !botToken"
-                                class="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-border bg-surface-2 px-4 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 disabled:opacity-40 transition"
+                                class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-400 dark:border-white/20 bg-surface-2 px-4 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 disabled:border-slate-600 disabled:text-slate-400 dark:disabled:text-slate-300 disabled:cursor-not-allowed transition"
                             >
                                 <span x-show="!isTesting">Kirim Pesan Tes ke Telegram</span>
                                 <span x-show="isTesting" x-cloak>Mengirim Uji Coba...</span>
                             </button>
+                            <span x-show="!botToken" class="text-xs text-amber-500 font-medium">Isi token dulu</span>
                         </div>
                         <div x-show="testResult" x-cloak class="text-xs font-semibold">
                             <span :class="testResult?.success ? 'text-success' : 'text-danger'" x-text="testResult?.message"></span>

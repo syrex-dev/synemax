@@ -146,4 +146,77 @@ class FilmCatalogAndFilterTest extends TestCase
         $response->assertSee('Pilih Film Ini');
         $response->assertDontSee('Gabung sesi yang sudah memilih film ini');
     }
+
+    public function test_choosing_film_from_detail_page_links_to_schedule_picker_not_immediate_booking_session(): void
+    {
+        $film = Film::query()->create([
+            'title' => 'Film Pilihan Bebas Jam',
+            'slug' => 'film-pilihan-bebas-jam',
+            'genre' => 'Petualangan',
+            'release_year' => 2026,
+            'duration_minutes' => 100,
+            'age_rating' => '13+',
+            'synopsis' => 'Sinopsis petualangan.',
+            'is_active' => true,
+        ]);
+
+        $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
+
+        // Even when an upcoming session exists, clicking "Pilih Film Ini" must NOT force-bind to that session directly
+        Session::query()->create([
+            'session_date' => $today->toDateString(),
+            'start_time' => '10:00',
+            'end_time' => '12:00',
+            'film_id' => null,
+            'capacity' => 6,
+            'status' => 'tersedia',
+        ]);
+
+        $response = $this->get(route('films.show', $film->slug));
+
+        $response->assertOk();
+        // Destination link must be schedule.index with film parameter, allowing user to pick day and time
+        $expectedScheduleUrl = route('schedule.index', ['film' => $film->id]);
+        $response->assertSee('href="'.$expectedScheduleUrl.'"', false);
+    }
+
+    public function test_schedule_page_displays_chosen_film_context_and_preserves_film_query_in_date_tabs(): void
+    {
+        $film = Film::query()->create([
+            'title' => 'Sore: Istri dari Masa Depan',
+            'slug' => 'sore-istri-dari-masa-depan',
+            'genre' => 'Romantis',
+            'release_year' => 2026,
+            'duration_minutes' => 110,
+            'age_rating' => '13+',
+            'synopsis' => 'Kisah cinta melintasi waktu.',
+            'is_active' => true,
+        ]);
+
+        $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
+
+        $session = Session::query()->create([
+            'session_date' => $today->toDateString(),
+            'start_time' => '19:00',
+            'end_time' => '21:00',
+            'film_id' => null,
+            'capacity' => 6,
+            'status' => 'tersedia',
+        ]);
+
+        $response = $this->get(route('schedule.index', ['film' => $film->id]));
+
+        $response->assertOk();
+        // Shows the film selection context
+        $response->assertSee('Film yang kamu pilih');
+        $response->assertSee('Sore: Istri dari Masa Depan');
+
+        // Date tabs maintain ?film=
+        $response->assertSee('film='.$film->id);
+
+        // Session button provides "Pilih jam ini"
+        $response->assertSee('Pilih jam ini');
+        $expectedBookingUrl = route('booking.create', ['session' => $session->id, 'film' => $film->id]);
+        $response->assertSee($expectedBookingUrl);
+    }
 }

@@ -164,11 +164,11 @@ class BookingFlowTest extends TestCase
         $this->followingRedirects()
             ->get(route('booking.success', $privateBooking->code))
             ->assertOk()
-            ->assertSee('Sewa Private (6 orang)');
+            ->assertSee('Sewa Private · 6 orang');
         $this->followingRedirects()->post(route('booking.lookup'), [
             'code' => $privateBooking->code,
             'whatsapp' => '081234567890',
-        ])->assertOk()->assertSee('Sewa Private (6 orang)');
+        ])->assertOk()->assertSee('Sewa Private · 6 orang');
 
         $perPersonSession = $this->createSession($this->firstFilm, '19:30');
         $this->post(

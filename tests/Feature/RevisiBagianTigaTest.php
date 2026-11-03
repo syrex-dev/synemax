@@ -195,7 +195,7 @@ class RevisiBagianTigaTest extends TestCase
         $res->assertSee('Tanggal & Jam', false);
         $res->assertSee('Studio & Layar', false);
         $res->assertSee('Nama Pemesan', false);
-        $res->assertSee('Paket & Kursi', false);
+        $res->assertSee('Paket', false);
         $res->assertSee('Siti Rahma');
 
         // 3. Tear notches

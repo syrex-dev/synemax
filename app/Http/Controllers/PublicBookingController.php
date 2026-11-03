@@ -267,16 +267,7 @@ class PublicBookingController extends Controller
 
         $booking = $bookingService->expireIfOverdue($booking);
 
-        if ($booking->payment_method === 'di_tempat') {
-            return redirect()->route('booking.ticket', ['code' => $booking->code]);
-        }
-
-        // Jika sesi belum Pasti Tayang, jangan tampilkan halaman transfer/QRIS
-        if (! $booking->session->isConfirmed() && $booking->payment_expires_at === null) {
-            return redirect()->route('booking.ticket', ['code' => $booking->code]);
-        }
-
-        if ($booking->status !== 'menunggu_pembayaran') {
+        if ($booking->flowState() !== 'menunggu_bayar') {
             return redirect()->route('booking.ticket', ['code' => $booking->code]);
         }
 
@@ -319,7 +310,7 @@ class PublicBookingController extends Controller
 
         $booking = $bookingService->expireIfOverdue($booking);
 
-        if ($booking->isOnlinePayment() && $booking->status === 'menunggu_pembayaran' && $booking->payment_expires_at !== null && ! $booking->isExpired()) {
+        if ($booking->flowState() === 'menunggu_bayar') {
             return redirect()->route('booking.payment', ['code' => $booking->code]);
         }
 

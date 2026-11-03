@@ -124,6 +124,94 @@ class Booking extends Model
         return in_array($this->payment_method, ['qris', 'transfer'], true);
     }
 
+    /**
+     * Sumber tunggal kanonik alur status booking untuk semua halaman dan layanan.
+     *
+     * Tabel Aturan Flow State:
+     * | flowState           | Kriteria Penentu                                                             | Halaman Utama   | Kartu Tiket         | Kotak Menunggu |
+     * |---------------------|-----------------------------------------------------------------------------|-----------------|---------------------|----------------|
+     * | 'dibatalkan'        | status == 'dibatalkan'                                                      | /tiket          | Tiket (tanpa QR)    | Tidak ada      |
+     * | 'selesai'           | status == 'selesai'                                                         | /tiket          | Tiket (tanpa QR)    | Tidak ada      |
+     * | 'hadir'             | status == 'hadir'                                                           | /tiket          | Tiket (tanpa QR)    | Tidak ada      |
+     * | 'tidak_datang'      | in_array(status, ['terlewat', 'tidak_datang', 'tidak_hadir'])               | /tiket          | Tiket (tanpa QR)    | Tidak ada      |
+     * | 'kedaluwarsa'       | isExpired() == true (status == 'kedaluwarsa' || waktu bayar habis)           | /tiket          | Tiket (tanpa QR)    | Tidak ada      |
+     * | 'menunggu_bayar'    | isOnlinePayment() && status == 'menunggu_pembayaran' && tanpa bukti bayar   | /pembayaran     | Tidak ada           | Tidak ada      |
+     * | 'diproses'          | isOnlinePayment() && (bukti diunggah || status == 'menunggu_konfirmasi')    | /tiket          | Ringkasan (tanpa QR)| Tidak ada      |
+     * | 'aktif'             | Lunas/Bayar di tempat & (Private/Couple || Sesi pasti tayang || shortage<=0)| /tiket          | Tiket Aktif (+ QR)  | Tidak ada      |
+     * | 'menunggu_penonton' | Lunas/Bayar di tempat, paket Reguler, sesi belum pasti tayang, shortage>=1  | /tiket          | Tiket (tanpa QR)    | Ada (Bagian 2) |
+     */
+    public function flowState(): string
+    {
+        if ($this->status === 'dibatalkan') {
+            return 'dibatalkan';
+        }
+
+        if ($this->status === 'selesai') {
+            return 'selesai';
+        }
+
+        if ($this->status === 'hadir') {
+            return 'hadir';
+        }
+
+        if (in_array($this->status, ['terlewat', 'tidak_datang', 'tidak_hadir'], true)) {
+            return 'tidak_datang';
+        }
+
+        if ($this->isExpired()) {
+            return 'kedaluwarsa';
+        }
+
+        // 1. Belum dibayar online dan belum kedaluwarsa -> menunggu_bayar
+        if ($this->isOnlinePayment() && $this->status === 'menunggu_pembayaran' && empty($this->payment_proof_path)) {
+            return 'menunggu_bayar';
+        }
+
+        // 2. Bukti online sudah diunggah, menunggu konfirmasi admin -> diproses
+        if ($this->isOnlinePayment() && ($this->status === 'menunggu_konfirmasi' || ! empty($this->payment_proof_path)) && $this->status !== 'terkonfirmasi') {
+            return 'diproses';
+        }
+
+        // Evaluasi kuorum sesi jika belum pasti tayang
+        $session = $this->relationLoaded('session') ? $this->session : $this->session()->first();
+        if ($session && ! $session->isConfirmed()) {
+            $session->evaluateQuorum();
+        }
+
+        $isSessionConfirmed = $session ? $session->isConfirmed() : false;
+
+        // 3. Paket Private dan Couple TIDAK PERNAH masuk menunggu_penonton (langsung aktif)
+        if ($this->isPrivate() || $this->isCouple()) {
+            return 'aktif';
+        }
+
+        // 4. Reguler: jika sesi sudah terkonfirmasi pasti tayang -> aktif
+        if ($isSessionConfirmed) {
+            return 'aktif';
+        }
+
+        // 5. Cek kekurangan jumlah orang yang dibutuhkan untuk film ini
+        $shortage = 1;
+        if ($session) {
+            $tallies = $session->candidateFilmTallies();
+            $filmTally = $tallies->firstWhere('film_id', $this->film_id);
+            $myFilmSeats = $filmTally['seats'] ?? $this->seats_reserved;
+            $shortage = max(0, $session->quorum() - $myFilmSeats);
+        }
+
+        // Jika kekurangan <= 0, otomatis pasti tayang & booking aktif
+        if ($shortage <= 0) {
+            if ($session && ! $session->isConfirmed() && $this->film_id) {
+                $session->confirmAndLock($this->film_id, 'quorum');
+            }
+
+            return 'aktif';
+        }
+
+        // 6. Reguler, belum kuorum, dan masih butuh >= 1 orang -> menunggu_penonton
+        return 'menunggu_penonton';
+    }
+
     public function session(): BelongsTo
     {
         return $this->belongsTo(Session::class);

@@ -1,7 +1,7 @@
 import { chromium } from 'playwright-core';
 
 const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const BASE_URL = process.env.BASE_URL || 'http://127.0.0.1:8001';
+const BASE_URL = process.env.BASE_URL || 'http://synemax.test';
 const QA_EMAIL = process.env.QA_EMAIL || 'qa_admin@synemax.test';
 const QA_PASSWORD = process.env.QA_PASSWORD || 'QaPassword123!';
 

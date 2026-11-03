@@ -8,7 +8,8 @@
         "qa:touch": "node tests/touch_scroller_audit.mjs",
         "qa:theme": "node tests/dark_theme_audit.mjs",
         "qa:ticket": "node tests/ticket_pdf_audit.mjs",
-        "qa:colors": "node tests/axe_color_contrast_audit.mjs"
+        "qa:colors": "node tests/axe_color_contrast_audit.mjs",
+        "qa:browser": "node tests/permanent_browser_audit.mjs"
     },
     "devDependencies": {
         "@tailwindcss/forms": "^0.5.2",

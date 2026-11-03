@@ -297,7 +297,27 @@ class BookingController extends Controller
 
     private function confirm(Booking $booking, SnackOrderService $snackOrders): void
     {
-        if (! in_array($booking->status, ['menunggu_konfirmasi', 'menunggu_pembayaran'], true)) {
+        if ($booking->status === 'kedaluwarsa') {
+            $session = $booking->session()->first();
+            if ($session) {
+                if ($session->status !== 'tersedia') {
+                    $this->reject('Sesi untuk booking ini sedang tidak tersedia.');
+                }
+                $occupiedSeats = (int) $session->occupiedBookings()->where('id', '!=', $booking->id)->sum('seats_reserved');
+                if ($booking->isPrivate()) {
+                    if ($session->hasActivePerPersonBookings() || $occupiedSeats > 0 || $session->isPrivateActive()) {
+                        $this->reject('Tidak dapat mengaktifkan: Sesi ini sudah terisi atau disewa privat oleh pemesan lain.');
+                    }
+                } else {
+                    if ($session->isPrivateActive()) {
+                        $this->reject('Tidak dapat mengaktifkan: Sesi ini sudah disewa privat.');
+                    }
+                    if ($occupiedSeats + $booking->seats_reserved > $session->seatCapacity()) {
+                        $this->reject('Tidak dapat mengaktifkan: Kapasitas sesi ini sudah tidak mencukupi.');
+                    }
+                }
+            }
+        } elseif (! in_array($booking->status, ['menunggu_konfirmasi', 'menunggu_pembayaran'], true)) {
             $this->reject('Booking ini tidak sedang menunggu konfirmasi atau pembayaran.');
         }
 
@@ -307,6 +327,8 @@ class BookingController extends Controller
             'confirmed_at' => now(),
             'proof_rejection_note' => null,
         ]);
+
+        $booking->session?->syncPrivateStatus();
 
         app(TelegramNotificationService::class)->queue('payment_confirmed', $booking);
         app(TelegramNotificationService::class)->flush();

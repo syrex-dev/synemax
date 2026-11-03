@@ -40,4 +40,5 @@ tests/*.mjs
 tests/*fixtures*.json
 tests/check_*.php
 tests/inspect_*.php
+tests/screenshots/
 

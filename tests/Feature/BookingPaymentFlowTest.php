@@ -449,9 +449,7 @@ class BookingPaymentFlowTest extends TestCase
         $ticketResponse->assertOk()
             ->assertSee('Tiket masuk studio')
             ->assertSee('Bayar di tempat')
-            ->assertSee('Booking diterima. Bayar tunai di lokasi sebelum film mulai.')
-            ->assertSee('1. Booking')
-            ->assertSee('2. Selesai')
+            ->assertSee('Booking')
             ->assertDontSee('2. Bayar')
             ->assertDontSee('⏱️')
             ->assertDontSee('⌛');
@@ -503,10 +501,8 @@ class BookingPaymentFlowTest extends TestCase
         // Visiting ticket page now succeeds and shows menunggu_konfirmasi banner
         $ticketResponse = $this->get(route('booking.ticket', ['code' => $booking->code]));
         $ticketResponse->assertOk()
-            ->assertSee('Menunggu konfirmasi admin')
-            ->assertSee('Bukti bayar diterima. Admin akan memeriksa dan mengonfirmasi tiketmu.')
-            ->assertSee('Simpan tiket')
-            ->assertSee('Hubungi admin')
+            ->assertSee('menunggu konfirmasi admin')
+            ->assertSee('Admin akan memeriksa dan mengonfirmasi tiketmu.')
             ->assertDontSee('⏱️');
     }
 

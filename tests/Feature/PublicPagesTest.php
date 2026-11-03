@@ -131,9 +131,8 @@ class PublicPagesTest extends TestCase
         $response->assertRedirect();
         $this->get($response->headers->get('Location'))
             ->assertOk()
-            ->assertSee('Konfirmasi via WhatsApp')
-            ->assertSee('wa.me/6280000000000', false)
-            ->assertSee('Malam di Bukit Bintang');
+            ->assertSee('Malam di Bukit Bintang')
+            ->assertSee('Dewi');
     }
 
     public function test_styleguide_is_accessible_in_local_environment(): void

@@ -26,7 +26,7 @@
             </div>
 
             {{-- Tengah: Tautan Inline --}}
-            <nav class="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-xs font-bold text-slate-600 dark:text-slate-300" aria-label="Navigasi footer">
+            <nav class="flex flex-wrap items-center justify-center gap-x-6 gap-y-1.5 text-xs font-bold text-slate-600 dark:text-slate-300" aria-label="Navigasi footer">
                 <a href="{{ route('schedule.index') }}" class="hover:text-amber-500 transition-colors">Jadwal</a>
                 <a href="{{ route('films.index') }}" class="hover:text-amber-500 transition-colors">Film</a>
                 <a href="{{ route('nobar.index') }}" class="hover:text-amber-500 transition-colors">Nobar</a>
@@ -34,6 +34,9 @@
                 <a href="{{ route('articles.index') }}" class="hover:text-amber-500 transition-colors">Kabar</a>
                 <a href="{{ route('articles.index', ['tab' => 'harga-faq']) }}" class="hover:text-amber-500 transition-colors">Harga & FAQ</a>
                 <a href="{{ route('booking.ticket.index') }}" class="hover:text-amber-500 transition-colors">Tiket</a>
+                @if ($whatsapp = $settings->contactWhatsapp())
+                    <a href="https://wa.me/{{ $whatsapp }}?text={{ rawurlencode('Halo admin SynemaX, saya ingin bertanya.') }}" target="_blank" rel="noopener noreferrer" class="hover:text-amber-500 transition-colors">Chat admin</a>
+                @endif
             </nav>
 
             {{-- Kanan: Kontak (label teks + ikon kecil) --}}
@@ -76,10 +79,11 @@
             </div>
         </div>
 
-        {{-- Baris 2: Hak Cipta Satu Baris --}}
-        <div class="mt-4 pt-3 border-t border-slate-200/80 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
-            <p>{{ $footerText }}</p>
-            <p class="text-[11px]">&copy; {{ date('Y') }} {{ $siteName }}. Hak cipta dilindungi undang-undang.</p>
+        {{-- Baris 2: Hak Cipta Satu Baris Saja --}}
+        <div class="mt-4 pt-3 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+            <p class="text-[11px] leading-relaxed">
+                {!! ! empty(trim((string) $footerText)) ? e($footerText) : '&copy; ' . date('Y') . ' ' . e($siteName) . '. Hak cipta dilindungi.' !!}
+            </p>
         </div>
     </div>
 </footer>
