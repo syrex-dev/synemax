@@ -152,35 +152,48 @@
                 {{-- Grid Tarif Studio & Rombongan --}}
                 <div class="grid gap-6 md:grid-cols-2">
                     {{-- Tabel Harga Tiket Per Orang --}}
-                    <section class="rounded-3xl border border-border dark:border-white/10 bg-surface dark:bg-[#0B0F19] p-6 sm:p-7 shadow-xl">
-                        <div class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
-                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>Transparansi Tarif</span>
+                    <section class="rounded-3xl border border-border dark:border-white/10 bg-surface dark:bg-[#0B0F19] p-6 sm:p-7 shadow-xl flex flex-col justify-between">
+                        <div>
+                            <div class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
+                                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span>Transparansi Tarif</span>
+                            </div>
+                            <h2 class="mt-1.5 text-xl font-black text-text">Harga tiket studio per orang</h2>
+                            <p class="mt-1 text-xs text-text-muted">Tarif resmi per orang untuk setiap sesi penayangan di Studio 1.</p>
+
+                            <dl class="mt-5 divide-y divide-border dark:divide-white/10 rounded-2xl border border-border dark:border-white/10 bg-surface-2/60 dark:bg-black/30 px-4">
+                                <div class="flex items-center justify-between py-3.5 text-xs sm:text-sm">
+                                    <dt class="text-text-muted">Hari biasa (Senin sampai Kamis)</dt>
+                                    <dd class="font-tabular font-black text-amber-500 dark:text-amber-400">Rp {{ number_format($weekdayPrice, 0, ',', '.') }}</dd>
+                                </div>
+                                <div class="flex items-center justify-between py-3.5 text-xs sm:text-sm">
+                                    <dt class="text-text-muted">Akhir pekan (Jumat sampai Minggu)</dt>
+                                    <dd class="font-tabular font-black text-amber-500 dark:text-amber-400">Rp {{ number_format($weekendPrice, 0, ',', '.') }}</dd>
+                                </div>
+                                <div class="flex items-center justify-between py-3.5 text-xs sm:text-sm">
+                                    <dt class="text-text-muted">Hari libur nasional</dt>
+                                    <dd class="font-tabular font-black text-amber-500 dark:text-amber-400">Rp {{ number_format($holidayPrice, 0, ',', '.') }}</dd>
+                                </div>
+                            </dl>
+
+                            <div class="mt-3.5 flex items-center gap-2 text-xs text-text-muted font-medium">
+                                <span class="flex size-4 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">
+                                    <svg class="size-3" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <span>Termasuk pendingin ruangan & audio sinematik</span>
+                            </div>
                         </div>
-                        <h2 class="mt-1.5 text-xl font-black text-text">Harga tiket studio per orang</h2>
-                        <p class="mt-1 text-xs text-text-muted">Tarif resmi per orang untuk setiap sesi penayangan di Studio 1.</p>
 
-                        <dl class="mt-5 divide-y divide-border dark:divide-white/10 rounded-2xl border border-border dark:border-white/10 bg-surface-2/60 dark:bg-black/30 px-4">
-                            <div class="flex items-center justify-between py-3.5 text-xs sm:text-sm">
-                                <dt class="text-text-muted">Hari biasa (Senin sampai Kamis)</dt>
-                                <dd class="font-tabular font-black text-amber-500 dark:text-amber-400">Rp {{ number_format($weekdayPrice, 0, ',', '.') }}</dd>
-                            </div>
-                            <div class="flex items-center justify-between py-3.5 text-xs sm:text-sm">
-                                <dt class="text-text-muted">Akhir pekan (Jumat sampai Minggu)</dt>
-                                <dd class="font-tabular font-black text-amber-500 dark:text-amber-400">Rp {{ number_format($weekendPrice, 0, ',', '.') }}</dd>
-                            </div>
-                            <div class="flex items-center justify-between py-3.5 text-xs sm:text-sm">
-                                <dt class="text-text-muted">Hari libur nasional</dt>
-                                <dd class="font-tabular font-black text-amber-500 dark:text-amber-400">Rp {{ number_format($holidayPrice, 0, ',', '.') }}</dd>
-                            </div>
-                        </dl>
-
-                        <div class="mt-5 pt-4 border-t border-border dark:border-white/10 flex items-center justify-between">
-                            <span class="text-xs text-text-muted">Termasuk pendingin ruangan & audio sinematik</span>
-                            <a href="{{ route('schedule.index') }}" class="btn-gold-cinema inline-flex min-h-10 items-center justify-center rounded-xl px-5 text-xs font-black shadow-md">
-                                Pesan Tiket
+                        <div class="mt-6 pt-4 border-t border-border dark:border-white/10">
+                            <a href="{{ route('schedule.index') }}" class="btn-gold-cinema inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 text-xs font-black shadow-md whitespace-nowrap">
+                                <span>Pesan Tiket Sekarang</span>
+                                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                                </svg>
                             </a>
                         </div>
                     </section>
@@ -222,7 +235,7 @@
                         </div>
 
                         <div class="mt-6 pt-4 border-t border-border dark:border-white/10">
-                            <a href="{{ route('schedule.index') }}" class="btn-gold-cinema inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 text-xs font-black shadow-md">
+                            <a href="{{ route('schedule.index') }}" class="btn-gold-cinema inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-5 text-xs font-black shadow-md whitespace-nowrap">
                                 <span>Pilih Jadwal Sewa Privat</span>
                                 <svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
                                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
