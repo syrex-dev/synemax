@@ -21,7 +21,7 @@
         $hasPreselectedFilm = !empty($requestedFilmId) && $films->contains(fn($f) => (string) $f->id === (string) $requestedFilmId);
     @endphp
 
-    <div class="mx-auto max-w-xl px-4 pb-40 pt-4 sm:px-6 sm:pb-44 sm:pt-6">
+    <div class="mx-auto max-w-xl px-4 pb-8 pt-4 sm:px-6 sm:pb-12 sm:pt-6">
         @if (!empty($existingUnpaidBooking))
             <div x-data="{ showUnpaidModal: true }" x-show="showUnpaidModal" x-cloak
                  class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
@@ -467,29 +467,7 @@
                           }
                           this.refreshAvailability();
 
-                          // Jika film sudah dipilih (dari halaman katalog film / sesi terkunci)
-                          if (this.filmId) {
-                              const check = this.getFilmStatus(this.filmId);
-                              if (check.allowed) {
-                                  this.step = this.hasSnacks ? 4 : 5;
-                                  this.wizardError = '';
-                                  this.persist();
-                                  this.scrollToTop();
-                                  return;
-                              } else {
-                                  // Sesi menolak film ini (terkunci film lain atau dilarang pagar anti-buntu)
-                                  this.filmPreselected = false;
-                                  this.step = 3;
-                                  this.wizardError = check.reason || 'Film yang dipilih tidak memenuhi syarat sesi ini. Silakan pilih film lain.';
-                                  if (window.showToast) {
-                                      window.showToast({ type: 'warning', message: this.wizardError });
-                                  }
-                                  this.persist();
-                                  this.scrollToTop();
-                                  return;
-                              }
-                          }
-
+                          // Selalu lewati Langkah 3 (Pilih/Review Film) agar pengguna dapat memeriksa atau mengganti film
                           this.step = 3;
                           this.wizardError = '';
                           this.persist();
@@ -527,19 +505,9 @@
 
                   previousStep() {
                       if (this.step === 5) {
-                          if (this.hasSnacks) {
-                              this.step = 4;
-                          } else if (this.filmPreselected && this.filmId && this.getFilmStatus(this.filmId).allowed) {
-                              this.step = 2;
-                          } else {
-                              this.step = 3;
-                          }
+                          this.step = this.hasSnacks ? 4 : 3;
                       } else if (this.step === 4) {
-                          if (this.filmPreselected && this.filmId && this.getFilmStatus(this.filmId).allowed) {
-                              this.step = 2;
-                          } else {
-                              this.step = 3;
-                          }
+                          this.step = 3;
                       } else if (this.step === 3) {
                           this.step = 2;
                       }
@@ -750,17 +718,17 @@
                         <li class="flex flex-col items-center justify-center rounded-xl border p-2 transition-all min-h-[52px]"
                             :class="step === {{ $stepNum }}
                                 ? 'badge-accent-solid font-black'
-                                : ((step > {{ $stepNum }} || ({{ $stepNum }} === 3 && filmPreselected && filmId && getFilmStatus(filmId).allowed))
+                                : (step > {{ $stepNum }}
                                     ? 'badge-success-solid font-bold'
                                     : 'border-slate-300 bg-surface text-slate-600 dark:border-slate-700 dark:text-slate-400 font-medium')"
                             :aria-current="step === {{ $stepNum }} ? 'step' : null">
                             <span class="flex items-center justify-center gap-1">
-                                <template x-if="step > {{ $stepNum }} || ({{ $stepNum }} === 3 && filmPreselected && filmId && getFilmStatus(filmId).allowed && step !== 3)">
+                                <template x-if="step > {{ $stepNum }}">
                                     <svg class="size-3.5 stroke-[2.5]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                                     </svg>
                                 </template>
-                                <span class="font-tabular text-[11px] font-black" x-show="!(step > {{ $stepNum }} || ({{ $stepNum }} === 3 && filmPreselected && filmId && getFilmStatus(filmId).allowed && step !== 3))">{{ $stepNum }}</span>
+                                <span class="font-tabular text-[11px] font-black" x-show="step <= {{ $stepNum }}">{{ $stepNum }}</span>
                             </span>
                             <span class="block truncate text-[11px] mt-0.5">{{ $stepLabel }}</span>
                         </li>
@@ -1240,13 +1208,16 @@
                         </button>
                     </div>
 
-                    {{-- Tab Kategori --}}
-                    <div class="flex gap-2 overflow-x-auto border-b border-border pb-2 scrollbar-none" role="tablist">
+                    {{-- Tab Kategori Jajanan (Sleek Single-Line Horizontal Track with Wheel & Touch Scroll) --}}
+                    <div class="flex items-center gap-2 overflow-x-auto border-b border-border pb-2.5 pt-1 scroll-smooth custom-scrollbar -mx-1 px-1"
+                         role="tablist"
+                         style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch;"
+                         @wheel.passive="$el.scrollLeft += $event.deltaY">
                         @foreach ($snackCategories as $category)
                             <button type="button"
                                     @click="activeCategory = {{ $category['id'] }}"
-                                    class="min-h-9 shrink-0 rounded-xl px-4 text-xs font-bold transition"
-                                    :class="activeCategory === {{ $category['id'] }} ? 'badge-accent-solid' : 'border border-border-input bg-surface text-text hover:border-amber-400'">
+                                    class="min-h-9 shrink-0 whitespace-nowrap rounded-xl px-4 text-xs font-bold transition shadow-2xs"
+                                    :class="activeCategory === {{ $category['id'] }} ? 'badge-accent-solid' : 'border border-border-input bg-surface text-text hover:border-amber-400 hover:text-amber-500'">
                                 {{ $category['name'] }}
                             </button>
                         @endforeach
@@ -1403,10 +1374,8 @@
                 </div>
             </section>
 
-            {{-- FIXED LIVE-UPDATE ACTION BAR DI BAWAH (MOBILE & DESKTOP) --}}
-            <style>:root { --bottom-bar-h: 88px; }</style>
-            <aside class="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-white dark:bg-[#0E131F] px-4 py-3 shadow-[0_-8px_30px_rgba(0,0,0,0.15)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.7)]"
-                   style="position: fixed !important; bottom: 0 !important; left: 0 !important; right: 0 !important; z-index: 50 !important; background-color: var(--surface-default, #ffffff) !important; padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.75rem);">
+            {{-- LIVE-UPDATE ACTION BAR (STICKY BOTTOM DI MOBILE, INLINE CARD NYAMAN DI DESKTOP) --}}
+            <aside class="sticky bottom-0 z-30 -mx-4 border-t border-border bg-surface px-4 py-3 shadow-lg pb-[max(env(safe-area-inset-bottom,0px),0.75rem)] sm:static sm:z-auto sm:mx-0 sm:mt-8 sm:rounded-2xl sm:border sm:border-border sm:bg-surface sm:p-4 sm:shadow-sm sm:pb-4">
                 <div class="mx-auto flex max-w-xl items-center justify-between gap-3 sm:gap-4">
                     {{-- Total Price Column (Always 1 line, no wrapping, solid opaque background) --}}
                     <div class="shrink-0 flex flex-col justify-center pr-1 whitespace-nowrap min-w-0">
@@ -1440,8 +1409,8 @@
                                 x-show="step === 2"
                                 @click="nextStep()"
                                 class="btn-gold-cinema inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-4 sm:px-6 text-xs sm:text-sm font-black shadow-md transition active:scale-95 shrink-0">
-                            <span class="sm:hidden" x-text="(filmId && getFilmStatus(filmId).allowed) ? (hasSnacks ? 'Menu Jajan' : 'Pembayaran') : 'Pilih Film'"></span>
-                            <span class="hidden sm:inline" x-text="(filmId && getFilmStatus(filmId).allowed) ? (hasSnacks ? 'Lanjut ke Menu Jajan' : 'Lanjut ke Pembayaran') : 'Lanjut ke Pilih Film'"></span>
+                            <span class="sm:hidden" x-text="filmId ? 'Pilihan Film' : 'Pilih Film'"></span>
+                            <span class="hidden sm:inline" x-text="filmId ? 'Lanjut ke Pilihan Film' : 'Lanjut ke Pilih Film'"></span>
                             <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
                             </svg>

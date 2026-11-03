@@ -55,7 +55,7 @@
         {{-- TAB 1: KONTEN BERITA --}}
         @if ($activeTab === 'berita')
             {{-- Sub-Filter Kategori (Semua / Berita / Pengumuman) - Rata Tengah --}}
-            <div class="mt-6 flex justify-center items-center gap-2.5 overflow-x-auto py-1 px-2 mx-auto no-scrollbar max-w-full">
+            <div class="mt-6 flex flex-wrap justify-center items-center gap-2 sm:gap-2.5 py-1 px-2 mx-auto max-w-full">
                 <a href="{{ route('articles.index', ['tab' => 'berita']) }}"
                    class="inline-flex min-h-10 shrink-0 items-center justify-center rounded-xl px-4 py-2 text-xs transition {{ empty($currentCategory) ? 'filter-chip-selected' : 'filter-chip-unselected' }}">
                     Semua warta

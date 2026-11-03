@@ -89,13 +89,120 @@
                     </button>
                 </form>
             @elseif ($booking->status === 'terkonfirmasi')
-                <form method="POST" action="{{ route('admin.bookings.status', $booking) }}">
-                    @csrf @method('PATCH')
-                    <input type="hidden" name="action" value="hadir">
-                    <button class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-emerald-600 px-5 text-xs sm:text-sm font-bold text-white hover:bg-emerald-500 transition shadow-sm">
-                        Tandai Hadir
+                <div x-data="{ showManual: false, modalManualOpen: false, manualReason: '' }" class="flex items-center gap-2">
+                    <a
+                        href="{{ route('admin.scan.index', ['sesi' => $booking->session_id]) }}"
+                        class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 text-xs sm:text-sm font-bold text-slate-950 hover:bg-amber-400 transition shadow-sm"
+                    >
+                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                        </svg>
+                        <span>Scan tiket</span>
+                    </a>
+
+                    <div class="relative">
+                        <button
+                            type="button"
+                            @click="showManual = !showManual"
+                            :aria-expanded="showManual.toString()"
+                            class="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-300 dark:border-white/15 bg-surface px-3 text-xs font-semibold text-text-muted hover:text-text hover:bg-surface-2 transition"
+                        >
+                            <span x-text="showManual ? 'Sembunyikan aksi manual' : 'Tampilkan aksi manual'">Tampilkan aksi manual</span>
+                            <svg class="size-3.5 transition-transform" :class="showManual ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                            </svg>
+                        </button>
+
+                        <div
+                            x-show="showManual"
+                            x-cloak
+                            @click.outside="showManual = false"
+                            class="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-amber-500/30 bg-surface p-3.5 shadow-xl z-50 space-y-2 text-xs"
+                        >
+                            <div class="flex items-center justify-between">
+                                <p class="font-bold text-amber-600 dark:text-amber-400">Tandai hadir (manual)</p>
+                                <button type="button" @click="showManual = false" class="text-text-muted hover:text-text text-[11px] font-semibold">Tutup</button>
+                            </div>
+                            <p class="text-text-muted text-[11px]">Gunakan hanya bila pemindai tidak bisa dipakai. Tercatat sebagai manual.</p>
+                            <div class="pt-1">
+                                <button
+                                    type="button"
+                                    @click="modalManualOpen = true"
+                                    class="w-full min-h-[38px] inline-flex items-center justify-center rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-500 transition shadow-xs"
+                                >
+                                    Tandai hadir (manual)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Modal Konfirmasi In-app Tandai Hadir Manual --}}
+                    <div x-show="modalManualOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" @keydown.escape.window="modalManualOpen = false">
+                        <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-5 shadow-2xl space-y-4" @click.outside="modalManualOpen = false">
+                            <div class="flex items-center justify-between border-b border-border pb-3">
+                                <h3 class="font-bold text-sm text-text">Konfirmasi Hadir Manual</h3>
+                                <button type="button" @click="modalManualOpen = false" class="size-8 inline-flex items-center justify-center rounded-lg text-text-muted hover:bg-surface-2">
+                                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                            <p class="text-xs text-text-muted leading-relaxed">
+                                Tandai kehadiran untuk <strong class="text-text">{{ $booking->customer_name }}</strong> ({{ $booking->code }}). Aksi ini akan dicatat dalam jejak audit sebagai check-in manual oleh Anda.
+                            </p>
+                            <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" class="space-y-3">
+                                @csrf @method('PATCH')
+                                <input type="hidden" name="action" value="hadir">
+                                <div>
+                                    <label for="manual_reason_input" class="block text-xs font-semibold text-text mb-1">Alasan manual (opsional, maks 120 karakter):</label>
+                                    <input id="manual_reason_input" name="manual_reason" type="text" maxlength="120" placeholder="Contoh: Kamera smartphone bermasalah" class="w-full min-h-[40px] rounded-xl border border-border bg-surface px-3 text-xs text-text focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                </div>
+                                <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                                    <button type="button" @click="modalManualOpen = false" class="min-h-[40px] px-4 rounded-xl border border-border bg-surface text-xs font-semibold text-text hover:bg-surface-2">Batal</button>
+                                    <button type="submit" class="min-h-[40px] px-4 rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-500">Tandai Hadir</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @elseif ($booking->status === 'hadir')
+                <div x-data="{ undoOpen: false }" class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        @click="undoOpen = true"
+                        class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-4 text-xs font-semibold text-text-muted hover:text-danger hover:border-danger/30 transition shadow-none"
+                    >
+                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                        </svg>
+                        <span>Batalkan tanda hadir</span>
                     </button>
-                </form>
+
+                    {{-- Modal Konfirmasi In-app Batalkan Hadir --}}
+                    <div x-show="undoOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" @keydown.escape.window="undoOpen = false">
+                        <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-5 shadow-2xl space-y-4" @click.outside="undoOpen = false">
+                            <div class="flex items-center justify-between border-b border-border pb-3">
+                                <h3 class="font-bold text-sm text-text">Batalkan Tanda Hadir</h3>
+                                <button type="button" @click="undoOpen = false" class="size-8 inline-flex items-center justify-center rounded-lg text-text-muted hover:bg-surface-2">
+                                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                            <p class="text-xs text-text-muted leading-relaxed">
+                                Status kehadiran booking <strong class="text-text">{{ $booking->code }}</strong> akan dikembalikan ke aktif/terkonfirmasi dan dicatat sebagai pembatalan (undo).
+                            </p>
+                            <form method="POST" action="{{ route('admin.scan.undo') }}" class="space-y-3">
+                                @csrf
+                                <input type="hidden" name="booking_id" value="{{ $booking->id }}">
+                                <div>
+                                    <label for="undo_reason_input" class="block text-xs font-semibold text-text mb-1">Alasan pembatalan (opsional):</label>
+                                    <input id="undo_reason_input" name="reason" type="text" maxlength="255" placeholder="Contoh: Salah memindai tiket penonton lain" class="w-full min-h-[40px] rounded-xl border border-border bg-surface px-3 text-xs text-text focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                </div>
+                                <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                                    <button type="button" @click="undoOpen = false" class="min-h-[40px] px-4 rounded-xl border border-border bg-surface text-xs font-semibold text-text hover:bg-surface-2">Batal</button>
+                                    <button type="submit" class="min-h-[40px] px-4 rounded-xl bg-danger text-xs font-bold text-white hover:bg-danger/80">Batalkan Tanda Hadir</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             @elseif ($booking->status === 'kedaluwarsa')
                 <form method="POST" action="{{ route('admin.bookings.status', $booking) }}" data-confirm="Booking ini sudah kedaluwarsa dan tempat sudah dilepas. Aktifkan kembali?" data-confirm-title="Aktifkan Kembali Booking" data-confirm-action="Aktifkan Kembali" novalidate>
                     @csrf @method('PATCH')
@@ -219,6 +326,66 @@
             <div>
                 <p class="font-bold text-red-400">Bukti transfer sebelumnya ditolak:</p>
                 <p class="mt-0.5">{{ $booking->proof_rejection_note }}</p>
+            </div>
+        </div>
+    @endif
+
+    {{-- Attendance / Check-in Info Banner --}}
+    @if ($booking->status === 'hadir' || $booking->checked_in_at)
+        @php
+            $checkInService = app(\App\Services\CheckInService::class);
+            $checkinInfo = $checkInService->alreadyCheckedInMessage($booking);
+        @endphp
+        <div class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs text-emerald-800 dark:text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="size-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0 text-emerald-600 dark:text-emerald-400">
+                    <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="font-bold text-emerald-900 dark:text-emerald-200">Telah Hadir di Studio</p>
+                    <p class="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">{{ $checkinInfo }}</p>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Audit Log Check-in (Tertutup Bawaan) --}}
+    @if ($booking->checkins->isNotEmpty())
+        <div x-data="{ checkinLogsOpen: false }" class="rounded-2xl border border-border bg-surface p-4 text-xs space-y-3 shadow-sm">
+            <button
+                type="button"
+                @click="checkinLogsOpen = !checkinLogsOpen"
+                class="flex w-full items-center justify-between font-bold text-text hover:text-amber-500 transition"
+            >
+                <div class="flex items-center gap-2">
+                    <svg class="size-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Riwayat Jejak Audit Pemindai ({{ $booking->checkins->count() }})</span>
+                </div>
+                <svg class="size-4 text-text-muted transition-transform" :class="checkinLogsOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                </svg>
+            </button>
+
+            <div x-show="checkinLogsOpen" x-cloak class="pt-2 border-t border-border space-y-2">
+                @foreach ($booking->checkins as $log)
+                    <div class="p-2.5 rounded-xl border border-border/80 bg-surface-2/40 flex items-center justify-between text-[11px]">
+                        <div>
+                            <span class="font-bold text-text uppercase">Hasil: {{ $log->result }}</span>
+                            <span class="text-text-muted">· Metode: {{ $log->method }}</span>
+                            @if ($log->user)
+                                <span class="text-text-muted">· Oleh: {{ $log->user->name }}</span>
+                            @endif
+                            @if ($log->reason)
+                                <p class="text-text-muted mt-0.5">Catatan: {{ $log->reason }}</p>
+                            @endif
+                        </div>
+                        <span class="font-tabular text-text-muted shrink-0">{{ $log->created_at?->locale('id')->translatedFormat('d M H:i:s') }}</span>
+                    </div>
+                @endforeach
             </div>
         </div>
     @endif

@@ -7,6 +7,7 @@
     'showDots' => true,
     'loop' => true,
     'bleed' => true,
+    'fade' => false,
     'label' => 'Carousel',
     'arrowPrevLabel' => 'Sebelumnya',
     'arrowNextLabel' => 'Berikutnya',
@@ -27,6 +28,9 @@
         total: {{ max(1, (int) $total) }},
         autoplay: @js((bool) $autoplay),
         intervalMs: {{ $autoplayMs }},
+        fade: @js((bool) $fade),
+        touchStartX: 0,
+        touchEndX: 0,
         timer: null,
         resumeTimer: null,
         isInteracting: false,
@@ -34,6 +38,9 @@
 
         init() {
             this.trackEl = this.$refs.track;
+            if (this.fade) {
+                this.setupFadeSlides();
+            }
             if (this.autoplay && this.total > 1 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
                 this.startAuto();
             }
@@ -42,6 +49,38 @@
                     this.stopAuto();
                 } else if (this.autoplay && !this.isInteracting) {
                     this.startAuto();
+                }
+            });
+        },
+
+        setupFadeSlides() {
+            if (!this.trackEl) return;
+            const slides = Array.from(this.trackEl.children).filter(c => c.dataset.carouselSlide !== undefined);
+            slides.forEach((slide, idx) => {
+                slide.style.gridArea = '1 / 1';
+                slide.classList.add('transition-opacity', 'duration-700', 'ease-in-out');
+                if (idx === 0) {
+                    slide.classList.add('opacity-100', 'z-10', 'pointer-events-auto');
+                    slide.classList.remove('opacity-0', 'z-0', 'pointer-events-none', 'invisible');
+                } else {
+                    slide.classList.add('opacity-0', 'z-0', 'pointer-events-none', 'invisible');
+                    slide.classList.remove('opacity-100', 'z-10', 'pointer-events-auto');
+                }
+            });
+        },
+
+        updateFade(activeIdx) {
+            if (!this.fade || !this.trackEl) return;
+            const slides = Array.from(this.trackEl.children).filter(c => c.dataset.carouselSlide !== undefined);
+            slides.forEach((slide, idx) => {
+                if (idx === activeIdx) {
+                    slide.classList.add('opacity-100', 'z-10', 'pointer-events-auto');
+                    slide.classList.remove('opacity-0', 'z-0', 'pointer-events-none', 'invisible');
+                    slide.removeAttribute('aria-hidden');
+                } else {
+                    slide.classList.add('opacity-0', 'z-0', 'pointer-events-none', 'invisible');
+                    slide.classList.remove('opacity-100', 'z-10', 'pointer-events-auto');
+                    slide.setAttribute('aria-hidden', 'true');
                 }
             });
         },
@@ -74,7 +113,7 @@
         },
 
         onScroll() {
-            if (!this.trackEl) return;
+            if (this.fade || !this.trackEl) return;
             const scrollWidth = this.trackEl.scrollWidth - this.trackEl.clientWidth;
             if (scrollWidth <= 0) {
                 this.current = 0;
@@ -114,8 +153,24 @@
             }
         },
 
+        goTo(idx) {
+            const clamped = Math.max(0, Math.min(this.total - 1, idx));
+            if (this.fade) {
+                this.current = clamped;
+                this.updateFade(clamped);
+            } else {
+                this.scrollToIndex(clamped);
+            }
+        },
+
         next(isAuto = false) {
             if (!isAuto) this.pauseForInteraction();
+            if (this.fade) {
+                const nextIdx = (this.current + 1) % this.total;
+                this.current = nextIdx;
+                this.updateFade(nextIdx);
+                return;
+            }
             if (this.current >= this.total - 1) {
                 if ({{ $loop ? 'true' : 'false' }}) {
                     this.scrollToIndex(0);
@@ -127,6 +182,12 @@
 
         prev() {
             this.pauseForInteraction();
+            if (this.fade) {
+                const prevIdx = (this.current - 1 + this.total) % this.total;
+                this.current = prevIdx;
+                this.updateFade(prevIdx);
+                return;
+            }
             if (this.current <= 0) {
                 if ({{ $loop ? 'true' : 'false' }}) {
                     this.scrollToIndex(this.total - 1);
@@ -149,48 +210,29 @@
     <div
         class="relative overflow-hidden {{ $bleed ? '-mx-4 px-4 sm:mx-0 sm:px-0' : '' }}"
     >
-        <div
-            x-ref="track"
-            @scroll.passive="onScroll()"
-            @touchstart.passive="pauseForInteraction()"
-            @touchend.passive="pauseForInteraction()"
-            class="carousel-viewport flex overflow-x-auto scroll-smooth overscroll-x-contain select-none scrollbar-none snap-x snap-mandatory {{ $trackClass }}"
-            style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none;"
-        >
-            {{ $slot }}
-        </div>
+        @if ($fade)
+            <div
+                x-ref="track"
+                @touchstart.passive="touchStartX = $event.touches[0].clientX; pauseForInteraction()"
+                @touchend.passive="touchEndX = $event.changedTouches[0].clientX; if (Math.abs(touchStartX - touchEndX) > 40) { touchStartX > touchEndX ? next() : prev(); }; pauseForInteraction()"
+                class="carousel-viewport relative w-full overflow-hidden select-none {{ $trackClass }}"
+                style="display: grid; grid-template-columns: 1fr; grid-template-rows: 1fr;"
+            >
+                {{ $slot }}
+            </div>
+        @else
+            <div
+                x-ref="track"
+                @scroll.passive="onScroll()"
+                @touchstart.passive="pauseForInteraction()"
+                @touchend.passive="pauseForInteraction()"
+                class="carousel-viewport flex overflow-x-auto scroll-smooth overscroll-x-contain select-none scrollbar-none snap-x snap-mandatory {{ $trackClass }}"
+                style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none;"
+            >
+                {{ $slot }}
+            </div>
+        @endif
     </div>
-
-    {{-- Arrows: Semi-transparent Circular CGV style (Visible on mobile & desktop, min 44px tap target) --}}
-    @if ($showArrows && (int) $total > 1)
-        {{-- Prev Arrow --}}
-        <button
-            type="button"
-            @click.stop="prev()"
-            class="absolute left-1 sm:left-3 top-1/2 -translate-y-1/2 z-20 flex size-11 items-center justify-center rounded-full text-white focus-visible:outline-2 focus-visible:outline-amber-500 transition-opacity"
-            :aria-label="current === 0 ? '{{ $arrowPrevLoopLabel }}' : '{{ $arrowPrevLabel }}'"
-        >
-            <span class="flex size-9 items-center justify-center rounded-full bg-black/60 dark:bg-black/75 hover:bg-black/90 text-white border border-white/20 shadow-md">
-                <svg class="size-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-                </svg>
-            </span>
-        </button>
-
-        {{-- Next Arrow --}}
-        <button
-            type="button"
-            @click.stop="next()"
-            class="absolute right-1 sm:right-3 top-1/2 -translate-y-1/2 z-20 flex size-11 items-center justify-center rounded-full text-white focus-visible:outline-2 focus-visible:outline-amber-500 transition-opacity"
-            :aria-label="current === total - 1 ? '{{ $arrowNextLoopLabel }}' : '{{ $arrowNextLabel }}'"
-        >
-            <span class="flex size-9 items-center justify-center rounded-full bg-black/60 dark:bg-black/75 hover:bg-black/90 text-white border border-white/20 shadow-md">
-                <svg class="size-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-            </span>
-        </button>
-    @endif
 
     {{-- Dots Indicator --}}
     @if ($showDots && (int) $total > 1)
@@ -198,7 +240,7 @@
             <template x-for="idx in total" :key="idx">
                 <button
                     type="button"
-                    @click="scrollToIndex(idx - 1)"
+                    @click="goTo(idx - 1)"
                     role="tab"
                     :aria-selected="current === idx - 1"
                     :aria-label="`Ke slide ${idx}`"

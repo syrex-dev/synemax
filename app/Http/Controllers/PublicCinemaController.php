@@ -60,10 +60,20 @@ class PublicCinemaController extends Controller
                 ->values();
 
             if ($films->isEmpty()) {
-                $films = Film::query()->where('is_active', true)->applyCustomSort()->take($filmsLimit)->get();
+                $films = Film::query()
+                    ->where('is_active', true)
+                    ->orderByRaw("CASE WHEN poster_path IS NOT NULL AND poster_path != '' THEN 0 ELSE 1 END")
+                    ->applyCustomSort()
+                    ->take($filmsLimit)
+                    ->get();
             }
         } else {
-            $films = Film::query()->where('is_active', true)->applyCustomSort()->take($filmsLimit)->get();
+            $films = Film::query()
+                ->where('is_active', true)
+                ->orderByRaw("CASE WHEN poster_path IS NOT NULL AND poster_path != '' THEN 0 ELSE 1 END")
+                ->applyCustomSort()
+                ->take($filmsLimit)
+                ->get();
         }
         $allActiveFilms = Film::query()->where('is_active', true)->get(['id', 'genre', 'release_year']);
 

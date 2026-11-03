@@ -5,105 +5,7 @@
 
 <div
     x-data="{
-        canScrollLeft: false,
-        canScrollRight: false,
-        isDragging: false,
-        startX: 0,
-        scrollLeftStart: 0,
-        hasMoved: false,
         yearOpen: false,
-
-        init() {
-            const scroller = this.$refs.genreScroller;
-            if (!scroller) return;
-
-            const updateScroll = () => {
-                const tolerance = 4;
-                this.canScrollLeft = scroller.scrollLeft > tolerance;
-                this.canScrollRight = (scroller.scrollLeft + scroller.clientWidth) < (scroller.scrollWidth - tolerance);
-            };
-
-            scroller.addEventListener('scroll', updateScroll, { passive: true });
-            
-            const ro = new ResizeObserver(() => updateScroll());
-            ro.observe(scroller);
-
-            this.$nextTick(() => {
-                updateScroll();
-                this.centerActiveChip();
-            });
-
-            this.$watch('genre', () => {
-                this.$nextTick(() => {
-                    this.centerActiveChip();
-                    updateScroll();
-                });
-            });
-        },
-
-        scrollLeft() {
-            const scroller = this.$refs.genreScroller;
-            if (!scroller) return;
-            const delta = scroller.clientWidth * 0.7;
-            scroller.scrollBy({ left: -delta, behavior: 'smooth' });
-        },
-
-        scrollRight() {
-            const scroller = this.$refs.genreScroller;
-            if (!scroller) return;
-            const delta = scroller.clientWidth * 0.7;
-            scroller.scrollBy({ left: delta, behavior: 'smooth' });
-        },
-
-        onWheel(e) {
-            const scroller = this.$refs.genreScroller;
-            if (!scroller) return;
-            if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-            if (scroller.scrollWidth > scroller.clientWidth) {
-                e.preventDefault();
-                scroller.scrollLeft += (e.deltaY * 0.8);
-            }
-        },
-
-        onPointerDown(e) {
-            if (e.pointerType && e.pointerType !== 'mouse') return;
-            const scroller = this.$refs.genreScroller;
-            this.isDragging = true;
-            this.hasMoved = false;
-            this.startX = e.pageX || e.clientX;
-            this.scrollLeftStart = scroller.scrollLeft;
-        },
-
-        onPointerMove(e) {
-            if (!this.isDragging) return;
-            if (e.pointerType && e.pointerType !== 'mouse') return;
-            const x = e.pageX || e.clientX;
-            const walk = (x - this.startX);
-            if (Math.abs(walk) > 5) {
-                this.hasMoved = true;
-            }
-            this.$refs.genreScroller.scrollLeft = this.scrollLeftStart - walk;
-        },
-
-        onPointerUp(e) {
-            if (e && e.pointerType && e.pointerType !== 'mouse') return;
-            this.isDragging = false;
-        },
-
-        selectGenre(g) {
-            if (this.hasMoved) return;
-            this.setFilter(g, undefined);
-        },
-
-        centerActiveChip() {
-            const scroller = this.$refs.genreScroller;
-            if (!scroller) return;
-            const active = scroller.querySelector('[data-active=\'true\']');
-            if (active) {
-                active.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
-            }
-        },
-
         toggleYear() {
             this.yearOpen = !this.yearOpen;
             if (this.yearOpen) {
@@ -113,133 +15,26 @@
                 });
             }
         },
-
         selectYear(y) {
             this.setFilter(undefined, y);
             this.yearOpen = false;
             this.$refs.yearBtn?.focus();
         }
     }"
-    class="flex flex-col sm:flex-row sm:items-center gap-3 rounded-2xl border border-slate-300 dark:border-white/10 bg-surface dark:bg-[#0B101B] p-3 sm:p-3.5 shadow-sm"
+    class="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-3 sm:p-4 shadow-xs"
 >
-    {{-- ================================================================= --}}
-    {{-- 1. SCROLLABLE GENRE CHIPS AREA (flex: 1, min-width: 0)            --}}
-    {{-- ================================================================= --}}
-    <div class="relative flex-1 min-w-0 flex items-center">
-        {{-- Left Fade Gradient --}}
-        <div
-            x-show="canScrollLeft"
-            x-cloak
-            x-transition:enter="transition-opacity duration-200"
-            x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100"
-            x-transition:leave="transition-opacity duration-200"
-            x-transition:leave-start="opacity-100"
-            x-transition:leave-end="opacity-0"
-            class="pointer-events-none absolute left-0 inset-y-0 w-12 bg-gradient-to-r from-surface dark:from-[#0B101B] to-transparent z-10"
-        ></div>
-
-        {{-- Left Scroll Arrow (Desktop 36px) --}}
-        <button
-            type="button"
-            x-show="canScrollLeft"
-            x-cloak
-            x-transition:enter="transition-opacity duration-150"
-            x-transition:enter-start="opacity-0 scale-90"
-            x-transition:enter-end="opacity-100 scale-100"
-            x-transition:leave="transition-opacity duration-150"
-            x-transition:leave-start="opacity-100 scale-100"
-            x-transition:leave-end="opacity-0 scale-90"
-            @click.stop="scrollLeft()"
-            class="hidden sm:flex absolute left-1 size-9 items-center justify-center rounded-full border border-border bg-surface/95 dark:bg-[#111726]/95 text-text hover:bg-amber-500 hover:text-slate-950 hover:border-amber-500 transition-all shadow-md z-20 focus-visible:outline-2 focus-visible:outline-amber-500"
-            aria-label="Geser genre ke kiri"
-        >
-            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+    {{-- Header Row: Label & Year Combobox + Reset Button --}}
+    <div class="flex items-center justify-between gap-3 border-b border-border/60 pb-2.5">
+        <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-text">
+            <svg class="size-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
             </svg>
-        </button>
+            Pilih Genre
+        </span>
 
-        {{-- Scrolling Track --}}
-        <div
-            x-ref="genreScroller"
-            @wheel="onWheel($event)"
-            @pointerdown="onPointerDown($event)"
-            @pointermove="onPointerMove($event)"
-            @pointerup="onPointerUp($event)"
-            @pointercancel="onPointerUp($event)"
-            class="flex items-center gap-2 overflow-x-auto scroll-smooth py-1 px-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden select-none cursor-grab active:cursor-grabbing w-full"
-            style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity;"
-        >
-            {{-- All Genres Chip --}}
-            <button
-                type="button"
-                @click="selectGenre('')"
-                :data-active="genre === '' ? 'true' : 'false'"
-                class="shrink-0 min-h-[38px] rounded-xl px-4 text-xs font-bold transition-all focus-visible:outline-2 focus-visible:outline-amber-500"
-                :class="genre === ''
-                    ? 'bg-amber-500 text-slate-950 shadow-xs'
-                    : 'border border-slate-300 dark:border-white/10 bg-surface text-text-muted hover:text-text hover:border-amber-500/50'"
-                style="scroll-snap-align: center;"
-            >
-                Semua Genre
-            </button>
-
-            {{-- Canonical Genres Chips --}}
-            @foreach ($genres as $g)
-                <button
-                    type="button"
-                    @click="selectGenre('{{ $g }}')"
-                    :data-active="genre === '{{ $g }}' ? 'true' : 'false'"
-                    class="shrink-0 min-h-[38px] rounded-xl px-4 text-xs font-bold transition-all focus-visible:outline-2 focus-visible:outline-amber-500"
-                    :class="genre === '{{ $g }}'
-                        ? 'bg-amber-500 text-slate-950 shadow-xs'
-                        : 'border border-slate-300 dark:border-white/10 bg-surface text-text-muted hover:text-text hover:border-amber-500/50'"
-                    style="scroll-snap-align: center;"
-                >
-                    {{ $g }}
-                </button>
-            @endforeach
-        </div>
-
-        {{-- Right Fade Gradient --}}
-        <div
-            x-show="canScrollRight"
-            x-cloak
-            x-transition:enter="transition-opacity duration-200"
-            x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100"
-            x-transition:leave="transition-opacity duration-200"
-            x-transition:leave-start="opacity-100"
-            x-transition:leave-end="opacity-0"
-            class="pointer-events-none absolute right-0 inset-y-0 w-12 bg-gradient-to-l from-surface dark:from-[#0B101B] to-transparent z-10"
-        ></div>
-
-        {{-- Right Scroll Arrow (Desktop 36px) --}}
-        <button
-            type="button"
-            x-show="canScrollRight"
-            x-cloak
-            x-transition:enter="transition-opacity duration-150"
-            x-transition:enter-start="opacity-0 scale-90"
-            x-transition:enter-end="opacity-100 scale-100"
-            x-transition:leave="transition-opacity duration-150"
-            x-transition:leave-start="opacity-100 scale-100"
-            x-transition:leave-end="opacity-0 scale-90"
-            @click.stop="scrollRight()"
-            class="hidden sm:flex absolute right-1 size-9 items-center justify-center rounded-full border border-border bg-surface/95 dark:bg-[#111726]/95 text-text hover:bg-amber-500 hover:text-slate-950 hover:border-amber-500 transition-all shadow-md z-20 focus-visible:outline-2 focus-visible:outline-amber-500"
-            aria-label="Geser genre ke kanan"
-        >
-            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-        </button>
-    </div>
-
-    {{-- ================================================================= --}}
-    {{-- 2. ACCESSIBLE CUSTOM YEAR COMBOBOX (LEBAR PENUH DI HP < 640px)    --}}
-    {{-- ================================================================= --}}
-    <div class="relative shrink-0 flex items-center gap-2 w-full sm:w-auto">
-        {{-- Combobox Trigger Button --}}
+        {{-- 2. ACCESSIBLE CUSTOM YEAR COMBOBOX & RESET BUTTON --}}
+        <div class="relative shrink-0 flex items-center gap-2">
+            {{-- Combobox Trigger Button --}}
         <button
             type="button"
             x-ref="yearBtn"
@@ -249,22 +44,20 @@
             aria-haspopup="listbox"
             aria-controls="year-listbox"
             aria-label="Filter berdasarkan tahun rilis"
-            class="relative inline-flex min-h-[44px] w-full sm:w-auto sm:min-w-[150px] items-center justify-between rounded-xl border border-slate-300 dark:border-white/15 bg-surface px-3 py-2 text-xs font-bold text-text hover:border-amber-500 transition-all shadow-xs focus-visible:outline-2 focus-visible:outline-amber-500"
+            class="relative inline-flex min-h-[40px] w-full sm:w-auto sm:min-w-[140px] items-center justify-between rounded-xl border border-border bg-surface-2 px-3 py-1.5 text-xs font-bold text-text hover:border-amber-500 transition-all shadow-xs focus-visible:outline-2 focus-visible:outline-amber-500"
         >
-            <div class="flex items-center gap-2 min-w-0 pr-6">
-                {{-- Calendar Icon --}}
+            <div class="flex items-center gap-2 min-w-0 pr-5">
                 <svg class="size-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <div class="truncate text-left leading-tight">
-                    <span class="block text-[10px] font-semibold text-text-muted uppercase tracking-wider">Tahun</span>
-                    <span class="block font-bold text-text truncate" x-text="tahun ? tahun : 'Semua tahun'"></span>
+                    <span class="block text-[9px] font-semibold text-text-muted uppercase tracking-wider">Tahun</span>
+                    <span class="block font-bold text-text truncate text-xs" x-text="tahun ? tahun : 'Semua tahun'"></span>
                 </div>
             </div>
 
-            {{-- Chevron Icon (Dedicated space on right, rotates when open) --}}
             <svg
-                class="absolute right-3 size-4 shrink-0 text-text-muted transition-transform duration-200"
+                class="absolute right-2.5 size-4 shrink-0 text-text-muted transition-transform duration-200"
                 :class="yearOpen ? 'rotate-180 text-amber-500' : ''"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -281,7 +74,7 @@
             x-show="genre || tahun || (typeof search !== 'undefined' && search)"
             x-cloak
             @click="resetFilter ? resetFilter() : resetFilters()"
-            class="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-xs font-bold text-danger hover:bg-danger/20 transition shadow-xs"
+            class="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-danger/30 bg-danger/10 px-3 py-1.5 text-xs font-bold text-danger hover:bg-danger/20 transition shadow-xs shrink-0"
             title="Reset semua filter"
         >
             <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -368,5 +161,41 @@
                 @endforeach
             </ul>
         </div>
+    </div>
+</div>
+
+    {{-- Sleek, Neat Single-Line Horizontal Genre Scroll Track --}}
+    <div
+        class="flex items-center gap-2 overflow-x-auto py-1 scroll-smooth custom-scrollbar -mx-1 px-1"
+        style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch;"
+        @wheel.passive="$el.scrollLeft += $event.deltaY"
+    >
+        {{-- All Genres Chip --}}
+        <button
+            type="button"
+            @click="setFilter('', undefined)"
+            :data-active="genre === '' ? 'true' : 'false'"
+            class="min-h-9 shrink-0 whitespace-nowrap rounded-xl px-4 py-1.5 text-xs font-bold transition-all focus-visible:outline-2 focus-visible:outline-amber-500"
+            :class="genre === ''
+                ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                : 'border border-border bg-surface-2 text-text-muted hover:text-text hover:border-amber-500/50'"
+        >
+            Semua Genre
+        </button>
+
+        {{-- Canonical Genres Chips --}}
+        @foreach ($genres as $g)
+            <button
+                type="button"
+                @click="setFilter('{{ $g }}', undefined)"
+                :data-active="genre === '{{ $g }}' ? 'true' : 'false'"
+                class="min-h-9 shrink-0 whitespace-nowrap rounded-xl px-4 py-1.5 text-xs font-bold transition-all focus-visible:outline-2 focus-visible:outline-amber-500"
+                :class="genre === '{{ $g }}'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                    : 'border border-border bg-surface-2 text-text-muted hover:text-text hover:border-amber-500/50'"
+            >
+                {{ $g }}
+            </button>
+        @endforeach
     </div>
 </div>

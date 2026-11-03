@@ -343,11 +343,14 @@ class SettingController extends Controller
             'snacks_enabled' => $request->boolean('snacks_enabled') ? 1 : 0,
             'snack_prep_buffer_minutes' => $request->input('snack_prep_buffer_minutes', $settings->integer('snack_prep_buffer_minutes', 15)),
             'snack_max_qty_per_item' => $request->input('snack_max_qty_per_item', $settings->integer('snack_max_qty_per_item', 10)),
-            'info_nobar_enabled' => $request->boolean('info_nobar_enabled') ? 1 : 0,
+            'info_nobar_enabled' => $request->has('info_nobar_enabled') ? ($request->boolean('info_nobar_enabled') ? 1 : 0) : $settings->integer('info_nobar_enabled', 1),
             'maintenance_mode' => $request->boolean('maintenance_mode') ? 1 : 0,
             'ticket_arrive_minutes' => $request->input('ticket_arrive_minutes', $settings->integer('ticket_arrive_minutes', 15)),
             'ticket_studio_name' => $request->input('ticket_studio_name', $settings->string('ticket_studio_name', 'Studio 1')),
             'ticket_notes' => $request->input('ticket_notes', $settings->string('ticket_notes', 'Tunjukkan e-tiket ini kepada petugas di pintu masuk bioskop.')),
+            'check_in_open_minutes_before' => $request->input('check_in_open_minutes_before', $settings->integer('check_in_open_minutes_before', 60)),
+            'check_in_close_after' => $request->input('check_in_close_after', $settings->string('check_in_close_after', 'session_end')),
+            'check_in_sound_enabled' => $request->boolean('check_in_sound_enabled') ? 1 : 0,
         ]);
 
         $data = $request->validate([
@@ -362,6 +365,9 @@ class SettingController extends Controller
             'ticket_arrive_minutes' => ['required', 'integer', 'between:0,120'],
             'ticket_studio_name' => ['required', 'string', 'max:50'],
             'ticket_notes' => ['nullable', 'string', 'max:160'],
+            'check_in_open_minutes_before' => ['required', 'integer', 'in:15,30,60,90,120'],
+            'check_in_close_after' => ['required', 'string', 'in:15,30,60,session_end'],
+            'check_in_sound_enabled' => ['required', 'boolean'],
             'admin_whatsapp' => ['required', 'string', 'regex:/^62\d{9,12}$/'],
             'payment_instructions' => ['nullable', 'string', 'max:2000'],
             'electricity_cost_per_session' => ['required', 'integer', 'between:0,10000000'],

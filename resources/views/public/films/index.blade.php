@@ -155,9 +155,9 @@
                                     class="size-full object-cover transition-transform duration-300 group-hover:scale-105"
                                 >
                             @else
-                                {{-- Fallback Gradient Poster When Poster is Null --}}
-                                <div class="flex size-full flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-amber-950/40 p-3 text-center">
-                                    <svg class="size-8 text-amber-500/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                {{-- Fallback Poster When Poster is Null --}}
+                                <div class="flex size-full flex-col items-center justify-center bg-slate-900 border border-white/10 p-3 text-center">
+                                    <svg class="size-8 text-amber-500/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
                                     </svg>
                                     <span class="mt-2 text-xs font-black text-amber-200/80 line-clamp-2">{{ $film->title }}</span>

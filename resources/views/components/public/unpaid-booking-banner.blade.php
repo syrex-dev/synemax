@@ -36,7 +36,7 @@
             }"
             x-show="!isExpired"
             x-cloak
-            class="relative z-30 border-b border-amber-500/30 bg-amber-500/10 dark:bg-amber-500/15 text-amber-950 dark:text-amber-200 transition-colors"
+            class="w-full border-b border-amber-500/30 bg-amber-50 dark:bg-[#1A1408] text-amber-950 dark:text-amber-200 transition-colors shadow-xs"
         >
             <div class="mx-auto max-w-7xl px-3 py-2 sm:px-6 sm:py-2.5">
                 {{-- Desktop View (>= 768px) --}}
@@ -44,7 +44,7 @@
                     <div class="flex items-center gap-2.5 text-xs font-semibold">
                         <span class="flex size-2 rounded-full bg-amber-500 animate-pulse" aria-hidden="true"></span>
                         <p>
-                            Booking <strong class="font-tabular font-black">{{ $singleBooking->code }}</strong> belum dibayar.
+                            Yuk selesaikan pembayaran kamu!
                             Sisa waktu: <span class="font-tabular font-black text-amber-800 dark:text-amber-300" x-text="formatTime(timeLeft)">--.--</span>
                         </p>
                     </div>
@@ -68,23 +68,23 @@
                 {{-- Mobile View (< 768px): Ringkas satu baris 44px --}}
                 <div class="md:hidden flex items-center justify-between gap-2 min-h-[44px]">
                     <div class="flex items-center gap-1.5 text-xs font-bold truncate">
-                        <span class="size-2 rounded-full bg-amber-500 shrink-0" aria-hidden="true"></span>
-                        <span class="font-tabular truncate">{{ $singleBooking->code }}</span>
-                        <span class="text-text-muted">&bull;</span>
+                        <span class="size-2 rounded-full bg-amber-500 shrink-0 animate-pulse" aria-hidden="true"></span>
+                        <span class="truncate">Yuk selesaikan pembayaran kamu</span>
+                        <span class="text-text-muted shrink-0">&bull;</span>
                         <span class="font-tabular font-black text-amber-800 dark:text-amber-300 shrink-0" x-text="formatTime(timeLeft)">--.--</span>
                     </div>
 
                     <div class="flex items-center gap-1.5 shrink-0">
                         <a
                             href="{{ route('booking.payment', ['code' => $singleBooking->code]) }}"
-                            class="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-amber-500 px-3 text-xs font-black text-slate-950 hover:bg-amber-400 shadow-xs"
+                            class="inline-flex min-h-[38px] items-center justify-center rounded-lg bg-amber-500 px-3.5 text-xs font-black text-slate-950 hover:bg-amber-400 shadow-xs transition"
                         >
                             Bayar
                         </a>
                         <button
                             type="button"
                             @click="cancelModal = true"
-                            class="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-amber-600/30 dark:border-white/15 bg-surface/40 dark:bg-black/30 px-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-danger"
+                            class="inline-flex min-h-[38px] items-center justify-center rounded-lg border border-amber-600/30 dark:border-white/15 bg-surface/40 dark:bg-black/30 px-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-danger transition"
                             title="Batalkan booking"
                         >
                             Batal
@@ -137,12 +137,12 @@
         {{-- Banner Jika Lebih Dari 1 Booking Belum Dibayar --}}
         <aside
             aria-label="Pemberitahuan beberapa booking belum dibayar"
-            class="relative z-30 border-b border-amber-500/30 bg-amber-500/10 dark:bg-amber-500/15 text-amber-950 dark:text-amber-200"
+            class="w-full border-b border-amber-500/30 bg-amber-50 dark:bg-[#1A1408] text-amber-950 dark:text-amber-200 shadow-xs"
         >
-            <div class="mx-auto max-w-7xl px-4 py-2.5 sm:px-6 flex items-center justify-between gap-4">
+            <div class="mx-auto max-w-7xl px-4 py-2 sm:px-6 flex items-center justify-between gap-4">
                 <div class="flex items-center gap-2 text-xs font-bold">
-                    <span class="size-2 rounded-full bg-amber-500" aria-hidden="true"></span>
-                    <span>{{ $unpaidCount }} booking belum dibayar.</span>
+                    <span class="size-2 rounded-full bg-amber-500 animate-pulse" aria-hidden="true"></span>
+                    <span>Yuk selesaikan {{ $unpaidCount }} pembayaran booking kamu!</span>
                 </div>
                 <a
                     href="{{ route('booking.ticket.index', ['tab' => 'belum_bayar']) }}"
