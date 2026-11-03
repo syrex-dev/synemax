@@ -152,9 +152,21 @@
          }">
 
         {{-- Flash Pesan --}}
-        @if (session('status'))
+        @if (session('status') && $flowState !== 'diproses')
             <div role="status" class="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-xs font-bold text-emerald-400 no-print">
                 {{ session('status') }}
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div role="alert" class="mb-4 rounded-xl border border-danger/40 bg-danger-surface p-4 text-xs font-bold text-danger-text no-print">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if (session('warning'))
+            <div role="status" class="mb-4 rounded-xl border border-warning/40 bg-warning-surface p-4 text-xs font-bold text-warning no-print">
+                {{ session('warning') }}
             </div>
         @endif
 

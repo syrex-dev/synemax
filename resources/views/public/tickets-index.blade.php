@@ -53,6 +53,18 @@
             </div>
         @endif
 
+        @if (session('error'))
+            <div role="alert" class="mb-5 rounded-xl border border-danger/40 bg-danger-surface p-4 text-xs font-bold text-danger-text">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if (session('warning'))
+            <div role="status" class="mb-5 rounded-xl border border-warning/40 bg-warning-surface p-4 text-xs font-bold text-warning">
+                {{ session('warning') }}
+            </div>
+        @endif
+
         @if ($errors->any())
             <div role="alert" class="mb-5 rounded-xl border border-danger/40 bg-danger-surface p-4 text-xs font-semibold text-danger-text space-y-1">
                 @foreach ($errors->all() as $err)

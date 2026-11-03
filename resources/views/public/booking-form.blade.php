@@ -104,6 +104,24 @@
             </div>
         </div>
 
+        @if (session('status'))
+            <div role="status" class="mt-5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-xs font-bold text-emerald-400">
+                {{ session('status') }}
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div role="alert" class="mt-5 rounded-xl border border-danger/40 bg-danger-surface p-4 text-xs font-bold text-danger-text">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if (session('warning'))
+            <div role="status" class="mt-5 rounded-xl border border-warning/40 bg-warning-surface p-4 text-xs font-bold text-warning">
+                {{ session('warning') }}
+            </div>
+        @endif
+
         @if ($errors->any())
             <div role="alert" class="mt-5 rounded-xl border border-danger/40 bg-danger-surface p-4 text-xs text-danger-text">
                 <p class="font-bold text-sm">Periksa kembali data booking Anda:</p>

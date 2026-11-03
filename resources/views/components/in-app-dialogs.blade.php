@@ -325,21 +325,33 @@ function inAppDialogsComponent() {
                 this.sessionExpiredOpen = true;
             });
 
-            @if (session('undo_route'))
-                this.addToast('info', @js((string) session('status')), 8000, @js((string) session('undo_route')));
-            @elseif (session('status_link_url'))
-                this.addToast('success', @js((string) session('status')), 8000, null, @js((string) session('status_link_url')), @js((string) session('status_link_label', 'Lihat')));
-            @elseif (session('status'))
-                this.addToast('success', @js((string) session('status')));
-            @endif
-            @if (session('error'))
-                this.addToast('error', @js((string) session('error')));
-            @endif
-            @if (session('warning'))
-                this.addToast('warning', @js((string) session('warning')));
-            @endif
-            @if (session('info'))
-                this.addToast('info', @js((string) session('info')));
+            @if (request()->is('admin*'))
+                const hasInlineAlert = Boolean(document.querySelector('[role="status"], [role="alert"]'));
+
+                @if (session('undo_route'))
+                    this.addToast('info', @js((string) session('status')), 8000, @js((string) session('undo_route')));
+                @elseif (session('status_link_url'))
+                    this.addToast('success', @js((string) session('status')), 8000, null, @js((string) session('status_link_url')), @js((string) session('status_link_label', 'Lihat')));
+                @elseif (session('status'))
+                    if (!hasInlineAlert) {
+                        this.addToast('success', @js((string) session('status')));
+                    }
+                @endif
+                @if (session('error'))
+                    if (!hasInlineAlert) {
+                        this.addToast('error', @js((string) session('error')));
+                    }
+                @endif
+                @if (session('warning'))
+                    if (!hasInlineAlert) {
+                        this.addToast('warning', @js((string) session('warning')));
+                    }
+                @endif
+                @if (session('info'))
+                    if (!hasInlineAlert) {
+                        this.addToast('info', @js((string) session('info')));
+                    }
+                @endif
             @endif
 
             document.addEventListener('submit', (e) => {

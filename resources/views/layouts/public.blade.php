@@ -597,14 +597,6 @@
             </div>
         </div>
 
-        {{-- Flash Session Messages --}}
-        @if (session('status') || session('error'))
-            <div class="mx-auto max-w-6xl px-4 pt-4 sm:px-6">
-                <p role="status" class="rounded-xl border border-warning/30 bg-warning-surface/80 backdrop-blur-md px-4 py-3 text-sm text-warning font-medium">
-                    {{ session('status') ?? session('error') }}
-                </p>
-            </div>
-        @endif
 
         <main class="flex-1 w-full {{ ! $isActionPage ? 'pb-[calc(60px+env(safe-area-inset-bottom,0px)+16px)] md:pb-0' : '' }}">
             @yield('content')
