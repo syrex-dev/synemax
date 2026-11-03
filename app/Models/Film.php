@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\CinemaSettings;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -84,6 +85,22 @@ class Film extends Model
     public function hasGenre(string $targetGenre): bool
     {
         return in_array(strtolower(trim($targetGenre)), array_map('strtolower', $this->genresList()), true);
+    }
+
+    /**
+     * Scope query to apply catalog / home sorting based on settings or mode.
+     */
+    public function scopeApplyCustomSort($query, ?string $sort = null)
+    {
+        $sort = $sort ?: app(CinemaSettings::class)->filmsSortOrder();
+
+        return match ($sort) {
+            'year_asc' => $query->orderByRaw('release_year IS NULL, release_year ASC')->orderBy('title', 'asc'),
+            'title_asc' => $query->orderBy('title', 'asc'),
+            'title_desc' => $query->orderBy('title', 'desc'),
+            'latest_added' => $query->orderBy('id', 'desc'),
+            default => $query->orderByRaw('release_year IS NULL, release_year DESC')->orderBy('title', 'asc'),
+        };
     }
 
     protected static function booted(): void

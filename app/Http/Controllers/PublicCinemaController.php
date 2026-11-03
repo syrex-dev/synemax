@@ -60,10 +60,10 @@ class PublicCinemaController extends Controller
                 ->values();
 
             if ($films->isEmpty()) {
-                $films = Film::query()->where('is_active', true)->orderBy('title')->take($filmsLimit)->get();
+                $films = Film::query()->where('is_active', true)->applyCustomSort()->take($filmsLimit)->get();
             }
         } else {
-            $films = Film::query()->where('is_active', true)->orderBy('title')->take($filmsLimit)->get();
+            $films = Film::query()->where('is_active', true)->applyCustomSort()->take($filmsLimit)->get();
         }
         $allActiveFilms = Film::query()->where('is_active', true)->get(['id', 'genre', 'release_year']);
 
@@ -129,7 +129,7 @@ class PublicCinemaController extends Controller
             $query->where('title', 'like', '%'.$search.'%');
         }
 
-        $films = $query->orderBy('title')->paginate(30)->withQueryString();
+        $films = $query->applyCustomSort()->paginate(30)->withQueryString();
 
         $genres = Genre::allActiveNames();
 

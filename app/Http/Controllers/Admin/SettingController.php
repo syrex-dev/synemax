@@ -284,6 +284,7 @@ class SettingController extends Controller
             'default_theme' => 'required|in:system,light,dark',
             'show_theme_toggle' => 'nullable|boolean',
             'home_films_count' => 'required|integer|in:6,8,10,12',
+            'films_sort_order' => 'nullable|string|in:year_desc,year_asc,title_asc,title_desc,latest_added',
             'home_hero_interval' => 'required|integer|in:4,5,6,8',
             'home_hero_autoplay' => 'nullable|boolean',
             'home_films_mode' => 'nullable|in:auto,custom',
@@ -294,6 +295,7 @@ class SettingController extends Controller
         $settings->set('default_theme', $validated['default_theme'], 'tampilan');
         $settings->set('show_theme_toggle', $request->boolean('show_theme_toggle'), 'tampilan');
         $settings->set('home_films_count', (int) $validated['home_films_count'], 'tampilan');
+        $settings->set('films_sort_order', $request->input('films_sort_order', 'year_desc'), 'tampilan');
         $settings->set('home_hero_interval', (int) $validated['home_hero_interval'], 'tampilan');
         $settings->set('home_hero_autoplay', $request->boolean('home_hero_autoplay'), 'tampilan');
         $settings->set('home_films_mode', $request->input('home_films_mode', 'auto'), 'tampilan');

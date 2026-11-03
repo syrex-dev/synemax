@@ -282,7 +282,22 @@
                         </div>
                     </div>
 
-                    <div class="grid gap-4 sm:grid-cols-3 pt-3 border-t border-border">
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 pt-3 border-t border-border">
+                        <div>
+                            <x-ui.select
+                                name="films_sort_order"
+                                id="films_sort_order"
+                                label="Urutan Film (Beranda & Katalog)"
+                                :value="old('films_sort_order', $settings->filmsSortOrder())"
+                                :options="[
+                                    'year_desc' => 'Tahun Rilis (Terbaru ke Terlama)',
+                                    'year_asc' => 'Tahun Rilis (Terlama ke Terbaru)',
+                                    'title_asc' => 'Judul Film (A ke Z)',
+                                    'title_desc' => 'Judul Film (Z ke A)',
+                                    'latest_added' => 'Terbaru Ditambahkan ke Sistem',
+                                ]"
+                            />
+                        </div>
                         <div>
                             <x-ui.select
                                 name="home_films_count"

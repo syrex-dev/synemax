@@ -383,6 +383,11 @@ class CinemaSettings
         return $this->integer('home_films_count', 8);
     }
 
+    public function filmsSortOrder(): string
+    {
+        return $this->string('films_sort_order', 'year_desc');
+    }
+
     public function homeFilmsMode(): string
     {
         return $this->string('home_films_mode', 'auto');
