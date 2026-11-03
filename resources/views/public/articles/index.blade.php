@@ -232,6 +232,86 @@
                     </section>
                 </div>
 
+                {{-- Panduan Cara Pesan Tiket --}}
+                <section class="rounded-3xl border border-border dark:border-white/10 bg-surface dark:bg-[#0B0F19] p-6 sm:p-8 shadow-xl">
+                    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 pb-6 border-b border-border dark:border-white/10">
+                        <div>
+                            <div class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
+                                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                </svg>
+                                <span>Alur Pemesanan</span>
+                            </div>
+                            <h2 class="mt-1.5 text-xl sm:text-2xl font-black text-text">Cara pesan tiket bioskop SynemaX</h2>
+                            <p class="mt-1 text-xs text-text-muted">Ikuti 4 langkah praktis berikut untuk memesan tiket online tanpa perlu antre.</p>
+                        </div>
+                        <a href="{{ route('schedule.index') }}" class="btn-gold-cinema inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-xs font-black shadow-md">
+                            <span>Mulai Pesan Tiket</span>
+                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                            </svg>
+                        </a>
+                    </div>
+
+                    <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {{-- Langkah 1 --}}
+                        <div class="rounded-2xl border border-border dark:border-white/10 bg-surface-2/40 dark:bg-black/20 p-5 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between">
+                                    <span class="flex size-7 items-center justify-center rounded-xl bg-amber-500/15 text-xs font-black text-amber-600 dark:text-amber-400">01</span>
+                                    <svg class="size-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                                    </svg>
+                                </div>
+                                <h3 class="mt-4 text-sm font-bold text-text">Pilih Film atau Jadwal</h3>
+                                <p class="mt-1.5 text-xs text-text-muted leading-relaxed">Pilih film favorit dari katalog atau tentukan tanggal dan jam pemutaran di halaman jadwal.</p>
+                            </div>
+                        </div>
+
+                        {{-- Langkah 2 --}}
+                        <div class="rounded-2xl border border-border dark:border-white/10 bg-surface-2/40 dark:bg-black/20 p-5 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between">
+                                    <span class="flex size-7 items-center justify-center rounded-xl bg-amber-500/15 text-xs font-black text-amber-600 dark:text-amber-400">02</span>
+                                    <svg class="size-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                                    </svg>
+                                </div>
+                                <h3 class="mt-4 text-sm font-bold text-text">Tentukan Penonton</h3>
+                                <p class="mt-1.5 text-xs text-text-muted leading-relaxed">Pilih jumlah tiket per orang atau kunci seluruh 6 tempat lewat opsi sewa studio privat.</p>
+                            </div>
+                        </div>
+
+                        {{-- Langkah 3 --}}
+                        <div class="rounded-2xl border border-border dark:border-white/10 bg-surface-2/40 dark:bg-black/20 p-5 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between">
+                                    <span class="flex size-7 items-center justify-center rounded-xl bg-amber-500/15 text-xs font-black text-amber-600 dark:text-amber-400">03</span>
+                                    <svg class="size-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <h3 class="mt-4 text-sm font-bold text-text">Pilih Camilan (Opsional)</h3>
+                                <p class="mt-1.5 text-xs text-text-muted leading-relaxed">Tambah aneka snack hangat dan minuman segar untuk dinikmati langsung saat menonton.</p>
+                            </div>
+                        </div>
+
+                        {{-- Langkah 4 --}}
+                        <div class="rounded-2xl border border-border dark:border-white/10 bg-surface-2/40 dark:bg-black/20 p-5 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between">
+                                    <span class="flex size-7 items-center justify-center rounded-xl bg-amber-500/15 text-xs font-black text-amber-600 dark:text-amber-400">04</span>
+                                    <svg class="size-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <h3 class="mt-4 text-sm font-bold text-text">Bayar & Terima Tiket</h3>
+                                <p class="mt-1.5 text-xs text-text-muted leading-relaxed">Isi nama & WhatsApp, selesaikan via QRIS atau Transfer. E-tiket instan langsung terbit.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 {{-- Accordion FAQ --}}
                 <section class="rounded-3xl border border-border dark:border-white/10 bg-surface dark:bg-[#0B0F19] p-6 sm:p-8 shadow-xl">
                     <div class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-500">
@@ -244,6 +324,22 @@
                     <p class="mt-1 text-xs text-text-muted">Semua jawaban penting seputar pemesanan tiket, fasilitas, dan tata tertib studio.</p>
 
                     <div class="mt-6 space-y-3">
+                        <details class="group rounded-2xl border border-border dark:border-white/10 bg-surface-2/40 dark:bg-black/20 p-4 transition-all" open>
+                            <summary class="cursor-pointer font-bold text-sm text-text flex items-center justify-between">
+                                <span>Bagaimana cara memesan tiket di SynemaX?</span>
+                                <span class="text-amber-500 text-xs transition duration-200 group-open:rotate-180">▼</span>
+                            </summary>
+                            <div class="mt-2.5 text-xs leading-relaxed text-text-muted border-t border-border/50 dark:border-white/5 pt-2.5 space-y-2">
+                                <p>Pemesanan tiket bioskop SynemaX dapat dilakukan langsung secara online melalui 4 langkah mudah tanpa perlu membuat akun:</p>
+                                <ol class="list-decimal list-inside space-y-1 pl-1">
+                                    <li><strong class="text-text">Pilih film & jadwal:</strong> Buka menu Katalog Film untuk memilih film favorit atau langsung ke Jadwal Tayang untuk memilih sesi yang kamu inginkan.</li>
+                                    <li><strong class="text-text">Tentukan jumlah penonton:</strong> Pilih jumlah tiket per orang atau gunakan opsi Sewa Studio Privat (6 tempat) untuk rombongan keluarga atau teman.</li>
+                                    <li><strong class="text-text">Pilih menu jajan (opsional):</strong> Tambahkan camilan hangat dan minuman segar untuk dinikmati selama pemutaran film.</li>
+                                    <li><strong class="text-text">Selesaikan pembayaran:</strong> Isi nama dan nomor WhatsApp aktif, lalu bayar via QRIS instan atau Transfer Bank. E-tiket resmi ber-QR Code akan langsung terbit di layar dan tersimpan di menu Cek Booking.</li>
+                                </ol>
+                            </div>
+                        </details>
+
                         <details class="group rounded-2xl border border-border dark:border-white/10 bg-surface-2/40 dark:bg-black/20 p-4 transition-all">
                             <summary class="cursor-pointer font-bold text-sm text-text flex items-center justify-between">
                                 <span>Perlu membuat akun sebelum memesan?</span>

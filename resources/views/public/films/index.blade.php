@@ -9,19 +9,9 @@
 @section('content')
 <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 space-y-8">
     {{-- Heading --}}
-    <div class="space-y-3">
-        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-            <div>
-                <h1 class="text-3xl sm:text-4xl font-black text-text tracking-tight">Katalog Film</h1>
-                <p class="mt-1 text-sm text-text-muted">Pilih film favoritmu untuk diputar di studio bioskop mini privat SynemaX.</p>
-            </div>
-            <a href="{{ route('schedule.index') }}" class="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2 text-xs sm:text-sm font-bold shadow-md transition">
-                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span>Lihat Jadwal Tayang</span>
-            </a>
-        </div>
+    <div class="space-y-1">
+        <h1 class="text-3xl sm:text-4xl font-black text-text tracking-tight">Katalog Film</h1>
+        <p class="text-sm text-text-muted">Pilih film favoritmu untuk diputar di studio bioskop mini privat SynemaX.</p>
     </div>
 
     {{-- Interactive Film Filter & Search Section --}}
