@@ -119,4 +119,68 @@
             @endforelse
         </div>
     </section>
+
+    {{-- STATISTIK TINGKAT KEHADIRAN & METODE CHECK-IN --}}
+    <section class="mt-6 rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-border">
+            <div>
+                <h2 class="text-base font-bold text-text">Tingkat Kehadiran & Cara Check-In</h2>
+                <p class="text-xs text-text-muted">Statistik penonton yang hadir, tidak hadir, dan rincian metode validasi tiket pada periode ini.</p>
+            </div>
+            <span class="badge-accent-soft text-xs font-bold">{{ $period === 'harian' ? 'Hari Ini' : ucfirst($period) }}</span>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-3">
+            <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                <p class="text-xs font-semibold text-emerald-800 dark:text-emerald-300">Telah Hadir</p>
+                <p class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 font-tabular">
+                    {{ (int) ($attendanceStats->hadir_people ?? 0) }} orang
+                </p>
+                <p class="text-[11px] text-text-muted mt-0.5">
+                    {{ (int) ($attendanceStats->hadir_bookings ?? 0) }} booking terverifikasi
+                </p>
+            </div>
+
+            <div class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                <p class="text-xs font-semibold text-amber-800 dark:text-amber-300">Belum Hadir</p>
+                <p class="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 font-tabular">
+                    {{ (int) ($attendanceStats->belum_hadir_people ?? 0) }} orang
+                </p>
+                <p class="text-[11px] text-text-muted mt-0.5">
+                    {{ (int) ($attendanceStats->belum_hadir_bookings ?? 0) }} booking aktif menunggu kedatangan
+                </p>
+            </div>
+
+            <div class="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+                <p class="text-xs font-semibold text-red-800 dark:text-red-300">Tidak Hadir (No-Show)</p>
+                <p class="text-2xl font-black text-red-600 dark:text-red-400 mt-1 font-tabular">
+                    {{ (int) ($attendanceStats->tidak_hadir_people ?? 0) }} orang
+                </p>
+                <p class="text-[11px] text-text-muted mt-0.5">
+                    {{ (int) ($attendanceStats->tidak_hadir_bookings ?? 0) }} booking ditandai tidak datang
+                </p>
+            </div>
+        </div>
+
+        <div class="pt-3 border-t border-border">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-text-muted mb-2">Cara Check-In</h3>
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                @php
+                    $methods = [
+                        'qr' => ['label' => 'Scan QR', 'count' => $checkInMethodStats['qr'] ?? 0],
+                        'kode' => ['label' => 'Input Kode', 'count' => $checkInMethodStats['kode'] ?? 0],
+                        'daftar' => ['label' => 'Tab Daftar', 'count' => $checkInMethodStats['daftar'] ?? 0],
+                        'admin_manual' => ['label' => 'Manual Admin', 'count' => $checkInMethodStats['admin_manual'] ?? 0],
+                        'legacy' => ['label' => 'Sistem Lama', 'count' => $checkInMethodStats['legacy'] ?? 0],
+                    ];
+                @endphp
+                @foreach ($methods as $mKey => $mData)
+                    <div class="p-2.5 rounded-xl border border-border bg-surface-2/40 flex flex-col justify-between">
+                        <span class="text-text-muted font-medium">{{ $mData['label'] }}</span>
+                        <span class="text-base font-bold text-text mt-1 font-tabular">{{ $mData['count'] }} tiket</span>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </section>
 @endsection

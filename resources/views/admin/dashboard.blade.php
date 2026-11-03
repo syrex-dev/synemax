@@ -40,6 +40,16 @@
 
         <div class="flex items-center gap-2.5 no-print" x-data="{ moreOpen: false }">
             <a
+                href="{{ route('admin.scan.index') }}"
+                class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-white/15 bg-surface px-4 text-xs sm:text-sm font-bold text-text hover:bg-surface-2 transition shadow-xs"
+            >
+                <svg class="size-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                </svg>
+                <span>Scan tiket</span>
+            </a>
+
+            <a
                 href="{{ route('admin.schedule.index') }}"
                 class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 text-xs sm:text-sm font-bold text-slate-950 hover:bg-amber-400 transition shadow-sm"
             >
@@ -500,7 +510,8 @@
                             @php
                                 $cap = $session->seatCapacity();
                                 $occ = (int) $session->viewer_count;
-                                $pct = $cap > 0 ? round(($occ / $cap) * 100) : 0;
+                                $hadirPeople = (int) $session->occupiedBookings->filter(fn ($b) => $b->status === 'hadir' || $b->checked_in_at !== null)->sum(fn ($b) => $b->people_count ?? $b->seats_reserved ?? 1);
+                                $hadirPct = $cap > 0 ? min(100, round(($hadirPeople / $cap) * 100)) : 0;
                             @endphp
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-surface-2/40 hover:bg-surface-2 transition">
                                 <div class="flex items-center gap-3 min-w-0">
@@ -516,7 +527,7 @@
                                             @endif
                                         </div>
                                         <p class="text-xs text-text-muted mt-0.5">
-                                            {{ $session->is_private ? 'Sewa Private' : 'Publik' }} · {{ (int) $session->viewer_count }} kursi terpesan · {{ $session->occupied_bookings_count }} booking
+                                            {{ $session->is_private ? 'Sewa Private' : 'Publik' }} · {{ $occ }} orang terpesan · {{ $session->occupied_bookings_count }} booking
                                             @if ($session->pending_booking_count > 0)
                                                 · <span class="text-warning font-bold">{{ $session->pending_booking_count }} booking menunggu</span>
                                             @endif
@@ -526,14 +537,20 @@
 
                                 <div class="flex items-center justify-between sm:justify-end gap-3 shrink-0">
                                     <div class="text-right">
-                                        <span class="block text-xs font-bold text-text font-tabular">{{ $occ }}/{{ $cap }} Kursi</span>
+                                        <span class="block text-xs font-bold text-text font-tabular">Hadir {{ $hadirPeople }}/{{ $cap }}</span>
                                         <div class="w-16 h-1.5 bg-border rounded-full overflow-hidden mt-1">
-                                            <div class="h-full bg-amber-500 rounded-full" style="width: {{ $pct }}%"></div>
+                                            <div class="h-full bg-emerald-500 rounded-full" style="width: {{ $hadirPct }}%"></div>
                                         </div>
                                     </div>
-                                    <span class="px-2 py-1 rounded-md text-[10px] font-bold uppercase {{ $session->status === 'tersedia' ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-surface-2 text-text-muted' }}">
-                                        {{ $session->status }}
-                                    </span>
+                                    <a
+                                        href="{{ route('admin.scan.index', ['sesi' => $session->id]) }}"
+                                        class="inline-flex min-h-[36px] items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition"
+                                    >
+                                        <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                                        </svg>
+                                        <span>Scan</span>
+                                    </a>
                                 </div>
                             </div>
 

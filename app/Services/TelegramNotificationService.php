@@ -106,6 +106,7 @@ class TelegramNotificationService
             'booking_expired' => $this->settings->boolean('telegram_notify_booking_expired', false),
             'session_confirmed' => $this->settings->boolean('telegram_notify_session_confirmed', true),
             'session_cancelled' => $this->settings->boolean('telegram_notify_session_cancelled', true),
+            'customer_checked_in' => $this->settings->boolean('telegram_notify_customer_checked_in', false),
             default => false,
         };
     }
@@ -441,6 +442,15 @@ class TelegramNotificationService
         $filmTitle = htmlspecialchars($booking->film?->title ?? 'Belum ada film', ENT_QUOTES, 'UTF-8');
 
         $session = $booking->session;
+        if ($event === 'customer_checked_in') {
+            $timeDisplay = $session ? htmlspecialchars(format_jam_id($session->start_time), ENT_QUOTES, 'UTF-8') : '-';
+
+            return "<b>[Pelanggan Hadir]</b>\n\n"
+                ."<b>Kode:</b> <code>{$code}</code>\n"
+                ."<b>Nama:</b> {$customerName}\n"
+                ."<b>Film:</b> {$filmTitle}\n"
+                ."<b>Jam:</b> {$timeDisplay}";
+        }
         $scheduleDisplay = $session
             ? htmlspecialchars(format_hari_tanggal_id($session->session_date).' · '.format_jam_id($session->start_time), ENT_QUOTES, 'UTF-8')
             : '-';

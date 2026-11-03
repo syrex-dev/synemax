@@ -63,7 +63,7 @@
 
         {{-- Navigasi 4 Tab --}}
         <div class="border-b border-border">
-            <nav class="flex space-x-1 sm:space-x-2 overflow-x-auto pb-px scrollbar-none" aria-label="Kategori Tiket">
+            <nav class="flex flex-wrap gap-1 sm:gap-2 pb-px" aria-label="Kategori Tiket">
                 <button
                     type="button"
                     @click="activeTab = 'belum_bayar'"

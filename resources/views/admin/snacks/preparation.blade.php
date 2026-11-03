@@ -43,6 +43,9 @@
                         <div class="min-w-0">
                             <div class="flex items-center gap-2">
                                 <h3 class="font-bold">{{ $booking->customer_name }}</h3>
+                                @if ($booking->status === 'hadir' || $booking->checked_in_at !== null)
+                                    <span class="rounded bg-emerald-500/15 px-2 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">Hadir</span>
+                                @endif
                                 @if ($booking->notes || $booking->items->contains(fn ($i) => !empty($i->note)))
                                     <span class="rounded bg-amber-500/15 px-2 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">Ada catatan</span>
                                 @endif

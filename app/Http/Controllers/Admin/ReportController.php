@@ -110,6 +110,37 @@ class ReportController extends Controller
             ->limit(10)
             ->get();
 
+        $attendanceStats = DB::table('bookings')
+            ->join('screening_sessions', 'bookings.session_id', '=', 'screening_sessions.id')
+            ->whereBetween('screening_sessions.session_date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->whereNotIn('bookings.status', ['dibatalkan', 'kedaluwarsa'])
+            ->selectRaw("
+                COUNT(*) as total_bookings,
+                SUM(COALESCE(bookings.people_count, bookings.seats_reserved, 1)) as total_people,
+                SUM(CASE WHEN bookings.status = 'hadir' OR bookings.checked_in_at IS NOT NULL THEN 1 ELSE 0 END) as hadir_bookings,
+                SUM(CASE WHEN bookings.status = 'hadir' OR bookings.checked_in_at IS NOT NULL THEN COALESCE(bookings.people_count, bookings.seats_reserved, 1) ELSE 0 END) as hadir_people,
+                SUM(CASE WHEN bookings.status IN ('tidak_hadir', 'tidak_datang', 'terlewat') THEN 1 ELSE 0 END) as tidak_hadir_bookings,
+                SUM(CASE WHEN bookings.status IN ('tidak_hadir', 'tidak_datang', 'terlewat') THEN COALESCE(bookings.people_count, bookings.seats_reserved, 1) ELSE 0 END) as tidak_hadir_people,
+                SUM(CASE WHEN bookings.status NOT IN ('hadir', 'tidak_hadir', 'tidak_datang', 'terlewat') AND bookings.checked_in_at IS NULL THEN 1 ELSE 0 END) as belum_hadir_bookings,
+                SUM(CASE WHEN bookings.status NOT IN ('hadir', 'tidak_hadir', 'tidak_datang', 'terlewat') AND bookings.checked_in_at IS NULL THEN COALESCE(bookings.people_count, bookings.seats_reserved, 1) ELSE 0 END) as belum_hadir_people
+            ")
+            ->first();
+
+        $checkInMethodStats = DB::table('bookings')
+            ->join('screening_sessions', 'bookings.session_id', '=', 'screening_sessions.id')
+            ->whereBetween('screening_sessions.session_date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->where(function ($q) {
+                $q->where('bookings.status', 'hadir')
+                    ->orWhereNotNull('bookings.checked_in_at');
+            })
+            ->selectRaw("
+                COALESCE(bookings.check_in_method, 'legacy') as method,
+                COUNT(*) as count
+            ")
+            ->groupBy(DB::raw("COALESCE(bookings.check_in_method, 'legacy')"))
+            ->pluck('count', 'method')
+            ->all();
+
         return view('admin.reports.index', [
             'period' => $period,
             'referenceDate' => $referenceDate,
@@ -127,6 +158,8 @@ class ReportController extends Controller
             'sessionCount' => $sessions->count(),
             'electricityCost' => $electricityCost,
             'grossProfit' => $grossProfit,
+            'attendanceStats' => $attendanceStats,
+            'checkInMethodStats' => $checkInMethodStats,
             'occupancyByTime' => $sessions
                 ->groupBy(fn (Session $session): string => substr((string) $session->start_time, 0, 5))
                 ->map(function ($sessions): array {

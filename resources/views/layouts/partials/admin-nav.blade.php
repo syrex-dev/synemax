@@ -15,6 +15,17 @@
             </a>
 
             <a
+                href="{{ route('admin.scan.index') }}"
+                @if (request()->routeIs('admin.scan.*')) aria-current="page" @endif
+                class="flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors {{ request()->routeIs('admin.scan.*') ? 'bg-[#FEF3C7] text-[#78350F] font-bold border-l-4 border-[#F59E0B] rounded-r-xl rounded-l-none pl-2.5 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 dark:rounded-xl dark:pl-3' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}"
+            >
+                <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                </svg>
+                <span>Scan tiket</span>
+            </a>
+
+            <a
                 href="{{ route('admin.bookings.index') }}"
                 @if (request()->routeIs('admin.bookings.*')) aria-current="page" @endif
                 class="flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors {{ request()->routeIs('admin.bookings.*') ? 'bg-[#FEF3C7] text-[#78350F] font-bold border-l-4 border-[#F59E0B] rounded-r-xl rounded-l-none pl-2.5 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 dark:rounded-xl dark:pl-3' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}"

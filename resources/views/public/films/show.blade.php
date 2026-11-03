@@ -361,50 +361,14 @@
     @endif
 
     {{-- Other Films Recommendation --}}
-    @if ($otherFilms->count() > 0)
-        <section
-            aria-labelledby="heading-rekomendasi"
-            x-data="{
-                canFadeLeft: false,
-                canFadeRight: false,
-                init() {
-                    const scroller = this.$refs.otherFilmsScroller;
-                    if (scroller) {
-                        const update = () => {
-                            this.canFadeLeft = scroller.scrollLeft > 4;
-                            this.canFadeRight = (scroller.scrollLeft + scroller.clientWidth) < (scroller.scrollWidth - 4);
-                        };
-                        scroller.addEventListener('scroll', update, { passive: true });
-                        const ro = new ResizeObserver(() => update());
-                        ro.observe(scroller);
-                        this.$nextTick(() => update());
-                    }
-                },
-                get otherFilmsMask() {
-                    if (window.innerWidth >= 640) return '';
-                    if (this.canFadeLeft && this.canFadeRight) {
-                        return 'linear-gradient(to right, transparent 0, black 1rem, black calc(100% - 1rem), transparent 100%)';
-                    } else if (this.canFadeLeft) {
-                        return 'linear-gradient(to right, transparent 0, black 1rem, black 100%)';
-                    } else if (this.canFadeRight) {
-                        return 'linear-gradient(to right, black 0, black calc(100% - 1rem), transparent 100%)';
-                    }
-                    return '';
-                }
-            }"
-            class="space-y-4"
-        >
+    @if ($otherFilms->isNotEmpty())
+        <section aria-labelledby="heading-rekomendasi" class="space-y-4">
             <h2 id="heading-rekomendasi" class="text-xl font-black text-text tracking-tight">Film Lainnya</h2>
-            <div
-                x-ref="otherFilmsScroller"
-                class="-mx-4 px-4 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-4 gap-4 overflow-x-auto sm:overflow-visible scrollbar-none snap-x snap-mandatory"
-                style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch; padding-inline: 1rem; scroll-padding-inline: 1rem;"
-                :style="otherFilmsMask ? { maskImage: otherFilmsMask, WebkitMaskImage: otherFilmsMask } : {}"
-            >
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                 @foreach ($otherFilms as $other)
                     <a
                         href="{{ route('films.show', $other->slug ?: $other->id) }}"
-                        class="w-[42%] sm:w-auto shrink-0 snap-start group relative flex flex-col rounded-2xl overflow-hidden border border-border bg-surface shadow-token hover:border-amber-500 transition"
+                        class="group relative flex flex-col rounded-2xl overflow-hidden border border-border bg-surface shadow-token hover:border-amber-500 transition"
                     >
                         <div class="relative w-full aspect-[2/3] overflow-hidden bg-slate-900">
                             @if ($other->posterUrl())
@@ -416,6 +380,9 @@
                                 >
                             @else
                                 <div class="flex size-full flex-col items-center justify-center bg-slate-900 p-2 text-center">
+                                    <svg class="size-8 text-amber-500/60 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                                    </svg>
                                     <span class="text-xs font-bold text-amber-200/80 line-clamp-2">{{ $other->title }}</span>
                                 </div>
                             @endif

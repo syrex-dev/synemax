@@ -24,6 +24,7 @@
                     :total="$heroBanners->count()"
                     :autoplay="setting('home_hero_autoplay', true)"
                     :interval="((int) setting('home_hero_interval', 5)) * 1000"
+                    :fade="true"
                     :bleed="false"
                     label="Sorotan Utama Bioskop"
                     arrowPrevLabel="Banner sebelumnya"
@@ -82,25 +83,6 @@
             @endif
         </section>
 
-        {{-- ============================================================== --}}
-        {{-- 2. INFO RINGKAS (Horizontal Single-Line Chip Teks Polos)      --}}
-        {{-- ============================================================== --}}
-        @if (count($infoChips) > 0)
-            <section aria-label="Informasi Bioskop" class="relative -mx-4 px-4 sm:mx-0 sm:px-0">
-                <div class="flex items-center gap-2 overflow-x-auto scrollbar-none py-1 text-[13px] font-bold text-text scroll-smooth" style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none;">
-                    @foreach ($infoChips as $chip)
-                        @if (!empty($chip['is_visible']))
-                            <div class="inline-flex h-9 sm:h-10 shrink-0 items-center rounded-full border border-border bg-surface px-4 shadow-2xs whitespace-nowrap">
-                                <span>{{ $chip['text'] }}</span>
-                            </div>
-                        @endif
-                    @endforeach
-                </div>
-            </section>
-        @endif
-
-        {{-- Section Divider --}}
-        <div class="border-t border-border"></div>
 
         {{-- ============================================================== --}}
         {{-- 3. KATALOG FILM (Carousel Horisontal Mobile ~2.3 Poster)       --}}
@@ -122,32 +104,6 @@
                     'poster_url' => $f->posterUrl(),
                     'url' => route('films.show', $f->slug ?: $f->id),
                 ])) }},
-                canFadeLeft: false,
-                canFadeRight: false,
-                init() {
-                    const scroller = this.$refs.filmCarousel;
-                    if (scroller) {
-                        const update = () => {
-                            this.canFadeLeft = scroller.scrollLeft > 4;
-                            this.canFadeRight = (scroller.scrollLeft + scroller.clientWidth) < (scroller.scrollWidth - 4);
-                        };
-                        scroller.addEventListener('scroll', update, { passive: true });
-                        const ro = new ResizeObserver(() => update());
-                        ro.observe(scroller);
-                        this.$nextTick(() => update());
-                    }
-                },
-                get filmMaskStyle() {
-                    if (window.innerWidth >= 640) return '';
-                    if (this.canFadeLeft && this.canFadeRight) {
-                        return 'linear-gradient(to right, transparent 0, black 1rem, black calc(100% - 1rem), transparent 100%)';
-                    } else if (this.canFadeLeft) {
-                        return 'linear-gradient(to right, transparent 0, black 1rem, black 100%)';
-                    } else if (this.canFadeRight) {
-                        return 'linear-gradient(to right, black 0, black calc(100% - 1rem), transparent 100%)';
-                    }
-                    return '';
-                },
                 get filteredFilms() {
                     return this.allFilms.filter(f => {
                         const matchGenre = !this.genre || (f.genre && f.genre.toLowerCase().split(',').map(s => s.trim()).includes(this.genre.toLowerCase()));
@@ -162,13 +118,6 @@
                     if (this.genre) url.searchParams.set('genre', this.genre); else url.searchParams.delete('genre');
                     if (this.tahun) url.searchParams.set('tahun', this.tahun); else url.searchParams.delete('tahun');
                     window.history.replaceState({}, '', url);
-                    this.$nextTick(() => {
-                        const scroller = this.$refs.filmCarousel;
-                        if (scroller) {
-                            this.canFadeLeft = scroller.scrollLeft > 4;
-                            this.canFadeRight = (scroller.scrollLeft + scroller.clientWidth) < (scroller.scrollWidth - 4);
-                        }
-                    });
                 },
                 resetFilter() {
                     this.setFilter('', '');
@@ -191,20 +140,15 @@
             {{-- Reusable Film Filter Bar Component --}}
             <x-public.film-filter-bar :genres="$genres" :years="$years" />
 
-            {{-- Mobile: Horizontal Carousel (~2.3 posters visible, bleed). Desktop: Grid --}}
-            <div
-                x-ref="filmCarousel"
-                class="-mx-4 px-4 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6 overflow-x-auto sm:overflow-visible scrollbar-none snap-x snap-mandatory"
-                style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch; padding-inline: 1rem; scroll-padding-inline: 1rem;"
-                :style="filmMaskStyle ? { maskImage: filmMaskStyle, WebkitMaskImage: filmMaskStyle } : {}"
-            >
+            {{-- Responsive Film Grid (2 Kolom Mobile, 3 Kolom Tablet, 4 Kolom Desktop) --}}
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6">
                 <template x-for="film in filteredFilms" :key="film.id">
                     <a
                         :href="film.url"
-                        class="w-[42%] sm:w-auto shrink-0 snap-start group relative flex flex-col rounded-xl sm:rounded-2xl overflow-hidden border border-border bg-surface shadow-2xs hover:border-amber-500 transition-colors"
+                        class="group relative flex flex-col rounded-xl sm:rounded-2xl overflow-hidden border border-border bg-surface shadow-2xs hover:border-amber-500 transition-colors"
                     >
                         {{-- Poster Image 2:3 with single Age Rating Badge --}}
-                        <div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-2">
+                        <div class="relative w-full aspect-[2/3] overflow-hidden bg-slate-900">
                             <template x-if="film.poster_url">
                                 <img
                                     :src="film.poster_url"
@@ -215,13 +159,16 @@
                                 >
                             </template>
                             <template x-if="!film.poster_url">
-                                <div class="flex size-full flex-col items-center justify-center p-3 text-center bg-surface-sunken">
-                                    <span class="text-xs font-bold text-text-muted uppercase tracking-wider">SynemaX</span>
+                                <div class="flex size-full flex-col items-center justify-center p-3 text-center bg-slate-900 border border-white/10 text-text">
+                                    <svg class="size-8 text-amber-500/60 mb-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                                    </svg>
+                                    <span class="text-[11px] font-bold text-amber-200 line-clamp-2" x-text="film.title"></span>
                                 </div>
                             </template>
 
                             {{-- Single Clean Age Rating Badge in Corner --}}
-                            <div class="absolute top-2 right-2 z-10">
+                            <div class="absolute top-2 right-2 z-10" x-show="film.age_rating">
                                 <span class="inline-flex items-center rounded-md bg-black/80 px-1.5 py-0.5 text-[10px] font-black text-white border border-white/20" x-text="film.age_rating"></span>
                             </div>
                         </div>

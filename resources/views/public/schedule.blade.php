@@ -47,9 +47,9 @@
             </div>
         @endif
 
-        {{-- Pemilih Tanggal (Horizontal Scrollable Pills dengan Fade Tepi) --}}
+        {{-- Pemilih Tanggal (Horizontal Scrollable Pills dengan Custom Scrollbar) --}}
         <div class="relative -mx-4 px-4 sm:mx-0 sm:px-0">
-            <nav class="mt-6 flex snap-x gap-2 overflow-x-auto pb-3 scrollbar-none scroll-smooth" style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch;" aria-label="Pilih tanggal nonton">
+            <nav class="mt-6 flex snap-x gap-2 overflow-x-auto pb-3 custom-scrollbar scroll-smooth" style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch;" aria-label="Pilih tanggal nonton">
                 @foreach ($dates as $availableDate)
                     @php
                         $dateKey = $availableDate->toDateString();
@@ -126,7 +126,7 @@
                 $pastSessions = $sessions->filter(fn($s) => $s->statusWaktu($bookingCutoffMinutes)['is_past']);
             @endphp
 
-            <div class="mt-6 space-y-3.5 pb-24">
+            <div class="mt-6 space-y-3.5 pb-8 sm:pb-4">
                 @if ($upcomingSessions->isEmpty())
                     <div class="rounded-2xl border border-dashed border-border bg-surface-2 p-5 text-center text-xs text-text-muted">
                         Semua sesi penayangan untuk hari ini telah selesai atau sedang berlangsung. Silakan cek bagian sesi yang sudah lewat di bawah atau pilih tanggal lain di atas.

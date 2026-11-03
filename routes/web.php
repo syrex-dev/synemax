@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\ScheduleController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SnackMenuController;
 use App\Http\Controllers\Admin\SnackPreparationController;
+use App\Http\Controllers\Admin\TicketScannerController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicBookingController;
@@ -260,6 +261,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/laporan/export.csv', [ReportController::class, 'export'])->name('reports.export');
 
+    // Ticket Scanner
+    Route::get('/scan', [TicketScannerController::class, 'index'])->name('scan.index');
+    Route::post('/scan/cari', [TicketScannerController::class, 'lookup'])->name('scan.lookup')->middleware('throttle:120,1');
+    Route::post('/scan/hadir', [TicketScannerController::class, 'checkIn'])->name('scan.checkin')->middleware('throttle:120,1');
+    Route::post('/scan/batal-hadir', [TicketScannerController::class, 'undo'])->name('scan.undo');
+    Route::get('/scan/sesi-bookings', [TicketScannerController::class, 'sessionBookings'])->name('scan.session_bookings');
+
     // Aliases for admin navigation
     Route::redirect('/schedule', '/admin/jadwal');
     Route::redirect('/articles', '/admin/berita');
@@ -267,5 +275,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::redirect('/snacks/preparation', '/admin/jajanan/siapkan');
     Route::redirect('/reports', '/admin/laporan');
 });
+
+// Alias /scan mengarah ke /admin/scan (login dulu bila belum masuk, lalu kembali ke halaman scan)
+Route::get('/scan', fn () => redirect()->route('admin.scan.index'))->middleware('auth');
 
 require __DIR__.'/auth.php';

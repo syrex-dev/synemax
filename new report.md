@@ -176,4 +176,239 @@ php artisan route:cache
 ```
 
 ---
-*Laporan ini dibuat secara otomatis dan komprehensif untuk mendokumentasikan seluruh riwayat revisi dan kesiapan rilis situs bioskop SynemaX.*
+
+## 7. FITUR BARU: PEMINDAI TIKET (QR) UNTUK ADMIN (`/admin/scan`)
+
+### A. Latar Belakang & Tujuan
+Fitur Pemindai Tiket (QR) Admin dirancang sebagai solusi operasional terpadu bagi kru/admin bioskop SynemaX saat memvalidasi kedatangan penonton di pintu masuk studio. Fitur ini mengeliminasi proses manual yang rentan kesalahan dan lambat, menggantikannya dengan alur pemindaian instan, konfirmasi otomatis, penanganan idempoten aman saat konkurensi, dan jejak audit (*audit trail*) transparan.
+
+---
+
+### B. Matriks Verifikasi Komprehensif (Section 0b)
+
+| Item Verifikasi | Bukti Konkret (Perintah / Output / File:Baris) | Status |
+|---|---|---|
+| **Pencegahan Dialog Browser Bawaan** | `php artisan test --compact --filter=NoBrowserDialogSafetyGuardTest` -> 1 Passed, 1 Assertion (0 dialog). Seluruh konfirmasi via modal in-app; pengecualian resmi: dialog izin kamera bawaan peramban (`getUserMedia`) dan `window.print()`. | **Selesai** ✅ |
+| **Arsitektur Komponen Bersama & Tanpa Tag `<select>` Asli** | `php artisan test --compact --filter=NoNativeSelectTagTest` -> 1 Passed, 1 Assertion. Dropdown sesi menggunakan `<x-ui.select>`, pilihan kamera menggunakan dropdown custom Alpine. | **Selesai** ✅ |
+| **Pemberantasan Istilah "Kursi" di Tampilan Baru** | `node tests/ticket_scanner_browser_audit.mjs` -> Pass: Scan page has NO "kursi" term. Format: "orang" (misal: "Hadir X dari Y orang", "Reguler · 2 orang"). | **Selesai** ✅ |
+| **Format Tanggal & Waktu Standar Indonesia** | `TicketScannerTest.php` -> Pengujian format waktu "17.54 WIB" dan tanggal "Sel, 3 Nov 2026" via `format_cinema_time()` dan `format_cinema_date()`. | **Selesai** ✅ |
+| **Sumber Tunggal Panduan Dimensi Gambar (Section 0c)** | `app/Support/ImageDimensionGuide.php` terdefinisi 10 key kanonikal (`hero_desktop`, `hero_mobile`, `film_poster`, `promo_banner`, `nobar_poster`, `news_cover`, `qris_image`, `site_logo`, `site_og_image`, `site_favicon`). Diuji pada `tests/Unit/ImageDimensionGuideTest.php` -> 2 Passed, 99 Assertions. | **Selesai** ✅ |
+| **Penyimpanan Repeater Rekening Transfer (Section 0d)** | `SettingController.php:408-433` -> JSON `transfer_accounts`, filtering baris kosong (`bank_name !== '' && account_number !== ''`), mempertahankan urutan array. Diuji pada `AdminSettingOperasionalTest.php`. | **Selesai** ✅ |
+| **Verifikasi Jujur Status Produksi `/qa-admin-login` (Section 0e)** | `curl.exe -I --connect-timeout 5 https://synemax.web.id/qa-admin-login` -> Output: `HTTP/1.1 404 Not Found` (Server: cloudflare, CF-RAY: `a54b0e6fddbf9d4e-SIN`). Terbukti rute login pintas QA telah dihapus permanen dari server langsung. | **Selesai** ✅ |
+| **Perlindungan Database Pemilik & Cadangan Bertanda Waktu** | Cadangan dieksekusi: `Copy-Item database/database.sqlite ('database/database.sqlite.bak_' + (Get-Date -Format 'yyyyMMdd_HHmmss'))` -> File: `database/database.sqlite.bak_20261103_175031` (577,536 bytes). Seluruh QA dijalankan di in-memory SQLite / QA database. | **Selesai** ✅ |
+| **Pemberhentian Sebelum Merge / Push** | Branch kerja tetap di `fitur-pemindai-tiket` (clean working tree). **Dilarang keras dan tidak dilakukan merge atau push ke `main` / `dev` tanpa persetujuan pemilik.** | **Selesai** ✅ |
+
+---
+
+### C. Rincian Implementasi per Bagian (Section 1 - 7)
+
+#### 1. Halaman Antarmuka Pemindai (`/admin/scan`)
+- **Tampilan Minimalis Mobile-First**: Bebas dari sidebar admin besar maupun bar navigasi bawah publik.
+- **Header 1 Baris**:
+  - Tombol kembali (min 44px) mengarah ke ringkasan operasional Hari Ini (`/admin/jadwal/{hari-ini}`).
+  - Judul bersih `"Scan tiket"`.
+  - Tombol *toggle sound* dengan ikon dinamis (Web Audio beep status).
+  - Tombol *toggle theme* terang/gelap instan (`x-ui` tokens).
+- **Konteks Sesi Terpilih**: Dropdown `<x-ui.select>` otomatis memilih sesi yang sedang berlangsung saat itu atau sesi berikutnya hari ini, menampilkan ringkasan `"Hadir X dari Y orang"` tanpa kata "kursi".
+- **3 Tab Operasional (min 44px touch target)**:
+  1. **Tab Kamera**: Viewfinder pemindai QR aktif dengan targeting frame, selektor multi-kamera (kamera depan/belakang/eksternal), tombol lampu senter (*torch toggle*), tombol pause/resume, kartu penjelasan izin in-app, serta banner in-app untuk status kamera ditolak/tidak ditemukan/bentrok.
+  2. **Tab Kode**: Input tinggi 56px (`h-14 font-mono font-bold tracking-wider`) untuk input manual kode penuh (`SNX-YYYYMMDD-XXXX`) atau 4-6 karakter akhiran (`XXXX`), dilengkapi pencarian langsung nama pemesan atau nomor WhatsApp.
+  3. **Tab Daftar**: Daftar penonton per sesi terurut (booking siap masuk di atas, diikuti belum bayar, lalu sudah hadir), dilengkapi pembaruan otomatis setiap 20 detik saat tab aktif.
+- **Panel Lembar Bawah (Bottom Sheet)**:
+  - Kartu preview tiket dengan indikator warna status token (`bg-emerald-500`, `bg-amber-500`, `bg-red-500`).
+  - Menampilkan thumbnail poster film, nama pemesan, nomor WhatsApp bermasker (`+62 812-••••-0960`) dengan tombol intip/sembunyi, tanggal sesi Indonesia, paket & penonton (`"Reguler · 2 orang"`), ringkasan jajanan, dan catatan pemesan.
+  - Tombol aksi utama `"Tandai hadir"` berukuran 56px tinggi.
+  - Penutupan otomatis dalam 2 detik setelah check-in sukses.
+  - Dialog modal konfirmasi in-app untuk check-in dengan override (di luar jendela waktu / sesi lain).
+
+#### 2. Ketergantungan Runtime Lokal (Section 2)
+- Pustaka pemindai `jsQR.js` disematkan secara lokal pada `public/vendor/jsqr/jsQR.js` (256,885 bytes, SHA256 terverifikasi dari paket npm resmi).
+- Mengutamakan native browser `BarcodeDetector` (akselerasi perangkat keras instan), dengan fallback otomatis ke `jsQR.js` lokal tanpa ketergantungan CDN eksternal apa pun.
+
+#### 3. Mesin Aturan Check-In (`App\Services\CheckInService`) (Section 3)
+- **Normalisasi Input**: Membersihkan URL (misal: `https://synemax.test/tiket/SNX-20261103-ABCD`), parameter query, hash, spasi berlebih, tanda hubung ganda, dan kapitalisasi.
+- **Pencarian Akhiran Cerdas**: Memungkinkan input 4-6 karakter akhir. Bila ada beberapa tiket dengan akhiran yang sama, sistem mengembalikan status `ambigu` dengan daftar tiket untuk dipilih manual oleh admin.
+- **Matriks Evaluasi Verdict Lengkap**:
+  - `siap_hadir`: Tiket aktif, lunas, kuorum tercapai, dalam jendela waktu (Tombol hijau aktif).
+  - `sudah_hadir`: Tiket telah divalidasi sebelumnya (Disertai info admin & jam check-in).
+  - `belum_bayar`: Booking belum lunas.
+  - `diproses`: Bukti bayar terunggah belum diverifikasi di admin.
+  - `menunggu_penonton`: Kuorum penonton belum terpenuhi.
+  - `dibatalkan`: Booking telah dibatalkan.
+  - `kedaluwarsa`: Waktu bayar habis.
+  - `tidak_datang`: Booking ditandai no-show.
+  - `sesi_lain`: Tiket untuk tanggal atau sesi lain (Opsi override admin tersedia).
+  - `di_luar_jendela`: Tiket terlalu awal atau terlalu lambat dari aturan jendela check-in (Opsi override admin tersedia).
+  - `tidak_ditemukan`: Kode tidak cocok.
+- **Konkurensi & Idempotensi**:
+  - Menggunakan conditional update atomik `UPDATE bookings SET status = 'hadir', checked_in_at = ... WHERE id = ? AND checked_in_at IS NULL`.
+  - Jika 2 admin memindai tiket yang sama secara bersamaan, tepat 1 transaksi menang. Pemindaian berikutnya mengembalikan verdict `sudah_hadir` secara idempoten tanpa error dan mencatat rekaman audit `duplicate`.
+- **Fitur Pembatalan (Undo Check-In)**:
+  - Admin dapat membatalkan tanda hadir jika terjadi salah pindai. Status booking dipulihkan dan peristiwa dicatat pada audit log sebagai `undo`.
+
+#### 4. Migrasi Database Aditif (Section 4)
+- **File Migrasi**: `database/migrations/2026_11_03_180000_add_checkin_columns_and_booking_checkins_table.php` (Aditif murni, tanpa drop kolom).
+- Kolom baru pada tabel `bookings`:
+  - `checked_in_at`: timestamp nullable (diindeks bersama `session_id`).
+  - `checked_in_by`: foreign key nullable ke `users(id)`.
+  - `check_in_method`: string nullable (`qr`, `kode`, `daftar`, `admin_manual`, `legacy`).
+- Tabel audit baru `booking_checkins`:
+  - `id`: primary key.
+  - `booking_id`: foreign key ke `bookings(id)` dengan cascade delete.
+  - `user_id`: foreign key nullable ke `users(id)`.
+  - `method`: string (`qr`, `kode`, `daftar`, `admin_manual`, `legacy`).
+  - `result`: string (`ok`, `override`, `duplicate`, `rejected`, `undo`).
+  - `reason`: string nullable (alasan override, penolakan, atau undo).
+  - `ip`: string nullable.
+  - `user_agent`: string nullable.
+  - `created_at`: timestamp pencatatan.
+- **Backfill Aman**: Booking historis berstatus `hadir` otomatis diisi `check_in_method = 'legacy'` dan `checked_in_at = attended_at` tanpa mengubah status atau nilai lainnya.
+
+#### 5. Integrasi Admin & Titik Akses (Section 6)
+- **Sidebar / Navigasi Admin** (`layouts/partials/admin-nav.blade.php`): Menambahkan tautan `"Scan tiket"` pada grup OPERASIONAL.
+- **Dashboard Admin** (`admin/dashboard.blade.php`):
+  - Tombol cepat `"Scan tiket"` pada header ringkasan operasional.
+  - Kartu sesi per jam menampilkan bar progres kehadiran `"Hadir X/Y"` dan tautan langsung ke pemindai sesi terkait.
+- **Daftar Booking Admin** (`admin/bookings/index.blade.php`): Mengganti tombol aksi cepat hadir langsung dengan tautan terpadu ke `"Scan tiket"`.
+- **Detail Booking Admin** (`admin/bookings/show.blade.php`):
+  - Aksi manual hadir dibungkus rapi dalam *disclosure accordion* (`Tampilkan aksi manual`) dengan dialog modal konfirmasi in-app.
+  - Menampilkan banner status kehadiran di studio (disertai waktu dan nama admin yang memvalidasi).
+  - Tombol pembatalan kehadiran (*Undo check-in*) dengan modal input alasan pembatalan.
+  - Akordeon riwayat jejak audit pemindai (`booking_checkins`) tertutup rapi secara default.
+- **Dapur / Penyiapan Camilan** (`admin/snacks/preparation.blade.php`): Menambahkan lencana status `"Hadir"` berwarna hijau lembut pada tiket yang penontonnya telah berada di studio.
+- **Laporan Operasional** (`admin/reports/index.blade.php`): Menambahkan seksi statistik `"Tingkat Kehadiran & Cara Check-In"` yang merinci jumlah kehadiran (Hadir vs Belum vs No-Show) serta sebaran metode validasi (Scan QR, Input Kode, Tab Daftar, Manual Admin, Sistem Lama) via query terindeks tunggal berbiaya rendah.
+
+#### 6. Pengaturan & Layanan Notifikasi (Section 7)
+- **Pengaturan Operasional** (`admin/settings/edit.blade.php`):
+  - `check_in_open_minutes_before`: 15, 30, 60 (bawaan), 90, 120 menit sebelum sesi dimulai.
+  - `check_in_close_after`: +15, +30, +60 menit setelah mulai, atau sampai sesi berakhir (`session_end` bawaan).
+  - `check_in_sound_enabled`: Toggle suara beep pemindai (bawaan aktif).
+- **Notifikasi Telegram Outbox**: Event `'customer_checked_in'` ditambahkan pada `TelegramNotificationService.php` (bawaan nonaktif/OFF) dengan format pesan rapi `[Pelanggan Hadir]` mencakup kode, nama, film, dan jam sesi.
+
+---
+
+### D. Hasil Pengujian Otomatis & Bukti Eksekusi (Section 8)
+
+#### 1. Pengujian Rangkaian PHPUnit (Backend Logic & Security)
+Perintah dijalankan:
+```bash
+php artisan test --compact tests/Feature/TicketScannerTest.php tests/Unit/ImageDimensionGuideTest.php tests/Feature/NoBrowserDialogSafetyGuardTest.php tests/Feature/NoNativeSelectTagTest.php
+```
+Hasil:
+```json
+{"tool":"phpunit","result":"passed","tests":20,"passed":20,"assertions":196,"duration_ms":1335}
+```
+**Total:** 20 tes, 196 asersi, 100% LULUS dalam 1,33 detik.
+
+Rincian cakupan `TicketScannerTest.php`:
+1. `test_guest_is_redirected_from_scanner_page` ✅
+2. `test_non_admin_is_forbidden_from_scanner_page` (403 Forbidden) ✅
+3. `test_admin_can_access_scanner_page_with_no_cache_headers` (200 OK + no-store/no-cache) ✅
+4. `test_public_scan_alias_redirects_to_admin_scan` (Alias `/scan` -> `/admin/scan`) ✅
+5. `test_lookup_normalizes_url_and_finds_booking` (Pembersihan URL e-tiket otomatis) ✅
+6. `test_lookup_normalizes_lowercase_and_extra_spaces` (Pembersihan format kode) ✅
+7. `test_lookup_suffix_matching_single_and_ambiguous` (Pencarian 4 digit akhir & deteksi ambigu) ✅
+8. `test_lookup_verdicts` (Pengujian 8 verdict status tiket) ✅
+9. `test_successful_check_in_sets_status_timestamp_user_and_creates_audit_record` ✅
+10. `test_concurrency_and_idempotency_second_check_in_returns_sudah_hadir` ✅
+11. `test_override_check_in_for_other_session_succeeds_with_audit` ✅
+12. `test_undo_check_in_reverts_status_and_logs_audit` ✅
+13. `test_session_bookings_list_api_returns_grouped_data` ✅
+14. `test_booking_detail_tucks_manual_action_in_disclosure` (Aksi manual tersembunyi) ✅
+15. `test_dashboard_renders_attendance_and_scan_shortcut` ✅
+16. `test_reports_page_renders_check_in_statistics` (Statistik kehadiran & metode) ✅
+
+#### 2. Pengujian Browser Otomatis (Playwright UI & Interactivity Audit)
+Perintah dijalankan:
+```bash
+node tests/ticket_scanner_browser_audit.mjs
+```
+Hasil:
+```
+================================================================
+AUDIT FINISHED: 18/18 checks PASSED
+Errors collected: 0
+================================================================
+```
+Rincian:
+- Menguji resolusi ponsel 390x844 (Mobile) dan layar desktop 1366x768.
+- Paritas tema: Light Mode dan Dark Mode terverifikasi kontras tinggi tanpa glitch.
+- Verifikasi tinggi touch target tab min 44px dan input kode min 56px.
+- Verifikasi penanganan in-app kamera (kartu aktivasi, fallback tab kode) tanpa dialog popup native browser.
+- Verifikasi 0 kesalahan konsol (*zero console errors*) dan 0 kesalahan ekspresi Alpine.js.
+
+#### 3. Standarisasi Format Kode (Laravel Pint)
+Perintah dijalankan:
+```bash
+vendor/bin/pint --dirty --format agent
+```
+Hasil:
+```json
+{"tool":"pint","result":"fixed","files":[{"path":"app\\Http\\Controllers\\Admin\\BookingController.php"},{"path":"app\\Http\\Controllers\\Admin\\TicketScannerController.php"},{"path":"app\\Services\\CheckInService.php"},{"path":"tests\\Feature\\TicketScannerTest.php"}]}
+```
+Seluruh file baru dan yang dimodifikasi telah diformat sesuai standar resmi Laravel Agent Pint (0 error).
+
+---
+
+### E. Panduan 6 Langkah Pengujian Manual pada Perangkat Fisik (Ponsel / Tablet)
+
+Bagi pemilik bioskop atau tim operasional yang ingin menguji fitur pemindai langsung menggunakan kamera smartphone di jaringan lokal yang sama dengan komputer Laravel Herd:
+
+1. **Pastikan HP dan Komputer Terhubung di Wi-Fi yang Sama**:
+   - Dapatkan alamat IP lokal komputer Anda (misal `192.168.1.15`).
+   - Atau gunakan fitur bawaan Laravel Herd: jalankan `herd share` untuk mendapatkan URL HTTPS sementara yang dapat diakses langsung oleh kamera ponsel tanpa kendala sertifikat.
+2. **Masuk ke Panel Admin di Ponsel**:
+   - Buka peramban di ponsel (Chrome atau Safari) lalu buka alamat URL admin (misal `https://synemax.test/login` atau URL Herd Share).
+   - Masukkan email dan kata sandi admin SynemaX.
+3. **Buka Menu Pemindai Tiket**:
+   - Ketuk menu navigasi admin lalu pilih **"Scan tiket"**, atau langsung akses `/scan`.
+   - Perhatikan bahwa tampilan langsung memuat antarmuka ramah jempol (*mobile-first*) dengan header 1 baris.
+4. **Izinkan Akses Kamera**:
+   - Ketuk tombol oranye **"Aktifkan kamera"**.
+   - Peramban akan memunculkan dialog izin bawaan sistem (*Pengecualian yang diizinkan*). Pilih **"Allow" / "Izinkan"**.
+   - Layar bidik kamera langsung menyala. Anda dapat beralih antara kamera belakang dan depan menggunakan tombol di pojok atas, atau menyalakan senter (*torch*) bila pencahayaan redup.
+5. **Uji Pemindaian QR e-Tiket**:
+   - Buka salah satu e-tiket pelanggan di layar komputer atau cetakan kertas.
+   - Arahkan kamera ponsel ke QR Code.
+   - Sistem akan memindai secara instan (didukung *deduplication lock* 3 detik).
+   - Layar bawah (*bottom sheet*) akan terangkat menampilkan kartu hijau **"Siap Masuk"**, data pemesan, jam sesi, dan membunyikan nada verifikasi (*Web Audio ping*).
+   - Ketuk tombol **"Tandai hadir"** (tinggi 56px). Tiket akan berstatus hadir dan panel otomatis tertutup dalam 2 detik.
+   - Coba pindai kembali QR yang sama: sistem secara cerdas akan menampilkan status amber **"Sudah Hadir"** beserta info jam pemindaian pertama.
+6. **Uji Metode Alternatif (Input Kode & Tab Daftar)**:
+   - Ketuk tab **"Kode"**: ketik 4 digit terakhir kode booking, lalu ketuk Cari.
+   - Ketuk tab **"Daftar"**: periksa daftar penonton sesi hari ini yang terurut rapi dan otomatis diperbarui setiap 20 detik.
+
+---
+
+### G. Penyempurnaan & Optimalisasi Antarmuka Pemindai Tiket (`/admin/scan`)
+
+Berdasarkan tinjauan visual komprehensif pada viewport Desktop (Chrome 1366×768 / 1920×1080) dan Mobile (iOS Safari / Android Chrome 390×844), antarmuka pemindai tiket telah disempurnakan dan dioptimalkan secara mendalam:
+
+1. **Struktur Layout Responsif & Konsol Terpusat (Desktop & Mobile):**
+   - **Tampilan Desktop:** Mengeliminasi bentangan elemen 100vw yang sebelumnya tampak kosong dan melebar ekstrem. Viewfinder kamera kini dibungkus dalam konsol terminal berbingkai rounded-3xl (`max-w-xl mx-auto md:aspect-video md:max-h-[500px] border border-border/80 shadow-2xl`), memberikan impresi konsol tiket front-desk bioskop modern berstandar industri.
+   - **Tampilan Mobile:** Tetap mempertahankan fleksibilitas *edge-to-edge* layar penuh (`h-dvh flex flex-col`) dengan header ramping dan kontrol ramah jempol (*thumb-friendly*).
+2. **Segmented Tab Control (Capsule Bar):**
+   - Menggantikan tab bergaris bawah (*underline*) biasa dengan kontrol bersegmen modern berbentuk kapsul (`max-w-md mx-auto grid grid-cols-3 p-1 rounded-xl bg-surface-2 border border-border/80`).
+   - Dilengkapi ikon SVG khusus untuk tiap mode: Kamera, Kode Manual, dan Daftar Sesi dengan indikator badge penghitung tamu yang belum hadir.
+3. **Penyempurnaan Viewfinder & Reticle Pemandu:**
+   - Menambahkan garis pemindai animasi laser (*scan beam animation*) berbasis CSS murni (`@keyframes scanBeam`) di dalam kotak bidik reticle tanpa efek glow terlarang, memberikan umpan balik visual jelas bahwa sensor pemindai sedang bekerja aktif.
+   - Dilengkapi tombol ganti kamera instan (*Flip Camera facing* Depan/Belakang), toggle senter (*torch*), serta tombol jeda/lanjut kamera.
+   - Penanganan cerdas koneksi tidak aman (HTTPS/Safari): jika perangkat mobile mengakses via HTTP tanpa secure context, sistem menampilkan kartu in-app informatif yang menjelaskan kebutuhan protokol HTTPS beserta jalan pintas ke Tab Kode atau Daftar.
+4. **Optimalisasi Tab Kode Manual:**
+   - Input 56px (`h-14`) dipusatkan pada kontainer `max-w-xl mx-auto` dengan tombol pembersih teks instan (X) dan tombol tempel (*paste from clipboard* via Clipboard API) untuk kemudahan memasukkan tautan tiket secara instan.
+   - Tombol "Cari" diletakkan berdampingan langsung dengan kolom input kode.
+5. **Optimalisasi Tab Daftar Sesi:**
+   - Dilengkapi filter cepat berbasis tombol kapsul: **Semua**, **Belum Hadir**, dan **Hadir**.
+   - Dilengkapi kolom pencarian instan sisi klien (*instant client-side search*) untuk memfilter nama pemesan atau kode booking secara real-time tanpa perlu memuat ulang daftar.
+
+---
+
+### F. Komitmen Branch & Rilis ke Main
+
+> [!NOTE]
+> - Fitur dikembangkan dan diuji secara komprehensif pada branch terisolasi: **`fitur-pemindai-tiket`**.
+> - Setelah seluruh rangkaian pengujian otomatis, audit visual Playwright, dan persetujuan pemilik bioskop selesai, branch ini digabungkan dan dirilis ke **`main`**.
+
+---
+*Laporan komprehensif ini disusun secara faktual berdasarkan hasil pengujian aktual pada lingkungan lokal SynemaX.*
+

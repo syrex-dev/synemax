@@ -73,27 +73,107 @@
                  }
              },
              fileError: '',
-             handleFileChange(event) {
-                 const files = event.target.files;
-                 if (files && files.length > 0) {
-                     const file = files[0];
-                     const maxKb = @js($maxPaymentProofKb ?? 4096);
-                     if (file.size > maxKb * 1024) {
-                         const maxLabel = maxKb >= 1024 ? (maxKb / 1024).toFixed(0) + ' MB' : maxKb + ' KB';
-                         this.fileError = `Ukuran file (${(file.size / (1024 * 1024)).toFixed(1)} MB) melebihi batas maksimal ${maxLabel}. Silakan pilih file yang lebih kecil.`;
-                         this.hasFile = false;
-                         this.selectedFileName = '';
-                         event.target.value = '';
-                         return;
-                     }
-                     this.fileError = '';
-                     this.hasFile = true;
-                     this.selectedFileName = file.name;
-                 } else {
+             isCompressing: false,
+             compressStatus: '',
+             async handleFileChange(event) {
+                 const inputEl = event.target;
+                 const files = inputEl.files;
+                 if (!files || files.length === 0) {
                      this.fileError = '';
                      this.hasFile = false;
                      this.selectedFileName = '';
+                     this.compressStatus = '';
+                     return;
                  }
+                 const file = files[0];
+                 if (!file.type || !file.type.startsWith('image/')) {
+                     this.fileError = 'Hanya file gambar (JPG, PNG, WebP) yang diperbolehkan.';
+                     this.hasFile = false;
+                     this.selectedFileName = '';
+                     inputEl.value = '';
+                     return;
+                 }
+
+                 this.fileError = '';
+                 this.isCompressing = true;
+                 this.compressStatus = 'Mengoptimalkan ukuran gambar agar cepat terkirim...';
+
+                 try {
+                     const compressedFile = await this.compressImage(file);
+                     try {
+                         const dt = new DataTransfer();
+                         dt.items.add(compressedFile);
+                         inputEl.files = dt.files;
+                     } catch (e) {
+                         // DataTransfer fallback
+                     }
+
+                     const newSizeKb = Math.round(compressedFile.size / 1024);
+                     this.hasFile = true;
+                     this.selectedFileName = `${compressedFile.name} (${newSizeKb} KB)`;
+                     this.compressStatus = '';
+                 } catch (err) {
+                     console.error('Compression failed:', err);
+                     const maxKb = @js($maxPaymentProofKb ?? 4096);
+                     if (file.size > maxKb * 1024) {
+                         this.fileError = `Ukuran file (${(file.size / (1024 * 1024)).toFixed(1)} MB) terlalu besar. Silakan pilih foto dengan resolusi lebih kecil.`;
+                         this.hasFile = false;
+                         this.selectedFileName = '';
+                         inputEl.value = '';
+                     } else {
+                         this.hasFile = true;
+                         this.selectedFileName = file.name;
+                     }
+                     this.compressStatus = '';
+                 } finally {
+                     this.isCompressing = false;
+                 }
+             },
+             compressImage(file) {
+                 return new Promise((resolve, reject) => {
+                     const reader = new FileReader();
+                     reader.onload = (e) => {
+                         const img = new Image();
+                         img.onload = () => {
+                             const maxDimension = 1600;
+                             let width = img.width;
+                             let height = img.height;
+
+                             if (width > maxDimension || height > maxDimension) {
+                                 if (width > height) {
+                                     height = Math.round((height * maxDimension) / width);
+                                     width = maxDimension;
+                                 } else {
+                                     width = Math.round((width * maxDimension) / height);
+                                     height = maxDimension;
+                                 }
+                             }
+
+                             const canvas = document.createElement('canvas');
+                             canvas.width = width;
+                             canvas.height = height;
+                             const ctx = canvas.getContext('2d');
+                             ctx.drawImage(img, 0, 0, width, height);
+
+                             canvas.toBlob((blob) => {
+                                 if (!blob) {
+                                     resolve(file);
+                                     return;
+                                 }
+                                 const cleanName = file.name.replace(/\.[^/.]+$/, '') + '.jpg';
+                                 const newFile = new File([blob], cleanName, {
+                                     type: 'image/jpeg',
+                                     lastModified: Date.now()
+                                 });
+                                 resolve(newFile);
+                             }, 'image/jpeg', 0.82);
+                         };
+                         img.onerror = () => reject(new Error('Gagal memuat gambar'));
+                         img.src = e.target.result;
+                     };
+                     reader.onerror = () => reject(new Error('Gagal membaca file'));
+                     reader.readAsDataURL(file);
+                 });
              }
          }">
 
@@ -403,15 +483,17 @@
                                    accept="image/jpeg,image/png,image/webp"
                                    @change="handleFileChange($event)"
                                    class="mt-2 block w-full text-xs text-text file:mr-3 file:min-h-11 file:rounded-xl file:border file:border-amber-500/40 file:bg-amber-500/10 file:px-4 file:text-xs file:font-bold file:text-amber-700 dark:file:text-amber-400 hover:file:bg-amber-500/20 cursor-pointer">
-                            <p x-show="selectedFileName" class="mt-2 text-xs font-bold text-amber-700 dark:text-amber-400" x-text="'Berkas dipilih: ' + selectedFileName"></p>
+                            <p x-show="compressStatus" class="mt-2 text-xs font-medium text-amber-700 dark:text-amber-400 flex items-center gap-1.5" x-text="compressStatus"></p>
+                            <p x-show="selectedFileName && !compressStatus" class="mt-2 text-xs font-bold text-emerald-600 dark:text-emerald-400" x-text="'Berkas siap dikirim: ' + selectedFileName"></p>
                             <p x-show="fileError" class="mt-2 text-xs font-bold text-danger-text" x-text="fileError"></p>
                         </div>
 
                         {{-- Tombol Kirim Bukti Bayar --}}
                         <button type="submit"
-                                :disabled="!hasFile"
-                                class="btn-gold-cinema inline-flex min-h-12 w-full items-center justify-center rounded-xl px-5 text-sm font-black shadow-lg transition disabled:cursor-not-allowed disabled:opacity-40">
-                            Kirim bukti bayar
+                                :disabled="!hasFile || isCompressing"
+                                class="btn-gold-cinema inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-5 text-sm font-black shadow-lg transition disabled:cursor-not-allowed disabled:opacity-40">
+                            <span x-show="!isCompressing">Kirim bukti bayar</span>
+                            <span x-show="isCompressing" x-cloak>Menyiapkan gambar...</span>
                         </button>
                     </form>
                 </div>

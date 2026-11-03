@@ -188,6 +188,42 @@
                     </div>
                 </div>
 
+                {{-- Tabel Panduan Ukuran & Rasio Gambar Resmi (Sumber Tunggal) --}}
+                <div class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-3">
+                    <div class="flex items-center justify-between pb-2 border-b border-border">
+                        <div>
+                            <h2 class="text-base font-bold text-text">Panduan Ukuran Gambar Resmi</h2>
+                            <p class="text-xs text-text-muted mt-0.5">Standar tunggal dimensi, rasio, dan batas ukuran file yang divalidasi sistem.</p>
+                        </div>
+                        <span class="badge-accent-soft text-xs font-bold">Sumber Tunggal</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead>
+                                <tr class="border-b border-border text-text-muted">
+                                    <th class="py-2.5 font-bold">Komponen</th>
+                                    <th class="py-2.5 font-bold">Rasio</th>
+                                    <th class="py-2.5 font-bold">Dimensi Rekomendasi</th>
+                                    <th class="py-2.5 font-bold">Batas File</th>
+                                    <th class="py-2.5 font-bold">Petunjuk Unggah</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-border/60">
+                                @foreach (\App\Support\ImageDimensionGuide::all() as $guide)
+                                    <tr>
+                                        <td class="py-2.5 font-bold text-text">{{ $guide['label'] }}</td>
+                                        <td class="py-2.5 font-mono text-amber-600 dark:text-amber-400 font-semibold">{{ $guide['ratio'] }}</td>
+                                        <td class="py-2.5 font-mono font-bold text-text">{{ $guide['width'] }} × {{ $guide['height'] }} px</td>
+                                        <td class="py-2.5 text-text-muted">{{ $guide['max_mb'] }} MB</td>
+                                        <td class="py-2.5 text-text-muted">{{ $guide['hint'] }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div class="flex justify-end gap-3">
                     <button type="submit" class="inline-flex min-h-[44px] items-center rounded-xl bg-amber-500 px-6 font-bold text-slate-950 shadow-sm hover:bg-amber-400">
                         Simpan Perubahan Identitas
@@ -894,6 +930,18 @@
                             :checked="old('snacks_enabled', $settings->integer('snacks_enabled', 1) === 1)"
                         />
                     </div>
+
+                    <div class="pt-3 border-t border-border flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-bold text-text">Fitur Nonton Bareng (Nobar) & Kabar</p>
+                            <p class="text-xs text-text-muted">Tampilkan jadwal nobar komunitas dan artikel kabar di navigasi serta halaman publik.</p>
+                        </div>
+                        <x-form.switch
+                            name="info_nobar_enabled"
+                            value="1"
+                            :checked="old('info_nobar_enabled', $settings->infoNobarEnabled())"
+                        />
+                    </div>
                 </div>
 
                 {{-- Pengaturan Cetak E-Tiket --}}
@@ -940,6 +988,69 @@
                                 <p class="text-[11px] italic text-slate-500 pt-1" x-text="ticketNotes || 'Tunjukkan e-tiket ini kepada petugas di pintu masuk bioskop.'"></p>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                {{-- Pengaturan Check-in & Pemindai Tiket --}}
+                <div class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-4">
+                    <div>
+                        <h2 class="text-base font-bold text-text">Pengaturan Check-In & Pemindai Tiket</h2>
+                        <p class="text-xs text-text-muted mt-0.5">Konfigurasi jendela waktu validasi tiket dan preferensi pemindai QR untuk petugas pintu masuk.</p>
+                    </div>
+
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label for="check_in_open_minutes_before" class="block text-xs font-bold uppercase tracking-wider text-text mb-1">
+                                Check-in dibuka sebelum sesi mulai
+                            </label>
+                            <x-ui.select
+                                id="check_in_open_minutes_before"
+                                name="check_in_open_minutes_before"
+                                :value="(string) old('check_in_open_minutes_before', $settings->checkInOpenMinutesBefore())"
+                                :options="[
+                                    '15' => '15 menit sebelum sesi mulai',
+                                    '30' => '30 menit sebelum sesi mulai',
+                                    '60' => '60 menit sebelum sesi mulai (Bawaan)',
+                                    '90' => '90 menit sebelum sesi mulai',
+                                    '120' => '120 menit (2 jam) sebelum sesi mulai',
+                                ]"
+                            />
+                            <p class="mt-1 text-[11px] text-text-muted">Tiket yang dipindai sebelum jendela ini akan berstatus "Terlalu awal".</p>
+                        </div>
+
+                        <div>
+                            <label for="check_in_close_after" class="block text-xs font-bold uppercase tracking-wider text-text mb-1">
+                                Check-in ditutup setelah sesi mulai
+                            </label>
+                            <x-ui.select
+                                id="check_in_close_after"
+                                name="check_in_close_after"
+                                :value="(string) old('check_in_close_after', $settings->checkInCloseOption())"
+                                :options="[
+                                    '15' => '15 menit setelah sesi mulai',
+                                    '30' => '30 menit setelah sesi mulai',
+                                    '60' => '60 menit setelah sesi mulai',
+                                    'session_end' => 'Sampai sesi selesai (Bawaan)',
+                                ]"
+                            />
+                            <p class="mt-1 text-[11px] text-text-muted">Tiket yang dipindai setelah batas ini membutuhkan konfirmasi override admin.</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-border">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                name="check_in_sound_enabled"
+                                value="1"
+                                {{ old('check_in_sound_enabled', $settings->checkInSoundEnabled()) ? 'checked' : '' }}
+                                class="size-4 rounded border-border-input text-amber-500 focus:ring-amber-400"
+                            >
+                            <div>
+                                <span class="text-xs font-bold text-text">Bunyi saat pemindaian</span>
+                                <p class="text-[11px] text-text-muted">Putar audio konfirmasi pendek saat tiket berhasil terverifikasi (dapat dimatikan di halaman scan).</p>
+                            </div>
+                        </label>
                     </div>
                 </div>
 

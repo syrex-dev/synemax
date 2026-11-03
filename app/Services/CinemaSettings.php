@@ -190,6 +190,21 @@ class CinemaSettings
         return $this->string('transfer_payment_notes');
     }
 
+    public function checkInOpenMinutesBefore(): int
+    {
+        return $this->integer('check_in_open_minutes_before', 60);
+    }
+
+    public function checkInCloseOption(): string
+    {
+        return $this->string('check_in_close_after', 'session_end');
+    }
+
+    public function checkInSoundEnabled(): bool
+    {
+        return $this->boolean('check_in_sound_enabled', false);
+    }
+
     public function paymentTimeLimitMinutes(): int
     {
         return $this->integer('payment_time_limit_minutes', 30);

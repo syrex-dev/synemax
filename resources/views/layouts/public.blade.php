@@ -120,13 +120,15 @@
         }"
         @synemax-theme-changed.window="currentTheme = $event.detail.mode"
         :class="{ 'overflow-hidden': menuSheetOpen }"
-        class="min-h-screen bg-bg font-sans text-text antialiased transition-colors duration-200"
+        class="min-h-screen flex flex-col bg-bg font-sans text-text antialiased transition-colors duration-200"
     >
-        {{-- Unpaid Booking Global Banner (Section 2) --}}
-        <x-public.unpaid-booking-banner />
+        {{-- Sticky Top Navigation & Alert Container --}}
+        <div class="sticky top-0 z-40 w-full">
+            {{-- Unpaid Booking Global Banner (Section 2) --}}
+            <x-public.unpaid-booking-banner />
 
-        {{-- Sticky Cinema Navbar (Translucent Glassmorphic Blur across mobile & desktop) --}}
-        <header class="sticky top-0 z-40 border-b border-border/80 dark:border-white/10 bg-surface/80 dark:bg-[#07090E]/80 backdrop-blur-md supports-[backdrop-filter]:bg-surface/75 dark:supports-[backdrop-filter]:bg-[#07090E]/75 transition-colors duration-200 pt-[env(safe-area-inset-top)]">
+            {{-- Cinema Navbar (Translucent Glassmorphic Blur across mobile & desktop) --}}
+            <header class="border-b border-border/80 dark:border-white/10 bg-surface/80 dark:bg-[#07090E]/80 backdrop-blur-md supports-[backdrop-filter]:bg-surface/75 dark:supports-[backdrop-filter]:bg-[#07090E]/75 transition-colors duration-200 pt-[env(safe-area-inset-top)]">
             <div class="mx-auto flex h-14 md:h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
                 {{-- Element 1: Logo Brand --}}
                 <a href="{{ route('home') }}" class="inline-flex min-h-11 items-center gap-2 group transition-transform hover:scale-102 shrink-0" aria-label="{{ setting('site_name', 'SynemaX') }}, beranda">
@@ -253,6 +255,7 @@
                 </div>
             </div>
         </header>
+    </div>
 
 
         {{-- Mobile Bottom Navigation Bar (CGV Pattern, Fixed bottom-0, Translucent Blur, < 768px) --}}
@@ -603,16 +606,10 @@
             </div>
         @endif
 
-        <main class="{{ ! $isActionPage ? 'pb-[calc(60px+env(safe-area-inset-bottom,0px)+16px)] md:pb-0' : '' }}">
+        <main class="flex-1 w-full {{ ! $isActionPage ? 'pb-[calc(60px+env(safe-area-inset-bottom,0px)+16px)] md:pb-0' : '' }}">
             @yield('content')
         </main>
 
-        {{-- Floating WhatsApp Action Button (Hanya di Halaman Beranda, bisa ditutup oleh user) --}}
-        @if (request()->routeIs('home'))
-            <div x-show="!menuSheetOpen" x-cloak>
-                <x-ui.whatsapp-button variant="floating" />
-            </div>
-        @endif
 
         {{-- Universal Public Footer across all public pages with navbar --}}
         <x-public.footer />

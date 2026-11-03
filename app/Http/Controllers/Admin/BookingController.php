@@ -9,6 +9,7 @@ use App\Models\MenuCategory;
 use App\Models\Session;
 use App\Models\User;
 use App\Services\BookingService;
+use App\Services\CheckInService;
 use App\Services\CinemaSettings;
 use App\Services\SnackOrderService;
 use App\Services\TelegramNotificationService;
@@ -237,6 +238,7 @@ class BookingController extends Controller
         $data = $request->validate([
             'action' => ['required', 'in:konfirmasi,tandai_dibayar,tolak_bukti,batal,hadir,tidak_hadir,pulihkan'],
             'rejection_note' => ['nullable', 'string', 'max:500'],
+            'manual_reason' => ['nullable', 'string', 'max:120'],
         ]);
 
         if ($data['action'] === 'tolak_bukti' && empty(trim((string) ($data['rejection_note'] ?? '')))) {
@@ -255,7 +257,7 @@ class BookingController extends Controller
                 'tolak_bukti' => $bookingService->rejectProof($lockedBooking, trim((string) $data['rejection_note'])),
                 'pulihkan' => $bookingService->restoreExpired($lockedBooking),
                 'batal' => $this->cancel($lockedBooking, $session, $snackOrders),
-                'hadir' => $this->markAttended($lockedBooking),
+                'hadir' => $this->markAttended($lockedBooking, $data['manual_reason'] ?? null),
                 'tidak_hadir' => $this->markNoShow($lockedBooking),
             };
         }, attempts: 3);
@@ -352,13 +354,22 @@ class BookingController extends Controller
         app(TelegramNotificationService::class)->flush();
     }
 
-    private function markAttended(Booking $booking): void
+    private function markAttended(Booking $booking, ?string $reason = null): void
     {
-        if ($booking->status !== 'terkonfirmasi') {
-            $this->reject('Konfirmasi booking sebelum menandai kehadiran.');
-        }
+        $service = app(CheckInService::class);
+        $result = $service->checkIn(
+            bookingId: $booking->id,
+            userId: (int) auth()->id(),
+            method: 'admin_manual',
+            reason: $reason ?: 'Ditandai manual dari detail booking admin',
+            allowOverride: true,
+            ip: request()->ip(),
+            userAgent: request()->userAgent(),
+        );
 
-        $booking->update(['status' => 'hadir', 'attended_at' => now()]);
+        if (! $result['success'] && $result['verdict'] !== 'siap_hadir' && ($result['result'] ?? '') !== 'duplicate') {
+            $this->reject($result['message']);
+        }
     }
 
     private function markNoShow(Booking $booking): void

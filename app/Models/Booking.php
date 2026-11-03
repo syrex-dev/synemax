@@ -35,6 +35,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'confirmed_at',
     'cancelled_at',
     'attended_at',
+    'checked_in_at',
+    'checked_in_by',
+    'check_in_method',
     'access_token_hash',
 ])]
 class Booking extends Model
@@ -74,6 +77,7 @@ class Booking extends Model
             'confirmed_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'attended_at' => 'datetime',
+            'checked_in_at' => 'datetime',
         ];
     }
 
@@ -225,6 +229,16 @@ class Booking extends Model
     public function customerProfile(): BelongsTo
     {
         return $this->belongsTo(CustomerProfile::class);
+    }
+
+    public function checkedInBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'checked_in_by');
+    }
+
+    public function checkins(): HasMany
+    {
+        return $this->hasMany(BookingCheckin::class)->orderByDesc('created_at')->orderByDesc('id');
     }
 
     public function items(): HasMany
