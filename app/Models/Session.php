@@ -290,7 +290,7 @@ class Session extends Model
      *
      * @return array{allowed: bool, reason: ?string, is_deadlock: bool}
      */
-    public function canAcceptRegularBooking(int $filmId, int $pax): array
+    public function canAcceptRegularBooking(int $filmId, int $pax, ?Collection $precomputedTallies = null): array
     {
         $capacity = $this->seatCapacity();
         $quorum = $this->quorum();
@@ -308,7 +308,7 @@ class Session extends Model
             if ($pax > $this->remainingSeats()) {
                 return [
                     'allowed' => false,
-                    'reason' => 'Jumlah kursi tersisa tidak cukup. Silakan pilih jumlah orang lebih sedikit.',
+                    'reason' => 'Jumlah tempat tersisa tidak cukup. Silakan pilih jumlah orang lebih sedikit.',
                     'is_deadlock' => false,
                 ];
             }
@@ -316,8 +316,8 @@ class Session extends Model
             return ['allowed' => true, 'reason' => null, 'is_deadlock' => false];
         }
 
-        // Kumpulkan kursi per film saat ini
-        $tallies = $this->candidateFilmTallies();
+        // Kumpulkan tempat per film saat ini
+        $tallies = $precomputedTallies ?? $this->candidateFilmTallies();
         $seatsByFilm = [];
         foreach ($tallies as $t) {
             $seatsByFilm[$t['film_id']] = $t['seats'];
@@ -331,7 +331,7 @@ class Session extends Model
         if ($totalSeats > $capacity) {
             return [
                 'allowed' => false,
-                'reason' => 'Jumlah kursi tersisa tidak cukup. Silakan pilih jumlah orang lebih sedikit.',
+                'reason' => 'Jumlah tempat tersisa tidak cukup. Silakan pilih jumlah orang lebih sedikit.',
                 'is_deadlock' => false,
             ];
         }

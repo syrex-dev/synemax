@@ -20,7 +20,7 @@
         <link rel="manifest" href="{{ asset('site.webmanifest') }}">
 
         {{-- SEO Meta Tags --}}
-        <meta name="description" content="@yield('meta_description', setting('seo_default_description', 'Bioskop mini privat eksklusif dengan kapasitas 6 kursi, AC dingin, dan tata suara Dolby Surround. Pesan tiket dan tentukan jadwal film pilihanmu.'))">
+        <meta name="description" content="@yield('meta_description', setting('seo_default_description', 'Bioskop mini privat eksklusif dengan kapasitas 6 penonton, AC dingin, dan tata suara Dolby Surround. Pesan tiket dan tentukan jadwal film pilihanmu.'))">
         @yield('meta')
 
         <script>

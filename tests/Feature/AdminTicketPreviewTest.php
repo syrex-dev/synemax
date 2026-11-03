@@ -103,6 +103,6 @@ class AdminTicketPreviewTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Simpan tiket (PDF)');
-        $response->assertSee('Kembali ke Beranda');
+        $response->assertDontSee('Kembali ke Beranda');
     }
 }

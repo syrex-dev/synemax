@@ -298,13 +298,59 @@ class BookingFlowTest extends TestCase
             ->assertSee('dari 5')
             ->assertSee('Jadwal')
             ->assertSee('Film')
-            ->assertSee('Tipe')
+            ->assertSee('Paket')
             ->assertSee('Jajan')
             ->assertSee('Ringkasan')
             ->assertSee('Per orang')
             ->assertSee('Sewa studio privat')
             ->assertSee('Pilih film')
             ->assertSee('Film yang cocok belum ada');
+    }
+
+    public function test_wizard_renders_preselected_film_banner_and_change_action(): void
+    {
+        $film = $this->createFilm('Interstellar Special');
+        $session = $this->createSession();
+
+        $response = $this->get(route('booking.create', ['session' => $session->id, 'film' => $film->id]));
+
+        $response->assertOk()
+            ->assertSee('Film Pilihanmu')
+            ->assertSee('Ubah film')
+            ->assertSee('Interstellar Special');
+    }
+
+    public function test_schedule_validates_film_param_and_dims_incompatible_sessions(): void
+    {
+        $filmA = $this->createFilm('Film A');
+        $filmB = $this->createFilm('Film B');
+
+        $sessionDate = now()->addDays(2)->toDateString();
+        $sessionA = $this->createSession($filmA, '13:00');
+        $sessionA->update(['session_date' => $sessionDate]);
+        $sessionA->confirmAndLock($filmA->id, 'admin');
+
+        // When visiting schedule with filmB
+        $response = $this->get(route('schedule.date', ['date' => $sessionDate, 'film' => $filmB->id]));
+
+        $response->assertOk()
+            ->assertSee('Film yang kamu pilih:')
+            ->assertSee('Film B')
+            ->assertSee('Ganti film')
+            ->assertSee('Sesi ini sudah memilih film lain');
+    }
+
+    public function test_schedule_ignores_invalid_film_param_and_shows_toast(): void
+    {
+        $sessionDate = now()->addDays(2)->toDateString();
+        $session = $this->createSession();
+        $session->update(['session_date' => $sessionDate]);
+
+        $response = $this->get(route('schedule.date', ['date' => $sessionDate, 'film' => 99999]));
+
+        $response->assertOk()
+            ->assertDontSee('Film yang kamu pilih:')
+            ->assertSessionHas('warning', 'Film tidak tersedia');
     }
 
     private function createFilm(string $title): Film

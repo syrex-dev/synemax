@@ -2,11 +2,11 @@
 
 @section('title', 'Jadwal ' . $date->locale('id')->translatedFormat('l, d F'))
 @section('meta')
-    <meta name="description" content="Pilih jadwal nonton di studio mini SynemaX. Kapasitas tiap sesi maksimal enam kursi.">
+    <meta name="description" content="Pilih jadwal nonton di studio mini SynemaX. Kapasitas tiap sesi maksimal enam tempat.">
 @endsection
 
 @section('content')
-    <main class="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
+    <div class="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-10">
         {{-- Indikator Langkah Riil --}}
         <div class="mt-4 border-b border-border dark:border-white/10 pb-4">
             <div class="flex items-center gap-2">
@@ -14,7 +14,7 @@
                 <p class="text-xs font-bold uppercase tracking-wider text-amber-500 dark:text-amber-400">Langkah 1 dari 5: Jadwal</p>
             </div>
             <h1 class="mt-1 text-2xl font-black tracking-tight text-text sm:text-3xl">Pilih hari dan jam nonton</h1>
-            <p class="mt-1 text-xs text-text-muted">Kapasitas maksimal 6 kursi per sesi. Status kursi diperbarui otomatis saat ada pemesanan baru.</p>
+            <p class="mt-1 text-xs text-text-muted">Kapasitas maksimal 6 penonton per sesi. Ketersediaan tempat diperbarui otomatis saat ada pemesanan baru.</p>
         </div>
 
         {{-- Film Pilihan Banner (Jika pengguna memilih film terlebih dahulu) --}}
@@ -31,7 +31,7 @@
                         @endif
                     </div>
                     <div class="min-w-0">
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Film yang kamu pilih</p>
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Film yang kamu pilih:</p>
                         <h2 class="text-sm sm:text-base font-black text-text truncate">{{ $selectedFilm->title }}</h2>
                         <p class="text-xs text-text-muted truncate">
                             {{ $selectedFilm->formattedGenresText(2) }} · {{ format_durasi_id($selectedFilm->duration_minutes) }} @if($selectedFilm->age_rating)· {{ $selectedFilm->age_rating }}@endif
@@ -39,14 +39,9 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                    <a href="{{ route('films.show', $selectedFilm->slug ?: $selectedFilm->id) }}"
+                    <a href="{{ route('films.index') }}"
                        class="inline-flex min-h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text hover:bg-surface-2 transition">
-                        Detail Film
-                    </a>
-                    <a href="{{ route('schedule.date', ['date' => $date->toDateString()]) }}"
-                       class="inline-flex min-h-9 items-center justify-center rounded-xl border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text-muted hover:text-danger hover:bg-surface-2 transition"
-                       title="Batalkan pilihan film dan tampilkan semua jadwal">
-                        Ganti Film
+                        Ganti film
                     </a>
                 </div>
             </div>
@@ -147,7 +142,12 @@
                             $startTime = format_jam_id($session->start_time, false);
                             $endTime = format_jam_id($session->end_time, true);
                         @endphp
-                        <article class="rounded-2xl border border-border bg-surface p-4 sm:p-5 transition hover:border-amber-500 shadow-2xs">
+                        @php
+                            $sessionFilmId = $session->film_id ?: $session->activeFilm()?->id;
+                            $isLockedOtherFilm = $selectedFilm && ($session->isConfirmed() || $session->status === 'terkonfirmasi') && $sessionFilmId && (int) $sessionFilmId !== (int) $selectedFilm->id;
+                            $canBookThisSession = $canBook && ! $isLockedOtherFilm;
+                        @endphp
+                        <article class="rounded-2xl border border-border bg-surface p-4 sm:p-5 transition hover:border-amber-500 shadow-2xs {{ $isLockedOtherFilm ? 'opacity-60 bg-surface/50 border-dashed hover:border-border' : '' }}">
                             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                 <div class="flex min-w-0 items-start gap-4">
                                     {{-- Kotak Waktu Sesi ala XXI Clock --}}
@@ -207,22 +207,18 @@
                                 <div class="flex items-center justify-between gap-4 sm:justify-end">
                                     <div class="text-right">
                                         <p class="font-tabular text-xs font-bold text-text">
-                                            {{ $session->remainingSeats() }} kursi tersisa
+                                            {{ $session->remainingSeats() }} slot tersisa
                                         </p>
                                         <p class="text-[11px] text-text-muted">
                                             ({{ $occupied }} dari {{ $session->seatCapacity() }} terisi)
                                         </p>
                                     </div>
-                                    @php
-                                        $isLockedOtherFilm = $selectedFilm && $session->isConfirmed() && $session->film_id && $session->film_id !== $selectedFilm->id;
-                                        $canBookThisSession = $canBook && ! $isLockedOtherFilm;
-                                    @endphp
 
                                     @if ($canBookThisSession)
                                         @php
                                             $btnLabel = match (true) {
                                                 $selectedFilm !== null => 'Pilih jam ini',
-                                                $confirmed => 'Pesan kursi',
+                                                $confirmed => 'Pesan tiket',
                                                 $leadingTally !== null => 'Gabung film ini',
                                                 default => 'Pilih paket',
                                             };
@@ -233,8 +229,8 @@
                                             {{ $btnLabel }}
                                         </a>
                                     @else
-                                        <span class="inline-flex min-h-11 min-w-28 items-center justify-center rounded-xl border border-border dark:border-white/10 bg-surface-2 dark:bg-white/5 px-3 text-center text-xs font-semibold text-text-muted">
-                                            {{ $isLockedOtherFilm ? 'Film lain' : $sw['label'] }}
+                                        <span class="inline-flex min-h-11 min-w-36 items-center justify-center rounded-xl border border-border dark:border-white/10 bg-surface-2 dark:bg-white/5 px-3 text-center text-xs font-semibold text-text-muted">
+                                            {{ $isLockedOtherFilm ? 'Sesi ini sudah memilih film lain' : $sw['label'] }}
                                         </span>
                                     @endif
                                 </div>
@@ -302,5 +298,5 @@
                 @endif
             </div>
         @endif
-    </main>
+    </div>
 @endsection

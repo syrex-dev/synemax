@@ -26,17 +26,6 @@
                  }
              }">
 
-        {{-- Navigasi Cepat Kembali ke Beranda --}}
-        <div class="mb-4">
-            <a href="{{ route('home') }}"
-               class="inline-flex items-center gap-1.5 text-xs font-semibold text-text-muted hover:text-text transition no-underline">
-                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                </svg>
-                <span>Beranda</span>
-            </a>
-        </div>
-
         {{-- Header Halaman Cek Booking --}}
         <header class="mb-6 text-center sm:text-left">
             <h1 class="text-2xl font-black text-text sm:text-4xl tracking-tight">Cek booking</h1>

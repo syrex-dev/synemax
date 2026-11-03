@@ -43,14 +43,15 @@
 
     {{-- Content Container --}}
     <div class="relative z-10 mx-auto max-w-6xl px-4 pt-4 sm:pt-6 pb-8 sm:px-6">
-        {{-- Breadcrumb --}}
-        <nav class="flex items-center gap-2 text-xs font-semibold text-text-muted mb-6" aria-label="Breadcrumb">
-            <a href="{{ route('home') }}" class="hover:text-amber-500 transition">Beranda</a>
-            <span class="text-text-muted">/</span>
-            <a href="{{ route('films.index') }}" class="hover:text-amber-500 transition">Katalog Film</a>
-            <span class="text-text-muted">/</span>
-            <span class="text-text font-bold truncate max-w-xs">{{ $film->title }}</span>
-        </nav>
+        {{-- Navigasi Balik ke Induk --}}
+        <div class="mb-6">
+            <a href="{{ route('films.index') }}" class="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-amber-500 hover:text-amber-400 transition">
+                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                <span>Katalog film</span>
+            </a>
+        </div>
 
         {{-- Desktop Layout (md: 768px and up) --}}
         <div class="hidden md:flex items-start gap-8 min-h-[300px]">
@@ -146,12 +147,6 @@
                     >
                         <span>Pilih Film Ini</span>
                     </a>
-                    <a
-                        href="{{ route('schedule.index') }}"
-                        class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface px-5 text-xs font-bold text-text hover:bg-surface-2 transition"
-                    >
-                        <span>Semua Jadwal</span>
-                    </a>
                 </div>
             </div>
         </div>
@@ -232,18 +227,12 @@
             @endif
 
             {{-- Action CTAs Mobile --}}
-            <div class="grid grid-cols-2 gap-2.5 pt-2">
+            <div class="pt-2">
                 <a
                     href="{{ $bookingUrl }}"
-                    class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-amber-500 text-xs font-bold text-slate-950 shadow-md text-center"
+                    class="flex min-h-[44px] w-full items-center justify-center rounded-xl bg-amber-500 hover:bg-amber-400 text-xs sm:text-sm font-bold text-slate-950 shadow-md text-center"
                 >
                     Pilih Film Ini
-                </a>
-                <a
-                    href="{{ route('schedule.index') }}"
-                    class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface text-xs font-bold text-text text-center hover:bg-surface-2"
-                >
-                    Semua Jadwal
                 </a>
             </div>
         </div>
@@ -305,15 +294,9 @@
     {{-- Opsional: Gabung Sesi yang Sudah Memilih Film Ini --}}
     @if ($sessions->count() > 0)
         <section aria-labelledby="heading-sesi-gabung" class="rounded-3xl border border-border bg-surface p-6 sm:p-8 space-y-6 shadow-token">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-4">
-                <div>
-                    <h2 id="heading-sesi-gabung" class="text-xl sm:text-2xl font-black text-text tracking-tight">Gabung sesi yang sudah memilih film ini</h2>
-                    <p class="text-xs text-text-muted">Peminat telah memilih film ini di sesi berikut. Gabung bersama penonton lain pada sesi ini.</p>
-                </div>
-                <a href="{{ route('schedule.index', ['film' => $film->id]) }}" class="inline-flex items-center gap-1.5 text-xs font-bold text-accent-link hover:underline">
-                    <span>Lihat seluruh jadwal</span>
-                    <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-                </a>
+            <div class="border-b border-border pb-4">
+                <h2 id="heading-sesi-gabung" class="text-xl sm:text-2xl font-black text-text tracking-tight">Gabung sesi yang sudah memilih film ini</h2>
+                <p class="text-xs text-text-muted mt-1">Peminat telah memilih film ini di sesi berikut. Gabung bersama penonton lain pada sesi ini.</p>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -348,9 +331,9 @@
                             </div>
 
                             <div class="flex items-center justify-between text-xs text-text-muted pt-1">
-                                <span>Kursi tersisa:</span>
+                                <span>Slot tersisa:</span>
                                 <strong class="{{ $remaining > 0 ? 'text-emerald-500 font-bold' : 'text-danger font-bold' }}">
-                                    {{ $remaining }} kursi
+                                    {{ $remaining }} slot
                                 </strong>
                             </div>
                         </div>

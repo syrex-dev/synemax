@@ -65,7 +65,7 @@ class PublicPagesTest extends TestCase
             ->assertOk()
             ->assertSee('Harga tiket studio per orang')
             ->assertSee('Pertanyaan yang sering diajukan')
-            ->assertSee('Sewa studio privat (6 kursi)');
+            ->assertSee('Sewa studio privat (6 tempat)');
     }
 
     public function test_schedule_and_booking_pages_render_availability_and_locked_film(): void

@@ -20,13 +20,13 @@
 
 @section('content')
     <div class="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
-        {{-- Navigasi Balik --}}
+        {{-- Navigasi Balik ke Induk --}}
         <div class="mb-5">
-            <a href="{{ route('articles.index') }}" class="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-accent-link transition">
+            <a href="{{ route('articles.index') }}" class="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-amber-500 hover:text-amber-400 transition">
                 <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
-                <span>Kembali ke kabar & pengumuman</span>
+                <span>Kabar</span>
             </a>
         </div>
 

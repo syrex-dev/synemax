@@ -185,15 +185,15 @@
                         </div>
                     </section>
 
-                    {{-- Paket Sewa Studio Privat 6 Kursi --}}
+                    {{-- Paket Sewa Studio Privat 6 Orang --}}
                     <section class="rounded-3xl border border-border dark:border-white/10 bg-surface dark:bg-[#0B0F19] p-6 sm:p-7 shadow-xl flex flex-col justify-between relative overflow-hidden">
                         <div>
                             <div class="inline-flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
                                 <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.504-1.125-1.125-1.125h-.871a2.25 2.25 0 00-1.591.659l-.439.44a.75.75 0 01-1.06 0l-.44-.44a2.25 2.25 0 00-1.59-.659h-.872c-.621 0-1.125.504-1.125 1.125V18.75m12 0a2.25 2.25 0 002.25-2.25V8.25A2.25 2.25 0 0018 6H6a2.25 2.25 0 00-2.25 2.25v8.25A2.25 2.25 0 006 18.75m12 0H6"/></svg>
                                 <span>Eksklusif Rombongan</span>
                             </div>
-                            <h2 class="mt-1.5 text-xl font-black text-text">Sewa studio privat (6 kursi)</h2>
-                            <p class="mt-1 text-xs text-text-muted">Kunci seluruh 6 kursi khusus rombongan keluarga atau sahabat tanpa ada penonton lain.</p>
+                            <h2 class="mt-1.5 text-xl font-black text-text">Sewa studio privat (6 tempat)</h2>
+                            <p class="mt-1 text-xs text-text-muted">Kunci seluruh 6 tempat khusus rombongan keluarga atau sahabat tanpa ada penonton lain.</p>
 
                             <div class="mt-5 rounded-2xl border border-amber-500/25 dark:border-amber-400/20 bg-amber-500/5 dark:bg-amber-400/5 p-4 sm:p-5">
                                 <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 pb-3.5 border-b border-amber-500/15 dark:border-amber-400/15">
@@ -260,7 +260,7 @@
                                 <span class="text-amber-500 text-xs transition duration-200 group-open:rotate-180">▼</span>
                             </summary>
                             <p class="mt-2.5 text-xs leading-relaxed text-text-muted border-t border-border/50 dark:border-white/5 pt-2.5">
-                                Bisa sekali. Pilih opsi Sewa Studio Privat pada formulir pemesanan jadwal untuk mengunci seluruh 6 kursi khusus rombongan Anda tanpa ada penonton lain di studio.
+                                Bisa sekali. Pilih opsi Sewa Studio Privat pada formulir pemesanan jadwal untuk mengunci seluruh 6 tempat khusus rombongan Anda tanpa ada penonton lain di studio.
                             </p>
                         </details>
 

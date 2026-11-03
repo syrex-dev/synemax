@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Services\CinemaSettings;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
@@ -40,6 +41,7 @@ class AppServiceProvider extends ServiceProvider
         $isTesting = $this->app->environment('testing') || $activeDb === ':memory:';
 
         DB::prohibitDestructiveCommands(! $isQa && ! $isTesting);
+        Model::preventLazyLoading(! $this->app->isProduction());
 
         Paginator::defaultView('pagination::tailwind');
 

@@ -151,17 +151,6 @@
              }
          }">
 
-        {{-- Navigasi Cepat Kembali ke Beranda (No-Print) --}}
-        <div class="mb-4 no-print">
-            <a href="{{ route('home') }}"
-               class="inline-flex items-center gap-1.5 text-xs font-semibold text-text-muted hover:text-text transition no-underline">
-                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                </svg>
-                <span>Beranda</span>
-            </a>
-        </div>
-
         {{-- Flash Pesan --}}
         @if (session('status'))
             <div role="status" class="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-xs font-bold text-emerald-400 no-print">
@@ -454,20 +443,16 @@
                 @endif
             @endif
 
-            {{-- Semua Status: Dua Tombol Outline Sama Lebar --}}
-            <div class="grid grid-cols-2 gap-3">
-                <a href="{{ route('home') }}"
-                   class="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-slate-400 dark:hover:border-white/30 transition shadow-none">
-                    Kembali ke Beranda
-                </a>
+            {{-- Status Dibatalkan, Kedaluwarsa, Selesai: Aksi Utama Pesan Sesi Lain --}}
+            @if (in_array($flowState, ['dibatalkan', 'kedaluwarsa', 'selesai', 'hadir', 'tidak_datang'], true) || $isCancelled || $isExpired)
                 <a href="{{ route('schedule.date', ['date' => $session?->session_date ?? now()->toDateString()]) }}"
-                   class="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:border-slate-400 dark:hover:border-white/30 transition shadow-none">
+                   class="btn-gold-cinema flex min-h-[44px] w-full items-center justify-center rounded-xl px-4 text-xs font-bold shadow-none">
                     Pesan sesi lain
                 </a>
-            </div>
+            @endif
 
             {{-- Tautan Teks Batalkan Booking Bila Boleh --}}
-            @if ($canCancel && ! in_array($flowState, ['dibatalkan', 'kedaluwarsa', 'selesai', 'hadir', 'tidak_datang'], true))
+            @if ($canCancel && ! in_array($flowState, ['dibatalkan', 'kedaluwarsa', 'selesai', 'hadir', 'tidak_datang'], true) && ! $isCancelled && ! $isExpired)
                 <div class="pt-4 text-center">
                     <button type="button"
                             @click="cancelModal = true"
@@ -562,7 +547,7 @@
                                     </div>
                                 </div>
                                 <span class="rounded bg-black/60 px-2 py-0.5 text-[10px] font-bold text-slate-300">
-                                    Sisa {{ $alt->remainingSeats() }} kursi
+                                    Sisa {{ $alt->remainingSeats() }} tempat
                                 </span>
                             </label>
                         @empty

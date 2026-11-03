@@ -327,4 +327,107 @@ class TicketPageAndDeviceCookieTest extends TestCase
         $expectedTicketUrl = route('booking.ticket', ['code' => $booking->code]);
         $response->assertSee('href="'.$expectedTicketUrl.'"', false);
     }
+
+    public function test_all_links_in_four_ticket_tabs_and_bayar_redirect_resolve_without_404(): void
+    {
+        $film = Film::query()->create([
+            'title' => 'Film Tabs Test',
+            'slug' => 'film-tabs-test',
+            'duration_minutes' => 90,
+            'genre' => 'Action',
+            'age_rating' => '13+',
+            'synopsis' => 'Sinopsis',
+            'poster_path' => 'https://img.synemax.test/posters/test.jpg',
+            'is_active' => true,
+        ]);
+
+        $session = Session::query()->create([
+            'film_id' => $film->id,
+            'session_date' => now()->addDays(2)->toDateString(),
+            'start_time' => '13:00:00',
+            'end_time' => '15:00:00',
+            'status' => 'pasti_tayang',
+        ]);
+
+        $bBelumBayar = Booking::query()->create([
+            'session_id' => $session->id,
+            'code' => 'HC-TAB-UNPAID',
+            'customer_name' => 'User Unpaid',
+            'whatsapp' => '6281200000001',
+            'package' => 'reguler',
+            'booking_type' => 'per_orang',
+            'pax' => 1,
+            'payment_method' => 'qris',
+            'status' => 'menunggu_pembayaran',
+            'total_price' => 20000,
+            'payment_expires_at' => now()->addMinutes(15),
+        ]);
+
+        $bDiproses = Booking::query()->create([
+            'session_id' => $session->id,
+            'code' => 'HC-TAB-PROCESS',
+            'customer_name' => 'User Process',
+            'whatsapp' => '6281200000002',
+            'package' => 'reguler',
+            'booking_type' => 'per_orang',
+            'pax' => 1,
+            'payment_method' => 'qris',
+            'status' => 'menunggu_konfirmasi',
+            'total_price' => 20000,
+        ]);
+
+        $bAktif = Booking::query()->create([
+            'session_id' => $session->id,
+            'code' => 'HC-TAB-ACTIVE',
+            'customer_name' => 'User Active',
+            'whatsapp' => '6281200000003',
+            'package' => 'reguler',
+            'booking_type' => 'per_orang',
+            'pax' => 1,
+            'payment_method' => 'qris',
+            'status' => 'terkonfirmasi',
+            'total_price' => 20000,
+        ]);
+
+        $bRiwayat = Booking::query()->create([
+            'session_id' => $session->id,
+            'code' => 'HC-TAB-HISTORY',
+            'customer_name' => 'User History',
+            'whatsapp' => '6281200000004',
+            'package' => 'reguler',
+            'booking_type' => 'per_orang',
+            'pax' => 1,
+            'payment_method' => 'qris',
+            'status' => 'selesai',
+            'total_price' => 20000,
+        ]);
+
+        $cookiePayload = json_encode([
+            ['code' => $bBelumBayar->code, 'token' => 'tok-1', 'created_at' => time()],
+            ['code' => $bDiproses->code, 'token' => 'tok-2', 'created_at' => time()],
+            ['code' => $bAktif->code, 'token' => 'tok-3', 'created_at' => time()],
+            ['code' => $bRiwayat->code, 'token' => 'tok-4', 'created_at' => time()],
+        ]);
+
+        $response = $this->withCookie(DeviceBookingTracker::COOKIE_NAME, $cookiePayload)->get('/tiket');
+        $response->assertOk();
+
+        // Test 301 redirect for legacy /bayar/{code}
+        $legacyRedirect = $this->get('/bayar/'.$bBelumBayar->code);
+        $legacyRedirect->assertStatus(301);
+        $legacyRedirect->assertRedirect(route('booking.payment', ['code' => $bBelumBayar->code]));
+
+        // Test all tab links on /tiket
+        $paymentUrl = route('booking.payment', ['code' => $bBelumBayar->code]);
+        $this->get($paymentUrl)->assertOk();
+
+        $ticketProcessUrl = route('booking.ticket', ['code' => $bDiproses->code]);
+        $this->get($ticketProcessUrl)->assertOk();
+
+        $ticketActiveUrl = route('booking.ticket', ['code' => $bAktif->code]);
+        $this->get($ticketActiveUrl)->assertOk();
+
+        $ticketHistoryUrl = route('booking.ticket', ['code' => $bRiwayat->code]);
+        $this->get($ticketHistoryUrl)->assertOk();
+    }
 }

@@ -62,7 +62,7 @@ class PublicBookingController extends Controller
         $filmList = $allFilms->map(function (Film $film) use ($session, $tallies) {
             $tally = $tallies->get($film->id);
             $seats = $tally ? $tally['seats'] : 0;
-            $deadlockCheck = $session->canAcceptRegularBooking($film->id, 1);
+            $deadlockCheck = $session->canAcceptRegularBooking($film->id, 1, $tallies);
 
             return [
                 'id' => $film->id,

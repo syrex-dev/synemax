@@ -8,13 +8,8 @@
 
 @section('content')
 <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 space-y-8">
-    {{-- Breadcrumb & Heading --}}
+    {{-- Heading --}}
     <div class="space-y-3">
-        <nav class="flex items-center gap-2 text-xs font-semibold text-text-muted" aria-label="Breadcrumb">
-            <a href="{{ route('home') }}" class="hover:text-amber-500 transition">Beranda</a>
-            <span class="text-text-subtle">/</span>
-            <span class="text-text font-bold">Katalog Film</span>
-        </nav>
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
             <div>
                 <h1 class="text-3xl sm:text-4xl font-black text-text tracking-tight">Katalog Film</h1>

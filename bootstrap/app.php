@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Exceptions\PostTooLargeException;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -54,5 +55,17 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return back()->withInput()->with('error', 'Sesi Anda telah kedaluwarsa. Silakan kirim ulang formulir.');
+        });
+
+        $exceptions->render(function (TooManyRequestsHttpException $e, Request $request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'message' => 'Terlalu banyak permintaan. Mohon tunggu beberapa saat sebelum mencoba kembali.',
+                ], 429);
+            }
+
+            return response()->view('errors.429', [
+                'exception' => $e,
+            ], 429);
         });
     })->create();

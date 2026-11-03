@@ -60,6 +60,7 @@ Route::post('/booking/{session}', [PublicBookingController::class, 'store'])
     ->name('booking.store');
 Route::get('/pembayaran/qris', [PublicBookingController::class, 'qrisImage'])->name('payment.qris');
 Route::get('/pembayaran/{code}', [PublicBookingController::class, 'paymentView'])->name('booking.payment');
+Route::get('/bayar/{code}', fn (string $code) => redirect()->route('booking.payment', ['code' => $code], 301));
 Route::get('/tiket/{code}', [PublicBookingController::class, 'ticketView'])->name('booking.ticket');
 Route::get('/qr-code', [QrCodeController::class, 'show'])
     ->middleware('throttle:60,1')

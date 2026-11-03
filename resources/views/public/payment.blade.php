@@ -97,17 +97,6 @@
              }
          }">
 
-        {{-- Navigasi Cepat Kembali ke Beranda --}}
-        <div class="mb-4">
-            <a href="{{ route('home') }}"
-               class="inline-flex items-center gap-1.5 text-xs font-semibold text-text-muted hover:text-text transition no-underline">
-                <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                </svg>
-                <span>Beranda</span>
-            </a>
-        </div>
-
         {{-- Stepper 3 Tahap Alur Booking Online --}}
         <nav aria-label="Tahapan Booking" class="mb-5 no-print">
             <ol class="grid grid-cols-3 gap-2 text-center text-xs">
@@ -427,26 +416,13 @@
                     </form>
                 </div>
 
-                {{-- Kelompok Aksi & Bantuan Navigasi --}}
-                <div class="mt-6 space-y-3 max-w-[400px] mx-auto w-full border-t border-white/10 pt-5">
-                    <div class="grid grid-cols-2 gap-3">
-                        <a href="{{ route('home') }}"
-                           class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 text-xs font-bold text-slate-300 hover:border-amber-400 hover:text-white transition shadow-none">
-                            Kembali ke Beranda
-                        </a>
-                        <a href="{{ route('schedule.date', ['date' => $booking->session->session_date]) }}"
-                           class="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 px-4 text-xs font-bold text-slate-300 hover:border-amber-400 hover:text-white transition shadow-none">
-                            Pesan sesi lain
-                        </a>
-                    </div>
-
-                    <div class="pt-3 text-center">
-                        <button type="button"
-                                @click="cancelModal = true"
-                                class="text-xs text-slate-400 hover:text-red-400 hover:underline">
-                            Batalkan booking ini
-                        </button>
-                    </div>
+                {{-- Aksi Pembatalan --}}
+                <div class="mt-6 pt-5 border-t border-white/10 text-center max-w-[400px] mx-auto w-full">
+                    <button type="button"
+                            @click="cancelModal = true"
+                            class="text-xs text-slate-400 hover:text-red-400 hover:underline">
+                        Batalkan booking ini
+                    </button>
                 </div>
             </div>
         </div>

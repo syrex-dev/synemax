@@ -41,4 +41,6 @@ tests/*fixtures*.json
 tests/check_*.php
 tests/inspect_*.php
 tests/screenshots/
+LAPORAN_*.md
+LAPORAN*
 

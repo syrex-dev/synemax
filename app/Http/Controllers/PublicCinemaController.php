@@ -280,6 +280,10 @@ class PublicCinemaController extends Controller
                     $q->where('id', $filmParam)->orWhere('slug', $filmParam);
                 })
                 ->first();
+
+            if (! $selectedFilm) {
+                session()->flash('warning', 'Film tidak tersedia');
+            }
         }
 
         if ($date === null) {

@@ -24,14 +24,15 @@
     @endif
 
     <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 space-y-8">
-        {{-- Breadcrumb --}}
-        <nav class="flex items-center gap-2 text-xs font-semibold text-text-muted" aria-label="Breadcrumb">
-            <a href="{{ route('home') }}" class="hover:text-amber-500 transition">Beranda</a>
-            <span class="text-text-subtle">/</span>
-            <a href="{{ route('promos.index') }}" class="hover:text-amber-500 transition">Promo</a>
-            <span class="text-text-subtle">/</span>
-            <span class="text-text font-bold truncate max-w-xs">{{ $promo->title }}</span>
-        </nav>
+        {{-- Navigasi Balik ke Induk --}}
+        <div>
+            <a href="{{ route('promos.index') }}" class="inline-flex min-h-11 items-center gap-2 text-xs font-bold text-amber-500 hover:text-amber-400 transition">
+                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                <span>Promo</span>
+            </a>
+        </div>
 
         {{-- Promo Title & Period Chip Header --}}
         <div class="space-y-3">
