@@ -128,6 +128,16 @@ class Film extends Model
         return $this->belongsTo(AgeRating::class, 'age_rating', 'code');
     }
 
+    public function getPosterUrlAttribute(): ?string
+    {
+        return $this->posterUrl();
+    }
+
+    public function getBannerUrlAttribute(): ?string
+    {
+        return $this->bannerUrl();
+    }
+
     public function posterUrl(): ?string
     {
         if (empty($this->poster_path)) {

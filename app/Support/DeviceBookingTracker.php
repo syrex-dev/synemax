@@ -209,7 +209,7 @@ class DeviceBookingTracker
         $bookings = Booking::query()
             ->whereIn('code', $codes)
             ->where('status', 'menunggu_pembayaran')
-            ->with(['session.film'])
+            ->with(['film', 'session.film'])
             ->get();
 
         if ($bookings->isEmpty()) {
@@ -260,7 +260,7 @@ class DeviceBookingTracker
 
         $all = Booking::query()
             ->whereIn('code', $codes)
-            ->with(['session.film'])
+            ->with(['film', 'session.film'])
             ->orderByDesc('id')
             ->get();
 

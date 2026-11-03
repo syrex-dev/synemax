@@ -278,4 +278,53 @@ class TicketPageAndDeviceCookieTest extends TestCase
         $tResponse->assertOk();
         $tResponse->assertHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     }
+
+    public function test_ticket_index_cards_render_linked_poster_image_and_urls_across_tabs(): void
+    {
+        $film = Film::query()->create([
+            'title' => 'Film Poster Linked Test',
+            'slug' => 'film-poster-linked-test',
+            'duration_minutes' => 90,
+            'genre' => 'Drama',
+            'age_rating' => '13+',
+            'synopsis' => 'Sinopsis',
+            'poster_path' => 'https://img.synemax.test/posters/test-poster.jpg',
+            'is_active' => true,
+        ]);
+
+        $session = Session::query()->create([
+            'film_id' => $film->id,
+            'session_date' => now()->addDays(2)->toDateString(),
+            'start_time' => '13:00:00',
+            'end_time' => '15:00:00',
+            'status' => 'pasti_tayang',
+        ]);
+
+        $booking = Booking::query()->create([
+            'session_id' => $session->id,
+            'code' => 'HC-TEST-POSTER-LINK',
+            'customer_name' => 'User Poster Link',
+            'whatsapp' => '6281299998888',
+            'package' => 'reguler',
+            'booking_type' => 'per_orang',
+            'pax' => 2,
+            'payment_method' => 'qris',
+            'status' => 'terkonfirmasi',
+            'total_price' => 40000,
+        ]);
+
+        $cookiePayload = json_encode([
+            ['code' => $booking->code, 'token' => 'tok-test', 'created_at' => time()],
+        ]);
+
+        $response = $this->withCookie(DeviceBookingTracker::COOKIE_NAME, $cookiePayload)
+            ->get('/tiket');
+
+        $response->assertOk();
+        // The image src should link to the posterUrl
+        $response->assertSee('https://img.synemax.test/posters/test-poster.jpg');
+        // The poster container and title must link to the ticket view
+        $expectedTicketUrl = route('booking.ticket', ['code' => $booking->code]);
+        $response->assertSee('href="'.$expectedTicketUrl.'"', false);
+    }
 }

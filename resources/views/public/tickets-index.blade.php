@@ -124,6 +124,9 @@
         {{-- ==================== TAB 1: BELUM BAYAR ==================== --}}
         <div x-show="activeTab === 'belum_bayar'" x-cloak class="mt-5 space-y-4">
             @forelse ($categorizedBookings['belum_bayar'] as $b)
+                @php
+                    $film = $b->film ?: $b->session?->film;
+                @endphp
                 <div class="rounded-2xl border border-amber-500/40 bg-surface dark:bg-[#0E131F] p-4 sm:p-5 shadow-xs"
                      x-data="{
                          expiresAt: @js($b->payment_expires_at?->toIso8601String()),
@@ -147,24 +150,34 @@
                          }
                      }">
                     <div class="flex items-start gap-3.5">
-                        <div class="size-16 sm:size-20 rounded-xl overflow-hidden bg-surface-2 shrink-0 border border-border">
-                            @if ($b->film && $b->film->poster_url)
-                                <img src="{{ $b->film->poster_url }}" alt="{{ $b->film->title }}" class="size-full object-cover">
+                        <a href="{{ route('booking.payment', ['code' => $b->code]) }}"
+                           class="group/poster block size-16 sm:size-20 rounded-xl overflow-hidden bg-slate-800 shrink-0 border border-border hover:border-amber-500 transition relative"
+                           title="Lanjutkan pembayaran untuk {{ $film?->title ?? 'Film Sesi' }}">
+                            @if ($film && $film->posterUrl())
+                                <img src="{{ $film->posterUrl() }}"
+                                     alt="{{ $film->title }}"
+                                     class="size-full object-cover group-hover/poster:scale-105 transition-transform duration-200"
+                                     onerror="this.style.display='none'">
                             @else
-                                <div class="size-full flex items-center justify-center text-text-muted text-[10px]">Poster</div>
+                                <div class="size-full flex flex-col items-center justify-center p-1.5 text-center bg-slate-900">
+                                    <svg class="size-5 text-amber-500/40 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg>
+                                    <span class="text-[9px] font-bold text-amber-200/90 line-clamp-2 leading-tight">{{ $film?->title ?? 'Film' }}</span>
+                                </div>
                             @endif
-                        </div>
+                        </a>
 
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-2">
-                                <span class="font-tabular text-xs font-black uppercase tracking-wider text-amber-500">
+                                <a href="{{ route('booking.payment', ['code' => $b->code]) }}" class="font-tabular text-xs font-black uppercase tracking-wider text-amber-500 hover:underline">
                                     {{ $b->code }}
-                                </span>
+                                </a>
                                 <x-ui.status type="warning" label="Menunggu Pembayaran" />
                             </div>
 
                             <h2 class="mt-1 text-sm sm:text-base font-black text-text truncate">
-                                {{ $b->film?->title ?? 'Film Sesi' }}
+                                <a href="{{ route('booking.payment', ['code' => $b->code]) }}" class="hover:text-amber-500 transition">
+                                    {{ $film?->title ?? 'Film Sesi' }}
+                                </a>
                             </h2>
 
                             <p class="mt-0.5 text-xs text-text-muted">
@@ -219,21 +232,32 @@
         {{-- ==================== TAB 2: DIPROSES ==================== --}}
         <div x-show="activeTab === 'diproses'" x-cloak class="mt-5 space-y-4">
             @forelse ($categorizedBookings['diproses'] as $b)
+                @php
+                    $film = $b->film ?: $b->session?->film;
+                @endphp
                 <div class="rounded-2xl border border-border bg-surface dark:bg-[#0E131F] p-4 sm:p-5 shadow-xs">
                     <div class="flex items-start gap-3.5">
-                        <div class="size-16 sm:size-20 rounded-xl overflow-hidden bg-surface-2 shrink-0 border border-border">
-                            @if ($b->film && $b->film->poster_url)
-                                <img src="{{ $b->film->poster_url }}" alt="{{ $b->film->title }}" class="size-full object-cover">
+                        <a href="{{ route('booking.ticket', ['code' => $b->code]) }}"
+                           class="group/poster block size-16 sm:size-20 rounded-xl overflow-hidden bg-slate-800 shrink-0 border border-border hover:border-amber-500 transition relative"
+                           title="Lihat detail booking {{ $film?->title ?? 'Film Sesi' }}">
+                            @if ($film && $film->posterUrl())
+                                <img src="{{ $film->posterUrl() }}"
+                                     alt="{{ $film->title }}"
+                                     class="size-full object-cover group-hover/poster:scale-105 transition-transform duration-200"
+                                     onerror="this.style.display='none'">
                             @else
-                                <div class="size-full flex items-center justify-center text-text-muted text-[10px]">Poster</div>
+                                <div class="size-full flex flex-col items-center justify-center p-1.5 text-center bg-slate-900">
+                                    <svg class="size-5 text-amber-500/40 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg>
+                                    <span class="text-[9px] font-bold text-amber-200/90 line-clamp-2 leading-tight">{{ $film?->title ?? 'Film' }}</span>
+                                </div>
                             @endif
-                        </div>
+                        </a>
 
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-2">
-                                <span class="font-tabular text-xs font-black uppercase tracking-wider text-text-muted">
+                                <a href="{{ route('booking.ticket', ['code' => $b->code]) }}" class="font-tabular text-xs font-black uppercase tracking-wider text-text-muted hover:text-text transition">
                                     {{ $b->code }}
-                                </span>
+                                </a>
                                 @if ($b->status === 'menunggu_konfirmasi')
                                     <x-ui.status type="info" label="Menunggu Konfirmasi Admin" />
                                 @else
@@ -242,7 +266,9 @@
                             </div>
 
                             <h2 class="mt-1 text-sm sm:text-base font-black text-text truncate">
-                                {{ $b->film?->title ?? 'Film Sesi' }}
+                                <a href="{{ route('booking.ticket', ['code' => $b->code]) }}" class="hover:text-amber-500 transition">
+                                    {{ $film?->title ?? 'Film Sesi' }}
+                                </a>
                             </h2>
 
                             <p class="mt-0.5 text-xs text-text-muted">
@@ -280,26 +306,39 @@
         {{-- ==================== TAB 3: TIKET AKTIF ==================== --}}
         <div x-show="activeTab === 'aktif'" x-cloak class="mt-5 space-y-4">
             @forelse ($categorizedBookings['aktif'] as $b)
+                @php
+                    $film = $b->film ?: $b->session?->film;
+                @endphp
                 <div class="rounded-2xl border border-emerald-500/30 bg-surface dark:bg-[#0E131F] p-4 sm:p-5 shadow-xs">
                     <div class="flex items-start gap-3.5">
-                        <div class="size-16 sm:size-20 rounded-xl overflow-hidden bg-surface-2 shrink-0 border border-border">
-                            @if ($b->film && $b->film->poster_url)
-                                <img src="{{ $b->film->poster_url }}" alt="{{ $b->film->title }}" class="size-full object-cover">
+                        <a href="{{ route('booking.ticket', ['code' => $b->code]) }}"
+                           class="group/poster block size-16 sm:size-20 rounded-xl overflow-hidden bg-slate-800 shrink-0 border border-emerald-500/30 hover:border-emerald-500 transition relative"
+                           title="Lihat tiket {{ $film?->title ?? 'Film Sesi' }}">
+                            @if ($film && $film->posterUrl())
+                                <img src="{{ $film->posterUrl() }}"
+                                     alt="{{ $film->title }}"
+                                     class="size-full object-cover group-hover/poster:scale-105 transition-transform duration-200"
+                                     onerror="this.style.display='none'">
                             @else
-                                <div class="size-full flex items-center justify-center text-text-muted text-[10px]">Poster</div>
+                                <div class="size-full flex flex-col items-center justify-center p-1.5 text-center bg-slate-900">
+                                    <svg class="size-5 text-emerald-400/50 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg>
+                                    <span class="text-[9px] font-bold text-emerald-200/90 line-clamp-2 leading-tight">{{ $film?->title ?? 'Film' }}</span>
+                                </div>
                             @endif
-                        </div>
+                        </a>
 
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-2">
-                                <span class="font-tabular text-xs font-black uppercase tracking-wider text-emerald-500">
+                                <a href="{{ route('booking.ticket', ['code' => $b->code]) }}" class="font-tabular text-xs font-black uppercase tracking-wider text-emerald-500 hover:underline">
                                     {{ $b->code }}
-                                </span>
+                                </a>
                                 <x-ui.status type="success" label="Terkonfirmasi" />
                             </div>
 
                             <h2 class="mt-1 text-sm sm:text-base font-black text-text truncate">
-                                {{ $b->film?->title ?? 'Film Sesi' }}
+                                <a href="{{ route('booking.ticket', ['code' => $b->code]) }}" class="hover:text-emerald-500 transition">
+                                    {{ $film?->title ?? 'Film Sesi' }}
+                                </a>
                             </h2>
 
                             <p class="mt-0.5 text-xs text-text-muted">
@@ -337,21 +376,32 @@
         {{-- ==================== TAB 4: RIWAYAT ==================== --}}
         <div x-show="activeTab === 'riwayat'" x-cloak class="mt-5 space-y-4">
             @forelse ($categorizedBookings['riwayat'] as $b)
+                @php
+                    $film = $b->film ?: $b->session?->film;
+                @endphp
                 <div class="rounded-2xl border border-border bg-surface/70 dark:bg-[#0E131F]/70 p-4 sm:p-5 opacity-90">
                     <div class="flex items-start gap-3.5">
-                        <div class="size-16 sm:size-20 rounded-xl overflow-hidden bg-surface-2 shrink-0 border border-border opacity-70">
-                            @if ($b->film && $b->film->poster_url)
-                                <img src="{{ $b->film->poster_url }}" alt="{{ $b->film->title }}" class="size-full object-cover">
+                        <a href="{{ route('booking.ticket', ['code' => $b->code]) }}"
+                           class="group/poster block size-16 sm:size-20 rounded-xl overflow-hidden bg-slate-800 shrink-0 border border-border hover:border-amber-500 transition relative opacity-85"
+                           title="Lihat arsip tiket {{ $film?->title ?? 'Film Sesi' }}">
+                            @if ($film && $film->posterUrl())
+                                <img src="{{ $film->posterUrl() }}"
+                                     alt="{{ $film->title }}"
+                                     class="size-full object-cover group-hover/poster:scale-105 transition-transform duration-200"
+                                     onerror="this.style.display='none'">
                             @else
-                                <div class="size-full flex items-center justify-center text-text-muted text-[10px]">Poster</div>
+                                <div class="size-full flex flex-col items-center justify-center p-1.5 text-center bg-slate-900">
+                                    <svg class="size-5 text-slate-500 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" /></svg>
+                                    <span class="text-[9px] font-bold text-slate-400 line-clamp-2 leading-tight">{{ $film?->title ?? 'Film' }}</span>
+                                </div>
                             @endif
-                        </div>
+                        </a>
 
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center justify-between gap-2">
-                                <span class="font-tabular text-xs font-bold text-text-muted uppercase">
+                                <a href="{{ route('booking.ticket', ['code' => $b->code]) }}" class="font-tabular text-xs font-bold text-text-muted uppercase hover:text-text transition">
                                     {{ $b->code }}
-                                </span>
+                                </a>
                                 @php
                                     $statusType = match ($b->status) {
                                         'hadir' => 'success',
@@ -372,7 +422,9 @@
                             </div>
 
                             <h2 class="mt-1 text-sm sm:text-base font-bold text-text truncate">
-                                {{ $b->film?->title ?? 'Film Sesi' }}
+                                <a href="{{ route('booking.ticket', ['code' => $b->code]) }}" class="hover:text-amber-500 transition">
+                                    {{ $film?->title ?? 'Film Sesi' }}
+                                </a>
                             </h2>
 
                             <p class="mt-0.5 text-xs text-text-muted">
