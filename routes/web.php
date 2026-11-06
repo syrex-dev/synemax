@@ -135,7 +135,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/films/posters/upload-zip', [FilmPosterController::class, 'uploadZip'])->name('films.posters.upload_zip');
     Route::post('/films/posters/process-batch-item', [FilmPosterController::class, 'processBatchItem'])->name('films.posters.process_batch_item');
     Route::post('/films/posters/cleanup-batch', [FilmPosterController::class, 'cleanupBatch'])->name('films.posters.cleanup_batch');
-    Route::post('/films/posters/match-ocr', [FilmPosterController::class, 'matchOcr'])->name('films.posters.match_ocr');
     Route::post('/films/posters/assign', [FilmPosterController::class, 'assign'])->name('films.posters.assign');
     Route::post('/films/posters/assign-batch', [FilmPosterController::class, 'assignBatch'])->name('films.posters.assign_batch');
     Route::post('/films/posters/undo-batch', [FilmPosterController::class, 'undoBatch'])->name('films.posters.undo_batch');
