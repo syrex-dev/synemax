@@ -363,7 +363,12 @@
     {{-- Other Films Recommendation --}}
     @if ($otherFilms->isNotEmpty())
         <section aria-labelledby="heading-rekomendasi" class="space-y-4">
-            <h2 id="heading-rekomendasi" class="text-xl font-black text-text tracking-tight">Film Lainnya</h2>
+            <div>
+                <h2 id="heading-rekomendasi" class="text-xl font-black text-text tracking-tight">Rekomendasi Film Serupa</h2>
+                @if (! empty($matchedGenreLabel))
+                    <p class="text-xs text-text-muted mt-0.5">Film pilihan lainnya dengan genre serupa ({{ $matchedGenreLabel }})</p>
+                @endif
+            </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                 @foreach ($otherFilms as $other)
                     <a

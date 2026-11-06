@@ -5,7 +5,7 @@
 @section('content')
     <div
         x-data="adminFilmsIndex({
-            filmsOnPage: {{ Js::from($films->pluck('id')->values()->all()) }},
+            filmsOnPage: {{ Js::from($films->pluck('id')->map(fn ($id) => (string) $id)->values()->all()) }},
             totalFilms: {{ $films->total() }},
             currentSearch: {{ Js::from($search) }},
             undoBatchId: {{ $undoBatchId ? 'true' : 'false' }}
@@ -219,7 +219,7 @@
         {{-- Dynamic Films List Container (Diperbarui secara reaktif oleh Live Search) --}}
         <div
             id="films-list-container"
-            data-films-on-page="{{ json_encode($films->pluck('id')->values()->all()) }}"
+            data-films-on-page="{{ json_encode($films->pluck('id')->map(fn ($id) => (string) $id)->values()->all()) }}"
             data-total-films="{{ $films->total() }}"
             class="relative transition-opacity duration-150"
             :class="{ 'opacity-60 pointer-events-none': isSearching }"
@@ -845,7 +845,7 @@
             undoTimer: null,
             searchQuery: config.currentSearch || '',
             isSearching: false,
-            filmsOnPage: config.filmsOnPage || [],
+            filmsOnPage: (config.filmsOnPage || []).map(id => String(id)),
             totalFilms: config.totalFilms || 0,
 
             init() {
@@ -863,17 +863,16 @@
 
             toggleAll() {
                 if (this.allChecked) {
-                    this.selected = [];
-                    this.allChecked = false;
-                    this.selectAllFiltered = false;
+                    this.selected = this.filmsOnPage.map(id => String(id));
                 } else {
-                    this.selected = [...this.filmsOnPage];
-                    this.allChecked = true;
+                    this.selected = [];
+                    this.selectAllFiltered = false;
                 }
             },
 
             updateCheckAll() {
-                this.allChecked = this.selected.length > 0 && this.selected.length === this.filmsOnPage.length;
+                const selectedStrings = this.selected.map(id => String(id));
+                this.allChecked = this.filmsOnPage.length > 0 && this.filmsOnPage.every(id => selectedStrings.includes(String(id)));
                 if (!this.allChecked) {
                     this.selectAllFiltered = false;
                 }
@@ -912,7 +911,7 @@
                         const newTotal = newContainer.getAttribute('data-total-films');
                         if (newFilmsData) {
                             try {
-                                this.filmsOnPage = JSON.parse(newFilmsData);
+                                this.filmsOnPage = JSON.parse(newFilmsData).map(id => String(id));
                             } catch (e) {}
                         }
                         if (newTotal !== null) {

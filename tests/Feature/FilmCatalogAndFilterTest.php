@@ -219,4 +219,35 @@ class FilmCatalogAndFilterTest extends TestCase
         $expectedBookingUrl = route('booking.create', ['session' => $session->id, 'film' => $film->id]);
         $response->assertSee($expectedBookingUrl);
     }
+
+    public function test_film_detail_page_recommends_similar_genre_films(): void
+    {
+        $mainFilm = Film::query()->create([
+            'title' => 'Drama Utama Keluarga',
+            'slug' => 'drama-utama-keluarga',
+            'genre' => 'Drama',
+            'release_year' => 2026,
+            'duration_minutes' => 100,
+            'age_rating' => '13+',
+            'synopsis' => 'Sinopsis drama.',
+            'is_active' => true,
+        ]);
+
+        $similarDramaFilm = Film::query()->create([
+            'title' => 'Drama Sahabat Sejati',
+            'slug' => 'drama-sahabat-sejati',
+            'genre' => 'Drama, Romantis',
+            'release_year' => 2026,
+            'duration_minutes' => 105,
+            'age_rating' => '13+',
+            'synopsis' => 'Sinopsis drama serupa.',
+            'is_active' => true,
+        ]);
+
+        $response = $this->get(route('films.show', $mainFilm->slug));
+
+        $response->assertOk();
+        $response->assertSee('Rekomendasi Film Serupa');
+        $response->assertSee('Drama Sahabat Sejati');
+    }
 }

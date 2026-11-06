@@ -211,17 +211,46 @@ class PublicCinemaController extends Controller
             ->take(3)
             ->get();
 
-        $otherFilms = Film::query()
-            ->where('is_active', true)
-            ->where('id', '!=', $film->id)
-            ->inRandomOrder()
-            ->take(4)
-            ->get();
+        $currentGenres = array_filter(array_map('trim', explode(',', (string) $film->genre)));
+        $matchedGenreLabel = implode(', ', $currentGenres);
+
+        // 1. Fetch active films that share at least one genre with the current film
+        $matchingFilms = collect();
+        if (! empty($currentGenres)) {
+            $matchingFilms = Film::query()
+                ->where('is_active', true)
+                ->where('id', '!=', $film->id)
+                ->where(function ($q) use ($currentGenres) {
+                    foreach ($currentGenres as $genre) {
+                        $q->orWhere('genre', 'like', '%'.$genre.'%');
+                    }
+                })
+                ->inRandomOrder()
+                ->take(4)
+                ->get();
+        }
+
+        // 2. If fewer than 4 films match the genre, top up with other active films
+        if ($matchingFilms->count() < 4) {
+            $needed = 4 - $matchingFilms->count();
+            $excludedIds = array_merge([$film->id], $matchingFilms->pluck('id')->all());
+            $fallbackFilms = Film::query()
+                ->where('is_active', true)
+                ->whereNotIn('id', $excludedIds)
+                ->inRandomOrder()
+                ->take($needed)
+                ->get();
+
+            $otherFilms = $matchingFilms->concat($fallbackFilms);
+        } else {
+            $otherFilms = $matchingFilms;
+        }
 
         return view('public.films.show', [
             'film' => $film,
             'sessions' => $sessions,
             'otherFilms' => $otherFilms,
+            'matchedGenreLabel' => $matchedGenreLabel,
         ]);
     }
 
