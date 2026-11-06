@@ -127,110 +127,262 @@
                 </div>
 
                 <div class="pt-2 border-t border-border">
-                    <label class="block text-xs font-bold uppercase tracking-wider text-text">
-                        Genre Film <span class="text-danger">*</span> (Pilih satu atau lebih)
-                    </label>
                     @php
                         $currentGenres = old('genres', $film->genresList());
                         $allActiveGenres = \App\Models\Genre::cachedActive();
                         $genreNamesInDb = $allActiveGenres->pluck('name')->all();
-                        $extraFilmGenres = array_diff((array) $currentGenres, $genreNamesInDb);
-                    @endphp
-                    <div class="mt-2.5 flex flex-wrap gap-2">
-                        @foreach ($allActiveGenres as $canonGenre)
-                            <label class="choice-chip text-xs">
-                                <input
-                                    type="checkbox"
-                                    name="genres[]"
-                                    value="{{ $canonGenre->name }}"
-                                    class="rounded text-amber-500 focus:ring-amber-500 size-4"
-                                    @checked(in_array($canonGenre->name, (array) $currentGenres, true))
-                                >
-                                <span class="font-bold">{{ $canonGenre->name }}</span>
-                            </label>
-                        @endforeach
-                        @foreach ($extraFilmGenres as $extraG)
-                            <label class="choice-chip text-xs">
-                                <input
-                                    type="checkbox"
-                                    name="genres[]"
-                                    value="{{ $extraG }}"
-                                    class="rounded text-amber-500 focus:ring-amber-500 size-4"
-                                    checked
-                                >
-                                <span class="font-bold">{{ $extraG }}</span>
-                            </label>
-                        @endforeach
-                    </div>
+                        $fallbackCanon = \App\Models\Genre::defaultFallbackGenres();
 
-                    {{-- Chip Input: Tambah Genre Baru --}}
+                        // 18 Standard Cinema Genres
+                        $mainGenreNames = array_values(array_intersect($fallbackCanon, $genreNamesInDb));
+                        if (empty($mainGenreNames)) {
+                            $mainGenreNames = $fallbackCanon;
+                        }
+
+                        // Custom / Niche Subgenres in database
+                        $customGenreNames = array_values(array_diff($genreNamesInDb, $mainGenreNames));
+
+                        // Any extra genres on existing film
+                        $extraFilmGenres = array_values(array_diff((array) $currentGenres, $genreNamesInDb));
+                        foreach ($extraFilmGenres as $extraG) {
+                            if (! in_array($extraG, $customGenreNames, true)) {
+                                $customGenreNames[] = $extraG;
+                            }
+                        }
+                    @endphp
+
+                    {{-- Interactive Admin-Friendly Genre Selector --}}
                     <div
+                        class="space-y-3"
                         x-data="{
-                            chips: [],
-                            inputVal: '',
-                            suggestions: @js(\App\Models\Genre::allActiveNames()),
-                            filteredSuggestions() {
-                                if (!this.inputVal.trim()) return [];
-                                const q = this.inputVal.toLowerCase().trim();
-                                return this.suggestions.filter(s => s.toLowerCase().includes(q) && !this.chips.map(c => c.toLowerCase()).includes(s.toLowerCase()));
+                            search: '',
+                            selected: @js(array_values(array_unique((array) $currentGenres))),
+                            mainGenres: @js($mainGenreNames),
+                            customGenres: @js($customGenreNames),
+                            newChips: [],
+                            showCustom: false,
+
+                            get hasSearch() {
+                                return this.search.trim().length > 0;
                             },
-                            addChip(val) {
-                                const clean = (val || this.inputVal).trim();
-                                if (!clean) return;
-                                const parts = clean.split(/[,;\n]+/).map(p => p.trim()).filter(Boolean);
+
+                            get filteredMainGenres() {
+                                if (!this.hasSearch) return this.mainGenres;
+                                const q = this.search.toLowerCase().trim();
+                                return this.mainGenres.filter(g => g.toLowerCase().includes(q));
+                            },
+
+                            get filteredCustomGenres() {
+                                if (!this.hasSearch) return this.customGenres;
+                                const q = this.search.toLowerCase().trim();
+                                return this.customGenres.filter(g => g.toLowerCase().includes(q));
+                            },
+
+                            get exactMatchExists() {
+                                const q = this.search.toLowerCase().trim();
+                                if (!q) return true;
+                                const all = [...this.mainGenres, ...this.customGenres, ...this.selected];
+                                return all.some(g => g.toLowerCase() === q);
+                            },
+
+                            isSelected(genre) {
+                                return this.selected.includes(genre);
+                            },
+
+                            toggle(genre) {
+                                const idx = this.selected.indexOf(genre);
+                                if (idx !== -1) {
+                                    this.selected.splice(idx, 1);
+                                } else {
+                                    this.selected.push(genre);
+                                }
+                            },
+
+                            remove(genre) {
+                                const idx = this.selected.indexOf(genre);
+                                if (idx !== -1) this.selected.splice(idx, 1);
+                                const nIdx = this.newChips.indexOf(genre);
+                                if (nIdx !== -1) this.newChips.splice(nIdx, 1);
+                            },
+
+                            clearAll() {
+                                this.selected = [];
+                                this.newChips = [];
+                            },
+
+                            addNewFromSearch() {
+                                const raw = this.search.trim();
+                                if (!raw) return;
+                                const parts = raw.split(/[,;\n]+/).map(p => p.trim()).filter(Boolean);
                                 for (let p of parts) {
-                                    if (!this.chips.map(c => c.toLowerCase()).includes(p.toLowerCase())) {
-                                        this.chips.push(p);
+                                    const all = [...this.mainGenres, ...this.customGenres];
+                                    const found = all.find(g => g.toLowerCase() === p.toLowerCase());
+                                    const target = found || p;
+                                    if (!this.selected.includes(target)) {
+                                        this.selected.push(target);
+                                    }
+                                    if (!found && !this.newChips.includes(target)) {
+                                        this.newChips.push(target);
                                     }
                                 }
-                                this.inputVal = '';
-                            },
-                            removeChip(idx) {
-                                this.chips.splice(idx, 1);
+                                this.search = '';
                             }
                         }"
-                        class="mt-3.5 space-y-2 rounded-xl border border-border bg-surface-2/40 p-3"
                     >
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                            <label class="text-xs font-bold text-text">Tambah Genre Baru</label>
-                            <span class="text-[11px] text-text-muted">Ketik genre baru lalu tekan Enter atau koma (dibuat otomatis di database saat film disimpan).</span>
+                        {{-- Header Row: Label & Selected Count --}}
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-text">
+                                Genre Film <span class="text-danger">*</span>
+                                <span class="text-text-muted font-normal text-[11px] ml-1">
+                                    (<span x-text="selected.length"></span> dipilih)
+                                </span>
+                            </label>
+                            <button
+                                type="button"
+                                x-show="selected.length > 0"
+                                @click="clearAll()"
+                                class="text-xs text-danger hover:underline font-semibold"
+                            >
+                                Kosongkan Semua
+                            </button>
                         </div>
 
-                        <div class="flex flex-wrap items-center gap-1.5">
-                            <template x-for="(chip, index) in chips" :key="index">
-                                <span class="inline-flex items-center gap-1.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 px-2.5 py-1 text-xs font-bold">
-                                    <span x-text="chip"></span>
-                                    <button type="button" @click="removeChip(index)" class="text-text-muted hover:text-danger leading-none" aria-label="Hapus chip">&times;</button>
-                                    <input type="hidden" name="new_genres[]" :value="chip">
-                                </span>
-                            </template>
-                            <div class="relative flex-1 min-w-[200px]">
-                                <input
-                                    type="text"
-                                    x-model="inputVal"
-                                    @keydown.enter.prevent="addChip()"
-                                    @keydown.comma.prevent="addChip()"
-                                    @keydown.backspace="if(!inputVal && chips.length) removeChip(chips.length - 1)"
-                                    placeholder="Ketik genre baru, tekan Enter..."
-                                    class="min-h-[38px] w-full rounded-lg border border-border-input bg-surface px-3 py-1 text-xs text-text placeholder:text-text-muted focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
-                                >
-                                <div
-                                    x-show="filteredSuggestions().length > 0"
-                                    x-cloak
-                                    @click.away="inputVal = ''"
-                                    class="absolute left-0 top-full z-20 mt-1 max-h-36 w-full overflow-y-auto rounded-lg border border-border bg-surface p-1 shadow-lg text-xs"
-                                >
-                                    <template x-for="sug in filteredSuggestions()" :key="sug">
+                        {{-- Hidden inputs for standard form submission --}}
+                        <template x-for="genre in selected" :key="'input_' + genre">
+                            <input type="hidden" name="genres[]" :value="genre">
+                        </template>
+                        <template x-for="newG in newChips" :key="'new_' + newG">
+                            <input type="hidden" name="new_genres[]" :value="newG">
+                        </template>
+
+                        {{-- Pinned Selected Genres Badges (At Top) --}}
+                        <div class="rounded-xl border border-border bg-surface-2/30 p-2.5">
+                            <div class="flex flex-wrap items-center gap-1.5" x-show="selected.length > 0">
+                                <template x-for="genre in selected" :key="'badge_' + genre">
+                                    <span class="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold px-2.5 py-1 text-xs shadow-xs transition-transform hover:scale-105">
+                                        <span x-text="genre"></span>
                                         <button
                                             type="button"
-                                            @click="addChip(sug)"
-                                            class="w-full text-left rounded px-2 py-1 text-text hover:bg-amber-500 hover:text-slate-950 font-medium transition"
-                                            x-text="sug"
-                                        ></button>
-                                    </template>
-                                </div>
+                                            @click="remove(genre)"
+                                            class="text-slate-950/70 hover:text-slate-950 text-sm leading-none ml-0.5"
+                                            title="Hapus genre ini"
+                                            aria-label="Hapus genre"
+                                        >&times;</button>
+                                    </span>
+                                </template>
+                            </div>
+                            <p x-show="selected.length === 0" class="text-xs text-text-muted italic py-0.5">
+                                Belum ada genre dipilih. Klik tombol genre utama di bawah atau ketik di kolom pencarian.
+                            </p>
+                        </div>
+
+                        {{-- Quick Search & Add Bar --}}
+                        <div class="space-y-1.5">
+                            <div class="relative">
+                                <svg class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-text-muted pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <input
+                                    type="text"
+                                    x-model="search"
+                                    @keydown.enter.prevent="addNewFromSearch()"
+                                    placeholder="Cari genre cepat (misal: Horor, Komedi), atau ketik genre baru lalu tekan Enter..."
+                                    class="min-h-[40px] w-full rounded-xl border border-border bg-surface pl-9 pr-8 text-xs text-text placeholder:text-text-muted focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 transition"
+                                >
+                                <button
+                                    type="button"
+                                    x-show="search"
+                                    @click="search = ''"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text text-sm font-bold p-0.5"
+                                    title="Bersihkan pencarian"
+                                >&times;</button>
+                            </div>
+
+                            {{-- Prompt to create new genre from search --}}
+                            <div x-show="hasSearch && !exactMatchExists" class="pt-0.5">
+                                <button
+                                    type="button"
+                                    @click="addNewFromSearch()"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold text-xs hover:bg-amber-500/25 transition"
+                                >
+                                    <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    <span>Tambahkan &ldquo;<span x-text="search.trim()"></span>&rdquo; sebagai genre baru (Tekan Enter)</span>
+                                </button>
                             </div>
                         </div>
+
+                        {{-- Section 1: 18 Genre Utama Bioskop --}}
+                        <div class="space-y-1.5">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                                Genre Utama Bioskop
+                            </p>
+                            <div class="flex flex-wrap gap-1.5">
+                                <template x-for="genre in filteredMainGenres" :key="'main_' + genre">
+                                    <button
+                                        type="button"
+                                        @click="toggle(genre)"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all select-none"
+                                        :class="isSelected(genre)
+                                            ? 'bg-amber-500 text-slate-950 font-bold border-amber-500 shadow-xs'
+                                            : 'bg-surface hover:bg-surface-2 border-border text-text hover:border-amber-500/50'"
+                                        x-text="genre"
+                                    ></button>
+                                </template>
+                            </div>
+                            <p x-show="filteredMainGenres.length === 0 && hasSearch" class="text-xs text-text-muted italic py-1">
+                                Tidak ada genre utama yang cocok dengan &ldquo;<span x-text="search"></span>&rdquo;.
+                            </p>
+                        </div>
+
+                        {{-- Section 2: Subgenre / Tag Kustom (Collapsible) --}}
+                        <template x-if="customGenres.length > 0">
+                            <div class="space-y-1.5 pt-1">
+                                <button
+                                    type="button"
+                                    @click="showCustom = !showCustom"
+                                    class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:text-amber-500 transition"
+                                >
+                                    <svg
+                                        class="size-3.5 transition-transform duration-200"
+                                        :class="showCustom || hasSearch ? 'rotate-90' : ''"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                        stroke-width="2.5"
+                                    >
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                    <span x-text="(showCustom || hasSearch ? 'Sembunyikan' : 'Tampilkan') + ' Subgenre & Tag Kustom (' + customGenres.length + ')'"></span>
+                                </button>
+
+                                <div
+                                    x-show="showCustom || hasSearch"
+                                    x-transition:enter="transition ease-out duration-150"
+                                    x-transition:enter-start="opacity-0 -translate-y-1"
+                                    x-transition:enter-end="opacity-100 translate-y-0"
+                                    class="rounded-xl border border-border bg-surface-2/40 p-2.5 max-h-48 overflow-y-auto [scrollbar-width:thin] space-y-1"
+                                >
+                                    <div class="flex flex-wrap gap-1.5">
+                                        <template x-for="genre in filteredCustomGenres" :key="'custom_' + genre">
+                                            <button
+                                                type="button"
+                                                @click="toggle(genre)"
+                                                class="px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all select-none"
+                                                :class="isSelected(genre)
+                                                    ? 'bg-amber-500 text-slate-950 font-bold border-amber-500 shadow-xs'
+                                                    : 'bg-surface hover:bg-surface-2 border-border/80 text-text hover:border-amber-500/40'"
+                                                x-text="genre"
+                                            ></button>
+                                        </template>
+                                    </div>
+                                    <p x-show="filteredCustomGenres.length === 0 && hasSearch" class="text-xs text-text-muted italic py-1">
+                                        Tidak ada subgenre kustom yang cocok.
+                                    </p>
+                                </div>
+                            </div>
+                        </template>
                     </div>
 
                     @error('genre')

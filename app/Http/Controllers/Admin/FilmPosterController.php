@@ -185,6 +185,8 @@ class FilmPosterController extends Controller
                 'status' => 'matched',
                 'match_method' => $matchMethod,
                 'filename' => $originalFilename,
+                'stored_path' => $storedPath,
+                'poster_filename' => basename($storedPath),
                 'film_id' => $matchedFilm->id,
                 'film_title' => $matchedFilm->title,
                 'poster_url' => Storage::disk('public')->url($storedPath),
@@ -201,6 +203,8 @@ class FilmPosterController extends Controller
             'success' => true,
             'status' => 'unmatched',
             'filename' => $originalFilename,
+            'unmatched_filename' => basename($destUnmatched),
+            'stored_path' => $destUnmatched,
             'film_id' => null,
             'film_title' => null,
             'poster_url' => Storage::disk('public')->url($destUnmatched),
@@ -686,6 +690,17 @@ class FilmPosterController extends Controller
 
         if (Storage::disk('public')->exists($path)) {
             Storage::disk('public')->delete($path);
+        } else {
+            // Also check by slug prefix in unmatched dir in case original name was passed
+            $slug = Str::slug(pathinfo($cleanName, PATHINFO_FILENAME));
+            $files = Storage::disk('public')->files(self::UNMATCHED_DIR);
+            foreach ($files as $f) {
+                $base = basename($f);
+                if ($base === $cleanName || str_starts_with($base, $slug)) {
+                    Storage::disk('public')->delete($f);
+                    break;
+                }
+            }
         }
 
         if ($request->expectsJson()) {
@@ -698,5 +713,38 @@ class FilmPosterController extends Controller
 
         return redirect()->route('admin.films.posters.index')
             ->with('status', 'Poster belum terpasang berhasil dihapus.');
+    }
+
+    /**
+     * Delete / unbind an uploaded poster that was matched automatically (if wrongly uploaded/matched).
+     */
+    public function removeMatched(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'film_id' => 'required|integer|exists:films,id',
+            'stored_path' => 'nullable|string',
+        ]);
+
+        $film = Film::find($validated['film_id']);
+        if (! $film) {
+            return response()->json(['success' => false, 'message' => 'Film tidak ditemukan.'], 404);
+        }
+
+        $pathToDelete = $validated['stored_path'] ?? $film->poster_path;
+        if (! empty($pathToDelete) && Storage::disk('public')->exists($pathToDelete) && ! str_starts_with($pathToDelete, 'samples/')) {
+            Storage::disk('public')->delete($pathToDelete);
+        }
+
+        $film->update([
+            'poster_path' => null,
+            'is_sample' => false,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'film_id' => $film->id,
+            'film_title' => $film->title,
+            'message' => "Pemasangan poster film \"{$film->title}\" dibatalkan dan berkas berhasil dihapus.",
+        ]);
     }
 }

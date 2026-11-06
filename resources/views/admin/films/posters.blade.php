@@ -304,14 +304,25 @@
 
                 {{-- Live Activity Stream / Daftar Hasil --}}
                 <div class="space-y-2 pt-2">
-                    <div class="flex items-center justify-between text-xs font-bold text-text">
-                        <span>Aktivitas Berkas Poster</span>
-                        <span class="text-[11px] text-text-muted font-normal" x-text="`${results.length} riwayat tercatat`"></span>
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-text">
+                        <div class="flex items-center gap-2">
+                            <span>Aktivitas Berkas Poster</span>
+                            <span class="text-[11px] text-text-muted font-normal" x-text="`(${results.length} riwayat tercatat)`"></span>
+                        </div>
+                        <template x-if="stats.unmatched > 0">
+                            <button
+                                type="button"
+                                @click="deleteAllUnmatchedInBatch()"
+                                class="text-[11px] text-danger hover:underline font-semibold"
+                            >
+                                Hapus Semua Belum Terpasang (<span x-text="stats.unmatched"></span>)
+                            </button>
+                        </template>
                     </div>
 
-                    <div class="max-h-64 overflow-y-auto divide-y divide-border rounded-xl border border-border bg-surface">
+                    <div class="max-h-72 overflow-y-auto divide-y divide-border rounded-xl border border-border bg-surface">
                         <template x-for="(item, idx) in results" :key="idx">
-                            <div class="p-3 flex items-center justify-between gap-3 text-xs">
+                            <div class="p-3 flex items-center justify-between gap-3 text-xs hover:bg-surface-2/40 transition">
                                 <div class="flex items-center gap-3 min-w-0">
                                     {{-- Status Icon --}}
                                     <template x-if="item.status === 'matched'">
@@ -358,8 +369,8 @@
                                     </div>
                                 </div>
 
-                                {{-- Status Badges --}}
-                                <div class="shrink-0 flex items-center gap-1.5">
+                                {{-- Status Badges & Action Buttons (Spectate & Hapus) --}}
+                                <div class="shrink-0 flex items-center gap-1.5 sm:gap-2">
                                     <template x-if="item.warning">
                                         <span class="inline-flex items-center rounded-md bg-warning/15 px-2 py-0.5 text-[10px] font-bold text-warning border border-warning/30" title="Resolusi rendah">
                                             &lt; 300px
@@ -380,6 +391,44 @@
                                             Gagal
                                         </span>
                                     </template>
+
+                                    {{-- Spectate Trigger (if poster_url exists) --}}
+                                    <template x-if="item.poster_url">
+                                        <button
+                                            type="button"
+                                            @click="openSpectateFromActivity(item)"
+                                            class="p-1.5 rounded-lg border border-border bg-surface hover:bg-surface-2 text-text-muted hover:text-amber-500 transition"
+                                            title="Lihat Pratinjau Poster"
+                                            aria-label="Lihat poster"
+                                        >
+                                            <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </button>
+                                    </template>
+
+                                    {{-- Hapus Poster Button --}}
+                                    <button
+                                        type="button"
+                                        @click="deleteActivityItem(item, idx)"
+                                        :disabled="item._isDeleting"
+                                        class="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-semibold text-[11px] transition disabled:opacity-50"
+                                        title="Hapus poster yang salah terupload ini"
+                                    >
+                                        <template x-if="item._isDeleting">
+                                            <svg class="size-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </template>
+                                        <template x-if="!item._isDeleting">
+                                            <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </template>
+                                        <span>Hapus</span>
+                                    </button>
                                 </div>
                             </div>
                         </template>
@@ -423,6 +472,8 @@
                     totalInitial: {{ count($unmatchedPosters) }}
                 })"
                 @keydown.window="if (spectateModalOpen) onSpectateKeyDown($event)"
+                @open-spectate-modal.window="openSpectateDirect($event.detail)"
+                @poster-card-deleted.window="removeCardFromDisplay($event.detail)"
             >
                 {{-- Header & Batch Actions --}}
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -1150,6 +1201,97 @@
 
                 this.mode = 'done';
                 this.statusMessage = 'Selesai! ' + this.stats.matched + ' cocok otomatis, ' + this.stats.unmatched + ' belum terpasang, ' + this.stats.failed + ' gagal.';
+            },
+
+            async deleteActivityItem(item, idx) {
+                item._isDeleting = true;
+                try {
+                    if (item.status === 'matched') {
+                        // Undo matched poster on the film
+                        const res = await fetch('{{ route('admin.films.posters.remove_matched') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({
+                                film_id: item.film_id,
+                                stored_path: item.stored_path
+                            })
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.results.splice(idx, 1);
+                            this.stats.matched = Math.max(0, this.stats.matched - 1);
+                            this.totalCount = Math.max(0, this.totalCount - 1);
+                            if (typeof window.showToast === 'function') {
+                                window.showToast({ type: 'info', message: data.message || `Poster film "${item.film_title}" berhasil dihapus.` });
+                            }
+                        } else {
+                            throw new Error(data.message || 'Gagal menghapus poster.');
+                        }
+                    } else if (item.status === 'unmatched') {
+                        // Delete unmatched temporary file
+                        const targetFile = item.unmatched_filename || item.filename;
+                        const url = '{{ route('admin.films.posters.destroy', '__FILE__') }}'.replace('__FILE__', encodeURIComponent(targetFile));
+                        const res = await fetch(url, {
+                            method: 'DELETE',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.results.splice(idx, 1);
+                            this.stats.unmatched = Math.max(0, this.stats.unmatched - 1);
+                            this.totalCount = Math.max(0, this.totalCount - 1);
+                            window.dispatchEvent(new CustomEvent('poster-card-deleted', { detail: targetFile }));
+                            if (typeof window.showToast === 'function') {
+                                window.showToast({ type: 'info', message: `Berkas "${item.filename}" berhasil dihapus dari antrean.` });
+                            }
+                        } else {
+                            throw new Error(data.message || 'Gagal menghapus berkas.');
+                        }
+                    } else {
+                        // Failed item
+                        this.results.splice(idx, 1);
+                        this.stats.failed = Math.max(0, this.stats.failed - 1);
+                        this.totalCount = Math.max(0, this.totalCount - 1);
+                    }
+                } catch (err) {
+                    if (typeof window.showToast === 'function') {
+                        window.showToast({ type: 'error', message: err.message });
+                    }
+                } finally {
+                    item._isDeleting = false;
+                }
+            },
+
+            async deleteAllUnmatchedInBatch() {
+                const unmatched = this.results.filter(i => i.status === 'unmatched');
+                if (unmatched.length === 0) return;
+                for (let item of [...unmatched]) {
+                    const idx = this.results.indexOf(item);
+                    if (idx !== -1) {
+                        await this.deleteActivityItem(item, idx);
+                    }
+                }
+            },
+
+            openSpectateFromActivity(item) {
+                window.dispatchEvent(new CustomEvent('open-spectate-modal', {
+                    detail: {
+                        url: item.poster_url,
+                        filename: item.filename,
+                        width: '',
+                        height: '',
+                        size: ''
+                    }
+                }));
             }
         };
     }
@@ -1173,6 +1315,13 @@
 
             get activePosterList() {
                 return this.posterList.filter(p => !this.removedPosters[p.filename]);
+            },
+
+            openSpectateDirect(data) {
+                this.spectateData = data || { url: '', filename: '', width: '', height: '', size: '' };
+                this.spectateIndex = -1;
+                this.spectateModalOpen = true;
+                document.body.style.overflow = 'hidden';
             },
 
             openSpectate(filename) {
