@@ -23,6 +23,7 @@ class FilmPosterController extends Controller
     public function index(): View
     {
         $filmsWithoutPoster = Film::query()
+            ->select(['id', 'title', 'slug', 'poster_path'])
             ->where(function ($q) {
                 $q->whereNull('poster_path')->orWhere('poster_path', '');
             })
@@ -37,7 +38,7 @@ class FilmPosterController extends Controller
             $baseName = basename($filePath);
             $fullPath = Storage::disk('public')->path($filePath);
             $size = file_exists($fullPath) ? filesize($fullPath) : 0;
-            $imageInfo = file_exists($fullPath) ? @getimagesize($fullPath) : false;
+            $imageInfo = ($size > 0 && $size < 15 * 1024 * 1024) ? @getimagesize($fullPath) : false;
 
             $isSmall = $imageInfo && ($imageInfo[0] < 300);
 
@@ -54,9 +55,11 @@ class FilmPosterController extends Controller
         }
 
         // Options for searchable film picker (<x-ui.select>)
-        // Include all films so admin can match or replace any film's poster,
-        // prioritizing films without poster.
-        $allFilms = Film::query()->orderBy('title')->get();
+        // Include minimal columns to save memory on 2GB RAM device
+        $allFilms = Film::query()
+            ->select(['id', 'title', 'release_year', 'release_date', 'genre', 'poster_path'])
+            ->orderBy('title')
+            ->get();
         $filmOptions = [];
         foreach ($allFilms as $film) {
             $year = $film->release_year ?: ($film->release_date ? $film->release_date->format('Y') : '');
@@ -623,17 +626,36 @@ class FilmPosterController extends Controller
             $permanentPath = 'posters/'.Str::uuid().'.'.pathinfo($filename, PATHINFO_EXTENSION);
             Storage::disk('public')->move($sourcePath, $permanentPath);
 
+            // Clean up old poster from disk to save storage on 8GB STB
+            if (! empty($previousPosterPath) && Storage::disk('public')->exists($previousPosterPath) && ! str_starts_with($previousPosterPath, 'samples/')) {
+                Storage::disk('public')->delete($previousPosterPath);
+            }
+
             $film->update(['poster_path' => $permanentPath, 'is_sample' => false]);
             $assignedCount++;
 
             $assignedItems[] = [
-                'filename' => $filename,
-                'poster_filename' => $filename,
+                'filename' => $item['poster_filename'],
+                'poster_filename' => $item['poster_filename'],
                 'film_id' => $film->id,
                 'film_title' => $film->title,
                 'permanent_path' => $permanentPath,
                 'previous_poster_path' => $previousPosterPath,
             ];
+        }
+
+        if ($assignedCount === 0 && $failedCount > 0) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'assigned_count' => 0,
+                    'failed_count' => $failedCount,
+                    'items' => [],
+                    'message' => "Gagal memasangkan {$failedCount} poster: berkas tidak ditemukan di penyimpanan antrean.",
+                ], 422);
+            }
+
+            return back()->with('error', "Gagal memasangkan {$failedCount} poster: berkas tidak ditemukan di antrean.");
         }
 
         $msg = "{$assignedCount} poster berhasil dipasangkan ke film.";

@@ -465,7 +465,7 @@
             <div class="min-w-0 flex-1">
                 <main class="mx-auto min-w-0 max-w-screen-xl px-4 py-6 sm:px-6 lg:px-8 {{ ! $isFormPage ? 'pb-24 lg:pb-8' : '' }}">
                     @php
-                        $pendingMigrations = \Illuminate\Support\Facades\Cache::remember('admin_pending_migrations', 300, function () {
+                        $pendingMigrations = \Illuminate\Support\Facades\Cache::remember('admin_pending_migrations', 86400, function () {
                             try {
                                 $migrator = app('migrator');
                                 $files = $migrator->getMigrationFiles($migrator->paths());

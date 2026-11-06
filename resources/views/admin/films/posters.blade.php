@@ -522,6 +522,7 @@
                 <div
                     x-show="previewBatchModal"
                     x-cloak
+                    @keydown.escape.window="previewBatchModal = false"
                     class="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6"
                     role="dialog"
                     aria-modal="true"
@@ -742,6 +743,7 @@
                                 size: {{ Js::from(round($poster['size'] / 1024, 1).' KB') }}
                             })"
                             x-show="!isDeleted && !removedPosters[filename]"
+                            @poster-card-deleted.window="if ($event.detail === filename) { isDeleted = true; const el = document.getElementById('card-' + posterKey); if (el) { el.style.transition = 'all 0.28s cubic-bezier(0.4, 0, 0.2, 1)'; el.style.opacity = '0'; el.style.transform = 'scale(0.92)'; setTimeout(() => { try { el.remove(); } catch(e){} }, 280); } }"
                             x-transition:leave="transition ease-in duration-200"
                             x-transition:leave-start="opacity-100 scale-100"
                             x-transition:leave-end="opacity-0 scale-95"
@@ -1719,14 +1721,24 @@
                         body: JSON.stringify({ assignments })
                     });
 
-                    const data = await res.json();
-                    if (res.ok && data.success) {
+                    let data = null;
+                    try {
+                        data = await res.json();
+                    } catch (parseErr) {
+                        throw new Error('Respon server tidak valid atau terjadi timeout (HTTP ' + res.status + ').');
+                    }
+
+                    if (res.ok && data.success && data.assigned_count > 0) {
                         const successfulItems = data.items || [];
+                        const successfulFnames = [];
                         for (let i = 0; i < successfulItems.length; i++) {
                             const fname = successfulItems[i].filename || successfulItems[i].poster_filename;
+                            successfulFnames.push(fname);
                             this.removeCardFromDisplay(fname);
+                            window.dispatchEvent(new CustomEvent('poster-card-deleted', { detail: fname }));
                         }
 
+                        this.batchPreviewItems = this.batchPreviewItems.filter(i => !successfulFnames.includes(i.filename));
                         this.previewBatchModal = false;
 
                         const reverts = data.items || [];
@@ -1738,8 +1750,10 @@
                                 onUndo: () => this.undoBatchAssignment(reverts)
                             });
                         }
+                    } else if (res.ok && data.success && data.assigned_count === 0) {
+                        this.notify('warning', data.message || 'Tidak ada poster yang berhasil dipasangkan.');
                     } else {
-                        this.notify('error', data.message || 'Gagal memasangkan kumpulan poster.');
+                        this.notify('error', data?.message || ('Gagal memasangkan kumpulan poster (HTTP ' + res.status + ').'));
                     }
                 } catch (err) {
                     this.notify('error', 'Gagal menghubungi server: ' + err.message);

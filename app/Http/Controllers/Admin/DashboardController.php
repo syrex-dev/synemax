@@ -13,6 +13,7 @@ use App\Services\TelegramNotificationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -218,12 +219,19 @@ class DashboardController extends Controller
 
     public function pollStatus(): JsonResponse
     {
-        $waitingBookings = Booking::query()->where('status', 'menunggu_konfirmasi')->count();
-        $latestWaitingId = Booking::query()->where('status', 'menunggu_konfirmasi')->latest('id')->value('id');
+        // Cache poll status for 15s with single aggregate query to reduce STB CPU & DB load
+        $data = Cache::remember('admin_poll_status', 15, function () {
+            $row = Booking::query()
+                ->where('status', 'menunggu_konfirmasi')
+                ->selectRaw('COUNT(*) as total, MAX(id) as max_id')
+                ->first();
 
-        return response()->json([
-            'waiting_count' => $waitingBookings,
-            'latest_id' => $latestWaitingId,
-        ]);
+            return [
+                'waiting_count' => (int) ($row?->total ?? 0),
+                'latest_id' => $row?->max_id ? (int) $row->max_id : null,
+            ];
+        });
+
+        return response()->json($data);
     }
 }
