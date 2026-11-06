@@ -414,11 +414,15 @@
                     posterList: {{ Js::from(array_map(fn($p) => [
                         'filename' => $p['filename'],
                         'url' => $p['url'],
+                        'width' => $p['width'],
+                        'height' => $p['height'],
+                        'size' => round($p['size'] / 1024, 1).' KB',
                         'selectName' => 'film_id_'.md5($p['filename'])
                     ], $unmatchedPosters)) }},
                     filmTitles: {{ Js::from($filmOptions) }},
                     totalInitial: {{ count($unmatchedPosters) }}
                 })"
+                @keydown.window="if (spectateModalOpen) onSpectateKeyDown($event)"
             >
                 {{-- Header & Batch Actions --}}
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -522,6 +526,126 @@
                     </div>
                 </div>
 
+                {{-- ==================== MODAL SPECTATE / LIHAT POSTER ==================== --}}
+                <div
+                    x-show="spectateModalOpen"
+                    x-cloak
+                    class="fixed inset-0 z-[10000] flex items-center justify-center p-3 sm:p-6"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Pratinjau Poster Penuh"
+                >
+                    {{-- Backdrop --}}
+                    <div
+                        x-show="spectateModalOpen"
+                        x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0"
+                        x-transition:enter-end="opacity-100"
+                        x-transition:leave="transition ease-in duration-150"
+                        x-transition:leave-start="opacity-100"
+                        x-transition:leave-end="opacity-0"
+                        class="fixed inset-0 bg-black/85 backdrop-blur-sm cursor-zoom-out"
+                        @click="closeSpectate()"
+                        aria-hidden="true"
+                    ></div>
+
+                    {{-- Modal Box --}}
+                    <div
+                        x-show="spectateModalOpen"
+                        x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        x-transition:leave="transition ease-in duration-150"
+                        x-transition:leave-start="opacity-100 scale-100"
+                        x-transition:leave-end="opacity-0 scale-95"
+                        class="relative z-10 w-full max-w-xl max-h-[92dvh] flex flex-col rounded-3xl border border-slate-300 dark:border-white/15 bg-surface p-4 sm:p-5 shadow-2xl space-y-3"
+                        @click.stop
+                    >
+                        {{-- Modal Header --}}
+                        <div class="flex items-center justify-between gap-3 pb-2 border-b border-border shrink-0">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                        <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        Spectate Poster
+                                    </span>
+                                    <span class="text-[11px] text-text-muted" x-show="activePosterList.length > 1" x-text="`(${spectateIndex + 1} dari ${activePosterList.length})`"></span>
+                                    <span class="text-[11px] text-text-muted" x-text="spectateData.width ? `${spectateData.width} × ${spectateData.height} px · ${spectateData.size}` : ''"></span>
+                                </div>
+                                <h3 class="text-xs sm:text-sm font-bold text-text truncate mt-1" x-text="spectateData.filename" :title="spectateData.filename"></h3>
+                            </div>
+
+                            <button
+                                type="button"
+                                @click="closeSpectate()"
+                                class="p-2 rounded-xl hover:bg-surface-2 text-text-muted hover:text-text transition shrink-0"
+                                aria-label="Tutup spectate poster"
+                                title="Tutup (ESC)"
+                            >
+                                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {{-- Modal Image Center Area with Prev / Next Navigation --}}
+                        <div class="relative flex-1 min-h-0 flex items-center justify-center rounded-2xl bg-black/60 p-2 border border-border/80 overflow-hidden">
+                            {{-- Previous Button --}}
+                            <button
+                                type="button"
+                                x-show="activePosterList.length > 1"
+                                @click="spectatePrev()"
+                                class="absolute left-2 top-1/2 -translate-y-1/2 size-9 rounded-full bg-black/70 hover:bg-black/90 text-white border border-white/20 flex items-center justify-center transition shadow-lg z-10"
+                                title="Poster sebelumnya (Panah Kiri ←)"
+                                aria-label="Poster sebelumnya"
+                            >
+                                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </button>
+
+                            {{-- Poster Image --}}
+                            <img
+                                :src="spectateData.url"
+                                :alt="spectateData.filename"
+                                class="max-h-[62dvh] w-auto max-w-full rounded-xl object-contain shadow-2xl transition-all select-none"
+                            >
+
+                            {{-- Next Button --}}
+                            <button
+                                type="button"
+                                x-show="activePosterList.length > 1"
+                                @click="spectateNext()"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 size-9 rounded-full bg-black/70 hover:bg-black/90 text-white border border-white/20 flex items-center justify-center transition shadow-lg z-10"
+                                title="Poster berikutnya (Panah Kanan →)"
+                                aria-label="Poster berikutnya"
+                            >
+                                <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {{-- Modal Footer --}}
+                        <div class="flex items-center justify-between pt-1 border-t border-border shrink-0 text-xs">
+                            <span class="text-[11px] text-text-muted hidden sm:inline">
+                                Navigasi: <kbd class="px-1.5 py-0.5 rounded bg-surface-2 border border-border font-mono text-[10px]">←</kbd> <kbd class="px-1.5 py-0.5 rounded bg-surface-2 border border-border font-mono text-[10px]">→</kbd> atau <kbd class="px-1.5 py-0.5 rounded bg-surface-2 border border-border font-mono text-[10px]">ESC</kbd>
+                            </span>
+                            <span class="text-[11px] text-text-muted sm:hidden">Klik di luar untuk menutup</span>
+                            <button
+                                type="button"
+                                @click="closeSpectate()"
+                                class="px-4 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow-xs"
+                            >
+                                Tutup Pratinjau
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Toast / Banner --}}
                 <template x-if="banner">
                     <div
@@ -566,12 +690,27 @@
                             id="card-{{ $posterKey }}"
                         >
                             <div class="flex gap-3">
-                                <img
-                                    src="{{ $poster['url'] }}"
-                                    alt="{{ $poster['filename'] }}"
-                                    class="h-28 w-20 shrink-0 rounded-lg object-cover border border-border bg-surface shadow-xs"
-                                    loading="lazy"
+                                {{-- Thumbnail with hover spectate overlay --}}
+                                <div
+                                    class="group relative h-28 w-20 shrink-0 rounded-lg overflow-hidden border border-border bg-surface shadow-xs cursor-pointer select-none"
+                                    @click="openSpectate('{{ $poster['filename'] }}')"
+                                    title="Klik untuk spectate / lihat poster penuh"
                                 >
+                                    <img
+                                        src="{{ $poster['url'] }}"
+                                        alt="{{ $poster['filename'] }}"
+                                        class="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                                        loading="lazy"
+                                    >
+                                    <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white">
+                                        <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        <span class="text-[9px] font-bold uppercase tracking-wider">Spectate</span>
+                                    </div>
+                                </div>
+
                                 <div class="min-w-0 flex-1 space-y-1">
                                     <p class="text-xs font-bold text-text truncate" title="{{ $poster['filename'] }}">
                                         {{ $poster['filename'] }}
@@ -579,11 +718,25 @@
                                     <p class="text-[11px] text-text-muted">
                                         {{ $poster['width'] }} × {{ $poster['height'] }} px · {{ round($poster['size'] / 1024, 1) }} KB
                                     </p>
-                                    @if ($poster['is_small'])
-                                        <span class="inline-flex items-center rounded-md bg-warning/15 px-2 py-0.5 text-[10px] font-bold text-warning border border-warning/30" title="{{ $poster['warning'] }}">
-                                            Resolusi Rendah
-                                        </span>
-                                    @endif
+                                    <div class="flex flex-wrap items-center gap-2 pt-0.5">
+                                        <button
+                                            type="button"
+                                            @click="openSpectate('{{ $poster['filename'] }}')"
+                                            class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-500 hover:text-amber-400 dark:text-amber-400 dark:hover:text-amber-300 transition-colors"
+                                            title="Lihat poster dalam ukuran besar di popup"
+                                        >
+                                            <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                            <span>Lihat Poster</span>
+                                        </button>
+                                        @if ($poster['is_small'])
+                                            <span class="inline-flex items-center rounded-md bg-warning/15 px-1.5 py-0.5 text-[10px] font-bold text-warning border border-warning/30" title="{{ $poster['warning'] }}">
+                                                Resolusi Rendah
+                                            </span>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
 
@@ -1014,6 +1167,58 @@
             batchPreviewItems: [],
             banner: null,
             _bannerTimer: null,
+            spectateModalOpen: false,
+            spectateData: { url: '', filename: '', width: '', height: '', size: '' },
+            spectateIndex: -1,
+
+            get activePosterList() {
+                return this.posterList.filter(p => !this.removedPosters[p.filename]);
+            },
+
+            openSpectate(filename) {
+                const list = this.activePosterList;
+                const idx = list.findIndex(p => p.filename === filename);
+                if (idx !== -1) {
+                    this.spectateIndex = idx;
+                    this.spectateData = list[idx];
+                } else {
+                    const fallback = this.posterList.find(p => p.filename === filename);
+                    this.spectateData = fallback || { url: '', filename: filename, width: '', height: '', size: '' };
+                    this.spectateIndex = 0;
+                }
+                this.spectateModalOpen = true;
+                document.body.style.overflow = 'hidden';
+            },
+
+            closeSpectate() {
+                this.spectateModalOpen = false;
+                document.body.style.overflow = '';
+            },
+
+            spectatePrev() {
+                const list = this.activePosterList;
+                if (list.length <= 1) return;
+                this.spectateIndex = (this.spectateIndex - 1 + list.length) % list.length;
+                this.spectateData = list[this.spectateIndex];
+            },
+
+            spectateNext() {
+                const list = this.activePosterList;
+                if (list.length <= 1) return;
+                this.spectateIndex = (this.spectateIndex + 1) % list.length;
+                this.spectateData = list[this.spectateIndex];
+            },
+
+            onSpectateKeyDown(e) {
+                if (!this.spectateModalOpen) return;
+                if (e.key === 'Escape') {
+                    this.closeSpectate();
+                } else if (e.key === 'ArrowLeft') {
+                    this.spectatePrev();
+                } else if (e.key === 'ArrowRight') {
+                    this.spectateNext();
+                }
+            },
 
             get remainingCount() {
                 const removedCount = Object.keys(this.removedPosters).filter((k) => this.removedPosters[k]).length;

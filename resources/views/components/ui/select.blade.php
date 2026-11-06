@@ -99,6 +99,12 @@
             if (found) {
                 this.selectedLabel = found.label;
             }
+
+            this.$watch('search', () => {
+                if (this.open) {
+                    this.$nextTick(() => this.updatePosition());
+                }
+            });
         },
 
         setValue(val) {
@@ -159,23 +165,46 @@
             const btn = this.$refs.button;
             if (!btn) return;
             const rect = btn.getBoundingClientRect();
+
+            // Auto-close if the trigger button has scrolled completely out of viewport
+            if (rect.bottom < 0 || rect.top > window.innerHeight) {
+                this.close();
+                return;
+            }
+
             const spaceBelow = window.innerHeight - rect.bottom;
             const spaceAbove = rect.top;
-            const panelHeight = Math.min(320, (this.filteredOptions.length * 40) + ({{ $isSearchable ? '50' : '16' }}));
 
-            this.isFlipped = spaceBelow < 250 && spaceAbove > spaceBelow;
-            const top = this.isFlipped
-                ? Math.max(10, rect.top - panelHeight - 6)
-                : rect.bottom + 6;
+            // Flip upward if space below is constrained (< 220px) and there's more space above
+            this.isFlipped = spaceBelow < 220 && spaceAbove > spaceBelow;
 
-            const targetWidth = Math.max(rect.width, 220);
+            // Constrain width between trigger button width (min 280px) and viewport boundaries
+            const targetWidth = Math.min(Math.max(rect.width, 280), window.innerWidth - 20);
             const left = Math.max(10, Math.min(rect.left, window.innerWidth - targetWidth - 10));
 
-            this.desktopStyles = {
-                top: `${top}px`,
-                left: `${left}px`,
-                width: `${targetWidth}px`,
-            };
+            if (this.isFlipped) {
+                const availableHeight = Math.max(100, Math.min(320, spaceAbove - 20));
+                this.desktopStyles = {
+                    position: 'fixed',
+                    bottom: `${Math.round(window.innerHeight - rect.top + 6)}px`,
+                    top: 'auto',
+                    left: `${Math.round(left)}px`,
+                    width: `${Math.round(targetWidth)}px`,
+                    maxHeight: `${Math.round(availableHeight)}px`,
+                    zIndex: '9999',
+                };
+            } else {
+                const availableHeight = Math.max(100, Math.min(320, spaceBelow - 20));
+                this.desktopStyles = {
+                    position: 'fixed',
+                    top: `${Math.round(rect.bottom + 6)}px`,
+                    bottom: 'auto',
+                    left: `${Math.round(left)}px`,
+                    width: `${Math.round(targetWidth)}px`,
+                    maxHeight: `${Math.round(availableHeight)}px`,
+                    zIndex: '9999',
+                };
+            }
         },
 
         onKeyDown(e) {
@@ -269,7 +298,7 @@
         @if ($disabled) disabled @endif
         class="relative inline-flex min-h-[44px] w-full items-center justify-between rounded-xl border {{ $errorMessage ? 'border-danger' : 'border-slate-300 dark:border-white/20' }} bg-surface px-3 py-2 text-xs font-bold text-text hover:border-amber-500 transition-all shadow-xs focus-visible:outline-2 focus-visible:outline-amber-500 disabled:cursor-not-allowed disabled:opacity-60 disabled:bg-slate-100 dark:disabled:bg-white/5 {{ $buttonClass }}"
     >
-        <span class="truncate pr-7 text-left block" :class="selectedValue ? 'text-text' : 'text-text-muted'" x-text="selectedLabel || '{{ $placeholder }}'">
+        <span class="truncate pr-7 text-left block" :class="selectedValue ? 'text-text' : 'text-text-muted'" x-text="selectedLabel || '{{ $placeholder }}'" :title="selectedLabel || '{{ $placeholder }}'">
             {{ $selectedLabel }}
         </span>
 
@@ -384,7 +413,7 @@
                 x-transition:leave-start="opacity-100 scale-100"
                 x-transition:leave-end="opacity-0 scale-95"
                 :style="desktopStyles"
-                class="hidden sm:flex flex-col fixed z-[9999] rounded-2xl border border-slate-300 dark:border-white/15 bg-surface shadow-2xl p-1.5 max-h-[320px]"
+                class="hidden sm:flex flex-col fixed z-[9999] rounded-2xl border border-slate-300 dark:border-white/15 bg-surface shadow-2xl p-1.5 overflow-hidden"
             >
                 @if ($isSearchable)
                     <div class="p-1.5 pb-2 border-b border-border shrink-0">
@@ -392,6 +421,7 @@
                             type="text"
                             x-ref="searchInput"
                             x-model="search"
+                            @input="updatePosition()"
                             @keydown.arrow-down.prevent="focusedIndex = Math.min(focusedIndex + 1, filteredOptions.length - 1); scrollFocusedIntoView()"
                             @keydown.arrow-up.prevent="focusedIndex = Math.max(focusedIndex - 1, 0); scrollFocusedIntoView()"
                             @keydown.enter.prevent="if (focusedIndex >= 0 && focusedIndex < filteredOptions.length) select(filteredOptions[focusedIndex])"
@@ -418,10 +448,11 @@
                             :class="String(selectedValue) === String(opt.value)
                                 ? 'bg-[#FEF3C7] text-[#78350F] dark:bg-amber-500/20 dark:text-amber-300 font-bold border border-amber-300 dark:border-amber-500/30'
                                 : (focusedIndex === idx ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'text-text hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400')"
+                            :title="opt.label"
                         >
                             <div class="flex flex-col truncate pr-2">
-                                <span class="truncate" x-text="opt.label"></span>
-                                <span x-show="opt.description" class="text-[10px] text-text-muted truncate" x-text="opt.description"></span>
+                                <span class="truncate" x-text="opt.label" :title="opt.label"></span>
+                                <span x-show="opt.description" class="text-[10px] text-text-muted truncate" x-text="opt.description" :title="opt.description"></span>
                             </div>
                             <svg x-show="String(selectedValue) === String(opt.value)" class="size-4 text-amber-600 dark:text-amber-400 shrink-0 ml-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
