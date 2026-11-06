@@ -466,6 +466,7 @@
                         'width' => $p['width'],
                         'height' => $p['height'],
                         'size' => round($p['size'] / 1024, 1).' KB',
+                        'posterKey' => md5($p['filename']),
                         'selectName' => 'film_id_'.md5($p['filename'])
                     ], $unmatchedPosters)) }},
                     filmTitles: {{ Js::from($filmOptions) }},
@@ -732,19 +733,27 @@
                             $posterKey = md5($poster['filename']);
                         @endphp
                         <div
-                            x-show="!removedPosters['{{ $poster['filename'] }}']"
-                            data-poster-card="{{ $poster['filename'] }}"
+                            x-data="posterCardItem({
+                                filename: {{ Js::from($poster['filename']) }},
+                                posterKey: '{{ $posterKey }}',
+                                url: {{ Js::from($poster['url']) }},
+                                width: {{ (int) $poster['width'] }},
+                                height: {{ (int) $poster['height'] }},
+                                size: {{ Js::from(round($poster['size'] / 1024, 1).' KB') }}
+                            })"
+                            x-show="!isDeleted && !removedPosters[filename]"
                             x-transition:leave="transition ease-in duration-200"
                             x-transition:leave-start="opacity-100 scale-100"
                             x-transition:leave-end="opacity-0 scale-95"
                             class="rounded-xl border border-border bg-surface-2/40 p-4 space-y-3 flex flex-col justify-between transition-all"
                             id="card-{{ $posterKey }}"
+                            data-poster-card="{{ $poster['filename'] }}"
                         >
                             <div class="flex gap-3">
                                 {{-- Thumbnail with hover spectate overlay --}}
                                 <div
                                     class="group relative h-28 w-20 shrink-0 rounded-lg overflow-hidden border border-border bg-surface shadow-xs cursor-pointer select-none"
-                                    @click="openSpectate('{{ $poster['filename'] }}')"
+                                    @click="openSpectateDirect({ url: url, filename: filename, width: width, height: height, size: size })"
                                     title="Klik untuk spectate / lihat poster penuh"
                                 >
                                     <img
@@ -772,7 +781,7 @@
                                     <div class="flex flex-wrap items-center gap-2 pt-0.5">
                                         <button
                                             type="button"
-                                            @click="openSpectate('{{ $poster['filename'] }}')"
+                                            @click="openSpectateDirect({ url: url, filename: filename, width: width, height: height, size: size })"
                                             class="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-500 hover:text-amber-400 dark:text-amber-400 dark:hover:text-amber-300 transition-colors"
                                             title="Lihat poster dalam ukuran besar di popup"
                                         >
@@ -795,24 +804,28 @@
                                 <div>
                                     <label class="block text-xs font-semibold text-text mb-1">Pasangkan ke Film</label>
 
-                                    {{-- Original Custom SynemaX Dropdown Component with Search --}}
-                                    <x-ui.select
-                                        name="film_id_{{ $posterKey }}"
-                                        placeholder="Pilih film penerima..."
-                                        size="sm"
-                                        :options="$filmOptions"
-                                        @change="onFilmSelected('{{ $poster['filename'] }}', $event)"
-                                    />
+                                    {{-- Wrapper capturing select changes seamlessly --}}
+                                    <div @change="onSelectChange($event)" @synemax-select-changed="onSelectChange($event)">
+                                        <x-ui.select
+                                            name="film_id_{{ $posterKey }}"
+                                            placeholder="Pilih film penerima..."
+                                            size="sm"
+                                            :options="$filmOptions"
+                                        />
+                                    </div>
                                 </div>
 
                                 <div class="flex items-center justify-between gap-2 pt-1">
                                     <button
                                         type="button"
-                                        @click="assignSingle('{{ $poster['filename'] }}')"
-                                        :disabled="!selectedFilms['{{ $poster['filename'] }}'] || processingFiles['{{ $poster['filename'] }}']"
-                                        class="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-1 text-xs font-bold text-slate-950 hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        @click="assign()"
+                                        :disabled="!selectedFilmId || isProcessing"
+                                        class="inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-lg px-3.5 py-1 text-xs font-bold transition-all shadow-xs"
+                                        :class="selectedFilmId && !isProcessing
+                                            ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 cursor-pointer'
+                                            : 'bg-amber-500/40 text-slate-950/50 cursor-not-allowed opacity-60'"
                                     >
-                                        <template x-if="processingFiles['{{ $poster['filename'] }}']">
+                                        <template x-if="isProcessing">
                                             <svg class="size-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -823,12 +836,18 @@
 
                                     <button
                                         type="button"
-                                        @click="deleteSingle('{{ $poster['filename'] }}')"
-                                        :disabled="processingFiles['{{ $poster['filename'] }}']"
+                                        @click="deleteCard()"
+                                        :disabled="isProcessing"
                                         class="inline-flex min-h-[30px] items-center justify-center rounded-lg border border-danger/30 px-2.5 py-1 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors disabled:opacity-50"
                                         title="Hapus poster ini dari antrean"
                                     >
-                                        Hapus Poster
+                                        <template x-if="isProcessing">
+                                            <svg class="size-3 animate-spin mr-1" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </template>
+                                        <span>Hapus Poster</span>
                                     </button>
                                 </div>
                             </div>
@@ -1296,6 +1315,164 @@
         };
     }
 
+    function posterCardItem(config) {
+        return {
+            filename: config.filename,
+            posterKey: config.posterKey,
+            url: config.url,
+            width: config.width || 0,
+            height: config.height || 0,
+            size: config.size || '',
+            selectedFilmId: '',
+            isProcessing: false,
+            isDeleted: false,
+
+            onSelectChange(e) {
+                const val = (typeof e === 'object' && e !== null)
+                    ? (e.detail?.value !== undefined ? e.detail.value : (e.target?.value !== undefined ? e.target.value : e.detail))
+                    : e;
+                this.selectedFilmId = val ? String(val).trim() : '';
+                if (typeof this.setFilmSelected === 'function') {
+                    this.setFilmSelected(this.filename, this.selectedFilmId);
+                }
+            },
+
+            async assign() {
+                if (!this.selectedFilmId) {
+                    if (typeof window.showToast === 'function') {
+                        window.showToast({ type: 'warning', message: 'Pilih film penerima terlebih dahulu pada poster ini.' });
+                    }
+                    return;
+                }
+
+                this.isProcessing = true;
+                try {
+                    const res = await fetch('{{ route('admin.films.posters.assign') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({
+                            poster_filename: this.filename,
+                            film_id: parseInt(this.selectedFilmId, 10)
+                        })
+                    });
+
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        this.isDeleted = true;
+                        const el = document.getElementById('card-' + this.posterKey);
+                        if (el) {
+                            el.style.transition = 'all 0.28s cubic-bezier(0.4, 0, 0.2, 1)';
+                            el.style.opacity = '0';
+                            el.style.transform = 'scale(0.92)';
+                            setTimeout(() => { try { el.remove(); } catch (err) {} }, 280);
+                        }
+                        if (typeof this.removeCardFromDisplay === 'function') {
+                            this.removeCardFromDisplay(this.filename);
+                        }
+                        window.dispatchEvent(new CustomEvent('poster-card-deleted', { detail: this.filename }));
+                        if (typeof window.showToast === 'function') {
+                            window.showToast({
+                                type: 'success',
+                                message: data.message || `Poster berhasil dipasangkan ke film "${data.film_title}".`
+                            });
+                        }
+                    } else {
+                        if (typeof window.showToast === 'function') {
+                            window.showToast({
+                                type: 'error',
+                                message: data.message || 'Gagal memasangkan poster.'
+                            });
+                        }
+                    }
+                } catch (err) {
+                    if (typeof window.showToast === 'function') {
+                        window.showToast({
+                            type: 'error',
+                            message: 'Gagal menghubungi server: ' + err.message
+                        });
+                    }
+                } finally {
+                    this.isProcessing = false;
+                }
+            },
+
+            deleteCard() {
+                if (typeof window.openConfirmModal === 'function') {
+                    window.openConfirmModal({
+                        title: 'Hapus Poster Antrean',
+                        message: `Hapus berkas poster "${this.filename}" dari antrean poster belum terpasang?`,
+                        confirmText: 'Hapus Poster',
+                        confirmClass: 'bg-danger text-white hover:bg-danger/90',
+                        cancelText: 'Batal',
+                        onConfirm: () => {
+                            this.executeDelete();
+                        }
+                    });
+                } else {
+                    this.executeDelete();
+                }
+            },
+
+            async executeDelete() {
+                this.isProcessing = true;
+                try {
+                    const url = '{{ route('admin.films.posters.destroy', '__FILE__') }}'.replace('__FILE__', encodeURIComponent(this.filename));
+                    const res = await fetch(url, {
+                        method: 'DELETE',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        this.isDeleted = true;
+                        const el = document.getElementById('card-' + this.posterKey);
+                        if (el) {
+                            el.style.transition = 'all 0.28s cubic-bezier(0.4, 0, 0.2, 1)';
+                            el.style.opacity = '0';
+                            el.style.transform = 'scale(0.92)';
+                            setTimeout(() => { try { el.remove(); } catch (err) {} }, 280);
+                        }
+                        if (typeof this.removeCardFromDisplay === 'function') {
+                            this.removeCardFromDisplay(this.filename);
+                        }
+                        window.dispatchEvent(new CustomEvent('poster-card-deleted', { detail: this.filename }));
+                        if (typeof window.showToast === 'function') {
+                            window.showToast({
+                                type: 'info',
+                                message: 'Poster berhasil dihapus dari antrean.'
+                            });
+                        }
+                    } else {
+                        if (typeof window.showToast === 'function') {
+                            window.showToast({
+                                type: 'error',
+                                message: data.message || 'Gagal menghapus poster.'
+                            });
+                        }
+                    }
+                } catch (err) {
+                    if (typeof window.showToast === 'function') {
+                        window.showToast({
+                            type: 'error',
+                            message: 'Gagal menghapus berkas: ' + err.message
+                        });
+                    }
+                } finally {
+                    this.isProcessing = false;
+                }
+            }
+        };
+    }
+
     function unmatchedPostersComponent(config) {
         return {
             posterList: config.posterList || [],
@@ -1385,15 +1562,20 @@
                 return count;
             },
 
-            onFilmSelected(filename, val) {
-                const filmId = (typeof val === 'object' && val !== null) ? (val.target?.value || val.detail?.value || '') : val;
-                if (filmId) {
-                    this.selectedFilms = { ...this.selectedFilms, [filename]: String(filmId) };
+            setFilmSelected(filename, filmId) {
+                const idStr = filmId ? String(filmId).trim() : '';
+                if (idStr) {
+                    this.selectedFilms = { ...this.selectedFilms, [filename]: idStr };
                 } else {
                     const next = { ...this.selectedFilms };
                     delete next[filename];
                     this.selectedFilms = next;
                 }
+            },
+
+            onFilmSelected(filename, val) {
+                const filmId = (typeof val === 'object' && val !== null) ? (val.target?.value || val.detail?.value || '') : val;
+                this.setFilmSelected(filename, filmId);
             },
 
             removeCardFromDisplay(filename) {
@@ -1406,14 +1588,15 @@
                 this.selectedFilms = newSelected;
 
                 // 3. Immediately animate and remove the card element from DOM
-                const escaped = CSS.escape ? CSS.escape(filename) : filename.replace(/["\\]/g, '\\$&');
-                const cardEl = document.querySelector(`[data-poster-card="${escaped}"]`) || document.querySelector(`[data-poster-card="${filename}"]`);
+                const item = this.posterList.find(p => p.filename === filename);
+                const cardEl = (item?.posterKey ? document.getElementById('card-' + item.posterKey) : null)
+                    || document.querySelector(`[data-poster-card="${filename.replace(/"/g, '\\"')}"]`);
                 if (cardEl) {
                     cardEl.style.transition = 'all 0.28s cubic-bezier(0.4, 0, 0.2, 1)';
                     cardEl.style.opacity = '0';
                     cardEl.style.transform = 'scale(0.92)';
                     setTimeout(() => {
-                        cardEl.remove();
+                        try { cardEl.remove(); } catch (err) {}
                     }, 280);
                 }
 
@@ -1467,15 +1650,12 @@
 
                     const data = await res.json();
                     if (res.ok && data.success) {
-                        // Success: clear card immediately from display!
                         this.removeCardFromDisplay(filename);
                         this.notify('success', data.message || 'Poster berhasil dipasangkan.');
                     } else {
-                        // Failed: do NOT remove card, leave it on display with error toast!
                         this.notify('error', data.message || 'Gagal memasangkan poster.');
                     }
                 } catch (err) {
-                    // Error: do NOT remove card, leave it on display!
                     this.notify('error', 'Gagal menghubungi server: ' + err.message);
                 } finally {
                     const nextProc = { ...this.processingFiles };

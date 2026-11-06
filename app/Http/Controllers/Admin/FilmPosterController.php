@@ -516,15 +516,29 @@ class FilmPosterController extends Controller
         ]);
 
         $film = Film::findOrFail($validated['film_id']);
-        $filename = basename($validated['poster_filename']);
+        $filename = basename(urldecode($validated['poster_filename']));
         $sourcePath = self::UNMATCHED_DIR.'/'.$filename;
 
         if (! Storage::disk('public')->exists($sourcePath)) {
-            if ($request->expectsJson()) {
-                return response()->json(['success' => false, 'message' => 'Berkas poster tidak ditemukan di penyimpanan.'], 404);
+            // Case-insensitive fallback check in unmatched folder
+            $files = Storage::disk('public')->files(self::UNMATCHED_DIR);
+            $found = null;
+            foreach ($files as $f) {
+                if (strtolower(basename($f)) === strtolower($filename)) {
+                    $found = $f;
+                    $filename = basename($f);
+                    break;
+                }
             }
+            if ($found) {
+                $sourcePath = $found;
+            } else {
+                if ($request->expectsJson()) {
+                    return response()->json(['success' => false, 'message' => 'Berkas poster tidak ditemukan di penyimpanan.'], 404);
+                }
 
-            return back()->with('error', 'Berkas poster tidak ditemukan di penyimpanan.');
+                return back()->with('error', 'Berkas poster tidak ditemukan di penyimpanan.');
+            }
         }
 
         // Move to permanent posters folder
@@ -576,13 +590,26 @@ class FilmPosterController extends Controller
 
         foreach ($validated['assignments'] as $item) {
             $filmId = $item['film_id'];
-            $filename = basename($item['poster_filename']);
+            $filename = basename(urldecode($item['poster_filename']));
             $sourcePath = self::UNMATCHED_DIR.'/'.$filename;
 
             if (! Storage::disk('public')->exists($sourcePath)) {
-                $failedCount++;
+                $files = Storage::disk('public')->files(self::UNMATCHED_DIR);
+                $found = null;
+                foreach ($files as $f) {
+                    if (strtolower(basename($f)) === strtolower($filename)) {
+                        $found = $f;
+                        $filename = basename($f);
+                        break;
+                    }
+                }
+                if ($found) {
+                    $sourcePath = $found;
+                } else {
+                    $failedCount++;
 
-                continue;
+                    continue;
+                }
             }
 
             $film = Film::find($filmId);
@@ -685,19 +712,20 @@ class FilmPosterController extends Controller
      */
     public function destroy(Request $request, string $filename): RedirectResponse|JsonResponse
     {
-        $cleanName = basename($filename);
+        $cleanName = basename(urldecode($filename));
         $path = self::UNMATCHED_DIR.'/'.$cleanName;
 
         if (Storage::disk('public')->exists($path)) {
             Storage::disk('public')->delete($path);
         } else {
-            // Also check by slug prefix in unmatched dir in case original name was passed
+            // Also check by slug prefix or case-insensitive match in unmatched dir
             $slug = Str::slug(pathinfo($cleanName, PATHINFO_FILENAME));
             $files = Storage::disk('public')->files(self::UNMATCHED_DIR);
             foreach ($files as $f) {
                 $base = basename($f);
-                if ($base === $cleanName || str_starts_with($base, $slug)) {
+                if (strtolower($base) === strtolower($cleanName) || ($slug && str_starts_with($base, $slug))) {
                     Storage::disk('public')->delete($f);
+                    $cleanName = $base;
                     break;
                 }
             }

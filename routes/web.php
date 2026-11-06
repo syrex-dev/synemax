@@ -139,7 +139,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/films/posters/assign-batch', [FilmPosterController::class, 'assignBatch'])->name('films.posters.assign_batch');
     Route::post('/films/posters/undo-batch', [FilmPosterController::class, 'undoBatch'])->name('films.posters.undo_batch');
     Route::post('/films/posters/remove-matched', [FilmPosterController::class, 'removeMatched'])->name('films.posters.remove_matched');
-    Route::delete('/films/posters/{filename}', [FilmPosterController::class, 'destroy'])->name('films.posters.destroy')->where('filename', '[A-Za-z0-9_.\-]+');
+    Route::delete('/films/posters/{filename}', [FilmPosterController::class, 'destroy'])->name('films.posters.destroy')->where('filename', '.*');
     Route::redirect('/films/create', '/admin/films/buat');
     Route::get('/films/buat', [FilmController::class, 'create'])->name('films.create');
     Route::post('/films', [FilmController::class, 'store'])->name('films.store');

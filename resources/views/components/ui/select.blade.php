@@ -111,7 +111,18 @@
             this.selectedValue = val;
             const found = this.options.find(o => String(o.value) === String(val));
             if (found) this.selectedLabel = found.label;
-            if (this.$refs.hiddenInput) this.$refs.hiddenInput.value = val;
+            if (this.$refs.hiddenInput) {
+                this.$refs.hiddenInput.value = val;
+                this.$refs.hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+                this.$refs.hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            this.$dispatch('change', val);
+            this.$dispatch('input', val);
+            this.$dispatch('synemax-select-changed', {
+                name: '{{ $name }}',
+                value: val,
+                label: this.selectedLabel
+            });
         },
 
         toggle() {
@@ -157,6 +168,13 @@
                     });
                 @endif
             }
+            this.$dispatch('change', opt.value);
+            this.$dispatch('input', opt.value);
+            this.$dispatch('synemax-select-changed', {
+                name: '{{ $name }}',
+                value: opt.value,
+                label: opt.label
+            });
             this.close();
         },
 
