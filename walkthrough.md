@@ -35,7 +35,7 @@
    - 5.1 [Pengaturan Multi-Rekening Transfer & QRIS Toko](#51-pengaturan-multi-rekening-transfer--qris-toko)
    - 5.2 [Pengaturan Jendela Check-In & Suara Beep](#52-pengaturan-jendela-check-in--suara-beep)
    - 5.3 [Kurasi Urutan Film & Banner Media](#53-kurasi-urutan-film--banner-media)
-   - 5.4 [Manajemen Poster Massal & OCR Cerdas](#54-manajemen-poster-massal--ocr-cerdas)
+   - 5.4 [Manajemen Poster Massal & Antrean Pencocokan Manual](#54-manajemen-poster-massal--antrean-pencocokan-manual)
 6. [Panduan Pengujian Fisik & Troubleshooting Lapangan](#6-panduan-pengujian-fisik--troubleshooting-lapangan)
    - 6.1 [Uji Coba Pemindai via Ponsel & Wi-Fi Lokal](#61-uji-coba-pemindai-via-ponsel--wi-fi-lokal)
    - 6.2 [Mengatasi Izin Kamera Terblokir & Konteks HTTPS](#62-mengatasi-izin-kamera-terblokir--konteks-https)
@@ -388,13 +388,20 @@ Pengaturan sistem dikelola melalui menu **"Pengaturan"** (`/admin/pengaturan`).
 
 ---
 
-### 5.4 Manajemen Poster Massal & OCR Cerdas
-1. Buka menu **"Poster Film"** (`/admin/films/posters`).
-2. Admin dapat mengunggah banyak berkas poster sekaligus dalam satu file ZIP.
-3. **Deteksi Judul OCR Otomatis:**
-   - Sistem membaca teks judul pada gambar poster menggunakan mesin OCR sisi klien (*client-side OCR*).
-   - Poster secara otomatis dicocokkan dengan judul film yang ada di database.
-   - Admin cukup meninjau hasil pencocokan dan menekan tombol **"Simpan & Tautkan Semua"**.
+### 5.4 Manajemen Poster Massal & Antrean Pencocokan Manual
+1. Buka menu **"Poster Massal"** (`/admin/films/posters`).
+2. **Unggah Berkas Gambar / ZIP:**
+   - Admin dapat memilih puluhan berkas gambar sekaligus (JPG, PNG, WebP) atau mengunggah satu berkas arsip ZIP (maksimal 50 MB).
+   - Seluruh gambar otomatis dikompresi ke rasio 2:3 standar (600 × 900 px WebP) secara efisien tanpa membebani browser atau server.
+3. **Pencocokan Nama Berkas Otomatis:**
+   - Berkas yang nama filenya identik atau mirip dengan judul / slug film katalog akan langsung terpasang otomatis.
+4. **Antrean Poster Belum Terpasang (Pencocokan Manual):**
+   - Berkas gambar tangkapan layar (seperti `Screenshot ...`) atau berkas yang namanya berbeda dari katalog akan otomatis masuk ke antrean **"Poster Belum Terpasang"** di bagian bawah.
+   - Pada kartu poster yang muncul di bawah tombol perbarui halaman:
+     - Tampil pratinjau foto poster, nama berkas asli, resolusi, dan ukuran file.
+     - Admin memilih film penerima melalui kotak pencarian judul film (`<x-ui.select>`).
+     - Tekan tombol **"Pasangkan"** pada poster terkait, atau centang beberapa poster dan tekan tombol **"Pasangkan Semua yang Dipilih"** untuk memasangkan massal via jendela pratinjau.
+     - Tersedia tombol **"Hapus Poster"** untuk membersihkan poster yang tidak diinginkan dari antrean.
 
 ---
 

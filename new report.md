@@ -2,8 +2,8 @@
 **Dokumen:** Laporan Komprehensif Status Proyek, Pembaruan Fitur, Keamanan, Integrasi Operasional, dan Panduan Penerapan  
 **Platform:** Laravel 12 / PHP 8.4 / TailwindCSS / Alpine.js / SQLite  
 **URL Produksi:** `https://synemax.web.id`  
-**Status Repositori:** Bersih (*Clean Working Tree*), Terdistribusi & Sinkron Penuh di Branch `main` (Head Commit: `2d06c96`)  
-**Waktu Laporan:** 5 November 2026  
+**Status Repositori:** Bersih (*Clean Working Tree*), Terdistribusi & Sinkron Penuh di Branch `main` (Head Commit: `31fb972`)  
+**Waktu Laporan:** 6 November 2026  
 
 ---
 
@@ -212,6 +212,30 @@ Fitur Pemindai Tiket dirancang sebagai solusi pintu masuk terpadu bagi staf dan 
     - Memanggil [SessionGenerationService.php](file:///d:/Coding/SynemaX/app/Services/SessionGenerationService.php) untuk meng-generate slot baru 14 hari ke depan secara otomatis di lingkungan live.
   - **Sinkronisasi Seeder & Dokumentasi:** Memutakhirkan [DatabaseSeeder.php](file:///d:/Coding/SynemaX/database/seeders/DatabaseSeeder.php) dan panduan [README.md](file:///d:/Coding/SynemaX/README.md).
   - **Pengujian Otomatis:** Menambahkan suite pengujian [ScheduleStandardSessionTimesTest.php](file:///d:/Coding/SynemaX/tests/Feature/ScheduleStandardSessionTimesTest.php) (3 tes, 14 asersi, 100% Lulus).
+
+---
+
+### G. Penghapusan Total Modul OCR AI Poster Massal & Pemulihan Antrean Poster Manual
+* **Akar Masalah & Permintaan Pengguna:**
+  1. Fitur OCR AI (Tesseract.js) yang mencoba mengenali teks judul film langsung dari foto poster terbukti tidak akurat saat memproses gambar tangkapan layar (*screenshot*), di mana teks acak pada screenshot dipaksakan cocok ke film katalog yang salah (misal tangkapan layar dipasangkan keliru ke film *Badoet*, *Kuntilanak 2*, atau *Badarawuhi*).
+  2. Beban komputasi unduhan CDN model Tesseract dan analisis canvas pixel membuat browser menjadi berat dan lambat.
+  3. Status hasil unggahan menjadi "Cocok Otomatis" padahal filmnya salah, sehingga antrean manual "Poster Belum Terpasang" di bawah tombol perbarui halaman menjadi kosong (0 poster).
+* **Solusi & Rekayasa yang Diterapkan (Commit `31fb972`):**
+  1. **Penghapusan Total Mesin OCR:**
+     - Menghapus pemuatan CDN script `tesseract.min.js`, inisialisasi worker OCR, dan fungsi pra-pemrosesan canvas OCR dari [posters.blade.php](file:///d:/Coding/SynemaX/resources/views/admin/films/posters.blade.php).
+     - Menghapus toggle OCR AI dari formulir unggah massal.
+     - Menghapus parameter `ocr_text` dari endpoint `process-single` dan `process-batch-item`.
+     - Menghapus rute `/films/posters/match-ocr` dari [routes/web.php](file:///d:/Coding/SynemaX/routes/web.php).
+     - Menghapus lebih dari 500 baris algoritma fuzzy matching OCR (`matchOcr`, `matchFilmFromOcr`, normalisasi leetspeak, roman numeral, dll.) dari [FilmPosterController.php](file:///d:/Coding/SynemaX/app/Http/Controllers/Admin/FilmPosterController.php).
+  2. **Pemulihan Antrean Poster Belum Terpasang di Bawah Tombol Perbarui:**
+     - Gambar yang nama berkasnya tidak persis sama dengan judul/slug katalog otomatis masuk ke direktori `posters/unmatched` dan tampil di bagian **Poster Belum Terpasang** di bawah tombol `Perbarui Halaman & Lihat Antrean Manual`.
+     - Tombol `Perbarui Halaman & Lihat Antrean Manual` kini secara presisi menyematkan anchor hash `#antrean-manual` agar layar langsung mengarah ke kartu poster manual pasca peramban memuat ulang.
+     - Setiap kartu poster menampilkan pratinjau gambar, nama berkas, ukuran, resolusi, dan dropdown pencarian film lengkap (`<x-ui.select>`).
+     - Dropdown film memuat seluruh film katalog dengan tanda `★ [Belum Ada Poster]` bagi film tanpa poster, serta opsi ganti poster bagi film yang sudah memiliki poster.
+     - Admin dapat memasangkan satu per satu poster menggunakan tombol **"Pasangkan"** atau memasangkan secara massal via modal konfirmasi **"Pasangkan Semua yang Dipilih"**.
+  3. **Penyempurnaan Suite Pengujian:**
+     - Seluruh 25 pengujian pada [FilmBulkImportTest.php](file:///d:/Coding/SynemaX/tests/Feature/FilmBulkImportTest.php) berhasil 100% lulus (223 asersi).
+     - Menghapus berkas pengujian usang `OcrPosterMatchingTest.php`.
 
 ---
 
