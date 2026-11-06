@@ -25,15 +25,15 @@ class ScheduleSessionTimeStatusTest extends TestCase
 
         $session = Session::create([
             'session_date' => '2026-10-28',
-            'start_time' => '19:30:00',
-            'end_time' => '21:45:00',
+            'start_time' => '19:00:00',
+            'end_time' => '21:30:00',
             'film_id' => $film->id,
             'capacity' => 6,
             'is_private' => false,
             'status' => 'tersedia',
         ]);
 
-        // Case 1: Pukul 18:00 (sebelum mulai dan belum lewat batas cutoff 30 menit)
+        // Case 1: Pukul 18:00 (sebelum mulai dan belum lewat batas cutoff 30 menit sebelum 19:00)
         Carbon::setTestNow(Carbon::parse('2026-10-28 18:00:00', config('app.timezone')));
         $status1800 = $session->statusWaktu(30);
         $this->assertTrue($status1800['can_book']);
@@ -41,15 +41,15 @@ class ScheduleSessionTimeStatusTest extends TestCase
         $this->assertSame('tersedia', $status1800['key']);
         $this->assertStringContainsString('Tersedia', $status1800['label']);
 
-        // Case 2: Pukul 19:10 (lewat batas cutoff 30 menit sebelum 19:30, tapi belum mulai)
-        Carbon::setTestNow(Carbon::parse('2026-10-28 19:10:00', config('app.timezone')));
-        $status1910 = $session->statusWaktu(30);
-        $this->assertFalse($status1910['can_book']);
-        $this->assertSame('pemesanan_ditutup', $status1910['key']);
-        $this->assertSame('Pemesanan ditutup', $status1910['label']);
+        // Case 2: Pukul 18:40 (lewat batas cutoff 30 menit sebelum 19:00, tapi belum mulai)
+        Carbon::setTestNow(Carbon::parse('2026-10-28 18:40:00', config('app.timezone')));
+        $status1840 = $session->statusWaktu(30);
+        $this->assertFalse($status1840['can_book']);
+        $this->assertSame('pemesanan_ditutup', $status1840['key']);
+        $this->assertSame('Pemesanan ditutup', $status1840['label']);
 
-        // Case 3: Pukul 20:20 (sesi sedang tayang antara 19:30 dan 21:45)
-        // CRITICAL REQUIREMENT: Sesi 19:30 yang selesai 21:45 TIDAK boleh berlabel "Selesai" pada pukul 20:20.
+        // Case 3: Pukul 20:20 (sesi sedang tayang antara 19:00 dan 21:30)
+        // CRITICAL REQUIREMENT: Sesi 19:00 yang selesai 21:30 TIDAK boleh berlabel "Selesai" pada pukul 20:20.
         Carbon::setTestNow(Carbon::parse('2026-10-28 20:20:00', config('app.timezone')));
         $status2020 = $session->statusWaktu(30);
         $this->assertFalse($status2020['can_book']);

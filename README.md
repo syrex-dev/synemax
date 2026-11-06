@@ -67,7 +67,7 @@ Aplikasi booking studio home cinema skala kecil. Pelanggan memilih film dan sesi
 
 ## Jadwal dan scheduler
 
-Jadwal awal disimpan dalam `schedule_templates`: Senin–Kamis pukul 16:00 dan 19:30; Jumat pukul 13:00, 16:00, dan 19:30; akhir pekan serta hari libur pukul 09:00, 13:00, 16:00, dan 19:30. Durasi awal setiap slot 150 menit.
+Jadwal awal disimpan dalam `schedule_templates`: Senin–Kamis pukul 13:00, 16:00, dan 19:00 (3 sesi); Jumat hingga Minggu serta hari libur pukul 09:00, 13:00, 16:00, dan 19:00 (4 sesi). Durasi awal setiap slot 150 menit.
 
 Generator `sessions:generate` idempotent dan membuat sesi untuk 14 hari ke depan. Jalankan manual setelah instalasi atau dari **Admin → Jadwal → Generate 14 hari**. Scheduler menjalankannya setiap hari pukul 00:05 WIB.
 

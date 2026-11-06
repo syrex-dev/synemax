@@ -69,7 +69,7 @@ class RevisiLanjutanTest extends TestCase
 
         $session = Session::query()->create([
             'session_date' => $today->addDay()->toDateString(),
-            'start_time' => '19:30:00',
+            'start_time' => '19:00:00',
             'end_time' => '21:30:00',
             'film_id' => null, // Mulai tanpa film
             'capacity' => 6,
@@ -244,7 +244,7 @@ class RevisiLanjutanTest extends TestCase
 
         Session::query()->create([
             'session_date' => $today->toDateString(),
-            'start_time' => '19:30:00',
+            'start_time' => '19:00:00',
             'end_time' => '21:30:00',
             'film_id' => $this->filmA->id,
             'capacity' => 6,
@@ -265,7 +265,7 @@ class RevisiLanjutanTest extends TestCase
         // Memakai format bahasa Indonesia
         $res->assertSee('Hari ini');
         $res->assertSee('WIB');
-        $res->assertSee('19.30 WIB');
+        $res->assertSee('19.00 WIB');
     }
 
     /**

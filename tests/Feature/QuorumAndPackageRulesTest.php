@@ -254,7 +254,7 @@ class QuorumAndPackageRulesTest extends TestCase
         $this->assertFalse($checkPrivateBlocked['allowed']);
 
         // Fresh session for private booking
-        $privateSession = $this->createSession('2026-10-28', '19:30');
+        $privateSession = $this->createSession('2026-10-28', '19:00');
         $privateBooking = $this->createBooking($privateSession, $this->filmB->id, 4, 'Keluarga', '08123456782', 'private');
 
         $this->assertTrue($privateBooking->isPrivate());
@@ -376,7 +376,7 @@ class QuorumAndPackageRulesTest extends TestCase
         $this->assertTrue($bookingB->reselect_needed);
 
         // 2. Action: Batalkan Sesi
-        $session2 = $this->createSession('2026-10-28', '19:30');
+        $session2 = $this->createSession('2026-10-28', '19:00');
         $booking2 = $this->createBooking($session2, $this->filmC->id, 2, 'User C', '08123456783');
 
         $this->actingAs($this->admin)

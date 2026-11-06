@@ -736,7 +736,7 @@
                         <div>
                             <label for="new-time-{{ $type }}" class="mb-1 block text-sm font-semibold">Jam mulai baru</label>
                             <input id="new-time-{{ $type }}" name="start_time" type="time" required class="min-h-11 w-full rounded-lg border border-border bg-surface px-3 text-base text-text">
-                            <p class="mt-1 text-xs text-text-muted">Format 24 jam, contoh 19:30.</p>
+                            <p class="mt-1 text-xs text-text-muted">Format 24 jam, contoh 19:00.</p>
                         </div>
                         <div x-data="{ minutes: 150, format(value) { const hours = Math.floor(Number(value) / 60); const remainder = Number(value) % 60; return '= ' + (hours ? hours + ' jam' : '') + (hours && remainder ? ' ' : '') + (remainder ? remainder + ' menit' : '') } }">
                             <label for="new-duration-{{ $type }}" class="mb-1 block text-sm font-semibold">Durasi sesi</label>

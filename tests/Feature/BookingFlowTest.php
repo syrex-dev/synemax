@@ -170,7 +170,7 @@ class BookingFlowTest extends TestCase
             'whatsapp' => '081234567890',
         ])->assertOk()->assertSee('Sewa Private · 6 orang');
 
-        $perPersonSession = $this->createSession($this->firstFilm, '19:30');
+        $perPersonSession = $this->createSession($this->firstFilm, '19:00');
         $this->post(
             route('booking.store', $perPersonSession),
             $this->bookingData($this->firstFilm, pax: 2, type: 'per_orang', whatsapp: '082222222222'),

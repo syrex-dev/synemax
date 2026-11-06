@@ -46,10 +46,10 @@ class DatabaseSeeder extends Seeder
     private function seedScheduleTemplates(): void
     {
         $schedules = [
-            'weekday' => ['16:00', '19:30'],
-            'jumat' => ['13:00', '16:00', '19:30'],
-            'weekend' => ['09:00', '13:00', '16:00', '19:30'],
-            'libur' => ['09:00', '13:00', '16:00', '19:30'],
+            'weekday' => ['13:00', '16:00', '19:00'],
+            'jumat' => ['09:00', '13:00', '16:00', '19:00'],
+            'weekend' => ['09:00', '13:00', '16:00', '19:00'],
+            'libur' => ['09:00', '13:00', '16:00', '19:00'],
         ];
 
         foreach ($schedules as $dayType => $startTimes) {
@@ -371,7 +371,7 @@ class DatabaseSeeder extends Seeder
             ['start' => '10:00', 'end' => '12:15'],
             ['start' => '13:00', 'end' => '15:15'],
             ['start' => '16:00', 'end' => '18:15'],
-            ['start' => '19:30', 'end' => '21:45'],
+            ['start' => '19:00', 'end' => '21:15'],
         ];
 
         foreach (range(0, 6) as $dayOffset) {
@@ -485,12 +485,12 @@ class DatabaseSeeder extends Seeder
         $noodles = MenuItem::query()->where('name', 'Mie rebus')->first();
         $admin = User::query()->where('is_admin', true)->orderBy('id')->first();
 
-        // 1. Sesi Batal karena Kuorum (Kemarin 19:30)
+        // 1. Sesi Batal karena Kuorum (Kemarin 19:00)
         $yesterdayDate = $today->subDay()->toDateString();
         $cancelledSession = Session::query()->updateOrCreate(
-            ['session_date' => $yesterdayDate, 'start_time' => '19:30'],
+            ['session_date' => $yesterdayDate, 'start_time' => '19:00'],
             [
-                'end_time' => '21:45',
+                'end_time' => '21:15',
                 'film_id' => null,
                 'capacity' => 6,
                 'is_private' => false,
@@ -590,8 +590,8 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // 4. Hari Ini 19:30: Butuh Kesepakatan (A: 2 kursi, B: 2 kursi -> imbang)
-        $sToday19 = Session::query()->where('session_date', $today->toDateString())->where('start_time', '19:30')->first();
+        // 4. Hari Ini 19:00: Butuh Kesepakatan (A: 2 kursi, B: 2 kursi -> imbang)
+        $sToday19 = Session::query()->where('session_date', $today->toDateString())->where('start_time', '19:00')->first();
         if ($sToday19) {
             $sToday19->update(['film_id' => null, 'confirmed_at' => null, 'confirmation_method' => null]);
             Booking::query()->updateOrCreate(
@@ -739,8 +739,8 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // 8. Besok 19:30: Paket Private (1-6 orang, seluruh studio, Pasti Tayang)
-        $sTomorrow19 = Session::query()->where('session_date', $today->addDay()->toDateString())->where('start_time', '19:30')->first();
+        // 8. Besok 19:00: Paket Private (1-6 orang, seluruh studio, Pasti Tayang)
+        $sTomorrow19 = Session::query()->where('session_date', $today->addDay()->toDateString())->where('start_time', '19:00')->first();
         if ($sTomorrow19) {
             $sTomorrow19->update([
                 'film_id' => $filmD->id,
