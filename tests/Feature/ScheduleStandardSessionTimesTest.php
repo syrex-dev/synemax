@@ -141,4 +141,3 @@ class ScheduleStandardSessionTimesTest extends TestCase
         $this->assertStringNotContainsString('19.30 WIB', $content);
     }
 }
-

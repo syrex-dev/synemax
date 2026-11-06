@@ -416,6 +416,7 @@
                         'url' => $p['url'],
                         'selectName' => 'film_id_'.md5($p['filename'])
                     ], $unmatchedPosters)) }},
+                    filmTitles: {{ Js::from($filmOptions) }},
                     totalInitial: {{ count($unmatchedPosters) }}
                 })"
             >
@@ -557,6 +558,7 @@
                         @endphp
                         <div
                             x-show="!removedPosters['{{ $poster['filename'] }}']"
+                            data-poster-card="{{ $poster['filename'] }}"
                             x-transition:leave="transition ease-in duration-200"
                             x-transition:leave-start="opacity-100 scale-100"
                             x-transition:leave-end="opacity-0 scale-95"
@@ -595,7 +597,7 @@
                                         placeholder="Pilih film penerima..."
                                         size="sm"
                                         :options="$filmOptions"
-                                        @change="onFilmSelected('{{ $poster['filename'] }}', $event.target.value)"
+                                        @change="onFilmSelected('{{ $poster['filename'] }}', $event)"
                                     />
                                 </div>
 
@@ -1002,6 +1004,7 @@
     function unmatchedPostersComponent(config) {
         return {
             posterList: config.posterList || [],
+            filmTitles: config.filmTitles || {},
             totalInitial: config.totalInitial || 0,
             removedPosters: {},
             selectedFilms: {},
@@ -1028,8 +1031,40 @@
                 return count;
             },
 
-            onFilmSelected(filename, filmId) {
-                this.selectedFilms[filename] = filmId || '';
+            onFilmSelected(filename, val) {
+                const filmId = (typeof val === 'object' && val !== null) ? (val.target?.value || val.detail?.value || '') : val;
+                if (filmId) {
+                    this.selectedFilms = { ...this.selectedFilms, [filename]: String(filmId) };
+                } else {
+                    const next = { ...this.selectedFilms };
+                    delete next[filename];
+                    this.selectedFilms = next;
+                }
+            },
+
+            removeCardFromDisplay(filename) {
+                // 1. Reassign removedPosters with new object reference for Alpine reactivity
+                this.removedPosters = { ...this.removedPosters, [filename]: true };
+
+                // 2. Clean up selectedFilms
+                const newSelected = { ...this.selectedFilms };
+                delete newSelected[filename];
+                this.selectedFilms = newSelected;
+
+                // 3. Immediately animate and remove the card element from DOM
+                const escaped = CSS.escape ? CSS.escape(filename) : filename.replace(/["\\]/g, '\\$&');
+                const cardEl = document.querySelector(`[data-poster-card="${escaped}"]`) || document.querySelector(`[data-poster-card="${filename}"]`);
+                if (cardEl) {
+                    cardEl.style.transition = 'all 0.28s cubic-bezier(0.4, 0, 0.2, 1)';
+                    cardEl.style.opacity = '0';
+                    cardEl.style.transform = 'scale(0.92)';
+                    setTimeout(() => {
+                        cardEl.remove();
+                    }, 280);
+                }
+
+                // 4. Update count badge & window event
+                this.notifyCountChange();
             },
 
             showBanner(type, message) {
@@ -1060,7 +1095,7 @@
                     return;
                 }
 
-                this.processingFiles[filename] = true;
+                this.processingFiles = { ...this.processingFiles, [filename]: true };
                 try {
                     const res = await fetch('{{ route('admin.films.posters.assign') }}', {
                         method: 'POST',
@@ -1078,17 +1113,20 @@
 
                     const data = await res.json();
                     if (res.ok && data.success) {
-                        this.removedPosters[filename] = true;
-                        delete this.selectedFilms[filename];
-                        this.notifyCountChange();
+                        // Success: clear card immediately from display!
+                        this.removeCardFromDisplay(filename);
                         this.notify('success', data.message || 'Poster berhasil dipasangkan.');
                     } else {
+                        // Failed: do NOT remove card, leave it on display with error toast!
                         this.notify('error', data.message || 'Gagal memasangkan poster.');
                     }
                 } catch (err) {
+                    // Error: do NOT remove card, leave it on display!
                     this.notify('error', 'Gagal menghubungi server: ' + err.message);
                 } finally {
-                    delete this.processingFiles[filename];
+                    const nextProc = { ...this.processingFiles };
+                    delete nextProc[filename];
+                    this.processingFiles = nextProc;
                 }
             },
 
@@ -1099,12 +1137,8 @@
                     if (!this.removedPosters[poster.filename]) {
                         const filmId = this.selectedFilms[poster.filename];
                         if (filmId) {
-                            let filmTitle = 'Film ID ' + filmId;
-                            const selectEl = document.querySelector(`[name="${poster.selectName}"]`);
-                            const triggerText = selectEl?.closest('[x-data]')?.querySelector('.synemax-select-trigger span')?.textContent;
-                            if (triggerText && triggerText.trim() && !triggerText.includes('Pilih')) {
-                                filmTitle = triggerText.trim();
-                            }
+                            let filmTitle = this.filmTitles[filmId] || ('Film #' + filmId);
+                            filmTitle = filmTitle.replace(/^★\s*\[Belum Ada Poster\]\s*/, '').replace(/\s*\(Ganti poster\)\s*$/, '');
 
                             items.push({
                                 filename: poster.filename,
@@ -1153,19 +1187,19 @@
 
                     const data = await res.json();
                     if (res.ok && data.success) {
-                        for (let i = 0; i < selected.length; i++) {
-                            const item = selected[i];
-                            this.removedPosters[item.filename] = true;
-                            delete this.selectedFilms[item.filename];
+                        const successfulItems = data.items || [];
+                        for (let i = 0; i < successfulItems.length; i++) {
+                            const fname = successfulItems[i].filename || successfulItems[i].poster_filename;
+                            this.removeCardFromDisplay(fname);
                         }
-                        this.notifyCountChange();
+
                         this.previewBatchModal = false;
 
                         const reverts = data.items || [];
                         if (typeof window.showToast === 'function') {
                             window.showToast({
-                                type: 'success',
-                                message: `Berhasil memasangkan ${data.assigned_count} poster ke katalog.`,
+                                type: data.failed_count > 0 ? 'warning' : 'success',
+                                message: data.message || `Berhasil memasangkan ${data.assigned_count} poster ke katalog.`,
                                 duration: 8000,
                                 onUndo: () => this.undoBatchAssignment(reverts)
                             });
@@ -1197,17 +1231,7 @@
 
                     const data = await res.json();
                     if (res.ok && data.success) {
-                        for (let i = 0; i < reverts.length; i++) {
-                            const r = reverts[i];
-                            delete this.removedPosters[r.filename];
-                        }
-                        this.notifyCountChange();
-                        if (typeof window.showToast === 'function') {
-                            window.showToast({
-                                type: 'info',
-                                message: data.message || 'Pemasangan poster berhasil diurungkan. Poster kembali ke antrean.'
-                            });
-                        }
+                        window.location.reload();
                     } else {
                         this.notify('error', data.message || 'Gagal mengurungkan pemasangan poster.');
                     }
@@ -1234,7 +1258,7 @@
             },
 
             async executeDeleteSingle(filename) {
-                this.processingFiles[filename] = true;
+                this.processingFiles = { ...this.processingFiles, [filename]: true };
                 try {
                     const url = '{{ route('admin.films.posters.destroy', '__FILE__') }}'.replace('__FILE__', encodeURIComponent(filename));
                     const res = await fetch(url, {
@@ -1248,9 +1272,7 @@
 
                     const data = await res.json();
                     if (res.ok && data.success) {
-                        this.removedPosters[filename] = true;
-                        delete this.selectedFilms[filename];
-                        this.notifyCountChange();
+                        this.removeCardFromDisplay(filename);
                         this.notify('info', 'Poster berhasil dihapus dari antrean.');
                     } else {
                         this.notify('error', data.message || 'Gagal menghapus poster.');
@@ -1258,7 +1280,9 @@
                 } catch (err) {
                     this.notify('error', 'Gagal menghapus berkas: ' + err.message);
                 } finally {
-                    this.processingFiles[filename];
+                    const nextProc = { ...this.processingFiles };
+                    delete nextProc[filename];
+                    this.processingFiles = nextProc;
                 }
             }
         };

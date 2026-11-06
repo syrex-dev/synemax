@@ -527,6 +527,12 @@ class FilmPosterController extends Controller
         $permanentPath = 'posters/'.Str::uuid().'.'.pathinfo($filename, PATHINFO_EXTENSION);
         Storage::disk('public')->move($sourcePath, $permanentPath);
 
+        // Remove old poster file if exists and not a sample
+        $oldPoster = $film->poster_path;
+        if (! empty($oldPoster) && Storage::disk('public')->exists($oldPoster) && ! str_starts_with($oldPoster, 'samples/')) {
+            Storage::disk('public')->delete($oldPoster);
+        }
+
         $film->update(['poster_path' => $permanentPath, 'is_sample' => false]);
 
         if ($request->expectsJson()) {
