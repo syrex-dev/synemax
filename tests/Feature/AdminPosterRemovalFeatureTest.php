@@ -247,4 +247,60 @@ class AdminPosterRemovalFeatureTest extends TestCase
         $this->assertStringContainsString('Horor', $film->genre);
         $this->assertStringContainsString('Komedi', $film->genre);
     }
+
+    public function test_admin_can_clean_storage_of_temp_folders_and_orphaned_posters(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create([
+            'is_admin' => true,
+        ]);
+
+        // Create an orphaned poster file (not belonging to any film in DB)
+        Storage::disk('public')->put('posters/orphan-image-123.webp', 'fake orphan bytes');
+
+        $this->actingAs($admin);
+
+        $response = $this->postJson(route('admin.films.posters.cleanup_storage'));
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+            ]);
+
+        Storage::disk('public')->assertMissing('posters/orphan-image-123.webp');
+    }
+
+    public function test_admin_can_force_delete_trashed_film_and_purge_poster_file(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->create([
+            'is_admin' => true,
+        ]);
+
+        $posterPath = 'posters/film-to-purge.webp';
+        Storage::disk('public')->put($posterPath, 'poster bytes');
+
+        $film = Film::query()->create([
+            'title' => 'Film Dihapus Permanen',
+            'slug' => 'film-dihapus-permanen',
+            'genre' => 'Aksi',
+            'release_year' => 2026,
+            'duration_minutes' => 90,
+            'age_rating' => '13+',
+            'synopsis' => 'Sinopsis hapus permanen.',
+            'poster_path' => $posterPath,
+            'is_sample' => false,
+            'is_active' => false,
+        ]);
+        $film->delete(); // soft delete
+
+        $this->actingAs($admin);
+
+        $response = $this->delete(route('admin.films.force_destroy', $film->id));
+        $response->assertRedirect(route('admin.films.index', ['trash' => 1]));
+
+        $this->assertDatabaseMissing('films', ['id' => $film->id]);
+        Storage::disk('public')->assertMissing($posterPath);
+    }
 }

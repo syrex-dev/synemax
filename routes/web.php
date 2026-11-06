@@ -135,6 +135,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/films/posters/upload-zip', [FilmPosterController::class, 'uploadZip'])->name('films.posters.upload_zip');
     Route::post('/films/posters/process-batch-item', [FilmPosterController::class, 'processBatchItem'])->name('films.posters.process_batch_item');
     Route::post('/films/posters/cleanup-batch', [FilmPosterController::class, 'cleanupBatch'])->name('films.posters.cleanup_batch');
+    Route::post('/films/posters/cleanup-storage', [FilmPosterController::class, 'cleanStorage'])->name('films.posters.cleanup_storage');
     Route::post('/films/posters/assign', [FilmPosterController::class, 'assign'])->name('films.posters.assign');
     Route::post('/films/posters/assign-batch', [FilmPosterController::class, 'assignBatch'])->name('films.posters.assign_batch');
     Route::post('/films/posters/undo-batch', [FilmPosterController::class, 'undoBatch'])->name('films.posters.undo_batch');
@@ -149,6 +150,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::patch('/films/{film}/status', [FilmController::class, 'toggleStatus'])->name('films.status');
     Route::post('/films/{film}/duplikat', [FilmController::class, 'duplicate'])->name('films.duplicate');
     Route::post('/films/{id}/pulihkan', [FilmController::class, 'restore'])->name('films.restore');
+    Route::delete('/films/{id}/hapus-permanen', [FilmController::class, 'forceDestroy'])->name('films.force_destroy');
 
     // Age Ratings CRUD
     Route::get('/age-ratings', [AgeRatingController::class, 'index'])->name('age_ratings.index');

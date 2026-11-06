@@ -167,6 +167,23 @@ class FilmController extends Controller
             ->with('status', 'Film "'.$film->title.'" berhasil dipulihkan.');
     }
 
+    public function forceDestroy(int $id): RedirectResponse
+    {
+        $film = Film::withTrashed()->findOrFail($id);
+        $title = $film->title;
+        $posterPath = $film->poster_path;
+
+        DB::transaction(function () use ($film, $posterPath): void {
+            if (! empty($posterPath) && Storage::disk('public')->exists($posterPath) && ! str_starts_with($posterPath, 'samples/')) {
+                Storage::disk('public')->delete($posterPath);
+            }
+            $film->forceDelete();
+        });
+
+        return redirect()->route('admin.films.index', ['trash' => 1])
+            ->with('status', 'Film "'.$title.'" dan berkas posternya berhasil dihapus permanen dari STB.');
+    }
+
     public function toggleStatus(Film $film): RedirectResponse
     {
         $newStatus = ! $film->is_active;
@@ -196,7 +213,7 @@ class FilmController extends Controller
     public function bulkAction(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'action' => ['required', 'string', 'in:activate,deactivate,delete,restore,set_rating,add_genre,replace_genre'],
+            'action' => ['required', 'string', 'in:activate,deactivate,delete,restore,force_delete,set_rating,add_genre,replace_genre'],
             'film_ids' => ['nullable', 'array'],
             'film_ids.*' => ['integer'],
             'select_all' => ['nullable', 'boolean'],
@@ -247,6 +264,12 @@ class FilmController extends Controller
                 if ($action === 'restore' && $film->trashed()) {
                     $film->restore();
                     $count++;
+                } elseif ($action === 'force_delete' && $film->trashed()) {
+                    if (! empty($film->poster_path) && Storage::disk('public')->exists($film->poster_path) && ! str_starts_with($film->poster_path, 'samples/')) {
+                        Storage::disk('public')->delete($film->poster_path);
+                    }
+                    $film->forceDelete();
+                    $count++;
                 } elseif ($action === 'delete') {
                     $this->closeUpcomingSessions($film);
                     $film->delete();
@@ -281,6 +304,7 @@ class FilmController extends Controller
             'deactivate' => "{$count} film berhasil disembunyikan.",
             'delete' => "{$count} film berhasil dipindahkan ke sampah.",
             'restore' => "{$count} film berhasil dipulihkan.",
+            'force_delete' => "{$count} film dan berkas posternya berhasil dihapus permanen.",
             'set_rating' => "Klasifikasi usia {$count} film berhasil diatur ke '{$request->input('age_rating')}'.",
             'add_genre' => "Genre berhasil ditambahkan ke {$count} film.",
             'replace_genre' => "Genre {$count} film berhasil diperbarui.",

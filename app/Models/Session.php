@@ -67,6 +67,10 @@ class Session extends Model
 
     public function hasActivePrivateBooking(): bool
     {
+        if ($this->relationLoaded('occupiedBookings')) {
+            return $this->occupiedBookings->contains(fn ($b) => $b->booking_type === 'private');
+        }
+
         return $this->occupiedBookings()
             ->where('booking_type', 'private')
             ->exists();
@@ -74,6 +78,10 @@ class Session extends Model
 
     public function hasActivePerPersonBookings(): bool
     {
+        if ($this->relationLoaded('occupiedBookings')) {
+            return $this->occupiedBookings->contains(fn ($b) => $b->booking_type === 'per_orang');
+        }
+
         return $this->occupiedBookings()
             ->where('booking_type', 'per_orang')
             ->exists();
@@ -224,6 +232,8 @@ class Session extends Model
         return false;
     }
 
+    private ?Collection $_talliesCache = null;
+
     /**
      * Hitung akumulasi kursi per film dari pemesan aktif di sesi ini.
      *
@@ -231,11 +241,17 @@ class Session extends Model
      */
     public function candidateFilmTallies(): Collection
     {
-        $bookings = $this->occupiedBookings()->whereNotNull('film_id')->with('film')->get();
+        if ($this->_talliesCache !== null) {
+            return $this->_talliesCache;
+        }
+
+        $bookings = $this->relationLoaded('occupiedBookings')
+            ? $this->occupiedBookings->filter(fn ($b) => $b->film_id !== null)
+            : $this->occupiedBookings()->whereNotNull('film_id')->with('film')->get();
         $grouped = $bookings->groupBy('film_id');
         $quorum = $this->quorum();
 
-        return $grouped->map(function ($items, $filmId) use ($quorum) {
+        $tallies = $grouped->map(function ($items, $filmId) use ($quorum) {
             $first = $items->first();
             $film = $first?->film;
             $seats = (int) $items->sum('seats_reserved');
@@ -251,6 +267,8 @@ class Session extends Model
                 'needed_seats' => max(0, $quorum - $seats),
             ];
         })->sortByDesc('seats')->values();
+
+        return $this->_talliesCache = $tallies;
     }
 
     /**
@@ -514,10 +532,14 @@ class Session extends Model
 
     public function isCancelledByQuorum(): bool
     {
+        $hasOccupied = $this->relationLoaded('occupiedBookings')
+            ? $this->occupiedBookings->isNotEmpty()
+            : $this->occupiedBookings()->exists();
+
         return ! $this->isConfirmed()
             && (
                 str_contains((string) $this->resolution_notes, 'kuorum')
-                || ($this->occupiedBookings()->exists() && $this->isPastConfirmationDeadline() && ! $this->isCompleted())
+                || ($hasOccupied && $this->isPastConfirmationDeadline() && ! $this->isCompleted())
             );
     }
 

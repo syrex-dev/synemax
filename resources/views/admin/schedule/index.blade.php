@@ -472,15 +472,11 @@
                                                     <div>
                                                         <label class="block text-[11px] font-bold text-text mb-1">Pilih Sesi Tujuan:</label>
                                                         @php
-                                                            $targetSessionOptions = $sessions
-                                                                ->filter(fn ($s) => $s->id !== $session->id && $s->status === 'tersedia')
-                                                                ->mapWithKeys(fn ($s) => [
-                                                                    $s->id => \Carbon\Carbon::parse($s->session_date)->locale('id')->translatedFormat('D, d M') . ' · ' . substr((string) $s->start_time, 0, 5) . ' WIB (Sisa ' . $s->remainingSeats() . ' kursi)'
-                                                                ]);
+                                                            $currentSessionOptions = array_diff_key($targetSessionOptions ?? [], [$session->id => '']);
                                                         @endphp
                                                         <x-ui.select
                                                             name="target_session_id"
-                                                            :options="$targetSessionOptions"
+                                                            :options="$currentSessionOptions"
                                                             placeholder="Pilih Sesi Tujuan..."
                                                             required
                                                         />

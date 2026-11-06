@@ -144,14 +144,12 @@
                             Batch Impor ({{ number_format($films->total(), 0, ',', '.') }})
                         </a>
                     @endif
-                    @if ($trashedCount > 0 || $showTrash)
-                        <a
-                            href="{{ route('admin.films.index', ['trash' => 1]) }}"
-                            class="rounded-xl px-3 py-1.5 text-xs font-bold transition-colors {{ $showTrash ? 'bg-amber-500 text-slate-950' : 'text-text-muted hover:text-text bg-surface-2' }}"
-                        >
-                            Sampah ({{ number_format($trashedCount, 0, ',', '.') }})
-                        </a>
-                    @endif
+                    <a
+                        href="{{ route('admin.films.index', ['trash' => 1]) }}"
+                        class="rounded-xl px-3 py-1.5 text-xs font-bold transition-colors {{ $showTrash ? 'bg-amber-500 text-slate-950' : 'text-text-muted hover:text-text bg-surface-2' }}"
+                    >
+                        Sampah ({{ number_format($trashedCount, 0, ',', '.') }})
+                    </a>
                 </div>
 
                 {{-- Kolom Cari Judul Live Search --}}
@@ -365,6 +363,13 @@
                                                     Pulihkan
                                                 </button>
                                             </form>
+                                            <form method="POST" action="{{ route('admin.films.force_destroy', $film->id) }}" class="inline" onsubmit="return confirm('Hapus permanen film \'{{ addslashes($film->title) }}\' beserta berkas posternya dari penyimpanan STB? Tindakan ini tidak dapat dibatalkan.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-danger/40 bg-danger/10 px-2.5 py-1 text-xs font-bold text-danger hover:bg-danger hover:text-white transition-colors" title="Hapus permanen dari penyimpanan">
+                                                    Hapus Permanen
+                                                </button>
+                                            </form>
                                         @else
                                             <x-admin.action-menu
                                                 editUrl="{{ route('admin.films.edit', $film) }}"
@@ -435,12 +440,21 @@
                         <div class="flex items-center justify-between border-t border-border pt-3 text-xs">
                             <span class="text-text-muted truncate max-w-[150px]">{{ $film->synopsis ?: 'Belum ada sinopsis' }}</span>
                             @if ($film->trashed())
-                                <form method="POST" action="{{ route('admin.films.restore', $film->id) }}" class="inline">
-                                    @csrf
-                                    <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-slate-300 dark:border-white/20 bg-surface px-2.5 py-1 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition-colors">
-                                        Pulihkan
-                                    </button>
-                                </form>
+                                <div class="flex items-center gap-1.5">
+                                    <form method="POST" action="{{ route('admin.films.restore', $film->id) }}" class="inline">
+                                        @csrf
+                                        <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-slate-300 dark:border-white/20 bg-surface px-2.5 py-1 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition-colors">
+                                            Pulihkan
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ route('admin.films.force_destroy', $film->id) }}" class="inline" onsubmit="return confirm('Hapus permanen film \'{{ addslashes($film->title) }}\' beserta berkas posternya dari STB? Tindakan ini tidak dapat dibatalkan.');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-danger/40 bg-danger/10 px-2.5 py-1 text-xs font-bold text-danger hover:bg-danger hover:text-white transition-colors">
+                                            Hapus Permanen
+                                        </button>
+                                    </form>
+                                </div>
                             @else
                                 <x-admin.action-menu
                                     editUrl="{{ route('admin.films.edit', $film) }}"
@@ -490,7 +504,20 @@
                             <input type="hidden" name="film_ids[]" :value="id">
                         </template>
                         <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-success/40 bg-success/10 px-3 py-1.5 text-xs font-bold text-success hover:bg-success/20 transition-colors">
-                            Pulihkan Semua
+                            Pulihkan Terpilih
+                        </button>
+                    </form>
+
+                    <form method="POST" action="{{ route('admin.films.bulk_action') }}" class="inline" onsubmit="return confirm('Hapus permanen film terpilih beserta seluruh berkas posternya dari penyimpanan STB? Tindakan ini tidak dapat dibatalkan.');">
+                        @csrf
+                        <input type="hidden" name="action" value="force_delete">
+                        <input type="hidden" name="trash" value="1">
+                        <input type="hidden" name="select_all" :value="selectAllFiltered ? 1 : 0">
+                        <template x-for="id in selected" :key="'force-del-'+id">
+                            <input type="hidden" name="film_ids[]" :value="id">
+                        </template>
+                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-danger/40 bg-danger/10 px-3 py-1.5 text-xs font-bold text-danger hover:bg-danger/20 transition-colors">
+                            Hapus Permanen Terpilih
                         </button>
                     </form>
                 @else

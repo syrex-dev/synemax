@@ -13,6 +13,7 @@ use App\Services\BookingService;
 use App\Services\ScheduleResolver;
 use App\Services\SessionGenerationService;
 use App\Services\SnackOrderService;
+use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
@@ -31,7 +32,12 @@ class ScheduleController extends Controller
 
         $allSessions = Session::query()
             ->whereBetween('session_date', [$today->toDateString(), $today->addDays(13)->toDateString()])
-            ->with(['film', 'bookings.film', 'bookings.customerProfile', 'occupiedBookings'])
+            ->with([
+                'film:id,title,slug,duration_minutes,poster_path',
+                'occupiedBookings.film:id,title,slug',
+                'bookings.film:id,title,slug',
+                'bookings.customerProfile:id,name,phone',
+            ])
             ->withSum('occupiedBookings as occupied_seats', 'seats_reserved')
             ->orderBy('session_date')
             ->orderBy('start_time')
@@ -39,14 +45,23 @@ class ScheduleController extends Controller
 
         $sessionsByDate = $allSessions->groupBy('session_date');
 
+        // Precompute target session options in memory to avoid 10,000+ repeated N+1 queries in the loop
+        $targetSessionOptions = $allSessions
+            ->where('status', 'tersedia')
+            ->mapWithKeys(fn ($s) => [
+                $s->id => Carbon::parse($s->session_date)->locale('id')->translatedFormat('D, d M').' · '.substr((string) $s->start_time, 0, 5).' WIB (Sisa '.$s->remainingSeats().' kursi)',
+            ])
+            ->all();
+
         return view('admin.schedule.index', [
             'templates' => ScheduleTemplate::query()->orderBy('day_type')->orderBy('start_time')->get(),
             'holidays' => Holiday::query()->where('holiday_date', '>=', $today->toDateString())->orderBy('holiday_date')->get(),
             'blockedDates' => BlockedDate::query()->where('blocked_date', '>=', $today->toDateString())->with('session')->orderBy('blocked_date')->get(),
             'sessions' => $allSessions,
             'sessionsByDate' => $sessionsByDate,
+            'targetSessionOptions' => $targetSessionOptions,
             'todayDate' => $today->toDateString(),
-            'films' => Film::query()->where('is_active', true)->orderBy('title')->get(),
+            'films' => Film::query()->where('is_active', true)->select(['id', 'title'])->orderBy('title')->get(),
             'dayTypes' => [
                 'weekday' => 'Senin–Kamis',
                 'jumat' => 'Jumat',

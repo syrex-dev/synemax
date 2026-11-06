@@ -366,10 +366,91 @@ class FilmPosterController extends Controller
         $files = glob("{$dir}/*");
         if ($files) {
             foreach ($files as $f) {
-                @unlink($f);
+                if (is_dir($f)) {
+                    $this->deleteStagingDirectory($f);
+                } else {
+                    @unlink($f);
+                }
             }
         }
         @rmdir($dir);
+    }
+
+    /**
+     * Clean up abandoned temporary folders and orphaned poster files to free disk space on STB.
+     */
+    public function cleanStorage(Request $request): JsonResponse
+    {
+        $deletedTempFolders = 0;
+        $deletedOrphanPosters = 0;
+        $freedBytes = 0;
+
+        // 1. Clean up abandoned folders in storage/app/tmp_posters
+        $tmpDir = storage_path('app/tmp_posters');
+        if (is_dir($tmpDir)) {
+            $folders = glob($tmpDir.'/*', GLOB_ONLYDIR);
+            foreach ($folders ?: [] as $folder) {
+                $freedBytes += $this->getDirectorySize($folder);
+                $this->deleteStagingDirectory($folder);
+                $deletedTempFolders++;
+            }
+        }
+
+        // 2. Clean up any tmp_bulk_posters_* folders
+        $bulkDirs = glob(storage_path('app/tmp_bulk_posters_*'), GLOB_ONLYDIR);
+        foreach ($bulkDirs ?: [] as $bulkFolder) {
+            $freedBytes += $this->getDirectorySize($bulkFolder);
+            $this->deleteStagingDirectory($bulkFolder);
+            $deletedTempFolders++;
+        }
+
+        // 3. Clean up orphaned permanent poster files (not attached to any active or trashed film)
+        $allPosterPathsInDb = Film::withTrashed()
+            ->whereNotNull('poster_path')
+            ->where('poster_path', '!=', '')
+            ->pluck('poster_path')
+            ->map(fn ($p) => basename($p))
+            ->flip()
+            ->all();
+
+        $permanentFiles = Storage::disk('public')->files('posters');
+        foreach ($permanentFiles as $file) {
+            $base = basename($file);
+            if (! isset($allPosterPathsInDb[$base])) {
+                $size = Storage::disk('public')->size($file);
+                Storage::disk('public')->delete($file);
+                $freedBytes += $size;
+                $deletedOrphanPosters++;
+            }
+        }
+
+        $formattedFreed = round($freedBytes / 1024 / 1024, 2).' MB';
+
+        return response()->json([
+            'success' => true,
+            'deleted_temp_folders' => $deletedTempFolders,
+            'deleted_orphan_posters' => $deletedOrphanPosters,
+            'freed_bytes' => $freedBytes,
+            'freed_formatted' => $formattedFreed,
+            'message' => "Pembersihan berhasil! {$deletedTempFolders} folder berkas sementara dan {$deletedOrphanPosters} poster yatim dihapus. Ruang penyimpanan bebas: {$formattedFreed}.",
+        ]);
+    }
+
+    private function getDirectorySize(string $dir): int
+    {
+        $size = 0;
+        if (! is_dir($dir)) {
+            return 0;
+        }
+        foreach (scandir($dir) ?: [] as $file) {
+            if ($file === '.' || $file === '..') {
+                continue;
+            }
+            $path = $dir.'/'.$file;
+            $size += is_dir($path) ? $this->getDirectorySize($path) : (file_exists($path) ? filesize($path) : 0);
+        }
+
+        return $size;
     }
 
     /**

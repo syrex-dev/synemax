@@ -51,8 +51,8 @@
         </div>
     @endif
 
-    {{-- Ringkasan Metrik Poster --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    {{-- Ringkasan Metrik Poster & Pembersih Sampah Berkas --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div class="rounded-2xl border border-border bg-surface p-4 shadow-token">
             <p class="text-xs text-text-muted font-medium">Film Belum Memiliki Poster</p>
             <p class="text-2xl font-black text-text mt-1">{{ $filmsWithoutPoster->count() }}</p>
@@ -68,6 +68,67 @@
                 {{ count($unmatchedPosters) }}
             </p>
             <span class="text-[10px] text-text-muted">Gambar yang menunggu dipasangkan secara manual</span>
+        </div>
+        <div
+            class="rounded-2xl border border-border bg-surface p-4 shadow-token flex flex-col justify-between"
+            x-data="{
+                isCleaning: false,
+                async cleanStorage() {
+                    if (!confirm('Bersihkan seluruh berkas sementara upload ZIP/staged dan poster yang tidak terpakai dari penyimpanan STB?')) return;
+                    this.isCleaning = true;
+                    try {
+                        const res = await fetch('{{ route('admin.films.posters.cleanup_storage') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            if (typeof window.showToast === 'function') {
+                                window.showToast({ type: 'success', message: data.message });
+                            }
+                        } else {
+                            if (typeof window.showToast === 'function') {
+                                window.showToast({ type: 'error', message: data.message || 'Gagal membersihkan sampah berkas.' });
+                            }
+                        }
+                    } catch (e) {
+                        if (typeof window.showToast === 'function') {
+                            window.showToast({ type: 'error', message: 'Koneksi terputus: ' + e.message });
+                        }
+                    } finally {
+                        this.isCleaning = false;
+                    }
+                }
+            }"
+        >
+            <div>
+                <div class="flex items-center justify-between">
+                    <p class="text-xs text-text-muted font-medium">Kebersihan Penyimpanan STB</p>
+                    <a href="{{ route('admin.films.index', ['trash' => 1]) }}" class="text-[11px] font-bold text-amber-500 hover:underline">
+                        Kotak Sampah Film &rarr;
+                    </a>
+                </div>
+                <p class="text-xs font-semibold text-text mt-1">Sisa Upload & Poster Yatim</p>
+                <p class="text-[10px] text-text-muted mt-0.5">Bersihkan folder sementara hasil upload & poster tak terpakai agar memori 8 GB STB tetap lega.</p>
+            </div>
+            <div class="pt-2">
+                <button
+                    type="button"
+                    @click="cleanStorage()"
+                    :disabled="isCleaning"
+                    class="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-surface-2 hover:bg-surface-2/80 px-3 py-1.5 text-xs font-bold text-text transition disabled:opacity-50"
+                >
+                    <svg class="size-3.5 text-amber-500" :class="isCleaning ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span x-text="isCleaning ? 'Membersihkan...' : 'Bersihkan Sampah Berkas'"></span>
+                </button>
+            </div>
         </div>
     </div>
 
