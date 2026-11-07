@@ -31,10 +31,19 @@ use Illuminate\Support\Str;
     'director',
     'casts',
     'language',
+    'custom_badge',
 ])]
 class Film extends Model
 {
     use SoftDeletes;
+
+    /**
+     * Check whether film has a custom promotional/informative badge.
+     */
+    public function hasCustomBadge(): bool
+    {
+        return filled($this->custom_badge);
+    }
 
     /**
      * Dynamic canonical genres from database.

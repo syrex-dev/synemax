@@ -102,6 +102,7 @@
                     'duration_minutes' => $f->duration_minutes,
                     'age_rating' => $f->age_rating,
                     'poster_url' => $f->posterUrl(),
+                    'custom_badge' => $f->custom_badge,
                     'url' => route('films.show', $f->slug ?: $f->id),
                 ])) }},
                 get filteredFilms() {
@@ -171,6 +172,13 @@
                             <div class="absolute top-2 right-2 z-10" x-show="film.age_rating">
                                 <span class="inline-flex items-center rounded-md bg-black/80 px-1.5 py-0.5 text-[10px] font-black text-white border border-white/20" x-text="film.age_rating"></span>
                             </div>
+
+                            {{-- Custom Pin Badge (Contoh: Baru Ditambahkan, Trending, dll) --}}
+                            <template x-if="film.custom_badge">
+                                <div class="absolute bottom-2 inset-x-0 flex justify-center px-2 z-10 pointer-events-none">
+                                    <span class="inline-flex items-center justify-center bg-[#E50914] text-white font-black text-[10px] sm:text-xs px-2.5 py-0.5 rounded shadow-md truncate max-w-full drop-shadow-md select-none border border-white/20" x-text="film.custom_badge"></span>
+                                </div>
+                            </template>
                         </div>
 
                         {{-- Metadata Below Poster: 2 lines max title + meta --}}

@@ -8,6 +8,7 @@
             return {
                 trailerUrl: @js(old('trailer_url', $film->trailer_url ?? '')),
                 filmTitle: @js(old('title', $film->title ?? '')),
+                customBadge: @js(old('custom_badge', $film->custom_badge ?? '')),
                 trailerError: '',
                 get youtubeId() {
                     if (!this.trailerUrl) return null;
@@ -537,6 +538,123 @@
                     @error('poster')
                         <p class="mt-1.5 text-xs text-red-500 font-semibold">{{ $message }}</p>
                     @enderror
+                </div>
+
+                {{-- Pengaturan Pin / Badge Khusus Poster Film --}}
+                <div class="pt-3 border-t border-border space-y-4">
+                    <div>
+                        <label for="custom_badge" class="block text-xs font-bold uppercase tracking-wider text-text">
+                            Label Pin / Badge Poster (Tampil di Publik & Admin)
+                        </label>
+                        <p class="mt-1 text-xs text-text-muted">
+                            Beri label mencolok warna merah di sisi bawah poster film (contoh: "Baru Ditambahkan", "Trending", "Segera Hadir", dll). Kosongkan jika tanpa pin.
+                        </p>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="text-xs font-semibold text-text-muted">Pilihan Cepat:</span>
+                            <button
+                                type="button"
+                                @click="customBadge = 'Baru Ditambahkan'"
+                                class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all shadow-xs"
+                                :class="customBadge === 'Baru Ditambahkan' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                            >
+                                <span>🔥 Baru Ditambahkan</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="customBadge = 'Trending'"
+                                class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all shadow-xs"
+                                :class="customBadge === 'Trending' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                            >
+                                <span>⚡ Trending</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="customBadge = 'Segera Hadir'"
+                                class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all shadow-xs"
+                                :class="customBadge === 'Segera Hadir' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                            >
+                                <span>⏳ Segera Hadir</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="customBadge = 'Eksklusif'"
+                                class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all shadow-xs"
+                                :class="customBadge === 'Eksklusif' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                            >
+                                <span>⭐ Eksklusif</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="customBadge = 'Favorit'"
+                                class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all shadow-xs"
+                                :class="customBadge === 'Favorit' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                            >
+                                <span>❤️ Favorit</span>
+                            </button>
+                            <button
+                                type="button"
+                                x-show="customBadge && customBadge.length > 0"
+                                @click="customBadge = ''"
+                                class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold text-danger hover:underline transition-all"
+                            >
+                                <span>✕ Hapus Pin (Kosongkan)</span>
+                            </button>
+                        </div>
+
+                        <div class="grid gap-4 sm:grid-cols-3 items-start">
+                            <div class="sm:col-span-2">
+                                <div class="relative">
+                                    <input
+                                        id="custom_badge"
+                                        name="custom_badge"
+                                        x-model="customBadge"
+                                        maxlength="50"
+                                        placeholder="Ketik teks pin khusus atau klik tombol cepat di atas..."
+                                        class="min-h-[44px] w-full rounded-xl border border-border bg-surface text-text px-3.5 text-sm placeholder:text-text-muted focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-colors"
+                                    >
+                                    <button
+                                        type="button"
+                                        x-show="customBadge && customBadge.length > 0"
+                                        @click="customBadge = ''"
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text p-1"
+                                        title="Kosongkan"
+                                    >
+                                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                                @error('custom_badge')
+                                    <p class="mt-1 text-xs text-red-500 font-semibold">{{ $message }}</p>
+                                @enderror
+                                <p class="mt-1.5 text-[11px] text-text-muted">
+                                    Maksimal 50 karakter. Teks akan tampil dalam bentuk badge merah kontras di sisi bawah kartu poster.
+                                </p>
+                            </div>
+
+                            {{-- Live Preview Box --}}
+                            <div class="rounded-xl border border-border bg-surface-2 p-3 text-center flex flex-col items-center justify-center">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-text-muted mb-2">Pratinjau Pin Poster</span>
+                                <div class="relative w-28 aspect-[2/3] rounded-lg overflow-hidden border border-border bg-slate-900 shadow-sm flex items-center justify-center">
+                                    @if ($film->poster_path)
+                                        <img src="{{ $film->posterUrl() }}" alt="Poster" class="size-full object-cover">
+                                    @else
+                                        <div class="p-2 text-center text-text-muted text-[10px] leading-tight">Poster Film</div>
+                                    @endif
+
+                                    <template x-if="customBadge && customBadge.trim() !== ''">
+                                        <div class="absolute bottom-1.5 inset-x-0 flex justify-center px-1 z-10 pointer-events-none">
+                                            <span class="inline-flex items-center justify-center bg-[#E50914] text-white font-black text-[9px] px-2 py-0.5 rounded shadow-md truncate max-w-full drop-shadow-md border border-white/20 select-none" x-text="customBadge"></span>
+                                        </div>
+                                    </template>
+                                    <template x-if="!customBadge || customBadge.trim() === ''">
+                                        <span class="absolute bottom-1.5 text-[8px] text-text-muted italic bg-black/60 px-1.5 py-0.5 rounded">Tanpa Pin</span>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- Pengaturan Lanjutan (Sutradara, Pemeran, Bahasa) --}}

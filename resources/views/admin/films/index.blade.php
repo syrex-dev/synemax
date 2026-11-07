@@ -306,17 +306,27 @@
                                 </td>
                                 <td class="col-title-flex">
                                     <div class="flex items-center gap-3">
-                                        @if ($film->poster_path)
-                                            <img src="{{ $film->posterUrl() }}" alt="{{ $film->title }}" class="h-16 w-11 shrink-0 rounded-lg object-cover border border-border">
-                                        @else
-                                            <div class="flex h-16 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-2 text-[9px] font-semibold text-text-muted uppercase text-center p-1 leading-tight">
-                                                Tanpa poster
-                                            </div>
-                                        @endif
+                                        <div class="relative shrink-0">
+                                            @if ($film->poster_path)
+                                                <img src="{{ $film->posterUrl() }}" alt="{{ $film->title }}" class="h-16 w-11 shrink-0 rounded-lg object-cover border border-border">
+                                            @else
+                                                <div class="flex h-16 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-2 text-[9px] font-semibold text-text-muted uppercase text-center p-1 leading-tight">
+                                                    Tanpa poster
+                                                </div>
+                                            @endif
+                                            <x-cinema.poster-badge :badge="$film->custom_badge" size="xs" />
+                                        </div>
                                         <div class="min-w-0 flex-1">
-                                            <a href="{{ route('admin.films.edit', $film) }}" class="font-bold text-text hover:text-amber-500 line-clamp-2 leading-snug" title="{{ $film->title }}">
-                                                {{ $film->title }}
-                                            </a>
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <a href="{{ route('admin.films.edit', $film) }}" class="font-bold text-text hover:text-amber-500 line-clamp-2 leading-snug" title="{{ $film->title }}">
+                                                    {{ $film->title }}
+                                                </a>
+                                                @if ($film->custom_badge)
+                                                    <span class="inline-flex items-center rounded bg-[#E50914] px-1.5 py-0.5 text-[9px] font-black text-white border border-white/20 shadow-2xs tracking-wide">
+                                                        {{ $film->custom_badge }}
+                                                    </span>
+                                                @endif
+                                            </div>
                                             <p class="mt-0.5 line-clamp-1 text-xs text-text-muted">
                                                 {{ $film->synopsis ?: 'Belum ada sinopsis (perlu dilengkapi).' }}
                                             </p>
@@ -401,17 +411,27 @@
                                 aria-label="Pilih film {{ $film->title }}"
                                 class="mt-1 rounded border-border text-amber-500 focus:ring-amber-500"
                             >
-                            @if ($film->poster_path)
-                                <img src="{{ $film->posterUrl() }}" alt="{{ $film->title }}" class="h-20 w-14 shrink-0 rounded-lg object-cover border border-border">
-                            @else
-                                <div class="flex h-20 w-14 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-2 text-[9px] font-semibold text-text-muted uppercase text-center p-1 leading-tight">
-                                    Tanpa poster
-                                </div>
-                            @endif
+                            <div class="relative shrink-0">
+                                @if ($film->poster_path)
+                                    <img src="{{ $film->posterUrl() }}" alt="{{ $film->title }}" class="h-20 w-14 shrink-0 rounded-lg object-cover border border-border">
+                                @else
+                                    <div class="flex h-20 w-14 shrink-0 items-center justify-center rounded-lg border border-border bg-surface-2 text-[9px] font-semibold text-text-muted uppercase text-center p-1 leading-tight">
+                                        Tanpa poster
+                                    </div>
+                                @endif
+                                <x-cinema.poster-badge :badge="$film->custom_badge" size="xs" />
+                            </div>
                             <div class="min-w-0 flex-1">
-                                <a href="{{ route('admin.films.edit', $film) }}" class="font-bold text-text hover:text-amber-500 leading-snug">
-                                    {{ $film->title }}
-                                </a>
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <a href="{{ route('admin.films.edit', $film) }}" class="font-bold text-text hover:text-amber-500 leading-snug">
+                                        {{ $film->title }}
+                                    </a>
+                                    @if ($film->custom_badge)
+                                        <span class="inline-flex items-center rounded bg-[#E50914] px-1.5 py-0.5 text-[9px] font-black text-white border border-white/20 shadow-2xs tracking-wide">
+                                            {{ $film->custom_badge }}
+                                        </span>
+                                    @endif
+                                </div>
                                 <p class="mt-0.5 text-xs text-text-muted">{{ $film->genre }} · {{ $film->release_year ?: '-' }} · {{ $film->duration_minutes }}m</p>
                                 <div class="mt-2 flex items-center gap-2">
                                     <span class="inline-flex items-center rounded-md bg-slate-200 dark:bg-white/10 px-2 py-0.5 text-[10px] font-bold text-text">
@@ -567,6 +587,16 @@
                         class="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface-2 px-3 py-1.5 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition-colors"
                     >
                         Kelola Genre
+                    </button>
+
+                    {{-- Beri Pin Poster --}}
+                    <button
+                        type="button"
+                        @click="badgeModalOpen = true"
+                        class="inline-flex items-center gap-1.5 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-colors"
+                        title="Pasang atau ubah pin badge pada film terpilih"
+                    >
+                        <span>🔥 Pin Poster</span>
                     </button>
 
                     {{-- Hapus (Pindahkan ke Sampah) --}}
@@ -728,6 +758,126 @@
             </div>
         </div>
 
+        {{-- Modal In-App: Atur Pin Poster Massal --}}
+        <div
+            x-show="badgeModalOpen"
+            x-cloak
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+        >
+            <div
+                @click.outside="badgeModalOpen = false"
+                class="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl space-y-4"
+            >
+                <div>
+                    <h3 class="text-base font-bold text-text">Atur Pin Poster Massal</h3>
+                    <p class="text-xs text-text-muted mt-0.5">
+                        Pasang pin badge warna merah pada poster untuk <span class="font-bold text-text" x-text="selectAllFiltered ? totalFilms : selected.length"></span> film terpilih.
+                    </p>
+                </div>
+
+                <form method="POST" action="{{ route('admin.films.bulk_action') }}" class="space-y-4">
+                    @csrf
+                    <input type="hidden" name="action" value="set_badge">
+                    <input type="hidden" name="filter" value="{{ $filter }}">
+                    <input type="hidden" name="q" :value="searchQuery">
+                    <input type="hidden" name="select_all" :value="selectAllFiltered ? 1 : 0">
+                    <template x-for="id in selected" :key="'badge-'+id">
+                        <input type="hidden" name="film_ids[]" :value="id">
+                    </template>
+
+                    {{-- Quick Presets --}}
+                    <div class="space-y-2">
+                        <label class="block text-xs font-bold text-text">Pilihan Cepat:</label>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button
+                                type="button"
+                                @click="bulkBadgeValue = 'Baru Ditambahkan'"
+                                class="rounded-full px-2.5 py-1 text-xs font-bold transition shadow-xs"
+                                :class="bulkBadgeValue === 'Baru Ditambahkan' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                            >
+                                🔥 Baru Ditambahkan
+                            </button>
+                            <button
+                                type="button"
+                                @click="bulkBadgeValue = 'Trending'"
+                                class="rounded-full px-2.5 py-1 text-xs font-bold transition shadow-xs"
+                                :class="bulkBadgeValue === 'Trending' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                            >
+                                ⚡ Trending
+                            </button>
+                            <button
+                                type="button"
+                                @click="bulkBadgeValue = 'Segera Hadir'"
+                                class="rounded-full px-2.5 py-1 text-xs font-bold transition shadow-xs"
+                                :class="bulkBadgeValue === 'Segera Hadir' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                            >
+                                ⏳ Segera Hadir
+                            </button>
+                            <button
+                                type="button"
+                                @click="bulkBadgeValue = 'Eksklusif'"
+                                class="rounded-full px-2.5 py-1 text-xs font-bold transition shadow-xs"
+                                :class="bulkBadgeValue === 'Eksklusif' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                            >
+                                ⭐ Eksklusif
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="bulk_custom_badge" class="block text-xs font-bold text-text mb-1">
+                            Teks Pin Poster
+                        </label>
+                        <input
+                            id="bulk_custom_badge"
+                            name="custom_badge"
+                            x-model="bulkBadgeValue"
+                            maxlength="50"
+                            placeholder="Contoh: Baru Ditambahkan"
+                            class="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                        >
+                    </div>
+
+                    <div class="flex items-center justify-between pt-3 border-t border-border">
+                        <button
+                            type="button"
+                            @click="$refs.clearBadgeForm.submit()"
+                            class="text-xs font-bold text-danger hover:underline"
+                        >
+                            ✕ Hapus Pin (Kosongkan)
+                        </button>
+
+                        <div class="flex items-center gap-2">
+                            <button
+                                type="button"
+                                @click="badgeModalOpen = false"
+                                class="px-4 py-2 rounded-xl border border-border text-xs font-semibold text-text-muted hover:text-text"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="submit"
+                                class="px-5 py-2 rounded-xl bg-red-600 text-xs font-bold text-white hover:bg-red-500 transition shadow-sm"
+                            >
+                                Terapkan Pin
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <form x-ref="clearBadgeForm" method="POST" action="{{ route('admin.films.bulk_action') }}" class="hidden">
+                    @csrf
+                    <input type="hidden" name="action" value="clear_badge">
+                    <input type="hidden" name="filter" value="{{ $filter }}">
+                    <input type="hidden" name="q" :value="searchQuery">
+                    <input type="hidden" name="select_all" :value="selectAllFiltered ? 1 : 0">
+                    <template x-for="id in selected" :key="'clear-badge-'+id">
+                        <input type="hidden" name="film_ids[]" :value="id">
+                    </template>
+                </form>
+            </div>
+        </div>
+
         {{-- Modal Ekspor CSV --}}
         <div
             x-show="exportModalOpen"
@@ -839,6 +989,8 @@
             selectAllFiltered: false,
             ratingModalOpen: false,
             genreModalOpen: false,
+            badgeModalOpen: false,
+            bulkBadgeValue: 'Baru Ditambahkan',
             exportModalOpen: false,
             showUndoToast: Boolean(config.undoBatchId),
             undoCountdown: 8,

@@ -70,6 +70,7 @@
                         <span class="text-xs font-bold text-amber-200/90">{{ $film->title }}</span>
                     </div>
                 @endif
+                <x-cinema.poster-badge :badge="$film->custom_badge" size="md" />
             </div>
 
             {{-- Info & Chips Desktop --}}
@@ -169,6 +170,7 @@
                             <span class="text-[10px] font-bold text-amber-200/90 line-clamp-3">{{ $film->title }}</span>
                         </div>
                     @endif
+                    <x-cinema.poster-badge :badge="$film->custom_badge" size="xs" />
                 </div>
 
                 {{-- Info & Chips Mobile --}}
@@ -396,6 +398,7 @@
                                     {{ $other->age_rating }}
                                 </span>
                             @endif
+                            <x-cinema.poster-badge :badge="$other->custom_badge" size="sm" />
                         </div>
                         <div class="p-3">
                             <h3 class="text-xs font-black text-text line-clamp-1 group-hover:text-amber-500">{{ $other->title }}</h3>

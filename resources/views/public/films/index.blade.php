@@ -170,6 +170,9 @@
                                     {{ $film->age_rating }}
                                 </span>
                             @endif
+
+                            {{-- Custom Pin Badge (Contoh: Baru Ditambahkan, dll) --}}
+                            <x-cinema.poster-badge :badge="$film->custom_badge" />
                         </div>
 
                         {{-- Title, Genre & Year Details --}}

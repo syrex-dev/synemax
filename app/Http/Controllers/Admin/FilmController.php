@@ -213,7 +213,7 @@ class FilmController extends Controller
     public function bulkAction(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'action' => ['required', 'string', 'in:activate,deactivate,delete,restore,force_delete,set_rating,add_genre,replace_genre'],
+            'action' => ['required', 'string', 'in:activate,deactivate,delete,restore,force_delete,set_rating,add_genre,replace_genre,set_badge,clear_badge'],
             'film_ids' => ['nullable', 'array'],
             'film_ids.*' => ['integer'],
             'select_all' => ['nullable', 'boolean'],
@@ -222,6 +222,7 @@ class FilmController extends Controller
             'batch_id' => ['nullable', 'string'],
             'age_rating' => ['nullable', 'string', 'max:8', Rule::exists('age_ratings', 'code')],
             'genre' => ['nullable', 'string'],
+            'custom_badge' => ['nullable', 'string', 'max:50'],
         ], [
             'action.in' => 'Aksi yang dipilih tidak valid.',
         ]);
@@ -295,10 +296,17 @@ class FilmController extends Controller
                         $film->update(['genre' => implode(', ', $existingGenres), 'is_sample' => false]);
                     }
                     $count++;
+                } elseif ($action === 'set_badge') {
+                    $film->update(['custom_badge' => ! empty($validated['custom_badge']) ? trim($validated['custom_badge']) : null, 'is_sample' => false]);
+                    $count++;
+                } elseif ($action === 'clear_badge') {
+                    $film->update(['custom_badge' => null, 'is_sample' => false]);
+                    $count++;
                 }
             }
         });
 
+        $badgeLabel = $request->input('custom_badge') ?: 'Pin';
         $messages = [
             'activate' => "{$count} film berhasil ditampilkan.",
             'deactivate' => "{$count} film berhasil disembunyikan.",
@@ -308,6 +316,8 @@ class FilmController extends Controller
             'set_rating' => "Klasifikasi usia {$count} film berhasil diatur ke '{$request->input('age_rating')}'.",
             'add_genre' => "Genre berhasil ditambahkan ke {$count} film.",
             'replace_genre' => "Genre {$count} film berhasil diperbarui.",
+            'set_badge' => "Pin poster '{$badgeLabel}' berhasil dipasang pada {$count} film.",
+            'clear_badge' => "Pin poster berhasil dihapus dari {$count} film.",
         ];
 
         return back()->with('status', $messages[$action] ?? "Aksi massal berhasil diterapkan pada {$count} film.");
@@ -379,6 +389,7 @@ class FilmController extends Controller
             'director' => ['nullable', 'string', 'max:180'],
             'casts' => ['nullable', 'string', 'max:1000'],
             'language' => ['nullable', 'string', 'max:100'],
+            'custom_badge' => ['nullable', 'string', 'max:50'],
             'license_notes' => ['nullable', 'string', 'max:3000'],
             'is_active' => ['required', 'boolean'],
             'poster' => [

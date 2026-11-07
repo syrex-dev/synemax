@@ -91,6 +91,9 @@
             {{ $film->duration_minutes }}m
         </span>
 
+        {{-- Custom Pin Badge (Contoh: Baru Ditambahkan, Trending, dll) --}}
+        <x-cinema.poster-badge :badge="$film->custom_badge" size="sm" />
+
         {{-- Hover/Tap Overlay --}}
         <div class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/80 p-3 opacity-0 backdrop-blur-xs transition duration-200 group-hover:opacity-100 focus-within:opacity-100">
             @if ($isComingSoon)
