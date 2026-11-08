@@ -314,7 +314,7 @@
                                 </div>
                             </td>
                             <td class="px-4 py-3 text-center font-bold text-text">
-                                {{ $member->valid_visits_count ?? $member->totalValidVisits() }}
+                                {{ $member->totalVisits() }}
                             </td>
                             <td class="px-4 py-3 text-text-muted">
                                 @if ($lastVisit && $lastVisit->created_at)

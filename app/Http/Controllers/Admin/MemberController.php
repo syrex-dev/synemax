@@ -257,6 +257,20 @@ class MemberController extends Controller
 
     public function update(Request $request, Member $member, WebpImageProcessor $images): RedirectResponse
     {
+        if ($request->has('total_visits')) {
+            $raw = $request->input('total_visits');
+            if (is_string($raw) && preg_match('/^\s*(\d+)/', $raw, $m)) {
+                $request->merge(['total_visits' => (int) $m[1]]);
+            } elseif ($raw === '' || $raw === null) {
+                $request->merge(['total_visits' => 0]);
+            }
+        } elseif ($request->has('opening_visits')) {
+            $raw = $request->input('opening_visits');
+            if (is_string($raw) && preg_match('/^\s*(\d+)/', $raw, $m)) {
+                $request->merge(['total_visits' => (int) $m[1] + $member->totalValidVisits()]);
+            }
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:80'],
             'nickname' => ['nullable', 'string', 'max:50'],
@@ -264,12 +278,17 @@ class MemberController extends Controller
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,webp,jpg', 'max:2048'],
             'remove_photo' => ['nullable', 'boolean'],
             'status' => ['required', 'string', 'in:aktif,nonaktif,diblokir'],
+            'total_visits' => ['nullable', 'integer', 'min:0', 'max:999'],
         ], [
             'name.required' => 'Nama member wajib diisi.',
             'name.max' => 'Nama member maksimal 80 karakter.',
+            'total_visits.integer' => 'Total kunjungan harus berupa angka bulat.',
+            'total_visits.min' => 'Total kunjungan minimal 0.',
+            'total_visits.max' => 'Total kunjungan maksimal 999.',
         ]);
 
-        $oldValues = $member->only(['name', 'nickname', 'notes', 'status', 'photo_path']);
+        $oldValues = $member->only(['name', 'nickname', 'notes', 'status', 'photo_path', 'opening_visits']);
+        $oldTotal = $member->totalVisits();
 
         $photoPath = $member->photo_path;
         if ($request->boolean('remove_photo')) {
@@ -284,22 +303,38 @@ class MemberController extends Controller
             $photoPath = $images->storeSquare($request->file('photo'), 'members', 400);
         }
 
-        $member->update([
-            'name' => trim($validated['name']),
-            'nickname' => filled($validated['nickname'] ?? null) ? trim($validated['nickname']) : null,
-            'notes' => filled($validated['notes'] ?? null) ? trim($validated['notes']) : null,
-            'photo_path' => $photoPath,
-            'status' => $validated['status'],
-            'is_active' => ($validated['status'] === 'aktif'),
-        ]);
+        if ($request->has('total_visits')) {
+            $newTotal = max(0, (int) $request->input('total_visits', 0));
+            $actualVisits = $member->validVisits()->count();
+
+            if ($newTotal >= $actualVisits) {
+                $member->opening_visits = $newTotal - $actualVisits;
+            } else {
+                $toDeactivate = $actualVisits - $newTotal;
+                $member->validVisits()
+                    ->latest('id')
+                    ->take($toDeactivate)
+                    ->update(['active' => 0]);
+
+                $member->opening_visits = 0;
+            }
+        }
+
+        $member->name = trim($validated['name']);
+        $member->nickname = filled($validated['nickname'] ?? null) ? trim($validated['nickname']) : null;
+        $member->notes = filled($validated['notes'] ?? null) ? trim($validated['notes']) : null;
+        $member->photo_path = $photoPath;
+        $member->status = $validated['status'];
+        $member->is_active = ($validated['status'] === 'aktif');
+        $member->save();
 
         $member->events()->create([
             'user_id' => $request->user()?->id,
             'event' => 'updated',
             'event_type' => 'updated',
             'meta' => [
-                'before' => $oldValues,
-                'after' => $member->only(['name', 'nickname', 'notes', 'status', 'photo_path']),
+                'before' => array_merge($oldValues, ['total_visits' => $oldTotal]),
+                'after' => array_merge($member->only(['name', 'nickname', 'notes', 'status', 'photo_path', 'opening_visits']), ['total_visits' => $member->totalVisits()]),
             ],
             'ip' => $request->ip(),
             'created_at' => now(),

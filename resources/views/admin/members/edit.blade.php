@@ -102,6 +102,31 @@
                 @endif
             </div>
 
+            {{-- Total Kunjungan Member --}}
+            <div>
+                <label for="total_visits" class="block text-xs font-semibold text-text-muted mb-1.5">
+                    Total Kunjungan Member <span class="text-amber-500">*</span>
+                </label>
+                <div class="relative">
+                    <input
+                        type="number"
+                        id="total_visits"
+                        name="total_visits"
+                        min="0"
+                        max="999"
+                        value="{{ old('total_visits', $member->totalVisits()) }}"
+                        required
+                        class="w-full min-h-[44px] rounded-xl border {{ $errors->has('total_visits') ? 'border-red-500' : 'border-border' }} bg-surface-2 px-3.5 text-sm font-bold text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
+                    >
+                </div>
+                <p class="text-[11px] text-text-muted mt-1">
+                    Sesuaikan jumlah stempel / kunjungan member secara manual (misal: kartu fisik lama atau penyesuaian saldo).
+                    @if ($member->validVisits()->count() > 0)
+                        <span class="text-text font-medium">({{ $member->validVisits()->count() }} kunjungan berasal dari scan sistem).</span>
+                    @endif
+                </p>
+            </div>
+
             {{-- Status --}}
             <div>
                 <label for="status" class="block text-xs font-semibold text-text-muted mb-1.5">

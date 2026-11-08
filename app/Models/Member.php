@@ -87,16 +87,25 @@ class Member extends Model
         return $this->validVisits()->count();
     }
 
+    public function totalVisits(): int
+    {
+        $validCount = isset($this->valid_visits_count)
+            ? (int) $this->valid_visits_count
+            : $this->totalValidVisits();
+
+        return (int) $this->opening_visits + $validCount;
+    }
+
     public function currentCycle(int $cycleMax = 10): int
     {
-        $total = (int) $this->opening_visits + $this->totalValidVisits();
+        $total = $this->totalVisits();
 
         return intdiv($total, $cycleMax) + 1;
     }
 
     public function nextVisitPosition(int $cycleMax = 10): int
     {
-        $total = (int) $this->opening_visits + $this->totalValidVisits();
+        $total = $this->totalVisits();
 
         return ($total % $cycleMax) + 1;
     }

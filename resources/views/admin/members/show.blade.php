@@ -215,7 +215,7 @@
                 <p class="text-xs text-text-muted mt-0.5">{{ $member->progressDescription($settings) }}</p>
             </div>
             <div class="text-xs font-semibold text-text-muted">
-                Total Kunjungan Sah: <strong class="text-text font-bold">{{ $member->totalValidVisits() }}</strong> (Siklus {{ $member->currentCycle($cycleMax) }})
+                Total Kunjungan: <strong class="text-text font-bold">{{ $member->totalVisits() }}</strong> (Siklus {{ $member->currentCycle($cycleMax) }})
             </div>
         </div>
 

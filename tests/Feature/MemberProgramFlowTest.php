@@ -644,4 +644,49 @@ class MemberProgramFlowTest extends TestCase
             'status' => 'aktif',
         ]);
     }
+
+    /**
+     * 13. Test member edit form displays and updates total visits.
+     */
+    public function test_member_edit_form_and_update_adjusts_total_visits(): void
+    {
+        $this->actingAs($this->admin);
+
+        $member = Member::create([
+            'code' => 'MBR-EDIT-VIS1-A',
+            'member_code' => 'MBR-EDIT-VIS1-A',
+            'name' => 'Member Adit',
+            'nickname' => 'Adit',
+            'opening_visits' => 0,
+            'status' => 'aktif',
+            'is_active' => true,
+        ]);
+
+        // 1. Check edit view contains input for total_visits with current value 0
+        $editView = $this->get(route('admin.members.edit', $member));
+        $editView->assertOk();
+        $editView->assertSee('name="total_visits"', false);
+        $editView->assertSee('value="0"', false);
+
+        // 2. Update member total_visits to 5
+        $res = $this->put(route('admin.members.update', $member), [
+            'name' => 'Member Adit',
+            'nickname' => 'Adit',
+            'total_visits' => 5,
+            'status' => 'aktif',
+        ]);
+
+        $res->assertSessionHasNoErrors();
+        $res->assertRedirect(route('admin.members.show', $member));
+
+        $member->refresh();
+        $this->assertSame(5, $member->totalVisits());
+        $this->assertSame(5, $member->opening_visits);
+
+        // 3. Verify event audit log has before and after total_visits
+        $event = $member->events()->latest('id')->first();
+        $this->assertNotNull($event);
+        $this->assertSame(0, $event->meta['before']['total_visits']);
+        $this->assertSame(5, $event->meta['after']['total_visits']);
+    }
 }
