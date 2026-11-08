@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Banner;
 use App\Models\Booking;
 use App\Models\Film;
+use App\Models\MemberReward;
 use App\Models\Promo;
 use App\Models\Session;
 use App\Services\CinemaSettings;
@@ -36,6 +37,8 @@ class DashboardController extends Controller
                 'occupiedBookings',
                 'bookings as pending_booking_count' => fn ($query) => $query
                     ->where('status', 'menunggu_konfirmasi'),
+                'memberVisits as member_visits_count' => fn ($query) => $query
+                    ->where('active', 1),
             ])
             ->withSum(['occupiedBookings as viewer_count' => $activeBookings], 'seats_reserved')
             ->orderBy('start_time')
@@ -111,6 +114,29 @@ class DashboardController extends Controller
             ->count();
 
         $actionItems = collect();
+
+        $pendingRefundCashCount = MemberReward::where('status', 'pending')->where('settlement', 'refund_cash')->count();
+        if ($pendingRefundCashCount > 0) {
+            $actionItems->push([
+                'type' => 'member_refund',
+                'level' => 'critical',
+                'urgency_score' => 0.5,
+                'title' => $pendingRefundCashCount.' pengembalian tunai reward member belum selesai',
+                'url' => route('admin.members.index'),
+            ]);
+        }
+
+        $pendingMemberRewardsCount = MemberReward::where('status', 'pending')->count();
+        if ($pendingMemberRewardsCount > 0) {
+            $actionItems->push([
+                'type' => 'member_reward',
+                'level' => 'warning',
+                'urgency_score' => 1.5,
+                'title' => $pendingMemberRewardsCount.' reward member belum diselesaikan',
+                'url' => route('admin.members.index'),
+            ]);
+        }
+
         if ($urgentWaitingBookings > 0) {
             $actionItems->push([
                 'type' => 'booking_urgent',

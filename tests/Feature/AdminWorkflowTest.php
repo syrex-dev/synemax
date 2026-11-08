@@ -106,7 +106,7 @@ class AdminWorkflowTest extends TestCase
 
         $this->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('2 kursi terpesan')
+            ->assertSee('2 orang terpesan')
             ->assertSee('1 booking')
             ->assertSee('1 booking menunggu')
             ->assertSee('Persiapan jajan')
@@ -177,7 +177,7 @@ class AdminWorkflowTest extends TestCase
 
         $this->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('6 kursi terpesan');
+            ->assertSee('6 orang terpesan');
         $this->get(route('admin.reports.index', ['date' => '2026-10-13']))
             ->assertOk()
             ->assertViewHas('viewers', 6);

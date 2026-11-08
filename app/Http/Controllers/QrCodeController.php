@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\Member;
 use BaconQrCode\Common\ErrorCorrectionLevel;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
@@ -27,10 +28,11 @@ class QrCodeController extends Controller
             abort(422, 'Format kode booking tidak valid.');
         }
 
-        // 3. Cegah penggunaan sebagai generator QR teks bebas: harus berupa kode booking valid di sistem
+        // 3. Cegah penggunaan sebagai generator QR teks bebas: harus berupa kode booking atau member valid di sistem
         $bookingExists = Booking::query()->where('code', $data)->exists();
-        if (! $bookingExists) {
-            abort(404, 'Kode booking tidak ditemukan di sistem.');
+        $memberExists = Member::query()->where('code', $data)->orWhere('member_code', $data)->exists();
+        if (! $bookingExists && ! $memberExists) {
+            abort(404, 'Kode booking atau ID member tidak ditemukan di sistem.');
         }
 
         $size = min(max((int) $request->query('size', 150), 64), 512);

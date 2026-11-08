@@ -994,6 +994,31 @@ class CinemaSettings
         ];
     }
 
+    public function isMemberProgramEnabled(): bool
+    {
+        return $this->boolean('member_program_enabled', true);
+    }
+
+    public function memberDiscountVisit(): int
+    {
+        return $this->integer('member_discount_visit', 5);
+    }
+
+    public function memberDiscountAmount(): int
+    {
+        return $this->integer('member_discount_amount', 2000);
+    }
+
+    public function memberFreeVisit(): int
+    {
+        return $this->integer('member_free_visit', 10);
+    }
+
+    public function memberMaxVisitsPerDay(): int
+    {
+        return $this->integer('member_max_visits_per_day', 2);
+    }
+
     public static function __callStatic(string $method, array $parameters): mixed
     {
         return app(self::class)->$method(...$parameters);

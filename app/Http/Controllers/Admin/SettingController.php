@@ -130,6 +130,8 @@ class SettingController extends Controller
                 $tab = 'seo';
             } elseif ($request->has('telegram_bot_token') || $request->has('telegram_notifications_enabled') || $request->has('telegram_chat_ids')) {
                 $tab = 'notifikasi';
+            } elseif ($request->has('member_discount_visit') || $request->has('member_free_visit')) {
+                $tab = 'member';
             } else {
                 $tab = 'operasional';
             }
@@ -159,6 +161,9 @@ class SettingController extends Controller
                 break;
             case 'notifikasi':
                 $this->updateNotifikasi($request, $settings);
+                break;
+            case 'member':
+                $this->updateMember($request, $settings);
                 break;
             default:
                 $this->updateOperasional($request, $settings);
@@ -850,5 +855,35 @@ class SettingController extends Controller
             $ok ? 'status' : 'error',
             $ok ? 'Pesan notifikasi berhasil dikirim ulang ke Telegram.' : 'Gagal mengirim ulang: '.($item->last_error ?? 'Terjadi kesalahan.')
         );
+    }
+
+    private function updateMember(Request $request, CinemaSettings $settings): void
+    {
+        $validated = $request->validate([
+            'member_program_enabled' => ['nullable'],
+            'member_discount_visit' => ['required', 'integer', 'min:1'],
+            'member_discount_amount' => ['required', 'integer', 'min:0'],
+            'member_free_visit' => ['required', 'integer', 'min:2'],
+            'member_max_visits_per_day' => ['required', 'integer', 'min:1', 'max:4'],
+        ], [
+            'member_discount_visit.required' => 'Nomor kunjungan potongan wajib diisi.',
+            'member_discount_amount.required' => 'Nominal potongan wajib diisi.',
+            'member_free_visit.required' => 'Nomor kunjungan gratis wajib diisi.',
+            'member_max_visits_per_day.required' => 'Maksimal kunjungan per hari wajib diisi.',
+        ]);
+
+        if ($validated['member_discount_visit'] >= $validated['member_free_visit']) {
+            throw ValidationException::withMessages([
+                'member_discount_visit' => 'Nomor kunjungan potongan harus lebih kecil dari nomor kunjungan gratis.',
+            ]);
+        }
+
+        $settings->setMany([
+            'member_program_enabled' => $request->boolean('member_program_enabled'),
+            'member_discount_visit' => (int) $validated['member_discount_visit'],
+            'member_discount_amount' => (int) $validated['member_discount_amount'],
+            'member_free_visit' => (int) $validated['member_free_visit'],
+            'member_max_visits_per_day' => (int) $validated['member_max_visits_per_day'],
+        ], 'member');
     }
 }

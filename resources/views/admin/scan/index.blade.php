@@ -43,6 +43,9 @@
             undo: @js(route('admin.scan.undo')),
             sessionBookings: @js(route('admin.scan.session_bookings')),
             searchLive: @js(route('admin.bookings.live_search')),
+            memberCheckIn: @js(route('admin.scan.member_checkin')),
+            memberUndo: @js(route('admin.scan.member_undo')),
+            memberRewardSettle: @js(route('admin.scan.member_reward_settle')),
         }
     })"
     x-init="initApp()"
@@ -812,9 +815,9 @@
                 <span
                     class="rounded-lg px-2.5 py-1 text-xs font-bold uppercase tracking-wider"
                     :class="verdictToken === 'success' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40' : (verdictToken === 'warning' ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40' : 'bg-red-500/20 text-red-700 dark:text-red-300 border border-red-500/40')"
-                    x-text="currentPreview?.verdict_badge?.label || 'Hasil Validasi'"
+                    x-text="previewType === 'member' ? ('Member ' + (memberData?.member?.status || '')) : (currentPreview?.verdict_badge?.label || 'Hasil Validasi')"
                 ></span>
-                <span class="font-mono text-xs font-bold text-text-muted" x-text="currentPreview?.code"></span>
+                <span class="font-mono text-xs font-bold text-text-muted" x-text="previewType === 'member' ? memberData?.member?.code : currentPreview?.code"></span>
             </div>
             <button
                 type="button"
@@ -833,14 +836,162 @@
             class="p-3.5 rounded-xl border text-xs font-bold"
             :class="verdictToken === 'success' ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300' : (verdictToken === 'warning' ? 'border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300' : 'border-red-500/40 bg-red-500/10 text-red-800 dark:text-red-300')"
         >
-            <p x-text="currentPreview?.message"></p>
-            <template x-if="currentPreview?.checked_in_info">
+            <p x-text="previewType === 'member' ? memberData?.message : currentPreview?.message"></p>
+            <template x-if="previewType !== 'member' && currentPreview?.checked_in_info">
                 <p class="mt-1 font-semibold text-[11px]" x-text="currentPreview.checked_in_info"></p>
             </template>
         </div>
 
-        {{-- Rincian Tiket Pratinjau (Boarding Pass Cinema Style) --}}
-        <template x-if="currentPreview && currentPreview.customer_name">
+        {{-- ========================================================== --}}
+        {{-- TAMPILAN KHUSUS MEMBER                                     --}}
+        {{-- ========================================================== --}}
+        <template x-if="previewType === 'member' && memberData">
+            <div class="space-y-4">
+                {{-- Boarding Card Member --}}
+                <div class="rounded-2xl border border-border bg-surface-2/40 p-4 space-y-3 text-xs">
+                    <div class="flex items-center gap-3.5">
+                        <template x-if="memberData.member.photo_url">
+                            <img :src="memberData.member.photo_url" alt="Foto Member" class="size-14 rounded-xl object-cover shrink-0 border border-border">
+                        </template>
+                        <template x-if="!memberData.member.photo_url">
+                            <div class="size-14 rounded-xl border border-border bg-surface-2 flex items-center justify-center font-extrabold text-lg text-text-muted shrink-0" x-text="memberData.member.name.charAt(0).toUpperCase()"></div>
+                        </template>
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-extrabold text-text" x-text="memberData.member.name"></p>
+                            <p class="font-mono text-xs font-bold text-amber-500 mt-0.5" x-text="memberData.member.code"></p>
+                            <p class="text-[11px] text-text-muted mt-0.5">Petugas wajib mencocokkan foto dan nama member di pintu.</p>
+                        </div>
+                    </div>
+
+                    {{-- Progres Siklus --}}
+                    <div class="pt-2 border-t border-border space-y-1.5">
+                        <div class="flex items-center justify-between text-[11px]">
+                            <span class="font-bold text-text" x-text="'Kunjungan ' + memberData.member.current_in_cycle + ' dari 10 (Siklus ' + memberData.member.cycle_number + ')'"></span>
+                            <span class="text-text-muted font-semibold" x-text="'Total ' + memberData.member.total_valid_visits + ' kunjungan'"></span>
+                        </div>
+                        <div class="relative h-2 w-full rounded-full bg-border overflow-hidden">
+                            <div
+                                class="h-full rounded-full bg-amber-500 transition-all duration-300"
+                                :style="'width: ' + ((memberData.member.current_in_cycle / 10) * 100) + '%'"
+                            ></div>
+                        </div>
+                        <p class="text-[11px] text-text-muted" x-text="memberData.member.progress_text"></p>
+                    </div>
+
+                    {{-- Sesi Terpilih & Hubungkan Booking --}}
+                    <div class="pt-2 border-t border-border space-y-2 text-[11px]">
+                        <div>
+                            <span class="font-bold text-text block mb-1">Sesi Penayangan:</span>
+                            <div class="rounded-xl border border-border bg-surface p-2.5 flex items-center justify-between font-semibold text-text">
+                                <span x-text="memberData.session ? (memberData.session.film_title + ' · ' + memberData.session.time) : 'Tidak ada sesi hari ini'"></span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="font-bold text-text block mb-1">Hubungkan ke Booking Sesi (Opsional):</span>
+                            <select
+                                x-model="selectedMemberBookingId"
+                                class="w-full min-h-[38px] rounded-xl border border-border bg-surface px-2.5 py-1 text-xs text-text focus:border-amber-500"
+                            >
+                                <option value="">Tanpa booking (datang langsung di kasir)</option>
+                                <template x-for="bk in memberData.session_bookings" :key="bk.id">
+                                    <option :value="bk.id" x-text="bk.customer_name + ' (' + bk.code + ' - ' + (bk.is_paid ? 'Lunas Online' : 'Bayar di Tempat') + ')'"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Banner Reward Baru yang Tercatat --}}
+                <template x-if="memberRecordedReward">
+                    <div class="rounded-2xl border-2 border-amber-500 bg-amber-500/15 p-4 space-y-3">
+                        <div class="flex items-start gap-2.5">
+                            <span class="rounded-md bg-amber-500 px-2 py-0.5 text-[10px] font-black uppercase text-black">HADIAH KUNJUNGAN</span>
+                            <p class="text-sm font-extrabold text-amber-600 dark:text-amber-400" x-text="'REWARD: ' + (memberRecordedReward.type === 'free' ? 'GRATIS TIKET NONTON' : 'POTONGAN Rp ' + Number(memberRecordedReward.amount).toLocaleString('id-ID'))"></p>
+                        </div>
+                        <div class="text-xs text-text space-y-1">
+                            <p class="font-semibold text-text">Metode Penyelesaian:</p>
+                            <p class="text-text-muted" x-text="memberRecordedReward.settlement === 'deducted_bill' ? 'Potongan dikurangkan langsung dari sisa tagihan booking di kasir.' : (memberRecordedReward.settlement === 'refund_cash' ? 'Pengembalian tunai wajib diberikan langsung kepada pelanggan karena tiket sudah lunas online.' : 'Potongan / tiket gratis langsung diberikan untuk kunjungan saat ini.')"></p>
+                        </div>
+                        <div class="flex items-center gap-2 pt-1" x-show="memberRecordedReward.status === 'pending'">
+                            <button
+                                type="button"
+                                @click="settleMemberReward('given')"
+                                class="flex-1 min-h-[40px] rounded-xl bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-500 transition"
+                            >
+                                Sudah Diberikan
+                            </button>
+                            <button
+                                type="button"
+                                @click="settleMemberReward('skipped', 'Dilewati oleh petugas')"
+                                class="min-h-[40px] rounded-xl border border-border bg-surface px-3 text-xs font-semibold text-text-muted hover:text-text transition"
+                            >
+                                Lewati
+                            </button>
+                        </div>
+                        <div x-show="memberRecordedReward.status === 'given'" class="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            Status Reward: Berhasil ditandai sudah diberikan.
+                        </div>
+                    </div>
+                </template>
+
+                {{-- Tombol Utama Member --}}
+                <div class="space-y-2 pt-1">
+                    <template x-if="memberData.can_record && !memberData.requires_override">
+                        <button
+                            type="button"
+                            @click="executeMemberCheckIn(false)"
+                            :disabled="isSubmitting"
+                            class="w-full h-14 rounded-xl bg-emerald-600 text-base font-black text-white hover:bg-emerald-500 active:scale-[0.98] transition shadow-md flex items-center justify-center gap-2"
+                        >
+                            <span>Catat Kunjungan Member</span>
+                        </button>
+                    </template>
+
+                    <template x-if="memberData.can_record && memberData.requires_override">
+                        <div class="space-y-2">
+                            <input
+                                type="text"
+                                x-model="memberOverrideReason"
+                                placeholder="Alasan override catatan kunjungan (wajib)..."
+                                class="w-full min-h-[40px] rounded-xl border border-amber-500/50 bg-surface px-3 text-xs text-text focus:border-amber-500"
+                            >
+                            <button
+                                type="button"
+                                @click="executeMemberCheckIn(true)"
+                                :disabled="isSubmitting || !memberOverrideReason.trim()"
+                                class="w-full h-14 rounded-xl bg-amber-500 text-sm font-bold text-black hover:bg-amber-400 active:scale-[0.98] transition shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
+                                <span>Konfirmasi Catat Kunjungan (Override)</span>
+                            </button>
+                        </div>
+                    </template>
+
+                    <template x-if="memberData.verdict === 'sudah_tercatat_sesi_ini' && memberData.member.last_valid_visit_id">
+                        <button
+                            type="button"
+                            @click="memberVoidModalOpen = true"
+                            class="w-full min-h-[44px] rounded-xl border border-red-500/40 bg-red-500/10 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-500/20 transition flex items-center justify-center gap-2"
+                        >
+                            <span>Batalkan Kunjungan Terakhir Member</span>
+                        </button>
+                    </template>
+
+                    <button
+                        type="button"
+                        @click="closeSheet()"
+                        class="w-full min-h-[44px] rounded-xl border border-border bg-surface text-xs font-semibold text-text hover:bg-surface-2 transition"
+                    >
+                        Tutup Panel
+                    </button>
+                </div>
+            </div>
+        </template>
+
+        {{-- ========================================================== --}}
+        {{-- TAMPILAN TIKET BOOKING BIASA                               --}}
+        {{-- ========================================================== --}}
+        <template x-if="previewType !== 'member' && currentPreview && currentPreview.customer_name">
             <div class="rounded-2xl border border-border bg-surface-2/40 p-4 space-y-3 text-xs">
                 <div class="flex gap-3">
                     <template x-if="currentPreview.film_poster_url">
@@ -898,7 +1049,7 @@
         </template>
 
         {{-- Tombol Aksi Sesuai Verdict --}}
-        <div class="space-y-2 pt-1">
+        <div class="space-y-2 pt-1" x-show="previewType !== 'member'">
             {{-- Tombol 56px Primer untuk Siap Hadir --}}
             <template x-if="currentPreview?.can_check_in">
                 <button
@@ -990,6 +1141,48 @@
         </div>
     </div>
 
+    {{-- MODAL IN-APP: BATALKAN KUNJUNGAN MEMBER --}}
+    <div
+        x-show="memberVoidModalOpen"
+        x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+        @keydown.escape.window="memberVoidModalOpen = false"
+    >
+        <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-5 shadow-2xl space-y-4" @click.outside="memberVoidModalOpen = false">
+            <div class="flex items-center justify-between border-b border-border pb-3">
+                <h3 class="font-bold text-sm text-text">Batalkan Kunjungan Terakhir Member</h3>
+                <button type="button" @click="memberVoidModalOpen = false" class="size-8 inline-flex items-center justify-center rounded-lg text-text-muted hover:bg-surface-2">
+                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <p class="text-xs text-text-muted leading-relaxed">
+                Pembatalan ini akan membatalkan status sah kunjungan terakhir dan reward terkait.
+            </p>
+            <div>
+                <label for="member_void_reason" class="block text-xs font-semibold text-text mb-1">Alasan pembatalan (wajib):</label>
+                <input
+                    id="member_void_reason"
+                    type="text"
+                    x-model="memberVoidReason"
+                    maxlength="120"
+                    placeholder="Contoh: Salah scan kartu / penonton batal menonton..."
+                    class="w-full min-h-[40px] rounded-xl border border-border bg-surface-2 px-3 text-xs text-text focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                <button type="button" @click="memberVoidModalOpen = false" class="min-h-[40px] px-4 rounded-xl border border-border bg-surface text-xs font-semibold text-text hover:bg-surface-2">Batal</button>
+                <button
+                    type="button"
+                    @click="executeMemberUndo()"
+                    :disabled="!memberVoidReason.trim()"
+                    class="min-h-[40px] px-4 rounded-xl bg-red-600 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-50"
+                >
+                    Ya, Batalkan Kunjungan
+                </button>
+            </div>
+        </div>
+    </div>
+
     {{-- ============================================================== --}}
     {{-- 7. SCRIPT LOGIKA PEMINDAI & ALUR                               --}}
     {{-- ============================================================== --}}
@@ -1039,6 +1232,15 @@
 
                 // Sheet & Preview state
                 sheetOpen: false,
+                previewType: 'booking', // 'booking' or 'member'
+                memberData: null,
+                memberRecordedReward: null,
+                selectedMemberBookingId: '',
+                memberSelectedSessionId: '',
+                memberOverrideReason: '',
+                memberOverrideModalOpen: false,
+                memberVoidModalOpen: false,
+                memberVoidReason: '',
                 verdictToken: 'neutral',
                 currentPreview: null,
                 showFullPhone: false,
@@ -1322,17 +1524,22 @@
                     if (!rawText) return;
                     const trimmed = rawText.trim();
 
-                    // Client validation: must look like SynemaX booking or /tiket/{code}
+                    // Client validation: must look like SynemaX booking or /tiket/{code} or /member/{code}
                     let parsedCode = '';
                     if (trimmed.includes('/tiket/')) {
                         const parts = trimmed.split('/tiket/');
                         parsedCode = (parts[1] || '').split(/[?#]/)[0];
+                    } else if (trimmed.includes('/member/')) {
+                        const parts = trimmed.split('/member/');
+                        parsedCode = (parts[1] || '').split(/[?#]/)[0];
+                    } else if (trimmed.startsWith('MBR-') || trimmed.startsWith('SYNEMAX-MBR:')) {
+                        parsedCode = trimmed;
                     } else if (trimmed.startsWith('HC-') || /^[A-Z0-9\-]{4,24}$/i.test(trimmed)) {
                         parsedCode = trimmed;
                     }
 
                     if (!parsedCode) {
-                        this.showClientAlert('QR ini bukan tiket SynemaX.');
+                        this.showClientAlert('QR ini bukan tiket atau kartu member SynemaX.');
                         return;
                     }
 
@@ -1378,6 +1585,11 @@
 
                         if (res.status === 429) {
                             this.showClientAlert(data.message || 'Terlalu banyak permintaan. Tunggu sebentar.');
+                            return;
+                        }
+
+                        if (data.type === 'member') {
+                            this.openMemberSheet(data);
                             return;
                         }
 
@@ -1454,6 +1666,7 @@
 
                 // ---------------- SHEET & CHECK-IN EXECUTION ----------------
                 openSheet(preview) {
+                    this.previewType = 'booking';
                     this.currentPreview = preview;
                     this.verdictToken = preview.verdict_badge?.token || (preview.verdict === 'siap_hadir' ? 'success' : 'danger');
                     this.sheetOpen = true;
@@ -1463,6 +1676,140 @@
 
                     if (preview.verdict === 'siap_hadir' || preview.verdict === 'sudah_hadir') {
                         this.playBeep();
+                    }
+                },
+
+                openMemberSheet(data) {
+                    this.previewType = 'member';
+                    this.memberData = data;
+                    this.memberRecordedReward = null;
+                    this.selectedMemberBookingId = '';
+                    this.memberSelectedSessionId = data.session?.id || '';
+                    this.verdictToken = data.can_record ? (data.requires_override ? 'warning' : 'success') : 'danger';
+                    this.sheetOpen = true;
+                    this.vibrateDevice();
+                    if (data.can_record) {
+                        this.playBeep();
+                    }
+                },
+
+                async executeMemberCheckIn(isOverride = false) {
+                    if (!this.memberData || !this.memberData.member) return;
+                    this.isSubmitting = true;
+
+                    try {
+                        const targetSessionId = this.selectedSessionId !== 'all' ? this.selectedSessionId : (this.memberData.session?.id || this.memberSelectedSessionId);
+                        const res = await fetch(config.routes.memberCheckIn, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            },
+                            body: JSON.stringify({
+                                member_id: this.memberData.member.id,
+                                session_id: targetSessionId,
+                                booking_id: this.selectedMemberBookingId || null,
+                                method: this.activeTab === 'kamera' ? 'qr' : 'kode',
+                                allow_override: isOverride,
+                                override_reason: isOverride ? this.memberOverrideReason : null,
+                            })
+                        });
+
+                        const data = await res.json();
+                        this.isSubmitting = false;
+                        this.memberOverrideModalOpen = false;
+                        this.memberOverrideReason = '';
+
+                        if (data.success) {
+                            this.memberData.can_record = false;
+                            this.memberData.verdict = 'sudah_tercatat_sesi_ini';
+                            this.memberData.message = data.message;
+                            this.memberData.member.last_valid_visit_id = data.visit?.id;
+                            this.memberRecordedReward = data.reward;
+                            this.verdictToken = 'success';
+                            this.playBeep();
+                            this.vibrateDevice();
+                        } else {
+                            this.memberData.message = data.message;
+                            this.verdictToken = 'danger';
+                        }
+                    } catch (err) {
+                        this.isSubmitting = false;
+                        this.showClientAlert('Gagal mencatat kunjungan member. Coba lagi.');
+                    }
+                },
+
+                async executeMemberUndo() {
+                    if (!this.memberData || !this.memberData.member?.last_valid_visit_id) return;
+                    this.isSubmitting = true;
+
+                    try {
+                        const res = await fetch(config.routes.memberUndo, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            },
+                            body: JSON.stringify({
+                                member_id: this.memberData.member.id,
+                                visit_id: this.memberData.member.last_valid_visit_id,
+                                reason: this.memberVoidReason || 'Dibatalkan oleh petugas',
+                            })
+                        });
+
+                        const data = await res.json();
+                        this.isSubmitting = false;
+                        this.memberVoidModalOpen = false;
+                        this.memberVoidReason = '';
+
+                        if (data.success) {
+                            this.memberData.can_record = true;
+                            this.memberData.verdict = 'siap_dicatat';
+                            this.memberData.message = data.message;
+                            this.memberData.member.last_valid_visit_id = null;
+                            this.memberRecordedReward = null;
+                            this.verdictToken = 'neutral';
+                            this.playBeep();
+                        } else {
+                            this.showClientAlert(data.message || 'Gagal membatalkan kunjungan.');
+                        }
+                    } catch (err) {
+                        this.isSubmitting = false;
+                        this.showClientAlert('Gagal membatalkan kunjungan. Coba lagi.');
+                    }
+                },
+
+                async settleMemberReward(action, note = '') {
+                    if (!this.memberRecordedReward) return;
+                    this.isSubmitting = true;
+
+                    try {
+                        const res = await fetch(config.routes.memberRewardSettle, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            },
+                            body: JSON.stringify({
+                                reward_id: this.memberRecordedReward.id,
+                                action: action,
+                                note: note,
+                            })
+                        });
+
+                        const data = await res.json();
+                        this.isSubmitting = false;
+
+                        if (data.success) {
+                            this.memberRecordedReward.status = action;
+                            this.playBeep();
+                        }
+                    } catch (err) {
+                        this.isSubmitting = false;
+                        this.showClientAlert('Gagal memperbarui status reward.');
                     }
                 },
 

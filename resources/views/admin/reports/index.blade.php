@@ -183,4 +183,65 @@
             </div>
         </div>
     </section>
+
+    {{-- Program Member & Loyalitas (Bagian 4.7) --}}
+    @if (isset($memberReport))
+        <section class="mt-9 rounded-2xl border border-border bg-surface p-5 space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-border pb-3">
+                <div>
+                    <h2 class="font-bold text-text">Program Member & Loyalitas Kunjungan</h2>
+                    <p class="text-xs text-text-muted mt-0.5">Statistik kehadiran member, reward yang ditebus, dan pengembalian dana pada periode ini.</p>
+                </div>
+                <a href="{{ route('admin.members.index') }}" class="text-xs font-bold text-accent hover:underline">
+                    Kelola Member →
+                </a>
+            </div>
+
+            <div class="grid gap-3 grid-cols-2 sm:grid-cols-4">
+                <div class="rounded-xl border border-border bg-surface-2/60 p-4">
+                    <p class="text-xs text-text-muted font-semibold">Total Member Aktif</p>
+                    <p class="text-xl font-black text-text mt-1">{{ number_format($memberReport['active_members'], 0, ',', '.') }} orang</p>
+                </div>
+                <div class="rounded-xl border border-border bg-surface-2/60 p-4">
+                    <p class="text-xs text-text-muted font-semibold">Kunjungan Sah Periode Ini</p>
+                    <p class="text-xl font-black text-emerald-500 mt-1">{{ number_format($memberReport['visits_period'], 0, ',', '.') }} kali</p>
+                </div>
+                <div class="rounded-xl border border-border bg-surface-2/60 p-4">
+                    <p class="text-xs text-text-muted font-semibold">Reward Diberikan</p>
+                    <p class="text-xl font-black text-accent mt-1">{{ $memberReport['discount_rewards_count'] + $memberReport['free_ticket_rewards_count'] }}</p>
+                    <p class="text-[10px] text-text-muted mt-0.5">{{ $memberReport['discount_rewards_count'] }} potongan · {{ $memberReport['free_ticket_rewards_count'] }} gratis tiket</p>
+                </div>
+                <div class="rounded-xl border border-border bg-surface-2/60 p-4">
+                    <p class="text-xs text-text-muted font-semibold">Total Beban Reward</p>
+                    <p class="text-xl font-black text-amber-500 mt-1">Rp {{ number_format($memberReport['total_reward_cost'], 0, ',', '.') }}</p>
+                </div>
+            </div>
+
+            @if ($memberReport['pending_refund_cash'] > 0)
+                <div class="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center justify-between">
+                    <span>Ada <strong>{{ $memberReport['pending_refund_cash'] }} pengembalian tunai reward member</strong> yang belum selesai diserahkan ke pelanggan.</span>
+                    <a href="{{ route('admin.members.index') }}" class="font-bold underline">Lihat di Member</a>
+                </div>
+            @endif
+
+            @if ($memberReport['top_members']->isNotEmpty())
+                <div class="pt-2">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-text-muted mb-2">Member Paling Sering Berkunjung (Periode Ini)</h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        @foreach ($memberReport['top_members'] as $topM)
+                            <div class="rounded-xl border border-border bg-surface-2/40 p-3 flex items-center justify-between text-xs">
+                                <div>
+                                    <p class="font-bold text-text">{{ $topM->name }}</p>
+                                    <p class="text-[10px] font-mono text-text-muted">{{ $topM->formattedCode() }}</p>
+                                </div>
+                                <span class="font-extrabold text-accent bg-surface px-2.5 py-1 rounded-lg border border-border">
+                                    {{ $topM->valid_visits_count }} kunjungan
+                                </span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        </section>
+    @endif
 @endsection

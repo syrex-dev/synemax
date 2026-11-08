@@ -63,6 +63,7 @@
                         'kontak' => '6. Kontak & Sosial',
                         'seo' => '7. SEO & Lanjutan',
                         'notifikasi' => '8. Notifikasi',
+                        'member' => '9. Member',
                     ];
                 @endphp
                 @foreach ($tabs as $tabKey => $tabLabel)
@@ -1861,6 +1862,143 @@
                         </table>
                     </div>
                 @endif
+            </div>
+        </div>
+
+        {{-- ============================================================== --}}
+        {{-- TAB 9: PROGRAM MEMBER --}}
+        {{-- ============================================================== --}}
+        <div x-show="activeTab === 'member'" class="space-y-6" style="display: none;">
+            <div class="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+                <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-text">Program Member & Loyalitas Kunjungan</h2>
+                        <p class="text-xs text-text-muted mt-1">Konfigurasi aturan kunjungan berulang, potongan harga, dan tiket gratis.</p>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ route('admin.settings.update') }}" class="space-y-6">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="active_tab" value="member">
+
+                    {{-- Switch Aktifkan Program --}}
+                    <div class="rounded-xl border border-border bg-surface-2 p-4">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                name="member_program_enabled"
+                                value="1"
+                                {{ old('member_program_enabled', $settings->isMemberProgramEnabled()) ? 'checked' : '' }}
+                                class="mt-0.5 size-4 rounded border-border text-amber-500 focus:ring-amber-500/30"
+                            >
+                            <div>
+                                <span class="text-sm font-semibold text-text">Aktifkan Program Member</span>
+                                <p class="text-xs text-text-muted mt-0.5">Bila dinonaktifkan, pemindaian kode member pada menu Scan Tiket akan ditolak sementara.</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    {{-- Konfigurasi Kunjungan & Reward --}}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {{-- Potongan Kunjungan --}}
+                        <div class="rounded-xl border border-border bg-surface-2 p-4 space-y-4">
+                            <h3 class="text-sm font-bold text-text border-b border-border pb-2">Reward Kunjungan Antara</h3>
+                            
+                            <div>
+                                <label for="member_discount_visit" class="block text-xs font-semibold text-text-muted mb-1.5">
+                                    Nomor Kunjungan Mendapat Potongan
+                                </label>
+                                <input
+                                    type="number"
+                                    id="member_discount_visit"
+                                    name="member_discount_visit"
+                                    min="1"
+                                    value="{{ old('member_discount_visit', $settings->memberDiscountVisit()) }}"
+                                    required
+                                    class="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-sm text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
+                                >
+                                <p class="text-[11px] text-text-muted mt-1">Bawaan: 5 (kunjungan ke-5 dalam tiap siklus 10 kunjungan).</p>
+                            </div>
+
+                            <div>
+                                <label for="member_discount_amount" class="block text-xs font-semibold text-text-muted mb-1.5">
+                                    Nominal Potongan (Rp)
+                                </label>
+                                <input
+                                    type="number"
+                                    id="member_discount_amount"
+                                    name="member_discount_amount"
+                                    min="0"
+                                    step="500"
+                                    value="{{ old('member_discount_amount', $settings->memberDiscountAmount()) }}"
+                                    required
+                                    class="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-sm text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
+                                >
+                                <p class="text-[11px] text-text-muted mt-1">Bawaan: Rp 2.000 (maksimal seharga tiket 1 orang).</p>
+                            </div>
+                        </div>
+
+                        {{-- Siklus & Tiket Gratis --}}
+                        <div class="rounded-xl border border-border bg-surface-2 p-4 space-y-4">
+                            <h3 class="text-sm font-bold text-text border-b border-border pb-2">Siklus & Tiket Gratis</h3>
+
+                            <div>
+                                <label for="member_free_visit" class="block text-xs font-semibold text-text-muted mb-1.5">
+                                    Panjang Siklus (Kunjungan Gratis)
+                                </label>
+                                <input
+                                    type="number"
+                                    id="member_free_visit"
+                                    name="member_free_visit"
+                                    min="2"
+                                    value="{{ old('member_free_visit', $settings->memberFreeVisit()) }}"
+                                    required
+                                    class="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-sm text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
+                                >
+                                <p class="text-[11px] text-text-muted mt-1">Bawaan: 10 (kunjungan ke-10 gratis tiket nonton 1 orang, lalu siklus berulang dari 1).</p>
+                            </div>
+
+                            <div>
+                                <label for="member_max_visits_per_day" class="block text-xs font-semibold text-text-muted mb-1.5">
+                                    Maksimal Kunjungan Dicatat Per Hari
+                                </label>
+                                <x-ui.select
+                                    id="member_max_visits_per_day"
+                                    name="member_max_visits_per_day"
+                                    class="w-full"
+                                >
+                                    @for ($i = 1; $i <= 4; $i++)
+                                        <option value="{{ $i }}" {{ old('member_max_visits_per_day', $settings->memberMaxVisitsPerDay()) == $i ? 'selected' : '' }}>
+                                            {{ $i }} kunjungan per hari
+                                        </option>
+                                    @endfor
+                                </x-ui.select>
+                                <p class="text-[11px] text-text-muted mt-1">Mencegah penyalahgunaan pemindaian berulang di hari yang sama.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Panduan & Privasi Data --}}
+                    <div class="rounded-xl border border-blue-500/30 bg-blue-500/5 p-4 text-xs text-text space-y-2">
+                        <p class="font-bold text-blue-600 dark:text-blue-400">Prinsip Privasi & Verifikasi Petugas</p>
+                        <p class="text-text-muted leading-relaxed">
+                            <strong>Privasi Data:</strong> Member perlu diberi tahu bahwa data (hanya nama dan foto) dipakai semata-mata untuk program loyalitas ini. Tidak ada data kontak (telepon, email, WhatsApp, alamat) yang disimpan oleh sistem demi menjaga keamanan data pribadi pelanggan.
+                        </p>
+                        <p class="text-text-muted leading-relaxed">
+                            <strong>Verifikasi Petugas:</strong> Karena QR code kartu member dapat difoto atau dibagikan ke orang lain, petugas pintu wajib mencocokkan foto dan nama member pada panel hasil pindai sebelum menekan tombol pencatatan kunjungan.
+                        </p>
+                    </div>
+
+                    <div class="flex justify-end pt-4 border-t border-border">
+                        <button
+                            type="submit"
+                            class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-bold text-black shadow-sm hover:bg-amber-400 transition"
+                        >
+                            Simpan Pengaturan Member
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

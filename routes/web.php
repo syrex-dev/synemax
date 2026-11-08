@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\FilmController;
 use App\Http\Controllers\Admin\FilmImportController;
 use App\Http\Controllers\Admin\FilmPosterController;
 use App\Http\Controllers\Admin\GenreController;
+use App\Http\Controllers\Admin\MemberController;
 use App\Http\Controllers\Admin\NewsController;
 use App\Http\Controllers\Admin\NobarController;
 use App\Http\Controllers\Admin\PromoController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicBookingController;
 use App\Http\Controllers\PublicCinemaController;
 use App\Http\Controllers\PublicInfoController;
+use App\Http\Controllers\PublicMemberController;
 use App\Http\Controllers\QrCodeController;
 use App\Http\Controllers\StyleguideController;
 use Illuminate\Http\Request;
@@ -52,6 +54,11 @@ Route::get('/nobar/{slug}/kalender', [PublicInfoController::class, 'nobarCalenda
 
 Route::get('/kabar', [PublicInfoController::class, 'articleIndex'])->name('articles.index');
 Route::get('/kabar/{slug}', [PublicInfoController::class, 'articleShow'])->name('articles.show');
+
+// Public Signed Digital Member Card
+Route::get('/member/{code}', [PublicMemberController::class, 'show'])
+    ->name('public.member.card')
+    ->middleware('throttle:60,1');
 
 // Helpful aliases & graceful redirects for FAQ & Harga and accidental trailing quotes
 Route::redirect('/faq', '/kabar?tab=harga-faq');
@@ -270,8 +277,29 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/scan/hadir', [TicketScannerController::class, 'checkIn'])->name('scan.checkin')->middleware('throttle:120,1');
     Route::post('/scan/batal-hadir', [TicketScannerController::class, 'undo'])->name('scan.undo');
     Route::get('/scan/sesi-bookings', [TicketScannerController::class, 'sessionBookings'])->name('scan.session_bookings');
+    Route::post('/scan/member-hadir', [TicketScannerController::class, 'memberCheckIn'])->name('scan.member_checkin')->middleware('throttle:120,1');
+    Route::post('/scan/member-batal-hadir', [TicketScannerController::class, 'memberUndo'])->name('scan.member_undo');
+    Route::post('/scan/member-reward-settle', [TicketScannerController::class, 'memberRewardSettle'])->name('scan.member_reward_settle');
+
+    // Program Member & Loyalitas
+    Route::get('/members', [MemberController::class, 'index'])->name('members.index');
+    Route::get('/members/create', [MemberController::class, 'create'])->name('members.create');
+    Route::post('/members', [MemberController::class, 'store'])->name('members.store');
+    Route::get('/members/kartu', [MemberController::class, 'printBatch'])->name('members.print_batch');
+    Route::get('/members/export.csv', [MemberController::class, 'exportCsv'])->name('members.export');
+    Route::get('/members/{member}', [MemberController::class, 'show'])->name('members.show');
+    Route::get('/members/{member}/edit', [MemberController::class, 'edit'])->name('members.edit');
+    Route::put('/members/{member}', [MemberController::class, 'update'])->name('members.update');
+    Route::delete('/members/{member}', [MemberController::class, 'destroy'])->name('members.destroy');
+    Route::post('/members/{member}/toggle-status', [MemberController::class, 'toggleStatus'])->name('members.toggle_status');
+    Route::post('/members/{member}/new-link', [MemberController::class, 'regenerateLink'])->name('members.regenerate_link');
+    Route::post('/members/{member}/opening-visits', [MemberController::class, 'updateOpeningVisits'])->name('members.update_opening_visits');
+    Route::post('/members/{member}/void-visit/{visit}', [MemberController::class, 'voidVisit'])->name('members.void_visit');
+    Route::post('/members/{member}/settle-reward/{reward}', [MemberController::class, 'settleReward'])->name('members.settle_reward');
+    Route::get('/members/{member}/kartu', [MemberController::class, 'printSingle'])->name('members.print_single');
 
     // Aliases for admin navigation
+    Route::redirect('/members', '/admin/members');
     Route::redirect('/schedule', '/admin/jadwal');
     Route::redirect('/articles', '/admin/berita');
     Route::get('/settings', fn (Request $r) => redirect('/admin/pengaturan'.($r->getQueryString() ? '?'.$r->getQueryString() : '')));

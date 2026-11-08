@@ -528,6 +528,9 @@
                                         </div>
                                         <p class="text-xs text-text-muted mt-0.5">
                                             {{ $session->is_private ? 'Sewa Private' : 'Publik' }} · {{ $occ }} orang terpesan · {{ $session->occupied_bookings_count }} booking
+                                            @if (($session->member_visits_count ?? 0) > 0)
+                                                · <span class="text-amber-500 font-bold">Member hadir {{ $session->member_visits_count }}</span>
+                                            @endif
                                             @if ($session->pending_booking_count > 0)
                                                 · <span class="text-warning font-bold">{{ $session->pending_booking_count }} booking menunggu</span>
                                             @endif

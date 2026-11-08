@@ -4,9 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\Member;
+use App\Models\MemberReward;
+use App\Models\MemberVisit;
 use App\Models\Session;
 use App\Services\CheckInService;
 use App\Services\CinemaSettings;
+use App\Services\LoyaltyRules;
+use App\Services\MemberCodeGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -67,9 +72,9 @@ class TicketScannerController extends Controller
     }
 
     /**
-     * Cari tiket berdasarkan QR atau input kode (POST /admin/scan/cari).
+     * Cari tiket atau member berdasarkan QR / input kode (POST /admin/scan/cari).
      */
-    public function lookup(Request $request, CheckInService $checkIn): JsonResponse
+    public function lookup(Request $request, CheckInService $checkIn, LoyaltyRules $loyaltyRules): JsonResponse
     {
         $data = $request->validate([
             'code' => ['required', 'string', 'max:255'],
@@ -90,6 +95,92 @@ class TicketScannerController extends Controller
             ], 429)->header('Cache-Control', 'no-store');
         }
 
+        $rawCode = trim($data['code']);
+        $normCode = MemberCodeGenerator::normalize($rawCode);
+
+        // 1. Cek apakah kode merupakan ID Member
+        $member = null;
+        if (str_starts_with($normCode, 'MBR-') || MemberCodeGenerator::isValid($normCode)) {
+            $member = Member::where('code', $normCode)->orWhere('member_code', $normCode)->first();
+        } elseif (! Booking::where('code', $rawCode)->exists()) {
+            // Coba cari member berdasarkan kode atau nama jika bukan booking persis
+            $member = Member::where('code', $normCode)
+                ->orWhere('member_code', $normCode)
+                ->orWhere('code', 'like', "%{$normCode}")
+                ->orWhere('name', 'like', "%{$rawCode}%")
+                ->first();
+        }
+
+        if ($member) {
+            RateLimiter::clear($failedKey);
+
+            // Sesi terpilih
+            $sessionId = $data['session_id'] ?? null;
+            $session = null;
+            if ($sessionId && $sessionId !== 'all') {
+                $session = Session::find((int) $sessionId);
+            }
+
+            if (! $session) {
+                // Sesi default hari ini
+                $todayDate = now()->toDateString();
+                $todaySessions = Session::with(['film', 'occupiedBookings'])
+                    ->where('session_date', $todayDate)
+                    ->orderBy('start_time')
+                    ->get();
+
+                $now = now();
+                $session = $todaySessions->first(fn (Session $s) => $now->greaterThanOrEqualTo($s->startsAt()) && $now->lessThan($s->endsAt()))
+                    ?? $todaySessions->first(fn (Session $s) => $now->lessThan($s->startsAt()))
+                    ?? $todaySessions->last();
+            }
+
+            $eval = $loyaltyRules->evaluateCheckIn($member, $session);
+
+            $sessionBookings = $session ? $session->occupiedBookings->map(fn (Booking $b) => [
+                'id' => $b->id,
+                'code' => $b->code,
+                'customer_name' => $b->customer_name,
+                'status' => $b->status,
+                'is_paid' => $b->isPaid(),
+                'payment_method' => $b->payment_method,
+                'pax' => $b->pax ?? $b->people_count ?? 1,
+            ])->values() : collect();
+
+            return response()->json([
+                'type' => 'member',
+                'status' => 'found',
+                'verdict' => $eval['verdict'],
+                'can_record' => $eval['can_record'],
+                'requires_override' => $eval['requires_override'],
+                'message' => $eval['message'],
+                'member' => [
+                    'id' => $member->id,
+                    'name' => $member->name,
+                    'code' => $member->code ?: $member->member_code,
+                    'status' => $member->status,
+                    'photo_url' => $member->photoUrl(),
+                    'total_valid_visits' => $member->totalValidVisits(),
+                    'next_position' => $eval['next_position'],
+                    'current_in_cycle' => $eval['next_position'] - 1,
+                    'cycle_number' => $eval['cycle_number'],
+                    'progress_text' => $member->progressDescription(),
+                    'potential_reward' => $eval['potential_reward'],
+                    'potential_reward_label' => LoyaltyRules::rewardLabel($eval['potential_reward']),
+                    'reward_amount' => $eval['reward_amount'],
+                    'last_valid_visit_id' => $member->lastValidVisit()?->id,
+                ],
+                'session' => $session ? [
+                    'id' => $session->id,
+                    'film_title' => $session->film?->title ?? 'Sesi Film',
+                    'time' => format_cinema_time($session->start_time),
+                    'status' => $session->status,
+                ] : null,
+                'session_bookings' => $sessionBookings,
+            ])->header('Cache-Control', 'no-store');
+        }
+
+        // 2. Jika bukan member, jalankan lookup booking biasa
         $result = $checkIn->lookup($data['code'], $data['session_id'] ?? null);
 
         if ($result['status'] === 'not_found') {
@@ -98,8 +189,103 @@ class TicketScannerController extends Controller
             RateLimiter::clear($failedKey);
         }
 
+        $result['type'] = 'booking';
+
         return response()->json($result)
             ->header('Cache-Control', 'no-store');
+    }
+
+    /**
+     * Tandai hadir member (POST /admin/scan/member-hadir).
+     */
+    public function memberCheckIn(Request $request, LoyaltyRules $loyaltyRules): JsonResponse
+    {
+        $data = $request->validate([
+            'member_id' => ['required', 'integer'],
+            'session_id' => ['required', 'integer'],
+            'booking_id' => ['nullable', 'integer'],
+            'method' => ['nullable', 'string', 'in:qr,kode,cari'],
+            'allow_override' => ['nullable', 'boolean'],
+            'override_reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $member = Member::findOrFail($data['member_id']);
+        $session = Session::findOrFail($data['session_id']);
+        $booking = ! empty($data['booking_id']) ? Booking::find($data['booking_id']) : null;
+
+        $userId = (int) $request->user()?->id;
+        $method = $data['method'] ?? 'qr';
+        $overrideReason = $data['override_reason'] ?? null;
+
+        $result = $loyaltyRules->recordVisit(
+            member: $member,
+            session: $session,
+            booking: $booking,
+            userId: $userId,
+            method: $method,
+            overrideReason: $overrideReason,
+        );
+
+        return response()->json($result)->header('Cache-Control', 'no-store');
+    }
+
+    /**
+     * Batalkan tanda hadir member (POST /admin/scan/member-batal-hadir).
+     */
+    public function memberUndo(Request $request, LoyaltyRules $loyaltyRules): JsonResponse
+    {
+        $data = $request->validate([
+            'member_id' => ['required', 'integer'],
+            'visit_id' => ['required', 'integer'],
+            'reason' => ['required', 'string', 'max:255'],
+        ]);
+
+        $member = Member::findOrFail($data['member_id']);
+        $visit = MemberVisit::where('id', $data['visit_id'])->where('member_id', $member->id)->firstOrFail();
+        $userId = (int) $request->user()?->id;
+
+        $result = $loyaltyRules->voidVisit($member, $visit, $userId, $data['reason']);
+
+        return response()->json($result)->header('Cache-Control', 'no-store');
+    }
+
+    /**
+     * Selesaikan reward member (POST /admin/scan/member-reward-settle).
+     */
+    public function memberRewardSettle(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'reward_id' => ['required', 'integer'],
+            'action' => ['required', 'string', 'in:given,skipped'],
+            'note' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $reward = MemberReward::findOrFail($data['reward_id']);
+        $reward->update([
+            'status' => $data['action'],
+            'given_by' => $request->user()?->id,
+            'given_at' => now(),
+            'note' => $data['note'] ?? $reward->note,
+        ]);
+
+        $reward->member->events()->create([
+            'user_id' => $request->user()?->id,
+            'event' => $data['action'] === 'given' ? 'reward_given' : 'reward_skipped',
+            'event_type' => $data['action'] === 'given' ? 'reward_given' : 'reward_skipped',
+            'meta' => [
+                'reward_id' => $reward->id,
+                'action' => $data['action'],
+                'note' => $data['note'] ?? null,
+            ],
+            'ip' => $request->ip(),
+            'created_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => $data['action'] === 'given' ? 'Reward berhasil ditandai sudah diberikan.' : 'Reward dilewati.',
+            'reward' => $reward,
+        ])->header('Cache-Control', 'no-store');
     }
 
     /**
@@ -201,48 +387,46 @@ class TicketScannerController extends Controller
 
             if ($isHadir) {
                 $hadirCount++;
-                $chip = ['label' => 'Hadir', 'token' => 'success'];
             } elseif ($flow === 'aktif') {
                 $belumCount++;
-                $chip = ['label' => 'Siap Hadir', 'token' => 'success'];
             } else {
                 $perluPerhatianCount++;
-                $chip = match ($flow) {
-                    'menunggu_bayar' => ['label' => 'Belum Bayar', 'token' => 'danger'],
-                    'diproses' => ['label' => 'Diproses', 'token' => 'warning'],
-                    'menunggu_penonton' => ['label' => 'Menunggu', 'token' => 'warning'],
-                    'dibatalkan' => ['label' => 'Batal', 'token' => 'danger'],
-                    'kedaluwarsa' => ['label' => 'Kedaluwarsa', 'token' => 'danger'],
-                    default => ['label' => ucfirst($b->status), 'token' => 'neutral'],
-                };
             }
-
-            // Kode dengan 4 digit terakhir tebal
-            $codeLength = strlen($b->code);
-            $codePrefix = substr($b->code, 0, max(0, $codeLength - 4));
-            $codeSuffix = substr($b->code, -4);
 
             return [
                 'id' => $b->id,
                 'code' => $b->code,
-                'code_prefix' => $codePrefix,
-                'code_suffix' => $codeSuffix,
                 'customer_name' => $b->customer_name,
-                'people_count' => (int) ($b->people_count ?? $b->seats_reserved ?? 1),
-                'session_time' => format_cinema_time($b->session?->start_time ?? ''),
-                'chip' => $chip,
+                'whatsapp' => $b->whatsapp,
+                'status' => $b->status,
+                'flow_state' => $flow,
                 'is_hadir' => $isHadir,
+                'checked_in_at' => $b->checked_in_at ? format_cinema_time($b->checked_in_at) : null,
+                'checked_in_by' => $b->checkedInBy?->name,
+                'check_in_method' => $b->check_in_method,
+                'film_title' => $b->film?->title ?? '-',
+                'session_time' => $b->session ? format_cinema_time($b->session->start_time) : '-',
+                'pax' => $b->pax ?? $b->people_count ?? 1,
+                'people_count' => $b->people_count ?? $b->pax ?? 1,
+                'chip' => $isHadir ? 'Hadir' : ($flow === 'aktif' ? 'Belum Hadir' : 'Perlu Perhatian'),
+                'total_price' => $b->total_price,
+                'is_paid' => $b->isPaid(),
+                'items_count' => $b->items->count(),
             ];
-        })->values()->all();
+        });
 
         return response()->json([
+            'session_id' => $sessionId,
             'summary' => [
+                'total' => $allBookings->count(),
                 'hadir' => $hadirCount,
                 'belum' => $belumCount,
+                'belum_hadir' => $belumCount,
                 'perlu_perhatian' => $perluPerhatianCount,
-                'text' => "Hadir {$hadirCount} | Belum {$belumCount} | Perlu perhatian {$perluPerhatianCount}",
+                'text' => "{$hadirCount} hadir, {$belumCount} belum",
             ],
-            'items' => $items,
+            'bookings' => $items->values(),
+            'items' => $items->values(),
         ])->header('Cache-Control', 'no-store');
     }
 }

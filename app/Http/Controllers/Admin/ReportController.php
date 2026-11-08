@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\Member;
+use App\Models\MemberReward;
+use App\Models\MemberVisit;
 use App\Models\Session;
 use App\Services\CinemaSettings;
 use Carbon\CarbonImmutable;
@@ -141,6 +144,42 @@ class ReportController extends Controller
             ->pluck('count', 'method')
             ->all();
 
+        // ---------------- MEMBER PROGRAM REPORT (4.7) ----------------
+        $activeMembersCount = Member::query()->where('status', 'aktif')->count();
+        $memberVisitsPeriod = MemberVisit::query()
+            ->where('active', 1)
+            ->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])
+            ->count();
+        $rewardsGivenPeriod = MemberReward::query()
+            ->where('status', 'given')
+            ->whereBetween('given_at', [$startDate->startOfDay(), $endDate->endOfDay()]);
+
+        $discountRewardsCount = (clone $rewardsGivenPeriod)->where('type', 'discount')->count();
+        $freeTicketRewardsCount = (clone $rewardsGivenPeriod)->where('type', 'free')->count();
+        $totalRewardCostRupiah = (int) (clone $rewardsGivenPeriod)->sum('amount');
+
+        $pendingRefundCashCount = MemberReward::query()
+            ->where('status', 'pending')
+            ->where('settlement', 'refund_cash')
+            ->count();
+
+        $topMembers = Member::query()
+            ->whereHas('validVisits', fn ($q) => $q->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()]))
+            ->withCount(['validVisits' => fn ($q) => $q->whereBetween('created_at', [$startDate->startOfDay(), $endDate->endOfDay()])])
+            ->orderByDesc('valid_visits_count')
+            ->limit(5)
+            ->get();
+
+        $memberReport = [
+            'active_members' => $activeMembersCount,
+            'visits_period' => $memberVisitsPeriod,
+            'discount_rewards_count' => $discountRewardsCount,
+            'free_ticket_rewards_count' => $freeTicketRewardsCount,
+            'total_reward_cost' => $totalRewardCostRupiah,
+            'pending_refund_cash' => $pendingRefundCashCount,
+            'top_members' => $topMembers,
+        ];
+
         return view('admin.reports.index', [
             'period' => $period,
             'referenceDate' => $referenceDate,
@@ -158,6 +197,7 @@ class ReportController extends Controller
             'sessionCount' => $sessions->count(),
             'electricityCost' => $electricityCost,
             'grossProfit' => $grossProfit,
+            'memberReport' => $memberReport,
             'attendanceStats' => $attendanceStats,
             'checkInMethodStats' => $checkInMethodStats,
             'occupancyByTime' => $sessions

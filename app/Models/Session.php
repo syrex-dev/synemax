@@ -49,6 +49,11 @@ class Session extends Model
         return $this->hasMany(Booking::class);
     }
 
+    public function memberVisits(): HasMany
+    {
+        return $this->hasMany(MemberVisit::class, 'session_id');
+    }
+
     public function occupiedBookings(): HasMany
     {
         return $this->bookings()
@@ -233,6 +238,13 @@ class Session extends Model
     }
 
     private ?Collection $_talliesCache = null;
+
+    public function refresh()
+    {
+        $this->_talliesCache = null;
+
+        return parent::refresh();
+    }
 
     /**
      * Hitung akumulasi kursi per film dari pemesan aktif di sesi ini.
