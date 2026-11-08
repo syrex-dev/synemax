@@ -42,7 +42,7 @@ class MemberController extends Controller
             $query->where('status', $status);
         }
 
-        $members = $query->latest('id')->paginate(25)->withQueryString();
+        $members = $query->latest('id')->paginate(24)->withQueryString();
 
         $stats = [
             'total' => Member::count(),

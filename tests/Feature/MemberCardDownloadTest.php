@@ -145,4 +145,27 @@ class MemberCardDownloadTest extends TestCase
         $response->assertSee('Member Nomor 25 (M25)');
         $this->assertEquals(4, substr_count($response->getContent(), 'class="a4-sheet"'));
     }
+
+    public function test_admin_members_index_paginates_24_items_per_page(): void
+    {
+        $this->actingAs($this->admin);
+
+        for ($i = 1; $i <= 30; $i++) {
+            Member::create([
+                'code' => sprintf('MBRPAG%04d', $i),
+                'member_code' => sprintf('MBRPAG%04d', $i),
+                'name' => 'Member Pagination '.$i,
+                'status' => 'aktif',
+                'is_active' => true,
+                'link_version' => 1,
+            ]);
+        }
+
+        $response = $this->get(route('admin.members.index'));
+        $response->assertOk();
+
+        $paginator = $response->viewData('members');
+        $this->assertEquals(24, $paginator->perPage());
+        $this->assertEquals(24, $paginator->count());
+    }
 }
