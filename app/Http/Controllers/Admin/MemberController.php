@@ -501,16 +501,19 @@ class MemberController extends Controller
         $ids = $request->query('ids');
         $query = Member::query()->where('status', 'aktif');
 
+        $hasSpecificIds = false;
         if (is_array($ids)) {
             $query->whereIn('id', $ids);
+            $hasSpecificIds = true;
         } elseif (is_string($ids) && filled($ids)) {
             $idArray = array_filter(array_map('intval', explode(',', $ids)));
             if (! empty($idArray)) {
                 $query->whereIn('id', $idArray);
+                $hasSpecificIds = true;
             }
         }
 
-        $members = $query->take(8)->get();
+        $members = $hasSpecificIds ? $query->take(200)->get() : $query->take(8)->get();
 
         return view('admin.members.print-batch', [
             'members' => $members,

@@ -67,6 +67,14 @@
             gap: 6mm 10mm;
             padding: 5mm;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+            page-break-after: always;
+            break-after: page;
+        }
+        .a4-sheet:last-of-type {
+            margin-bottom: 0;
+            page-break-after: auto;
+            break-after: auto;
         }
 
         .member-card {
@@ -234,67 +242,78 @@
             body {
                 background-color: #ffffff;
                 padding: 0;
+                display: block;
             }
             .no-print-bar {
                 display: none !important;
             }
             .a4-sheet {
                 box-shadow: none;
-                padding: 0;
-                margin: 0;
+                padding: 5mm;
+                margin: 0 auto;
+                page-break-after: always;
+                break-after: page;
+            }
+            .a4-sheet:last-of-type {
+                page-break-after: auto;
+                break-after: auto;
             }
         }
     </style>
 </head>
 <body>
     <div class="no-print-bar">
-        <button type="button" class="btn-print" onclick="window.print()">Cetak Lembar A4 ({{ $members->count() }} Kartu)</button>
+        <button type="button" class="btn-print" onclick="window.print()">
+            Cetak {{ $members->count() }} Kartu ({{ ceil($members->count() / 8) }} Lembar A4)
+        </button>
         <a href="{{ route('admin.members.index') }}" class="btn-close">Kembali ke Daftar</a>
     </div>
 
-    <div class="a4-sheet">
-        @foreach ($members as $member)
-            @php
-                $displayName = $member->nickname ? "{$member->name} ({$member->nickname})" : $member->name;
-            @endphp
-            <div class="member-card">
-                <div class="card-header">
-                    <div class="brand-area">
-                        @if ($logoUrl)
-                            <img src="{{ $logoUrl }}" alt="{{ setting('site_name', 'SynemaX') }}" class="brand-logo">
-                        @else
-                            <span class="brand-title">{{ setting('site_name', 'SynemaX') }}</span>
-                        @endif
-                    </div>
-                    <span class="card-badge">KARTU MEMBER</span>
-                </div>
-
-                <div class="card-body">
-                    <div class="mascot-frame">
-                        <img src="{{ $mascotUrl }}" alt="Maskot SynemaX" class="mascot-img">
-                    </div>
-
-                    <div class="member-info">
-                        <span class="member-label">Nama Member</span>
-                        <div class="member-name">{{ $displayName }}</div>
-                        <span class="member-id-label">ID Member</span>
-                        <span class="code-display">{{ $member->formattedCode() }}</span>
-                    </div>
-
-                    <div class="qr-wrapper">
-                        <div class="qr-section">
-                            {!! generate_inline_qr_svg($member->formattedCode(), 85, 0) !!}
+    @foreach ($members->chunk(8) as $sheetMembers)
+        <div class="a4-sheet">
+            @foreach ($sheetMembers as $member)
+                @php
+                    $displayName = $member->nickname ? "{$member->name} ({$member->nickname})" : $member->name;
+                @endphp
+                <div class="member-card">
+                    <div class="card-header">
+                        <div class="brand-area">
+                            @if ($logoUrl)
+                                <img src="{{ $logoUrl }}" alt="{{ setting('site_name', 'SynemaX') }}" class="brand-logo">
+                            @else
+                                <span class="brand-title">{{ setting('site_name', 'SynemaX') }}</span>
+                            @endif
                         </div>
-                        <span class="qr-caption">Scan Disini</span>
+                        <span class="card-badge">KARTU MEMBER</span>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="mascot-frame">
+                            <img src="{{ $mascotUrl }}" alt="Maskot SynemaX" class="mascot-img">
+                        </div>
+
+                        <div class="member-info">
+                            <span class="member-label">Nama Member</span>
+                            <div class="member-name">{{ $displayName }}</div>
+                            <span class="member-id-label">ID Member</span>
+                            <span class="code-display">{{ $member->formattedCode() }}</span>
+                        </div>
+
+                        <div class="qr-wrapper">
+                            <div class="qr-section">
+                                {!! generate_inline_qr_svg($member->formattedCode(), 85, 0) !!}
+                            </div>
+                            <span class="qr-caption">Scan Disini</span>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <span>Studio Bioskop Mini Privat</span>
+                        <span class="footer-site">synemax.web.id</span>
                     </div>
                 </div>
-
-                <div class="card-footer">
-                    <span>Studio Bioskop Mini Privat</span>
-                    <span class="footer-site">synemax.web.id</span>
-                </div>
-            </div>
-        @endforeach
-    </div>
+            @endforeach
+        </div>
+    @endforeach
 </body>
 </html>

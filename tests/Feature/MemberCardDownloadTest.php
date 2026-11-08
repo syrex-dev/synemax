@@ -114,4 +114,34 @@ class MemberCardDownloadTest extends TestCase
         $response->assertSee('Download Kartu (PNG)');
         $response->assertSee('downloadMemberCardPng');
     }
+
+    public function test_admin_print_batch_prints_all_selected_members_across_sheets(): void
+    {
+        $this->actingAs($this->admin);
+
+        // Create 25 active members
+        $createdMembers = [];
+        for ($i = 1; $i <= 25; $i++) {
+            $createdMembers[] = Member::create([
+                'code' => sprintf('MBR%05d', $i),
+                'member_code' => sprintf('MBR%05d', $i),
+                'name' => 'Member Nomor '.$i,
+                'nickname' => 'M'.$i,
+                'status' => 'aktif',
+                'is_active' => true,
+                'link_version' => 1,
+            ]);
+        }
+
+        $ids = array_map(fn ($m) => $m->id, $createdMembers);
+        $idsString = implode(',', $ids);
+
+        $response = $this->get(route('admin.members.print_batch', ['ids' => $idsString]));
+
+        $response->assertOk();
+        $response->assertSee('Cetak 25 Kartu (4 Lembar A4)');
+        $response->assertSee('Member Nomor 1 (M1)');
+        $response->assertSee('Member Nomor 25 (M25)');
+        $this->assertEquals(4, substr_count($response->getContent(), 'class="a4-sheet"'));
+    }
 }
