@@ -163,8 +163,8 @@
         <input type="hidden" name="mark_as_attended" :value="markAsAttended ? 1 : 0">
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {{-- KOLOM KIRI: Input Form (8 kolom) --}}
-            <div class="lg:col-span-7 xl:col-span-8 space-y-6">
+            {{-- KOLOM KIRI: Input Form (8 kolom desktop) --}}
+            <div class="w-full min-w-0 lg:col-span-8 space-y-6">
 
                 {{-- LANGKAH 1: PILIH SESI NONTON --}}
                 <div class="rounded-2xl border border-border bg-surface p-5 shadow-xs">
@@ -590,8 +590,8 @@
 
             </div>
 
-            {{-- KOLOM KANAN: KASIR & STRUK RINGKASAN (4 kolom sticky) --}}
-            <div class="lg:col-span-5 xl:col-span-4 sticky top-6 space-y-5">
+            {{-- KOLOM KANAN: KASIR & STRUK RINGKASAN (4 kolom desktop sticky) --}}
+            <div class="w-full min-w-0 lg:col-span-4 sticky top-6 space-y-5">
                 <div class="rounded-2xl border-2 border-border bg-surface p-5 shadow-lg">
                     <div class="flex items-center justify-between pb-3 border-b border-border">
                         <h2 class="text-base font-black text-text">Ringkasan Tagihan</h2>
