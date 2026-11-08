@@ -299,7 +299,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/members/{member}/kartu', [MemberController::class, 'printSingle'])->name('members.print_single');
 
     // Aliases for admin navigation
-    Route::redirect('/members', '/admin/members');
     Route::redirect('/schedule', '/admin/jadwal');
     Route::redirect('/articles', '/admin/berita');
     Route::get('/settings', fn (Request $r) => redirect('/admin/pengaturan'.($r->getQueryString() ? '?'.$r->getQueryString() : '')));
@@ -307,7 +306,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::redirect('/reports', '/admin/laporan');
 });
 
-// Alias /scan mengarah ke /admin/scan (login dulu bila belum masuk, lalu kembali ke halaman scan)
+// Alias /scan dan /members mengarah ke panel admin
 Route::get('/scan', fn () => redirect()->route('admin.scan.index'))->middleware('auth');
+Route::get('/members', fn () => redirect()->route('admin.members.index'))->middleware('auth');
 
 require __DIR__.'/auth.php';

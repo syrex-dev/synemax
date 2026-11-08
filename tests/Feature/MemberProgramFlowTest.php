@@ -580,4 +580,47 @@ class MemberProgramFlowTest extends TestCase
         $this->assertEquals('sudah_tercatat_sesi_ini', $res2->json('verdict'));
         $this->assertEquals(1, MemberVisit::where('member_id', $member->id)->where('session_id', $this->session->id)->count());
     }
+
+    /**
+     * 12. Test member store form handles opening visits numeric selection and creation.
+     */
+    public function test_member_store_form_accepts_opening_visits(): void
+    {
+        $this->actingAs($this->admin);
+
+        // Verify GET create form outputs proper numeric option values in select
+        $createView = $this->get(route('admin.members.create'));
+        $createView->assertOk();
+        $this->assertStringContainsString('value\u0022:\u00221\u0022,\u0022label\u0022:\u00221 kunjungan\u0022', $createView->getContent());
+
+        // Test with numeric opening_visits
+        $response = $this->post(route('admin.members.store'), [
+            'name' => 'Member Zia',
+            'nickname' => 'Zia',
+            'opening_visits' => 1,
+            'status' => 'aktif',
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('members', [
+            'name' => 'Member Zia',
+            'opening_visits' => 1,
+            'status' => 'aktif',
+        ]);
+
+        // Test with string with prefix/suffix (e.g. "1 kunjungan")
+        $response2 = $this->post(route('admin.members.store'), [
+            'name' => 'Member Rian',
+            'nickname' => 'Rian',
+            'opening_visits' => '2 kunjungan',
+            'status' => 'aktif',
+        ]);
+
+        $response2->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('members', [
+            'name' => 'Member Rian',
+            'opening_visits' => 2,
+            'status' => 'aktif',
+        ]);
+    }
 }

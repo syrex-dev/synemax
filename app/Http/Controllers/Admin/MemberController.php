@@ -65,6 +65,13 @@ class MemberController extends Controller
 
     public function store(Request $request, WebpImageProcessor $images): RedirectResponse
     {
+        if ($request->has('opening_visits')) {
+            $raw = $request->input('opening_visits');
+            if (is_string($raw) && preg_match('/^\s*(\d+)/', $raw, $m)) {
+                $request->merge(['opening_visits' => (int) $m[1]]);
+            }
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:80'],
             'nickname' => ['nullable', 'string', 'max:50'],
@@ -79,6 +86,9 @@ class MemberController extends Controller
             'photo.image' => 'Berkas foto harus berupa gambar yang valid.',
             'photo.max' => 'Ukuran foto maksimal 2 MB.',
             'status.required' => 'Status member wajib dipilih.',
+            'opening_visits.integer' => 'Saldo awal kunjungan harus berupa angka bulat.',
+            'opening_visits.min' => 'Saldo awal kunjungan minimal 0.',
+            'opening_visits.max' => 'Saldo awal kunjungan tidak boleh lebih dari 9.',
         ]);
 
         // Duplicate name warning
@@ -303,11 +313,22 @@ class MemberController extends Controller
 
     public function updateOpeningVisits(Request $request, Member $member): RedirectResponse
     {
+        if ($request->has('opening_visits')) {
+            $raw = $request->input('opening_visits');
+            if (is_string($raw) && preg_match('/^\s*(\d+)/', $raw, $m)) {
+                $request->merge(['opening_visits' => (int) $m[1]]);
+            }
+        }
+
         $validated = $request->validate([
             'opening_visits' => ['required', 'integer', 'min:0', 'max:9'],
             'reason' => ['required', 'string', 'max:255'],
         ], [
             'reason.required' => 'Alasan koreksi saldo awal wajib diisi.',
+            'opening_visits.required' => 'Saldo awal kunjungan wajib dipilih.',
+            'opening_visits.integer' => 'Saldo awal kunjungan harus berupa angka bulat.',
+            'opening_visits.min' => 'Saldo awal kunjungan minimal 0.',
+            'opening_visits.max' => 'Saldo awal kunjungan tidak boleh lebih dari 9.',
         ]);
 
         $oldVal = $member->opening_visits;

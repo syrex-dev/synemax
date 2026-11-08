@@ -27,36 +27,41 @@
     if (empty($rawOptions) && !empty($slotContent)) {
         if (preg_match_all('/<option\s+value=["\']([^"\']*)["\'][^>]*>(.*?)<\/option>/is', $slotContent, $matches, PREG_SET_ORDER)) {
             foreach ($matches as $match) {
-                $rawOptions[$match[1]] = trim(strip_tags($match[2]));
+                $normalizedOptions[] = [
+                    'value' => (string)$match[1],
+                    'label' => trim(strip_tags($match[2])),
+                    'icon' => null,
+                    'description' => null,
+                ];
             }
         }
-    }
+    } else {
+        $isAssoc = array_keys($rawOptions) !== range(0, count($rawOptions) - 1);
 
-    $isAssoc = array_keys($rawOptions) !== range(0, count($rawOptions) - 1);
-
-    foreach ($rawOptions as $k => $v) {
-        if (is_array($v)) {
-            $val = (string)($v['value'] ?? $k);
-            $lbl = (string)($v['label'] ?? $val);
-            $icon = $v['icon'] ?? null;
-            $desc = $v['description'] ?? null;
-        } elseif ($isAssoc) {
-            $val = (string)$k;
-            $lbl = (string)$v;
-            $icon = null;
-            $desc = null;
-        } else {
-            $val = (string)$v;
-            $lbl = (string)$v;
-            $icon = null;
-            $desc = null;
+        foreach ($rawOptions as $k => $v) {
+            if (is_array($v)) {
+                $val = (string)($v['value'] ?? $k);
+                $lbl = (string)($v['label'] ?? $val);
+                $icon = $v['icon'] ?? null;
+                $desc = $v['description'] ?? null;
+            } elseif ($isAssoc) {
+                $val = (string)$k;
+                $lbl = (string)$v;
+                $icon = null;
+                $desc = null;
+            } else {
+                $val = (string)$v;
+                $lbl = (string)$v;
+                $icon = null;
+                $desc = null;
+            }
+            $normalizedOptions[] = [
+                'value' => $val,
+                'label' => $lbl,
+                'icon' => $icon,
+                'description' => $desc,
+            ];
         }
-        $normalizedOptions[] = [
-            'value' => $val,
-            'label' => $lbl,
-            'icon' => $icon,
-            'description' => $desc,
-        ];
     }
 
     $isSearchable = $searchable ?? (count($normalizedOptions) > 8);
