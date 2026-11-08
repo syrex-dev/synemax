@@ -46,7 +46,8 @@ class MemberCardDownloadTest extends TestCase
         $response->assertSee('Download Kartu (PNG)');
         $response->assertSee('Cetak / Simpan PDF');
         $response->assertSee('downloadMemberCardPng');
-        $response->assertSee('Budi Santoso');
+        $response->assertSee('Budi Santoso (Budi)');
+        $response->assertSee('member-mascot.jpg');
         $response->assertSee($this->member->formattedCode());
     }
 
@@ -66,7 +67,7 @@ class MemberCardDownloadTest extends TestCase
 
         $content = $response->getContent();
         $this->assertStringContainsString('<svg', $content);
-        $this->assertStringContainsString('Budi Santoso', $content);
+        $this->assertStringContainsString('Budi Santoso (Budi)', $content);
         $this->assertStringContainsString($this->member->formattedCode(), $content);
         $this->assertStringContainsString('KARTU MEMBER', $content);
     }
@@ -81,7 +82,8 @@ class MemberCardDownloadTest extends TestCase
         $response->assertSee('Download Gambar (PNG)');
         $response->assertSee('Cetak Kartu');
         $response->assertSee('downloadMemberCardPng');
-        $response->assertSee('Budi Santoso');
+        $response->assertSee('Budi Santoso (Budi)');
+        $response->assertSee('member-mascot.jpg');
     }
 
     public function test_admin_member_print_single_svg_download(): void
@@ -99,7 +101,7 @@ class MemberCardDownloadTest extends TestCase
 
         $content = $response->getContent();
         $this->assertStringContainsString('<svg', $content);
-        $this->assertStringContainsString('Budi Santoso', $content);
+        $this->assertStringContainsString('Budi Santoso (Budi)', $content);
     }
 
     public function test_admin_member_show_contains_download_button(): void

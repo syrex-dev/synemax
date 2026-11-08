@@ -1,9 +1,15 @@
+@php
+    $logoRaw = setting('site_logo');
+    $logoUrl = $logoRaw ? (str_starts_with($logoRaw, '/') || str_starts_with($logoRaw, 'http') ? $logoRaw : \Illuminate\Support\Facades\Storage::url($logoRaw)) : null;
+    $displayName = $member->nickname ? "{$member->name} ({$member->nickname})" : $member->name;
+    $mascotUrl = asset('images/member-mascot.jpg');
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cetak Kartu Member - {{ $member->name }}</title>
+    <title>Cetak Kartu Member - {{ $displayName }}</title>
     <style>
         @page {
             size: A4;
@@ -69,15 +75,17 @@
             cursor: pointer;
             text-decoration: none;
         }
-        /* Kartu Standar ID Card 85.6mm x 53.98mm */
+
+        /* Kartu Standar ID Card ISO/IEC 7810 ID-1: 85.6mm x 53.98mm */
         .member-card {
             width: 85.6mm;
             height: 54mm;
             background-color: #ffffff;
-            color: #000000;
-            border: 1px solid #e2e8f0;
-            border-radius: 4mm;
-            padding: 4mm 5mm;
+            color: #0f172a;
+            border: 1px solid #cbd5e1;
+            border-bottom: 2.5mm solid #f59e0b;
+            border-radius: 3.5mm;
+            padding: 3.5mm 4.5mm 2.5mm 4.5mm;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             position: relative;
             display: flex;
@@ -85,107 +93,152 @@
             justify-content: space-between;
             page-break-inside: avoid;
             break-inside: avoid;
+            overflow: hidden;
         }
         .card-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1.5px solid #000000;
-            padding-bottom: 2mm;
+            border-bottom: 1.2px solid #e2e8f0;
+            padding-bottom: 1.8mm;
+        }
+        .brand-area {
+            display: flex;
+            align-items: center;
+            gap: 2mm;
+        }
+        .brand-logo {
+            max-height: 6.5mm;
+            max-width: 34mm;
+            object-fit: contain;
         }
         .brand-title {
-            font-size: 12pt;
+            font-size: 11pt;
             font-weight: 900;
             letter-spacing: 0.5px;
             text-transform: uppercase;
+            color: #0f172a;
         }
         .card-badge {
-            font-size: 7pt;
+            font-size: 6pt;
             font-weight: 800;
-            background-color: #000000;
-            color: #ffffff;
-            padding: 1.5px 6px;
-            border-radius: 3px;
-            letter-spacing: 0.5px;
+            background-color: #0f172a;
+            color: #f59e0b;
+            border: 0.8px solid #d97706;
+            padding: 1.2px 5px;
+            border-radius: 2.5px;
+            letter-spacing: 0.6px;
             text-transform: uppercase;
         }
         .card-body {
             display: flex;
             align-items: center;
-            gap: 3.5mm;
-            margin-top: 2.5mm;
+            gap: 3mm;
+            margin-top: 1.5mm;
+            margin-bottom: 1.5mm;
+            flex: 1;
         }
-        .member-photo {
+        .mascot-frame {
             width: 22mm;
             height: 22mm;
             border-radius: 3mm;
-            object-fit: cover;
-            border: 1px solid #cbd5e1;
-            background-color: #f8fafc;
-        }
-        .member-avatar-placeholder {
-            width: 22mm;
-            height: 22mm;
-            border-radius: 3mm;
-            border: 1px solid #cbd5e1;
-            background-color: #f1f5f9;
+            overflow: hidden;
+            border: 1.2px solid #f59e0b;
+            background-color: #ffffff;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+            flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16pt;
-            font-weight: 800;
-            color: #64748b;
+        }
+        .mascot-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         .member-info {
             flex: 1;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .member-label {
+            font-size: 5pt;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            margin-bottom: 0.4mm;
         }
         .member-name {
-            font-size: 11pt;
+            font-size: 9.5pt;
             font-weight: 800;
             line-height: 1.2;
-            color: #000000;
-            margin-bottom: 1mm;
+            color: #0f172a;
+            margin-bottom: 1.2mm;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .member-cycle-tag {
-            font-size: 7pt;
-            font-weight: 600;
-            color: #475569;
-        }
-        .qr-section {
-            width: 25mm;
-            height: 25mm;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .qr-section svg {
-            width: 100%;
-            height: 100%;
-        }
-        .card-footer {
-            border-top: 1px solid #e2e8f0;
-            padding-top: 1.5mm;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        .member-id-label {
+            font-size: 4.8pt;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            margin-bottom: 0.3mm;
         }
         .code-display {
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
             font-size: 8.5pt;
             font-weight: 800;
             letter-spacing: 0.5px;
-            color: #000000;
+            color: #b45309;
         }
-        .card-notice {
-            font-size: 5.5pt;
+        .qr-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .qr-section {
+            width: 22mm;
+            height: 22mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 2mm;
+            padding: 0.8mm;
+        }
+        .qr-section svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .qr-caption {
+            font-size: 4.5pt;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 0.4px;
+            margin-top: 0.4mm;
+            text-transform: uppercase;
+        }
+        .card-footer {
+            border-top: 0.8px solid #f1f5f9;
+            padding-top: 1mm;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 5pt;
             color: #64748b;
-            text-align: right;
-            max-width: 40mm;
-            line-height: 1.2;
+        }
+        .footer-site {
+            font-family: ui-monospace, monospace;
+            font-weight: 600;
+            color: #94a3b8;
         }
 
         @media print {
@@ -200,6 +253,7 @@
             .member-card {
                 box-shadow: none;
                 border: 1px dashed #94a3b8;
+                border-bottom: 2.5mm solid #f59e0b;
                 margin: 0;
             }
         }
@@ -219,36 +273,42 @@
 
     <div class="member-card">
         <div class="card-header">
-            <span class="brand-title">{{ setting('site_name', 'SynemaX') }}</span>
+            <div class="brand-area">
+                @if ($logoUrl)
+                    <img src="{{ $logoUrl }}" alt="{{ setting('site_name', 'SynemaX') }}" class="brand-logo">
+                @else
+                    <span class="brand-title">{{ setting('site_name', 'SynemaX') }}</span>
+                @endif
+            </div>
             <span class="card-badge">KARTU MEMBER</span>
         </div>
 
         <div class="card-body">
-            @if ($member->photo_path)
-                <img src="{{ $member->photoUrl() }}" alt="{{ $member->name }}" class="member-photo">
-            @else
-                <div class="member-avatar-placeholder">
-                    {{ strtoupper(substr($member->name, 0, 1)) }}
-                </div>
-            @endif
-
-            <div class="member-info">
-                <div class="member-name">{{ $member->name }}</div>
-                <div class="member-cycle-tag">Program Kunjungan Berhadiah</div>
+            <div class="mascot-frame">
+                <img src="{{ $mascotUrl }}" alt="Maskot SynemaX" class="mascot-img">
             </div>
 
-            <div class="qr-section">
-                {!! generate_inline_qr_svg($member->formattedCode(), 95, 0) !!}
+            <div class="member-info">
+                <span class="member-label">Nama Member</span>
+                <div class="member-name">{{ $displayName }}</div>
+                <span class="member-id-label">ID Member</span>
+                <span class="code-display">{{ $member->formattedCode() }}</span>
+            </div>
+
+            <div class="qr-wrapper">
+                <div class="qr-section">
+                    {!! generate_inline_qr_svg($member->formattedCode(), 95, 0) !!}
+                </div>
+                <span class="qr-caption">Scan Disini</span>
             </div>
         </div>
 
         <div class="card-footer">
-            <span class="code-display">{{ $member->formattedCode() }}</span>
-            <span class="card-notice">Tunjukkan kartu ini saat datang ke bioskop untuk mencatat kunjungan & reward.</span>
+            <span>Studio Bioskop Mini Privat</span>
+            <span class="footer-site">synemax.web.id</span>
         </div>
     </div>
 
     <x-member.card-download-script :member="$member" />
 </body>
 </html>
-

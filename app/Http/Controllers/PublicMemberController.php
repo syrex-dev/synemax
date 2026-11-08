@@ -6,6 +6,7 @@ use App\Models\Member;
 use App\Services\CinemaSettings;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
 
 class PublicMemberController extends Controller
 {
@@ -65,14 +66,28 @@ class PublicMemberController extends Controller
     public function renderCardSvg(Member $member, CinemaSettings $settings): string
     {
         $siteName = htmlspecialchars(setting('site_name', 'SynemaX'), ENT_XML1, 'UTF-8');
-        $name = htmlspecialchars($member->name, ENT_XML1, 'UTF-8');
+        $rawDisplayName = $member->nickname ? "{$member->name} ({$member->nickname})" : $member->name;
+        $displayName = htmlspecialchars($rawDisplayName, ENT_XML1, 'UTF-8');
         $code = htmlspecialchars($member->formattedCode(), ENT_XML1, 'UTF-8');
-        $cycleMax = $settings->memberFreeVisit();
-        $nextPos = $member->nextVisitPosition($cycleMax);
-        $inCycle = $nextPos - 1;
-        $cycleNum = $member->currentCycle($cycleMax);
-        $cycleText = htmlspecialchars("Kunjungan {$inCycle} dari {$cycleMax} · Siklus {$cycleNum}", ENT_XML1, 'UTF-8');
-        $initial = htmlspecialchars(strtoupper(substr($member->name, 0, 1)), ENT_XML1, 'UTF-8');
+
+        // Mascot image as embedded data URI for 100% self-contained standalone SVG
+        $mascotPath = public_path('images/member-mascot.jpg');
+        $mascotUri = '';
+        if (file_exists($mascotPath)) {
+            $mascotUri = 'data:image/jpeg;base64,'.base64_encode((string) file_get_contents($mascotPath));
+        }
+
+        // Logo if present
+        $logoRaw = setting('site_logo');
+        $logoUri = '';
+        if ($logoRaw && Storage::disk('public')->exists($logoRaw)) {
+            $logoFull = Storage::disk('public')->path($logoRaw);
+            if (file_exists($logoFull)) {
+                $ext = strtolower(pathinfo($logoFull, PATHINFO_EXTENSION));
+                $mime = ($ext === 'png') ? 'image/png' : (($ext === 'svg') ? 'image/svg+xml' : 'image/jpeg');
+                $logoUri = 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($logoFull));
+            }
+        }
 
         $qrRaw = generate_inline_qr_svg($member->formattedCode(), 220, 0);
         if (preg_match('/<svg[^>]*>(.*)<\/svg>/is', $qrRaw, $m)) {
@@ -81,6 +96,14 @@ class PublicMemberController extends Controller
             $qrInner = $qrRaw;
         }
 
+        $logoMarkup = $logoUri
+            ? '<image href="'.$logoUri.'" x="50" y="30" height="50" width="220" preserveAspectRatio="xMinYMid meet"/>'
+            : '<text x="50" y="70" font-family="-apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif" font-size="32" font-weight="900" fill="#0F172A">'.$siteName.'</text><circle cx="230" cy="60" r="6" fill="#F59E0B"/>';
+
+        $mascotMarkup = $mascotUri
+            ? '<image href="'.$mascotUri.'" x="50" y="145" width="200" height="200" preserveAspectRatio="xMidYMid slice" clip-path="url(#mascot-clip)"/>'
+            : '<rect x="50" y="145" width="200" height="200" rx="26" ry="26" fill="#F1F5F9" stroke="#F59E0B" stroke-width="3"/>';
+
         return <<<SVG
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1050" height="660" viewBox="0 0 1050 660">
@@ -88,31 +111,51 @@ class PublicMemberController extends Controller
         <clipPath id="card-clip">
             <rect width="1050" height="660" rx="32" ry="32"/>
         </clipPath>
+        <clipPath id="mascot-clip">
+            <rect x="50" y="145" width="200" height="200" rx="26" ry="26"/>
+        </clipPath>
     </defs>
     <g clip-path="url(#card-clip)">
+        <!-- Card Background -->
         <rect width="1050" height="660" fill="#FFFFFF"/>
+
+        <!-- Header -->
         <rect width="1050" height="110" fill="#F8FAFC"/>
         <line x1="0" y1="110" x2="1050" y2="110" stroke="#E2E8F0" stroke-width="2"/>
-        <text x="50" y="70" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="32" font-weight="900" fill="#0F172A">{$siteName}</text>
-        <circle cx="230" cy="60" r="6" fill="#F59E0B"/>
-        <rect x="820" y="35" width="180" height="40" rx="10" ry="10" fill="#0F172A"/>
-        <text x="910" y="60" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="800" fill="#FFFFFF" text-anchor="middle" dominant-baseline="middle">KARTU MEMBER</text>
-        <rect x="50" y="155" width="170" height="170" rx="24" ry="24" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="2"/>
-        <text x="135" y="260" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="76" font-weight="800" fill="#475569" text-anchor="middle">{$initial}</text>
-        <text x="250" y="215" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="36" font-weight="800" fill="#0F172A">{$name}</text>
-        <text x="250" y="255" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="20" font-weight="600" fill="#64748B">Program Kunjungan Berhadiah</text>
-        <text x="250" y="292" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="700" fill="#D97706">{$cycleText}</text>
-        <rect x="730" y="145" width="270" height="270" rx="20" ry="20" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
-        <g transform="translate(755, 170)">
+        {$logoMarkup}
+
+        <!-- Badge KARTU MEMBER -->
+        <rect x="820" y="34" width="180" height="42" rx="10" ry="10" fill="#0F172A" stroke="#D97706" stroke-width="2"/>
+        <text x="910" y="60" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="800" fill="#F59E0B" text-anchor="middle" dominant-baseline="middle">KARTU MEMBER</text>
+
+        <!-- Mascot Frame -->
+        {$mascotMarkup}
+        <rect x="50" y="145" width="200" height="200" rx="26" ry="26" fill="none" stroke="#F59E0B" stroke-width="3"/>
+
+        <!-- Member Info -->
+        <text x="285" y="190" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700" fill="#94A3B8">NAMA MEMBER</text>
+        <text x="285" y="230" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="32" font-weight="800" fill="#0F172A">{$displayName}</text>
+
+        <text x="285" y="290" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700" fill="#94A3B8">ID MEMBER</text>
+        <text x="285" y="330" font-family="ui-monospace, monospace" font-size="30" font-weight="800" fill="#B45309">{$code}</text>
+
+        <!-- QR Box -->
+        <rect x="730" y="135" width="270" height="270" rx="22" ry="22" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+        <g transform="translate(755, 160)">
             {$qrInner}
         </g>
+        <text x="865" y="425" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="700" fill="#94A3B8" text-anchor="middle">SCAN DISINI</text>
+
+        <!-- Footer -->
         <rect y="520" width="1050" height="140" fill="#F8FAFC"/>
         <line x1="0" y1="520" x2="1050" y2="520" stroke="#E2E8F0" stroke-width="2"/>
-        <text x="50" y="560" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="700" fill="#94A3B8">ID KARTU MEMBER</text>
-        <text x="50" y="600" font-family="ui-monospace, monospace" font-size="28" font-weight="800" fill="#0F172A">{$code}</text>
-        <text x="1000" y="575" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="15" font-weight="500" fill="#64748B" text-anchor="end">Tunjukkan kartu ini ke petugas saat menonton.</text>
-        <text x="1000" y="600" font-family="ui-monospace, monospace" font-size="14" font-weight="600" fill="#94A3B8" text-anchor="end">synemax.web.id</text>
-        <rect y="652" width="1050" height="8" fill="#F59E0B"/>
+        <text x="50" y="585" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="18" font-weight="600" fill="#64748B">Studio Bioskop Mini Privat</text>
+        <text x="1000" y="585" font-family="ui-monospace, monospace" font-size="18" font-weight="600" fill="#94A3B8" text-anchor="end">synemax.web.id</text>
+
+        <!-- Bottom Accent Gold Bar -->
+        <rect y="650" width="1050" height="10" fill="#F59E0B"/>
+
+        <!-- Outer Border -->
         <rect x="1" y="1" width="1048" height="658" rx="32" ry="32" fill="none" stroke="#CBD5E1" stroke-width="2"/>
     </g>
 </svg>

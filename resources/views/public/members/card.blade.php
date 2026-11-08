@@ -1,61 +1,78 @@
 @extends('layouts.public')
 
-@section('title', 'Kartu Member Digital: ' . $member->name . ' - ' . setting('site_name', 'SynemaX'))
-
-@section('content')
 @php
+    $displayName = $member->nickname ? "{$member->name} ({$member->nickname})" : $member->name;
+    $logoRaw = setting('site_logo');
+    $logoUrl = $logoRaw ? (str_starts_with($logoRaw, '/') || str_starts_with($logoRaw, 'http') ? $logoRaw : \Illuminate\Support\Facades\Storage::url($logoRaw)) : null;
+    $mascotUrl = asset('images/member-mascot.jpg');
     $cycleMax = $settings->memberFreeVisit();
     $discountVisit = $settings->memberDiscountVisit();
     $nextPos = $member->nextVisitPosition($cycleMax);
     $inCycle = $nextPos - 1;
 @endphp
 
+@section('title', 'Kartu Member: ' . $displayName . ' - ' . setting('site_name', 'SynemaX'))
+
+@section('content')
 <div class="mx-auto max-w-lg px-4 py-8 sm:px-6 space-y-6">
-    {{-- Header --}}
-    <div class="text-center space-y-2">
-        <h1 class="text-xl font-bold tracking-tight text-text sm:text-2xl">Kartu Member Sinema</h1>
-        <p class="text-xs text-text-muted">Tunjukkan kode QR ini ke petugas saat menonton untuk mencatat kunjungan Anda.</p>
+    {{-- Header Halaman --}}
+    <div class="text-center space-y-1.5 no-print">
+        <h1 class="text-xl font-bold tracking-tight text-text sm:text-2xl">Kartu Member Bioskop</h1>
+        <p class="text-xs text-text-muted">Tunjukkan kode QR ke petugas saat menonton untuk mencatat kunjungan & reward.</p>
     </div>
 
-    {{-- Kartu Digital Utama --}}
-    <div id="member-digital-card" class="rounded-3xl border border-border bg-surface p-6 sm:p-8 shadow-lg space-y-6 text-center">
-        {{-- Foto & Nama --}}
-        <div class="flex flex-col items-center space-y-3">
-            <div class="size-20 rounded-full border-2 border-amber-500 overflow-hidden bg-surface-2 flex items-center justify-center font-bold text-2xl text-text-muted shadow-sm">
-                @if ($member->photo_path)
-                    <img src="{{ $member->photoUrl() }}" alt="{{ $member->name }}" class="size-full object-cover">
+    {{-- KARTU MEMBER UTAMA (Eksklusif Siap Cetak & Unduh) --}}
+    <div id="member-digital-card" class="rounded-3xl border border-border bg-surface p-5 sm:p-7 shadow-xl space-y-5 text-left border-b-[6px] border-b-amber-500 overflow-hidden relative">
+        {{-- Header Kartu: Logo SynemaX & Badge --}}
+        <div class="flex items-center justify-between border-b border-border/80 pb-3.5">
+            <div class="flex items-center gap-2">
+                @if ($logoUrl)
+                    <img src="{{ $logoUrl }}" alt="{{ setting('site_name', 'SynemaX') }}" class="h-7 sm:h-8 max-w-[140px] sm:max-w-[160px] object-contain">
                 @else
-                    <span>{{ strtoupper(substr($member->name, 0, 1)) }}</span>
+                    <span class="text-base sm:text-lg font-black tracking-wider uppercase text-text">{{ setting('site_name', 'SynemaX') }}</span>
                 @endif
             </div>
-            <div>
-                <h2 class="text-lg font-extrabold text-text">{{ $member->name }}</h2>
-                <p class="text-xs font-mono font-bold tracking-wider text-amber-500 mt-0.5">{{ $member->formattedCode() }}</p>
+            <span class="rounded-md bg-slate-900 border border-amber-500/60 px-2.5 py-1 text-[10px] font-extrabold tracking-wider text-amber-400 uppercase">
+                KARTU MEMBER
+            </span>
+        </div>
+
+        {{-- Isi Kartu: Foto Maskot, Nama, ID Member & QR Code --}}
+        <div class="flex items-center gap-3.5 sm:gap-5">
+            {{-- Foto Maskot --}}
+            <div class="size-20 sm:size-24 shrink-0 rounded-2xl border-2 border-amber-500/80 overflow-hidden bg-white shadow-sm flex items-center justify-center p-0.5">
+                <img src="{{ $mascotUrl }}" alt="Maskot SynemaX" class="size-full object-cover rounded-xl">
+            </div>
+
+            {{-- Info Nama & ID Member --}}
+            <div class="flex-1 min-w-0 space-y-2">
+                <div>
+                    <span class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-text-muted block">Nama Member</span>
+                    <h2 class="text-sm sm:text-base font-extrabold text-text leading-tight truncate" title="{{ $displayName }}">
+                        {{ $displayName }}
+                    </h2>
+                </div>
+                <div>
+                    <span class="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-text-muted block">ID Member</span>
+                    <p class="font-mono text-xs sm:text-sm font-extrabold tracking-wider text-amber-600 dark:text-amber-400">
+                        {{ $member->formattedCode() }}
+                    </p>
+                </div>
+            </div>
+
+            {{-- QR Code (Barcode) --}}
+            <div class="shrink-0 flex flex-col items-center">
+                <div id="member-card-qr" class="size-20 sm:size-24 rounded-2xl bg-white p-1.5 shadow-sm border border-slate-200 flex items-center justify-center">
+                    {!! generate_inline_qr_svg($member->formattedCode(), 120, 0) !!}
+                </div>
+                <span class="text-[8px] sm:text-[9px] font-bold text-text-muted uppercase tracking-wider mt-1">Scan Disini</span>
             </div>
         </div>
 
-        {{-- QR Code (Wajib selalu hitam di atas putih untuk kemudahan pemindaian kamera) --}}
-        <div id="member-card-qr" class="inline-block rounded-2xl bg-white p-4 shadow-sm border border-slate-200">
-            {!! generate_inline_qr_svg($member->formattedCode(), 190, 1) !!}
-        </div>
-
-        {{-- Progres Siklus Kunjungan --}}
-        <div class="rounded-2xl border border-border bg-surface-2 p-4 space-y-3 text-left">
-            <div class="flex items-center justify-between text-xs">
-                <span class="font-bold text-text">Kunjungan {{ $inCycle }} dari {{ $cycleMax }}</span>
-                <span class="text-text-muted font-semibold">Siklus {{ $member->currentCycle($cycleMax) }}</span>
-            </div>
-
-            <div class="relative h-2.5 w-full rounded-full bg-border overflow-hidden">
-                <div
-                    class="h-full rounded-full bg-amber-500 transition-all duration-300"
-                    style="width: {{ ($inCycle / $cycleMax) * 100 }}%"
-                ></div>
-            </div>
-
-            <p class="text-xs text-text-muted leading-relaxed">
-                {{ $member->progressDescription($settings) }}
-            </p>
+        {{-- Footer Kartu --}}
+        <div class="flex items-center justify-between pt-2.5 border-t border-border/70 text-[10px] text-text-muted">
+            <span>Studio Bioskop Mini Privat</span>
+            <span class="font-mono text-[10px] text-text-muted">synemax.web.id</span>
         </div>
     </div>
 
@@ -85,44 +102,30 @@
         </button>
     </div>
 
-    <style>
-    @media print {
-        header, footer, nav, .no-print, button, a, [class*="z-[9999]"] {
-            display: none !important;
-        }
-        body {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-        #member-digital-card {
-            border: 1px solid #000000 !important;
-            box-shadow: none !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            background: #ffffff !important;
-            color: #000000 !important;
-        }
-    }
-    </style>
+    {{-- Progres Siklus Kunjungan & Reward (Fitur Pelanggan di Aplikasi) --}}
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm space-y-3 text-left no-print">
+        <div class="flex items-center justify-between text-xs">
+            <span class="font-bold text-text">Progres Kunjungan</span>
+            <span class="text-text-muted font-semibold">Siklus {{ $member->currentCycle($cycleMax) }}</span>
+        </div>
 
-    <x-member.card-download-script :member="$member" />
+        <div class="relative h-2.5 w-full rounded-full bg-border overflow-hidden">
+            <div
+                class="h-full rounded-full bg-amber-500 transition-all duration-300"
+                style="width: {{ ($inCycle / $cycleMax) * 100 }}%"
+            ></div>
+        </div>
 
-    @if (request()->boolean('download'))
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                setTimeout(function() {
-                    if (typeof window.downloadMemberCardPng === 'function') {
-                        window.downloadMemberCardPng();
-                    }
-                }, 400);
-            });
-        </script>
-    @endif
+        <div class="flex items-center justify-between text-xs text-text-muted">
+            <span>{{ $inCycle }} dari {{ $cycleMax }} kunjungan tercatat</span>
+            <span class="font-semibold text-amber-600 dark:text-amber-400">
+                {{ $member->progressDescription($settings) }}
+            </span>
+        </div>
+    </div>
 
     {{-- 5 Kunjungan Terakhir --}}
-    <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm space-y-3">
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm space-y-3 no-print">
         <h3 class="text-xs font-bold uppercase tracking-wider text-text-muted">Kunjungan Terakhir</h3>
 
         @if ($recentVisits->isNotEmpty())
@@ -148,5 +151,43 @@
         @endif
     </div>
 </div>
-@endsection
 
+<style>
+@media print {
+    header, footer, nav, .no-print, button, a, [class*="z-[9999]"] {
+        display: none !important;
+    }
+    body {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    #member-digital-card {
+        border: 1px solid #cbd5e1 !important;
+        border-bottom: 6px solid #f59e0b !important;
+        box-shadow: none !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        background: #ffffff !important;
+        color: #000000 !important;
+        max-width: 85.6mm !important;
+        margin: 0 auto !important;
+    }
+}
+</style>
+
+<x-member.card-download-script :member="$member" />
+
+@if (request()->boolean('download'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                if (typeof window.downloadMemberCardPng === 'function') {
+                    window.downloadMemberCardPng();
+                }
+            }, 400);
+        });
+    </script>
+@endif
+@endsection

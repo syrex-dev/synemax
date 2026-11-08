@@ -5,14 +5,10 @@
 
 @php
     $siteName = setting('site_name', 'SynemaX');
-    $settings = app(\App\Services\CinemaSettings::class);
-    $cycleMax = $settings->memberFreeVisit();
-    $nextPos = $member->nextVisitPosition($cycleMax);
-    $inCycle = $nextPos - 1;
-    $cycleNum = $member->currentCycle($cycleMax);
-    $cycleText = "Kunjungan {$inCycle} dari {$cycleMax} · Siklus {$cycleNum}";
-    $progressDesc = $member->progressDescription($settings);
-    $photoUrl = $member->photo_path ? $member->photoUrl() : null;
+    $logoRaw = setting('site_logo');
+    $logoUrl = $logoRaw ? (str_starts_with($logoRaw, '/') || str_starts_with($logoRaw, 'http') ? $logoRaw : \Illuminate\Support\Facades\Storage::url($logoRaw)) : null;
+    $displayName = $member->nickname ? "{$member->name} ({$member->nickname})" : $member->name;
+    $mascotUrl = asset('images/member-mascot.jpg');
     $formattedCode = $member->formattedCode();
 @endphp
 
@@ -33,11 +29,10 @@
 
         try {
             const siteName = customOptions.siteName || @json($siteName);
-            const memberName = customOptions.memberName || @json($member->name);
+            const logoUrl = customOptions.logoUrl || @json($logoUrl);
+            const memberName = customOptions.memberName || @json($displayName);
             const memberCode = customOptions.memberCode || @json($formattedCode);
-            const cycleText = customOptions.cycleText || @json($cycleText);
-            const progressDesc = customOptions.progressDesc || @json($progressDesc);
-            const photoUrl = customOptions.photoUrl !== undefined ? customOptions.photoUrl : @json($photoUrl);
+            const mascotUrl = customOptions.mascotUrl || @json($mascotUrl);
 
             // Locate QR code SVG
             const qrSelectors = [
@@ -104,30 +99,61 @@
             ctx.lineTo(width, 110);
             ctx.stroke();
 
-            // Brand title
-            ctx.fillStyle = '#0F172A';
-            ctx.font = '900 32px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'alphabetic';
-            ctx.fillText(siteName.toUpperCase(), 50, 70);
+            // 1. Draw Brand Logo or Fallback Text
+            let logoRendered = false;
+            if (logoUrl) {
+                try {
+                    const logoImg = new Image();
+                    logoImg.crossOrigin = 'anonymous';
+                    logoImg.src = logoUrl;
+                    await new Promise((res, rej) => {
+                        logoImg.onload = () => res();
+                        logoImg.onerror = () => rej();
+                        setTimeout(() => rej(), 2500);
+                    });
+                    // Scale logo nicely into header height (max height 50px, max width 240px)
+                    const aspect = logoImg.width / logoImg.height;
+                    let targetH = 50;
+                    let targetW = targetH * aspect;
+                    if (targetW > 240) {
+                        targetW = 240;
+                        targetH = targetW / aspect;
+                    }
+                    const targetY = 30 + (50 - targetH) / 2;
+                    ctx.drawImage(logoImg, 50, targetY, targetW, targetH);
+                    logoRendered = true;
+                } catch (e) {
+                    logoRendered = false;
+                }
+            }
 
-            // Brand gold dot accent
-            const titleWidth = ctx.measureText(siteName.toUpperCase()).width;
-            ctx.fillStyle = '#F59E0B';
-            ctx.beginPath();
-            ctx.arc(50 + titleWidth + 12, 60, 6, 0, Math.PI * 2);
-            ctx.fill();
+            if (!logoRendered) {
+                ctx.fillStyle = '#0F172A';
+                ctx.font = '900 32px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'alphabetic';
+                ctx.fillText(siteName.toUpperCase(), 50, 70);
 
-            // Badge "KARTU MEMBER"
+                const titleWidth = ctx.measureText(siteName.toUpperCase()).width;
+                ctx.fillStyle = '#F59E0B';
+                ctx.beginPath();
+                ctx.arc(50 + titleWidth + 12, 60, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 2. Badge "KARTU MEMBER" (Dark with Gold Accent)
             const badgeW = 180;
-            const badgeH = 40;
+            const badgeH = 42;
             const badgeX = width - 50 - badgeW;
-            const badgeY = 35;
+            const badgeY = 34;
             drawRoundedRect(badgeX, badgeY, badgeW, badgeH, 10);
             ctx.fillStyle = '#0F172A';
             ctx.fill();
+            ctx.strokeStyle = '#D97706';
+            ctx.lineWidth = 2;
+            ctx.stroke();
 
-            ctx.fillStyle = '#FFFFFF';
+            ctx.fillStyle = '#F59E0B';
             ctx.font = '800 15px system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -137,85 +163,83 @@
             ctx.textAlign = 'left';
             ctx.textBaseline = 'alphabetic';
 
-            // Member Photo or Initial Avatar (x: 50, y: 155, size: 170)
-            const photoX = 50;
-            const photoY = 155;
-            const photoSize = 170;
-            const photoR = 24;
+            // 3. Mascot Photo Frame (x: 50, y: 145, size: 200)
+            const mascotX = 50;
+            const mascotY = 145;
+            const mascotSize = 200;
+            const mascotR = 26;
 
-            let photoRendered = false;
-            if (photoUrl) {
+            let mascotRendered = false;
+            if (mascotUrl) {
                 try {
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.src = photoUrl;
-                    await new Promise((resolve, reject) => {
-                        img.onload = () => resolve();
-                        img.onerror = () => reject();
-                        setTimeout(() => reject(), 2500);
+                    const mImg = new Image();
+                    mImg.crossOrigin = 'anonymous';
+                    mImg.src = mascotUrl;
+                    await new Promise((res, rej) => {
+                        mImg.onload = () => res();
+                        mImg.onerror = () => rej();
+                        setTimeout(() => rej(), 2500);
                     });
 
                     ctx.save();
-                    drawRoundedRect(photoX, photoY, photoSize, photoSize, photoR);
+                    drawRoundedRect(mascotX, mascotY, mascotSize, mascotSize, mascotR);
                     ctx.clip();
-                    ctx.drawImage(img, photoX, photoY, photoSize, photoSize);
+                    ctx.drawImage(mImg, mascotX, mascotY, mascotSize, mascotSize);
                     ctx.restore();
-                    photoRendered = true;
+
+                    // Gold frame border
+                    drawRoundedRect(mascotX, mascotY, mascotSize, mascotSize, mascotR);
+                    ctx.strokeStyle = '#F59E0B';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    mascotRendered = true;
                 } catch (e) {
-                    photoRendered = false;
+                    mascotRendered = false;
                 }
             }
 
-            if (!photoRendered) {
-                drawRoundedRect(photoX, photoY, photoSize, photoSize, photoR);
+            if (!mascotRendered) {
+                drawRoundedRect(mascotX, mascotY, mascotSize, mascotSize, mascotR);
                 ctx.fillStyle = '#F1F5F9';
                 ctx.fill();
-                ctx.strokeStyle = '#CBD5E1';
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#F59E0B';
+                ctx.lineWidth = 3;
                 ctx.stroke();
-
-                const initial = (memberName || 'M').trim().charAt(0).toUpperCase();
-                ctx.fillStyle = '#475569';
-                ctx.font = '800 76px system-ui, -apple-system, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(initial, photoX + photoSize / 2, photoY + photoSize / 2);
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'alphabetic';
             }
 
-            // Member Info (x: 250)
-            const infoX = 250;
-            let nameSize = 36;
+            // 4. Member Info (x: 285)
+            const infoX = 285;
+
+            // Label "NAMA MEMBER"
+            ctx.fillStyle = '#94A3B8';
+            ctx.font = '700 14px system-ui, -apple-system, sans-serif';
+            ctx.fillText('NAMA MEMBER', infoX, 190);
+
+            // Member Name + (Nickname)
+            let nameSize = 34;
             if (memberName.length > 25) nameSize = 26;
             else if (memberName.length > 18) nameSize = 30;
 
             ctx.fillStyle = '#0F172A';
             ctx.font = '800 ' + nameSize + 'px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-            ctx.fillText(memberName, infoX, 215);
+            ctx.fillText(memberName, infoX, 230);
 
-            ctx.fillStyle = '#64748B';
-            ctx.font = '600 20px system-ui, -apple-system, sans-serif';
-            ctx.fillText('Program Kunjungan Berhadiah', infoX, 255);
+            // Label "ID MEMBER"
+            ctx.fillStyle = '#94A3B8';
+            ctx.font = '700 14px system-ui, -apple-system, sans-serif';
+            ctx.fillText('ID MEMBER', infoX, 290);
 
-            if (cycleText) {
-                ctx.fillStyle = '#D97706';
-                ctx.font = '700 18px system-ui, -apple-system, sans-serif';
-                ctx.fillText(cycleText, infoX, 292);
-            }
+            // Code
+            ctx.fillStyle = '#B45309';
+            ctx.font = '800 30px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+            ctx.fillText(memberCode, infoX, 330);
 
-            if (progressDesc) {
-                ctx.fillStyle = '#64748B';
-                ctx.font = '500 15px system-ui, -apple-system, sans-serif';
-                const trimmedDesc = progressDesc.length > 55 ? progressDesc.substring(0, 52) + '...' : progressDesc;
-                ctx.fillText(trimmedDesc, infoX, 322);
-            }
-
-            // QR Code Container Box (x: 730, y: 145, size: 270)
+            // 5. QR Code Container Box (x: 730, y: 135, size: 270)
             const qrBoxX = 730;
-            const qrBoxY = 145;
+            const qrBoxY = 135;
             const qrBoxSize = 270;
-            drawRoundedRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 20);
+            drawRoundedRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 22);
             ctx.fillStyle = '#FFFFFF';
             ctx.fill();
             ctx.strokeStyle = '#E2E8F0';
@@ -232,7 +256,7 @@
 
             await new Promise((resolve) => {
                 qrImg.onload = () => {
-                    ctx.drawImage(qrImg, qrBoxX + 15, qrBoxY + 15, qrBoxSize - 30, qrBoxSize - 30);
+                    ctx.drawImage(qrImg, qrBoxX + 18, qrBoxY + 18, qrBoxSize - 36, qrBoxSize - 36);
                     URL.revokeObjectURL(blobUrl);
                     resolve();
                 };
@@ -242,7 +266,7 @@
                 };
             });
 
-            // Footer Section (y: 520 to 660)
+            // 6. Footer Section (y: 520 to 660)
             ctx.fillStyle = '#F8FAFC';
             ctx.fillRect(0, 520, width, 140);
             ctx.strokeStyle = '#E2E8F0';
@@ -252,27 +276,20 @@
             ctx.lineTo(width, 520);
             ctx.stroke();
 
-            // Left Footer: Code
-            ctx.fillStyle = '#94A3B8';
-            ctx.font = '700 14px system-ui, -apple-system, sans-serif';
-            ctx.fillText('ID KARTU MEMBER', 50, 560);
-
-            ctx.fillStyle = '#0F172A';
-            ctx.font = '800 28px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
-            ctx.fillText(memberCode, 50, 600);
-
-            // Right Footer: Notice
+            // Left Footer: Cinema tagline
             ctx.fillStyle = '#64748B';
-            ctx.font = '500 15px system-ui, -apple-system, sans-serif';
-            ctx.textAlign = 'right';
-            ctx.fillText('Tunjukkan kartu ini ke petugas saat menonton.', width - 50, 575);
+            ctx.font = '600 18px system-ui, -apple-system, sans-serif';
+            ctx.fillText('Studio Bioskop Mini Privat', 50, 585);
+
+            // Right Footer: Website
             ctx.fillStyle = '#94A3B8';
-            ctx.font = '600 14px ui-monospace, SFMono-Regular, monospace';
-            ctx.fillText('synemax.web.id', width - 50, 600);
+            ctx.font = '600 18px ui-monospace, SFMono-Regular, monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText('synemax.web.id', width - 50, 585);
 
             // Bottom Amber Accent bar
             ctx.fillStyle = '#F59E0B';
-            ctx.fillRect(0, height - 8, width, 8);
+            ctx.fillRect(0, height - 10, width, 10);
 
             // Restore outer clip & draw card border
             ctx.restore();
@@ -314,4 +331,3 @@
     };
 })();
 </script>
-
