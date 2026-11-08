@@ -2,8 +2,8 @@
 **Dokumen:** Laporan Komprehensif Status Proyek, Pembaruan Fitur, Keamanan, Integrasi Operasional, dan Panduan Penerapan  
 **Platform:** Laravel 12 / PHP 8.4 / TailwindCSS / Alpine.js / MariaDB 11.8 (STB) & SQLite (Pengujian)  
 **URL Produksi:** `https://synemax.web.id`  
-**Status Repositori:** Bersih (*Clean Working Tree*), Terdistribusi & Sinkron Penuh di Branch `main` (Head Commit: `c5c92c0`)  
-**Waktu Laporan:** 7 November 2026  
+**Status Repositori:** Bersih (*Clean Working Tree*), Terdistribusi & Sinkron Penuh di Branch `main` (Head Commit: `9759260`)  
+**Waktu Laporan:** 8 November 2026 (Rekapitulasi Pembaruan 2 Hari Terakhir: 6 – 8 November 2026)  
 
 ---
 
@@ -55,7 +55,27 @@ Seluruh kode produksi berada dalam kondisi stabil, telah diuji secara komprehens
 
 ---
 
-## 2. DETAIL REVISI & PENYEMPURNAAN SISTEM TERBARU
+## 2. LOG KRONOLOGIS PEMBARUAN 2 HARI TERAKHIR (6 – 8 NOVEMBER 2026)
+
+Tabel kronologis berikut merangkum seluruh rekayasa fitur, optimalisasi performa hardware, dan penyelesaian kendala sistem yang dikerjakan secara intensif selama 2 hari terakhir (6 hingga 8 November 2026):
+
+| Tanggal & Waktu (WIB) | Commit Hash | Modul / Komponen Terkait | Jenis Pembaruan | Ringkasan Dampak & Solusi Teknis |
+|---|---|---|---|---|
+| **06 Nov 09:34** | `9177084` | `screening_sessions`, `schedule_templates` | **Standarisasi Jadwal Sesi** | Menetapkan standar jam tayang: Senin–Kamis 3 sesi (13:00, 16:00, 19:00), Jumat–Minggu & Libur 4 sesi (09:00, 13:00, 16:00, 19:00). Menggeser sesi malam dari 19:30 ke 19:00 untuk jeda studio 30 menit yang konsisten. |
+| **06 Nov 10:47** | `31fb972` | `FilmPosterController`, `posters.blade.php` | **Pembersihan Modul OCR** | Menghapus total modul OCR AI (Tesseract.js) yang tidak akurat pada screenshot poster, menghemat bandwidth CDN dan beban komputasi browser, serta memulihkan antrean manual poster. |
+| **06 Nov 11:15** | `59a31a5` | `posters.blade.php`, Alpine.js Event Bus | **Reaktivitas Antrean Poster** | Menghapus kartu poster dari DOM seketika (*instant vanishing*) saat berhasil dipasangkan ke film tanpa perlu refresh halaman manual. |
+| **06 Nov 11:31** | `db59b26` | `posters.blade.php`, Modal UI | **Pratinjau Zoom & Overflow Fix** | Fitur modal popup "Lihat Poster" (spectate) ukuran penuh resolusi tinggi dan perbaikan dropdown pilihan film yang terpotong batas kartu (*overflow clipping*). |
+| **06 Nov 16:49** | `a59b943` | `films/form.blade.php`, `posters.blade.php` | **Genre Selector & Hapus Sementara** | Perapihan selector genre film chip dinamis (*type-to-add*) dan penambahan tombol hapus poster sementara dari disk penyimpanan STB jika salah unggah. |
+| **06 Nov 18:26** | `24f1f58` | `FilmPosterController`, Regex Validation | **Fleksibilitas Berkas Screenshot** | Menghapus batasan regex nama berkas yang kaku agar mendukung segala format nama screenshot ponsel serta reaktivitas instan tombol hapus/pasang. |
+| **07 Nov 00:10** | `01b4a14` | `MariaDB 11.8`, `posters.blade.php` | **Batch Assign & Optimasi STB** | Perbaikan modal pasang massal (*batch assignment*) dan konfigurasi MariaDB `99-stb-lowram.cnf` yang memangkas RAM dari ~350MB ke 123MB, bebas error 520 Cloudflare. |
+| **07 Nov 05:36** | `1f42bc6` | `ScheduleController`, `Session.php`, Trash | **Eliminasi N+1 Query & Sampah** | Memangkas >10.000 query database menjadi 4–6 query instan di `/admin/jadwal`, pembersih berkas `cleanStorage`, serta tombol hapus permanen (*force destroy*) film & posternya. |
+| **07 Nov 05:45** | `8d349f9` | `films/index.blade.php`, `PublicCinemaController` | **Master Checkbox & Rekomendasi Genre** | Perbaikan checkbox master "Pilih Semua" pada katalog film admin dan algoritma rekomendasi film serupa berbasis keselarasan genre di detail film publik. |
+| **07 Nov 08:43** | `c5c92c0` | `films`, `films/form`, `poster-badge` | **Custom Pin Badge Poster Film** | Fitur badge poster kustom ala OTT/Netflix (warna merah `#E50914`, teks tebal), preset 1-klik (Baru Ditambahkan, Trending, dll), live preview kartu poster, aksi massal, dan komponen reusable publik & admin. |
+| **07 Nov 15:41** | `9759260` | `new report.md` | **Dokumentasi Komprehensif** | Pemutakhiran menyeluruh dokumen audit teknis, log performa STB, dan panduan migrasi produksi. |
+
+---
+
+## 3. DETAIL REVISI & PENYEMPURNAAN SISTEM TERBARU (PEMBAHASAN MENDALAM)
 
 ### A. Eliminasi Alert Info Ganda (Single Flash Alert Parity)
 * **Akar Masalah:**
@@ -414,7 +434,7 @@ Fitur Pemindai Tiket dirancang sebagai solusi pintu masuk terpadu bagi staf dan 
 
 ---
 
-## 3. PANDUAN STANDAR UKURAN ASET GAMBAR (MEDIA ASSET SPECS)
+## 4. PANDUAN STANDAR UKURAN ASET GAMBAR (MEDIA ASSET SPECS)
 
 Untuk memastikan seluruh media visual bioskop tampil presisi, tidak terpotong, tajam di layar Retina/OLED, dan dimuat secara efisien, seluruh pengembang dan admin merujuk pada standar kanonikal [ImageDimensionGuide.php](file:///d:/Coding/SynemaX/app/Support/ImageDimensionGuide.php):
 
@@ -434,7 +454,7 @@ Untuk memastikan seluruh media visual bioskop tampil presisi, tidak terpotong, t
 
 ---
 
-## 4. KEAMANAN, PRIVASI & INTEGRITAS DATA
+## 5. KEAMANAN, PRIVASI & INTEGRITAS DATA
 
 1. **Penghapusan Jalur Pintas QA (/qa-admin-login):**
    - Rute pengujian pintas tanpa sandi telah dihapus secara permanen dari basis kode produksi.
@@ -453,7 +473,7 @@ Untuk memastikan seluruh media visual bioskop tampil presisi, tidak terpotong, t
 
 ---
 
-## 5. HASIL VERIFIKASI & PENGUJIAN OTOMATIS (QA AUDIT)
+## 6. HASIL VERIFIKASI & PENGUJIAN OTOMATIS (QA AUDIT)
 
 ### A. Pengujian Fitur & Backend (PHPUnit Test Suite)
 Rangkaian pengujian fitur inti dieksekusi menggunakan SQLite in-memory:
@@ -467,6 +487,7 @@ Rangkaian pengujian fitur inti dieksekusi menggunakan SQLite in-memory:
 | **FilmCatalogAndFilterTest** (Katalog film, filter genre & tahun, rekomendasi sejalan genre) | 7 tes | 31 asersi | **PASSED (100%)** ✅ |
 | **ScheduleSessionTimeStatusTest** (Status waktu sesi jadwal, booking privat, optimasi query) | 3 tes | 7 asersi | **PASSED (100%)** ✅ |
 | **ScheduleGenerationTest** (Template jadwal baku dan pembentukan sesi otomatis) | 3 tes | 21 asersi | **PASSED (100%)** ✅ |
+| **ScheduleStandardSessionTimesTest** (Standarisasi jam tayang Senin–Kamis 3 sesi, Jumat–Minggu 4 sesi, 19:00) | 3 tes | 14 asersi | **PASSED (100%)** ✅ |
 | **ImageDimensionGuideTest** (Validasi panduan 10 dimensi gambar kanonikal) | 2 tes | 99 asersi | **PASSED (100%)** ✅ |
 | **NoBrowserDialogSafetyGuardTest** (Pencegahan popup alert/confirm native browser) | 1 tes | 1 asersi | **PASSED (100%)** ✅ |
 | **NoNativeSelectTagTest** (Validasi arsitektur komponen custom select UI) | 1 tes | 1 asersi | **PASSED (100%)** ✅ |
@@ -475,7 +496,7 @@ Rangkaian pengujian fitur inti dieksekusi menggunakan SQLite in-memory:
 | **AdminSettingOperasionalTest** (Persistensi multi-rekening & setting operasional) | 6 tes | 35 asersi | **PASSED (100%)** ✅ |
 | **SettingsManagementTest** (Manajemen panel admin, identitas, SEO) | 5 tes | 35 asersi | **PASSED (100%)** ✅ |
 | **SnackOrderFlowTest** (Alur pemesanan camilan & transparansi rincian biaya) | 9 tes | 78 asersi | **PASSED (100%)** ✅ |
-| **TOTAL INTI TERVERIFIKASI** | **81 tes** | **603 asersi** | **100% LULUS** ✅ |
+| **TOTAL INTI TERVERIFIKASI** | **84 tes** | **617 asersi** | **100% LULUS** ✅ |
 
 ### B. Pengujian Antarmuka Peramban Headless (Playwright UI Audit)
 Pengujian interaktivitas dan paritas visual dijalankan melalui `node tests/ticket_scanner_browser_audit.mjs`:
@@ -488,7 +509,7 @@ Pengujian interaktivitas dan paritas visual dijalankan melalui `node tests/ticke
 
 ---
 
-## 6. PANDUAN PENERAPAN KE SERVER PRODUKSI & STB (DEPLOYMENT GUIDE)
+## 7. PANDUAN PENERAPAN KE SERVER PRODUKSI & STB (DEPLOYMENT GUIDE)
 
 Seluruh perubahan kode telah tersimpan aman pada branch **`main`**. Untuk memperbarui aplikasi pada server live / STB (`/var/www/synemax`), jalankan langkah-langkah terstruktur berikut melalui SSH / terminal:
 
@@ -520,7 +541,7 @@ php artisan view:cache
 
 ---
 
-## 7. STRUKTUR ARSITEKTUR TEKNIS SISTEM
+## 8. STRUKTUR ARSITEKTUR TEKNIS SISTEM
 
 ```
 SynemaX (Laravel 12 / PHP 8.4)
