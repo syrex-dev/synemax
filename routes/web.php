@@ -195,6 +195,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/booking', [BookingController::class, 'index'])->name('bookings.index');
     Route::get('/booking/pesan-di-tempat', [BookingController::class, 'create'])->name('bookings.create');
     Route::post('/booking/pesan-di-tempat', [BookingController::class, 'store'])->name('bookings.store');
+    Route::post('/booking/bersihkan-data-testing', [BookingController::class, 'cleanTestData'])->name('bookings.clean_test_data');
     Route::get('/booking/member-lookup', [BookingController::class, 'memberLookup'])->name('bookings.member_lookup');
     Route::get('/booking/search', [BookingController::class, 'liveSearch'])->name('bookings.live_search');
     Route::get('/booking/{booking}', [BookingController::class, 'show'])->name('bookings.show');

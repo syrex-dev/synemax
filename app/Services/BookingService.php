@@ -4,10 +4,14 @@ namespace App\Services;
 
 use App\Models\Booking;
 use App\Models\BookingCheckin;
+use App\Models\BookingItem;
 use App\Models\CustomerProfile;
 use App\Models\Film;
 use App\Models\Member;
+use App\Models\MemberReward;
+use App\Models\MemberVisit;
 use App\Models\Session;
+use App\Models\SnackOrderEdit;
 use App\Models\User;
 use App\Support\WhatsAppNumber;
 use Carbon\CarbonImmutable;
@@ -910,6 +914,70 @@ class BookingService
                 'change_amount' => $changeAmount,
                 'member' => $member,
                 'loyalty_result' => $loyaltyResult,
+            ];
+        }, attempts: 3);
+    }
+
+    /**
+     * Bersihkan seluruh riwayat booking, pesanan jajan, bukti bayar testing,
+     * dan kembalikan laporan keuangan ke Rp 0 bersih serta reset status sesi.
+     *
+     * @return array{
+     *     deleted_bookings: int,
+     *     deleted_items: int,
+     *     deleted_checkins: int,
+     *     deleted_visits: int,
+     *     resynced_sessions: int
+     * }
+     */
+    public function cleanTestData(bool $resetMemberVisits = false): array
+    {
+        return DB::transaction(function () use ($resetMemberVisits): array {
+            // 1. Hapus file bukti pembayaran dari storage
+            Booking::query()->whereNotNull('payment_proof_path')->each(function (Booking $booking): void {
+                if ($booking->payment_proof_path && Storage::disk('local')->exists($booking->payment_proof_path)) {
+                    Storage::disk('local')->delete($booking->payment_proof_path);
+                }
+            });
+
+            $deletedBookings = Booking::query()->count();
+            $deletedItems = BookingItem::query()->count();
+            $deletedCheckins = BookingCheckin::query()->count();
+
+            // 2. Member visits & rewards
+            $deletedVisits = 0;
+            if ($resetMemberVisits) {
+                $deletedVisits = MemberVisit::query()->count();
+                MemberReward::query()->delete();
+                MemberVisit::query()->delete();
+            } else {
+                MemberVisit::query()->whereNotNull('booking_id')->update(['booking_id' => null]);
+                MemberReward::query()->whereNotNull('booking_id')->update(['booking_id' => null]);
+            }
+
+            // 3. Hapus relasi audit & pesanan
+            SnackOrderEdit::query()->delete();
+            BookingItem::query()->delete();
+            BookingCheckin::query()->delete();
+
+            // 4. Hapus semua booking
+            Booking::query()->delete();
+
+            // 5. Reset statistik no-show pada profil pelanggan
+            CustomerProfile::query()->update(['no_show_count' => 0]);
+
+            // 6. Sinkronisasi ulang semua sesi agar status keterisian, kuorum, dan sewa private kembali bersih
+            $sessions = Session::all();
+            foreach ($sessions as $session) {
+                $session->syncPrivateStatus();
+            }
+
+            return [
+                'deleted_bookings' => $deletedBookings,
+                'deleted_items' => $deletedItems,
+                'deleted_checkins' => $deletedCheckins,
+                'deleted_visits' => $deletedVisits,
+                'resynced_sessions' => $sessions->count(),
             ];
         }, attempts: 3);
     }

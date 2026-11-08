@@ -3,21 +3,97 @@
 @section('title', 'Kelola booking')
 
 @section('content')
+<div x-data="{ cleanModalOpen: false }" class="space-y-4">
     <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
             <p class="text-xs font-bold uppercase tracking-[0.2em] text-accent">Pelanggan</p>
             <h1 class="mt-2 text-3xl font-black">Kelola booking</h1>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2.5">
             <a href="{{ route('admin.bookings.create') }}" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-bold text-accent-contrast shadow-sm transition hover:opacity-90 active:scale-95">
                 <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
                 <span>Pesan di Tempat (Loket)</span>
             </a>
-            <a href="{{ route('admin.dashboard') }}" class="text-sm text-accent hover:underline">← Ringkasan</a>
+
+            @if ($bookings->total() > 0)
+                <button
+                    type="button"
+                    @click="cleanModalOpen = true"
+                    class="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 active:scale-95 transition"
+                    title="Hapus riwayat booking testing"
+                >
+                    <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span>Bersihkan Data Testing</span>
+                </button>
+            @endif
+
+            <a href="{{ route('admin.dashboard') }}" class="text-sm text-accent hover:underline ml-1">← Ringkasan</a>
         </div>
     </div>
+
+    {{-- Modal Konfirmasi Bersihkan Data Testing --}}
+    <div
+        x-show="cleanModalOpen"
+        x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+    >
+        <div
+            @click.outside="cleanModalOpen = false"
+            class="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-2xl space-y-4"
+        >
+            <div class="flex items-start gap-3.5">
+                <div class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 text-rose-500">
+                    <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-base font-black text-text">Bersihkan Data Booking Testing?</h3>
+                    <p class="mt-1 text-xs text-text-muted leading-relaxed">
+                        Tindakan ini akan menghapus seluruh riwayat booking, pesanan jajan, dan bukti bayar testing. Laporan keuangan akan kembali ke Rp 0 dan kapasitas kursi sesi akan di-reset bersih untuk transaksi nyata.
+                    </p>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ route('admin.bookings.clean_test_data') }}" class="space-y-4 pt-2 border-t border-border/60">
+                @csrf
+                <label class="flex items-start gap-2.5 cursor-pointer text-xs text-text">
+                    <input type="checkbox" name="reset_member_visits" value="1" class="mt-0.5 rounded text-rose-500 focus:ring-rose-500">
+                    <span>Reset juga stempel kunjungan member yang dibuat selama uji coba</span>
+                </label>
+
+                <div class="flex items-center justify-end gap-2.5 pt-2">
+                    <button
+                        type="button"
+                        @click="cleanModalOpen = false"
+                        class="min-h-10 rounded-xl border border-border bg-surface px-4 text-xs font-semibold text-text hover:bg-surface-2 transition"
+                    >
+                        Batal
+                    </button>
+                    <button
+                        type="submit"
+                        class="min-h-10 rounded-xl bg-rose-600 px-4 text-xs font-bold text-white hover:bg-rose-500 active:scale-95 transition flex items-center gap-1.5"
+                    >
+                        <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span>Ya, Bersihkan Data Testing</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
     {{-- Live Quick Search --}}
     <div class="mt-6">

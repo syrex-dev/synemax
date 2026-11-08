@@ -281,6 +281,16 @@ class BookingController extends Controller
             ]);
     }
 
+    public function cleanTestData(Request $request, BookingService $bookingService): RedirectResponse
+    {
+        $resetVisits = $request->boolean('reset_member_visits');
+        $result = $bookingService->cleanTestData($resetVisits);
+
+        return redirect()
+            ->route('admin.bookings.index')
+            ->with('status', "Semua data booking testing berhasil dibersihkan ({$result['deleted_bookings']} booking, {$result['deleted_items']} jajan dihapus). Laporan keuangan kini bersih (Rp 0).");
+    }
+
     public function show(Booking $booking, CinemaSettings $settings, BookingService $bookingService): View
     {
         $booking = $bookingService->expireIfOverdue($booking);
