@@ -402,6 +402,7 @@
                                 <input
                                     type="text"
                                     x-model="memberQuery"
+                                    @input.debounce.300ms="if (memberQuery.trim().length >= 3 || memberQuery.trim().toUpperCase().startsWith('MBR')) { lookupMember(); } else if (!memberQuery.trim()) { memberFound = null; memberNotFound = false; }"
                                     @keydown.enter.prevent="lookupMember()"
                                     placeholder="Contoh: MBR-ZRGH-V4B9-Q atau nama anak..."
                                     class="min-h-11 w-full rounded-xl border border-border bg-surface px-3.5 text-sm text-text placeholder:text-text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
@@ -952,7 +953,11 @@ function walkInPos(config) {
         // Member Lookup
         async lookupMember() {
             const q = this.memberQuery.trim();
-            if (!q) return;
+            if (!q) {
+                this.memberFound = null;
+                this.memberNotFound = false;
+                return;
+            }
 
             this.memberSearching = true;
             this.memberNotFound = false;

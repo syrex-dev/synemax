@@ -9,6 +9,9 @@
     deleteModalOpen: false,
     deleteMemberId: null,
     deleteMemberName: '',
+    searchQuery: {{ Js::from($search) }},
+    selectedStatus: {{ Js::from($selectedStatus ?? '') }},
+    isSearching: false,
     toggleAll() {
         if (this.selectAll) {
             this.selectedIds = Array.from(document.querySelectorAll('.member-checkbox')).map(el => el.value);
@@ -24,6 +27,52 @@
     printSelected() {
         if (this.selectedIds.length === 0) return;
         window.location.href = '{{ route('admin.members.print_batch') }}?ids=' + this.selectedIds.join(',');
+    },
+    async performSearch() {
+        this.isSearching = true;
+        const url = new URL('{{ route('admin.members.index') }}', window.location.origin);
+        const trimmed = (this.searchQuery || '').trim();
+        if (trimmed.length > 0) {
+            url.searchParams.set('q', trimmed);
+        }
+        if (this.selectedStatus) {
+            url.searchParams.set('status', this.selectedStatus);
+        }
+        url.searchParams.delete('page');
+
+        window.history.replaceState({}, '', url.toString());
+
+        try {
+            const response = await fetch(url.toString(), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+
+            const newContainer = doc.getElementById('members-table-container');
+            const currentContainer = document.getElementById('members-table-container');
+
+            if (newContainer && currentContainer) {
+                currentContainer.innerHTML = newContainer.innerHTML;
+                this.selectedIds = [];
+                this.selectAll = false;
+
+                if (window.Alpine && window.Alpine.initTree) {
+                    window.Alpine.initTree(currentContainer);
+                }
+            }
+        } catch (err) {
+            console.error('Member search error:', err);
+        } finally {
+            this.isSearching = false;
+        }
+    },
+    clearSearch() {
+        this.searchQuery = '';
+        this.performSearch();
     }
 }">
     {{-- Header & Aksi Utama --}}
@@ -104,24 +153,56 @@
         </div>
     </div>
 
-    {{-- Filter & Pencarian --}}
+    {{-- Filter & Pencarian Live Auto-Search --}}
     <div class="rounded-2xl border border-border bg-surface p-4 space-y-4">
-        <form method="GET" action="{{ route('admin.members.index') }}" class="flex flex-col sm:flex-row gap-3">
+        <form
+            method="GET"
+            action="{{ route('admin.members.index') }}"
+            @submit.prevent="performSearch()"
+            class="flex flex-col sm:flex-row gap-3"
+        >
             <div class="relative flex-1">
                 <input
                     type="text"
                     name="q"
-                    value="{{ $search }}"
+                    x-model="searchQuery"
+                    @input.debounce.300ms="performSearch()"
                     placeholder="Cari nama member atau ID (misal: 4 karakter terakhir)..."
-                    class="w-full min-h-[44px] rounded-xl border border-border bg-surface-2 pl-10 pr-4 text-xs text-text placeholder:text-text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
+                    autocomplete="off"
+                    class="w-full min-h-[44px] rounded-xl border border-border bg-surface-2 pl-10 pr-9 text-xs text-text placeholder:text-text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 transition-colors"
                 >
-                <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-text-muted pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                </svg>
+                {{-- Icon Search / Spinner Loading --}}
+                <div class="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
+                    <svg x-show="!isSearching" class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                    </svg>
+                    <svg x-show="isSearching" x-cloak class="size-4 animate-spin text-amber-500" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                {{-- Tombol Clear X --}}
+                <button
+                    type="button"
+                    x-show="searchQuery && searchQuery.length > 0"
+                    x-cloak
+                    @click="clearSearch()"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text p-1 rounded-full hover:bg-surface transition"
+                    title="Hapus pencarian"
+                >
+                    <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
 
             <div class="w-full sm:w-48">
-                <x-ui.select name="status" class="w-full min-h-[44px] text-xs">
+                <x-ui.select
+                    name="status"
+                    :value="$selectedStatus"
+                    @synemax-select-changed="selectedStatus = $event.detail.value; performSearch()"
+                    class="w-full min-h-[44px] text-xs"
+                >
                     <option value="">Semua Status</option>
                     <option value="aktif" {{ $selectedStatus === 'aktif' ? 'selected' : '' }}>Aktif</option>
                     <option value="nonaktif" {{ $selectedStatus === 'nonaktif' ? 'selected' : '' }}>Nonaktif</option>
@@ -136,19 +217,23 @@
                 Cari
             </button>
 
-            @if ($search !== '' || $selectedStatus)
-                <a
-                    href="{{ route('admin.members.index') }}"
-                    class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-semibold text-text hover:bg-surface-2 transition"
-                >
-                    Reset
-                </a>
-            @endif
+            <a
+                href="{{ route('admin.members.index') }}"
+                x-show="(searchQuery && searchQuery.length > 0) || (selectedStatus && selectedStatus.length > 0)"
+                x-cloak
+                class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-semibold text-text hover:bg-surface-2 transition"
+            >
+                Reset
+            </a>
         </form>
     </div>
 
     {{-- Tabel Member --}}
-    <div class="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden">
+    <div
+        id="members-table-container"
+        class="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden transition-opacity duration-150"
+        :class="{ 'opacity-60 pointer-events-none': isSearching }"
+    >
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
                 <thead class="border-b border-border bg-surface-2 text-text-muted uppercase tracking-wider text-[11px] font-bold">
