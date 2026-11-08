@@ -543,7 +543,7 @@
                                             <div class="flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-bg/50">
                                                 <div class="min-w-0 flex-1">
                                                     <h4 class="text-sm font-bold text-text truncate">{{ $item->name }}</h4>
-                                                    <p class="text-xs font-semibold text-amber-600 dark:text-amber-400">{{ format_rupiah($item->price) }}</p>
+                                                    <p class="text-xs font-semibold text-amber-600 dark:text-amber-400">Rp {{ number_format($item->price, 0, ',', '.') }}</p>
                                                 </div>
 
                                                 {{-- Counter Qty --}}

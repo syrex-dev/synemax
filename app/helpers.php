@@ -345,3 +345,13 @@ if (! function_exists('format_cinema_date')) {
             : $carbon->locale('id')->translatedFormat('j F Y');
     }
 }
+
+if (! function_exists('format_rupiah')) {
+    /**
+     * Standardized rupiah currency format: e.g. "Rp 5.000"
+     */
+    function format_rupiah(mixed $amount): string
+    {
+        return 'Rp '.number_format((int) $amount, 0, ',', '.');
+    }
+}

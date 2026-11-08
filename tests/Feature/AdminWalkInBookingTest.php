@@ -59,11 +59,22 @@ class AdminWalkInBookingTest extends TestCase
 
     public function test_admin_can_view_walk_in_booking_page(): void
     {
+        $category = MenuCategory::query()->create(['name' => 'Snack Bar', 'sort_order' => 1, 'is_active' => true]);
+        MenuItem::query()->create([
+            'category_id' => $category->id,
+            'name' => 'Keripik Kentang',
+            'price' => 7000,
+            'is_available' => true,
+            'is_active' => true,
+        ]);
+
         $response = $this->get(route('admin.bookings.create'));
 
         $response->assertOk();
         $response->assertSee('Loket Pemesanan di Tempat');
         $response->assertSee('Petualangan Rimba');
+        $response->assertSee('Keripik Kentang');
+        $response->assertSee('Rp 7.000');
     }
 
     public function test_admin_can_perform_member_lookup(): void
