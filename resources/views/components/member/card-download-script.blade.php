@@ -13,7 +13,7 @@
 @endphp
 
 {{-- Hidden fallback QR SVG to guarantee availability on any page --}}
-<div id="member-qr-fallback-{{ $member->id }}" class="hidden" aria-hidden="true">
+<div id="member-qr-fallback-{{ $member->id }}" class="hidden" style="display: none !important;" aria-hidden="true">
     {!! generate_inline_qr_svg($formattedCode, 180, 0) !!}
 </div>
 

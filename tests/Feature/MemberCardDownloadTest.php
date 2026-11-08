@@ -84,6 +84,7 @@ class MemberCardDownloadTest extends TestCase
         $response->assertSee('downloadMemberCardPng');
         $response->assertSee('Budi Santoso (Budi)');
         $response->assertSee('member-mascot.jpg');
+        $response->assertSee('display: none !important;', false);
     }
 
     public function test_admin_member_print_single_svg_download(): void
