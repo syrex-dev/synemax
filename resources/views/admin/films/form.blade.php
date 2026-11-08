@@ -4,11 +4,11 @@
 
 @section('content')
     <script>
-        function filmFormHandler() {
+        function filmFormHandler(config = {}) {
             return {
-                trailerUrl: @js(old('trailer_url', $film->trailer_url ?? '')),
-                filmTitle: @js(old('title', $film->title ?? '')),
-                customBadge: @js(old('custom_badge', $film->custom_badge ?? '')),
+                trailerUrl: config.trailerUrl || '',
+                filmTitle: config.filmTitle || '',
+                customBadge: config.customBadge || '',
                 trailerError: '',
                 get youtubeId() {
                     if (!this.trailerUrl) return null;
@@ -35,7 +35,11 @@
         }
     </script>
 
-    <div x-data="filmFormHandler()">
+    <div x-data="filmFormHandler({
+        trailerUrl: @js(old('trailer_url', $film->trailer_url ?? '')),
+        filmTitle: @js(old('title', $film->title ?? '')),
+        customBadge: @js(old('custom_badge', $film->custom_badge ?? ''))
+    })">
         <x-public.trailer-modal />
 
         <x-admin.page-header
