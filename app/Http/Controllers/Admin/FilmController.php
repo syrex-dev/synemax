@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Film;
 use App\Models\Genre;
 use App\Models\Session;
+use App\Services\FilmBulkImporter;
 use App\Services\PosterProcessor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -63,6 +64,8 @@ class FilmController extends Controller
             $undoBatchCount = Film::where('import_batch_id', $undoBatchId)->count();
         }
 
+        $undoActivatedIds = (array) session('undo_activated_ids', []);
+
         return view('admin.films.index', [
             'films' => $query->paginate(15)->withQueryString(),
             'showTrash' => $showTrash,
@@ -77,6 +80,7 @@ class FilmController extends Controller
             'trashedCount' => $trashedCount,
             'undoBatchId' => $undoBatchId,
             'undoBatchCount' => $undoBatchCount,
+            'undoActivatedIds' => $undoActivatedIds,
             'canonicalGenres' => Genre::allActiveNames(),
         ]);
     }
@@ -244,8 +248,9 @@ class FilmController extends Controller
         $selectAll = $request->boolean('select_all');
         $count = 0;
         $skippedCount = 0;
+        $activatedIds = [];
 
-        DB::transaction(function () use ($request, $action, $selectAll, $validated, &$count, &$skippedCount): void {
+        DB::transaction(function () use ($request, $action, $selectAll, $validated, &$count, &$skippedCount, &$activatedIds): void {
             if ($selectAll) {
                 $query = Film::query();
                 if ($request->boolean('trash')) {
@@ -302,6 +307,7 @@ class FilmController extends Controller
                     $count++;
                 } elseif ($action === 'activate') {
                     $film->update(['is_active' => true, 'is_sample' => false]);
+                    $activatedIds[] = $film->id;
                     $count++;
                 } elseif ($action === 'deactivate') {
                     $this->closeUpcomingSessions($film);
@@ -349,7 +355,14 @@ class FilmController extends Controller
             'clear_badge' => "Pin poster berhasil dihapus dari {$count} film.",
         ];
 
-        return back()->with('status', $messages[$action] ?? "Aksi massal berhasil diterapkan pada {$count} film.");
+        FilmBulkImporter::clearCatalogCaches();
+
+        $response = back()->with('status', $messages[$action] ?? "Aksi massal berhasil diterapkan pada {$count} film.");
+        if ($action === 'activate' && ! empty($activatedIds)) {
+            $response->with('undo_activated_ids', $activatedIds);
+        }
+
+        return $response;
     }
 
     private function closeUpcomingSessions(Film $film): void

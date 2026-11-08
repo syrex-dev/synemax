@@ -348,6 +348,7 @@
         @csrf
         <input type="hidden" name="batch_token" value="{{ $batchToken }}">
         <input type="hidden" name="duplicate_strategy" :value="duplicateStrategy">
+        <input type="hidden" name="publish_on_import" value="{{ !empty($publishOnImport) ? 1 : 0 }}">
 
         {{-- Hidden input array untuk baris yang tidak dicentang --}}
         <template x-for="idx in excludedRows" :key="'ex-'+idx">

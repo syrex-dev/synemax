@@ -71,7 +71,7 @@ class FilmImportController extends Controller
                 'Seorang pencuri menyusup ke dalam mimpi orang lain untuk menanamkan ide rahasia.',
                 'inception.jpg',
                 'https://www.youtube.com/watch?v=YoHD9XEInc0',
-                'tidak',
+                'ya',
             ], $delimiter);
             fputcsv($handle, [
                 'Petualangan Sherina 2',
@@ -82,7 +82,7 @@ class FilmImportController extends Controller
                 'Sherina dan Sadam kembali bertemu di hutan Kalimantan untuk petualangan baru.',
                 'sherina2.jpg',
                 'https://www.youtube.com/watch?v=kYJdFk9Gj0E',
-                'tidak',
+                'ya',
             ], $delimiter);
 
             fclose($handle);
@@ -126,7 +126,8 @@ class FilmImportController extends Controller
             return back()->with('error', 'Jumlah data melebihi batas maksimal 2.000 baris per berkas.');
         }
 
-        $analyzedRows = $importer->analyzeRows($rawRows);
+        $publishOnImport = $request->boolean('publish_on_import', true);
+        $analyzedRows = $importer->analyzeRows($rawRows, $publishOnImport);
 
         // Process ZIP if provided
         $extractedPosters = [];
@@ -158,6 +159,7 @@ class FilmImportController extends Controller
             'filename' => $csvFile->getClientOriginalName(),
             'rows' => $analyzedRows,
             'posters' => $extractedPosters,
+            'publish_on_import' => $publishOnImport,
         ], now()->addHours(2));
 
         $stats = [
@@ -203,6 +205,7 @@ class FilmImportController extends Controller
             'canonicalGenres' => Genre::allActiveNames(),
             'newGenresList' => array_keys($allNewGenres),
             'extractedPosters' => $extractedPosters,
+            'publishOnImport' => $publishOnImport,
         ]);
     }
 
@@ -269,6 +272,7 @@ class FilmImportController extends Controller
             'initialImported' => (int) $batch->imported_count,
             'initialSkipped' => (int) $batch->skipped_count,
             'initialFailed' => (int) $batch->failed_count,
+            'publishOnImport' => $staged['publish_on_import'] ?? true,
         ]);
     }
 

@@ -7,6 +7,7 @@ use App\Models\Film;
 use App\Models\Genre;
 use App\Models\ImportBatch;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -297,7 +298,7 @@ class FilmBulkImporter
      * @param  array<int, array<string, mixed>>  $rows
      * @return array<int, array<string, mixed>>
      */
-    public function analyzeRows(array $rows): array
+    public function analyzeRows(array $rows, bool $defaultPublish = true): array
     {
         $seenKeys = [];
 
@@ -435,9 +436,13 @@ class FilmBulkImporter
                 $warnings[] = 'Sinopsis kosong (perlu dilengkapi).';
             }
 
-            // 8. Is Active / Tampil (Bawaan: DISEMBUNYIKAN / 0 / false)
-            $rawActive = strtolower(trim((string) ($row['is_active'] ?? '0')));
-            $isActive = in_array($rawActive, ['1', 'ya', 'yes', 'true', 'aktif', 'on'], true);
+            // 8. Is Active / Tampil (Bawaan: sesuai pilihan $defaultPublish, bawaan aktif/true)
+            $rawActive = isset($row['is_active']) ? strtolower(trim((string) $row['is_active'])) : '';
+            if ($rawActive !== '') {
+                $isActive = in_array($rawActive, ['1', 'ya', 'yes', 'true', 'aktif', 'on'], true);
+            } else {
+                $isActive = $defaultPublish;
+            }
 
             // 9. Trailer URL validation (non-blocking warning)
             $rawTrailer = trim((string) ($row['trailer_url'] ?? ''));
@@ -983,7 +988,7 @@ class FilmBulkImporter
         string $originalFilename = 'import.csv',
         array $availablePosters = []
     ): array {
-        return DB::transaction(function () use ($rowsChunk, $strategy, $batchId, $userId, $originalFilename, $availablePosters) {
+        $result = DB::transaction(function () use ($rowsChunk, $strategy, $batchId, $userId, $originalFilename, $availablePosters) {
             $chunkImported = 0;
             $chunkSkipped = 0;
             $chunkFailed = 0;
@@ -1139,7 +1144,7 @@ class FilmBulkImporter
                     'age_rating' => $row['age_rating'] ?? '13+',
                     'release_year' => $releaseYear,
                     'synopsis' => ! empty($row['synopsis']) ? $row['synopsis'] : 'Sinopsis belum tersedia.',
-                    'is_active' => isset($row['is_active']) ? (bool) $row['is_active'] : false, // Default DISEMBUNYIKAN
+                    'is_active' => isset($row['is_active']) ? (bool) $row['is_active'] : true,
                     'poster_path' => $posterPath,
                     'trailer_url' => $row['trailer_url'] ?? null,
                     'import_batch_id' => $batchId,
@@ -1163,6 +1168,10 @@ class FilmBulkImporter
                 'failed_rows' => $chunkFailedRows,
             ];
         });
+
+        self::clearCatalogCaches();
+
+        return $result;
     }
 
     /**
@@ -1212,6 +1221,7 @@ class FilmBulkImporter
 
         $batch->refresh();
         $batch->update(['status' => 'completed']);
+        self::clearCatalogCaches();
 
         // Collect unmatched poster names
         $unmatchedNames = [];
@@ -1308,7 +1318,7 @@ class FilmBulkImporter
         $uuid = $batch ? $batch->batch_uuid : (string) $batchId;
         $id = $batch ? (string) $batch->id : (string) $batchId;
 
-        return DB::transaction(function () use ($batch, $uuid, $id) {
+        $count = DB::transaction(function () use ($batch, $uuid, $id) {
             $films = Film::where('import_batch_id', $uuid)
                 ->orWhere('import_batch_id', $id)
                 ->get();
@@ -1324,5 +1334,24 @@ class FilmBulkImporter
 
             return $count;
         });
+
+        self::clearCatalogCaches();
+
+        return $count;
+    }
+
+    /**
+     * Clear all cached lists, genre collections, and count caches across the catalog.
+     */
+    public static function clearCatalogCaches(): void
+    {
+        Genre::clearCache();
+        Cache::forget('active_genres_names');
+        Cache::forget('active_genres_collection');
+        Cache::forget('all_genres_collection');
+        Cache::forget('films_home_list');
+        Cache::forget('films_catalog_counts');
+        Cache::forget('films_total_count');
+        Cache::forget('admin_poll_status');
     }
 }

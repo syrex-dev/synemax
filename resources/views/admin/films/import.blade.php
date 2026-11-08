@@ -126,6 +126,18 @@
                         />
                     </div>
 
+                    {{-- Switch Tampilkan Film di Publik Setelah Impor --}}
+                    <div class="rounded-xl border border-border bg-surface-2/40 p-3.5">
+                        <x-form.checkbox
+                            id="publish_on_import"
+                            name="publish_on_import"
+                            value="1"
+                            :checked="true"
+                            label="Tampilkan film di katalog setelah diimpor"
+                            hint="Film langsung muncul di katalog bioskop publik dan beranda (bawaan aktif). Matikan bila ingin disimpan sebagai draf/disembunyikan terlebih dahulu."
+                        />
+                    </div>
+
                     <div class="pt-2">
                         <button
                             type="submit"

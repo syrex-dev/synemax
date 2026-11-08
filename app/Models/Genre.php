@@ -44,6 +44,11 @@ class Genre extends Model
         Cache::forget('all_genres_collection');
     }
 
+    public static function clearCache(): void
+    {
+        static::clearGenreCache();
+    }
+
     /**
      * Normalize string for unique normalized_name matching.
      */

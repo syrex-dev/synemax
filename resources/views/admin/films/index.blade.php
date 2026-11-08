@@ -8,9 +8,44 @@
             filmsOnPage: {{ Js::from($films->pluck('id')->map(fn ($id) => (string) $id)->values()->all()) }},
             totalFilms: {{ $films->total() }},
             currentSearch: {{ Js::from($search) }},
-            undoBatchId: {{ $undoBatchId ? 'true' : 'false' }}
+            undoBatchId: {{ $undoBatchId ? 'true' : 'false' }},
+            undoActivated: {{ !empty($undoActivatedIds) ? 'true' : 'false' }}
         })"
     >
+        {{-- Toast Urungkan Aktivasi Massal (8 Detik) --}}
+        @if (!empty($undoActivatedIds))
+            <div
+                x-show="showUndoActivationToast"
+                x-cloak
+                x-transition
+                class="fixed top-6 right-6 z-50 rounded-2xl border border-amber-500/50 bg-surface/95 backdrop-blur-md p-4 shadow-2xl flex items-center gap-3 text-xs"
+            >
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex size-2 rounded-full bg-amber-500 animate-ping"></span>
+                    <span class="font-bold text-text">{{ count($undoActivatedIds) }} film baru saja ditampilkan.</span>
+                    <span class="text-text-muted font-mono" x-text="'(' + undoActivationCountdown + 's)'"></span>
+                </div>
+                <form
+                    action="{{ route('admin.films.bulk_action') }}"
+                    method="POST"
+                    novalidate
+                    class="inline"
+                >
+                    @csrf
+                    <input type="hidden" name="action" value="deactivate">
+                    @foreach ($undoActivatedIds as $actId)
+                        <input type="hidden" name="film_ids[]" value="{{ $actId }}">
+                    @endforeach
+                    <button type="submit" class="rounded-lg bg-amber-500 px-3 py-1 font-bold text-slate-950 hover:bg-amber-400 transition">
+                        Urungkan (Sembunyikan Kembali)
+                    </button>
+                </form>
+                <button type="button" @click="showUndoActivationToast = false" class="text-text-muted hover:text-text p-1 inline-flex items-center" aria-label="Tutup notifikasi">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+        @endif
+
         {{-- Toast Urungkan Batch Impor (8 Detik) --}}
         @if ($undoBatchId)
             <div
@@ -106,6 +141,51 @@
                 </a>
             </div>
         </x-admin.page-header>
+
+        {{-- Banner Peringatan Film Belum Tampil di Katalog Publik --}}
+        @if ($inactiveCount > 0 && ! $showTrash)
+            <div class="mt-4 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 text-xs text-text flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0">
+                        <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="font-bold text-text">{{ number_format($inactiveCount, 0, ',', '.') }} film belum tampil di katalog bioskop.</p>
+                        <p class="text-text-muted mt-0.5">Film dengan status "Disembunyikan" tidak muncul di halaman utama maupun katalog publik penonton.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                    <a
+                        href="{{ route('admin.films.index', ['filter' => 'belum_tampil']) }}"
+                        class="inline-flex min-h-[38px] items-center rounded-xl border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text hover:bg-surface-2 transition-colors"
+                    >
+                        Lihat Daftar
+                    </a>
+                    <form
+                        action="{{ route('admin.films.bulk_action') }}"
+                        method="POST"
+                        data-confirm="Tampilkan seluruh {{ number_format($inactiveCount, 0, ',', '.') }} film yang berstatus disembunyikan ke katalog publik bioskop sekarang?"
+                        data-confirm-title="Tampilkan Semua Film ke Katalog"
+                        data-confirm-action="Tampilkan Semua Sekarang"
+                        novalidate
+                        class="inline"
+                    >
+                        @csrf
+                        <input type="hidden" name="action" value="activate">
+                        <input type="hidden" name="select_all" value="1">
+                        <input type="hidden" name="filter" value="belum_tampil">
+                        <button
+                            type="submit"
+                            class="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-1.5 text-xs font-bold text-slate-950 shadow-sm hover:bg-amber-400 transition-colors"
+                        >
+                            <span>Tampilkan Semua</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        @endif
 
         {{-- Filter Tabs & Pencarian Judul --}}
         <div class="mt-4 space-y-3">
@@ -1004,6 +1084,9 @@
             showUndoToast: Boolean(config.undoBatchId),
             undoCountdown: 8,
             undoTimer: null,
+            showUndoActivationToast: Boolean(config.undoActivated),
+            undoActivationCountdown: 8,
+            undoActivationTimer: null,
             searchQuery: config.currentSearch || '',
             isSearching: false,
             filmsOnPage: (config.filmsOnPage || []).map(id => String(id)),
@@ -1017,6 +1100,16 @@
                         } else {
                             this.showUndoToast = false;
                             clearInterval(this.undoTimer);
+                        }
+                    }, 1000);
+                }
+                if (this.showUndoActivationToast) {
+                    this.undoActivationTimer = setInterval(() => {
+                        if (this.undoActivationCountdown > 1) {
+                            this.undoActivationCountdown--;
+                        } else {
+                            this.showUndoActivationToast = false;
+                            clearInterval(this.undoActivationTimer);
                         }
                     }, 1000);
                 }
