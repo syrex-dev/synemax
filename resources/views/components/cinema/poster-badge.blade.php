@@ -19,7 +19,7 @@
         };
     @endphp
     <div class="absolute {{ $containerBottom }} inset-x-0 flex justify-center z-10 pointer-events-none">
-        <span class="inline-flex items-center justify-center bg-[#E50914] text-white font-black {{ $sizeClasses }} text-center truncate max-w-full drop-shadow-md select-none border border-white/20">
+        <span class="inline-flex items-center justify-center bg-[var(--badge-pin-bg)] text-[var(--badge-pin-text)] font-black {{ $sizeClasses }} text-center truncate max-w-full drop-shadow-md select-none border border-white/20">
             {{ $badge }}
         </span>
     </div>

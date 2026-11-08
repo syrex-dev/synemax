@@ -556,43 +556,43 @@
                             <span class="text-xs font-semibold text-text-muted">Pilihan Cepat:</span>
                             <button
                                 type="button"
-                                @click="customBadge = 'Baru Ditambahkan'"
+                                @click="customBadge = 'Baru ditambahkan'"
                                 class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all shadow-xs"
-                                :class="customBadge === 'Baru Ditambahkan' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                                :class="customBadge === 'Baru ditambahkan' ? 'bg-[var(--badge-pin-bg)] text-[var(--badge-pin-text)] ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
                             >
-                                <span>🔥 Baru Ditambahkan</span>
+                                <span>Baru ditambahkan</span>
                             </button>
                             <button
                                 type="button"
                                 @click="customBadge = 'Trending'"
                                 class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all shadow-xs"
-                                :class="customBadge === 'Trending' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                                :class="customBadge === 'Trending' ? 'bg-[var(--badge-pin-bg)] text-[var(--badge-pin-text)] ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
                             >
-                                <span>⚡ Trending</span>
+                                <span>Trending</span>
                             </button>
                             <button
                                 type="button"
-                                @click="customBadge = 'Segera Hadir'"
+                                @click="customBadge = 'Segera hadir'"
                                 class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all shadow-xs"
-                                :class="customBadge === 'Segera Hadir' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                                :class="customBadge === 'Segera hadir' ? 'bg-[var(--badge-pin-bg)] text-[var(--badge-pin-text)] ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
                             >
-                                <span>⏳ Segera Hadir</span>
+                                <span>Segera hadir</span>
                             </button>
                             <button
                                 type="button"
                                 @click="customBadge = 'Eksklusif'"
                                 class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all shadow-xs"
-                                :class="customBadge === 'Eksklusif' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                                :class="customBadge === 'Eksklusif' ? 'bg-[var(--badge-pin-bg)] text-[var(--badge-pin-text)] ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
                             >
-                                <span>⭐ Eksklusif</span>
+                                <span>Eksklusif</span>
                             </button>
                             <button
                                 type="button"
                                 @click="customBadge = 'Favorit'"
                                 class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-bold transition-all shadow-xs"
-                                :class="customBadge === 'Favorit' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                                :class="customBadge === 'Favorit' ? 'bg-[var(--badge-pin-bg)] text-[var(--badge-pin-text)] ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
                             >
-                                <span>❤️ Favorit</span>
+                                <span>Favorit</span>
                             </button>
                             <button
                                 type="button"
@@ -600,7 +600,7 @@
                                 @click="customBadge = ''"
                                 class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold text-danger hover:underline transition-all"
                             >
-                                <span>✕ Hapus Pin (Kosongkan)</span>
+                                <span>Hapus pin</span>
                             </button>
                         </div>
 
@@ -645,7 +645,7 @@
 
                                     <template x-if="customBadge && customBadge.trim() !== ''">
                                         <div class="absolute bottom-1.5 inset-x-0 flex justify-center px-1 z-10 pointer-events-none">
-                                            <span class="inline-flex items-center justify-center bg-[#E50914] text-white font-black text-[9px] px-2 py-0.5 rounded shadow-md truncate max-w-full drop-shadow-md border border-white/20 select-none" x-text="customBadge"></span>
+                                            <span class="inline-flex items-center justify-center bg-[var(--badge-pin-bg)] text-[var(--badge-pin-text)] font-black text-[9px] px-2 py-0.5 rounded shadow-md truncate max-w-full drop-shadow-md border border-white/20 select-none" x-text="customBadge"></span>
                                         </div>
                                     </template>
                                     <template x-if="!customBadge || customBadge.trim() === ''">

@@ -73,8 +73,39 @@
             class="rounded-2xl border border-border bg-surface p-4 shadow-token flex flex-col justify-between"
             x-data="{
                 isCleaning: false,
-                async cleanStorage() {
-                    if (!confirm('Bersihkan seluruh berkas sementara upload ZIP/staged dan poster yang tidak terpakai dari penyimpanan STB?')) return;
+                isPurging: false,
+                modalOpen: false,
+                previewData: null,
+                async openCleanupPreview() {
+                    this.isCleaning = true;
+                    try {
+                        const res = await fetch('{{ route('admin.films.posters.cleanup_storage') }}?dry_run=1', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.previewData = data;
+                            this.modalOpen = true;
+                        } else {
+                            if (typeof window.showToast === 'function') {
+                                window.showToast({ type: 'error', message: data.message || 'Gagal memuat pratinjau pembersihan.' });
+                            }
+                        }
+                    } catch (e) {
+                        if (typeof window.showToast === 'function') {
+                            window.showToast({ type: 'error', message: 'Koneksi terputus: ' + e.message });
+                        }
+                    } finally {
+                        this.isCleaning = false;
+                    }
+                },
+                async executeQuarantine() {
                     this.isCleaning = true;
                     try {
                         const res = await fetch('{{ route('admin.films.posters.cleanup_storage') }}', {
@@ -88,12 +119,13 @@
                         });
                         const data = await res.json();
                         if (res.ok && data.success) {
+                            this.modalOpen = false;
                             if (typeof window.showToast === 'function') {
                                 window.showToast({ type: 'success', message: data.message });
                             }
                         } else {
                             if (typeof window.showToast === 'function') {
-                                window.showToast({ type: 'error', message: data.message || 'Gagal membersihkan sampah berkas.' });
+                                window.showToast({ type: 'error', message: data.message || 'Gagal memindahkan berkas ke karantina.' });
                             }
                         }
                     } catch (e) {
@@ -102,6 +134,37 @@
                         }
                     } finally {
                         this.isCleaning = false;
+                    }
+                },
+                async emptyQuarantineNow() {
+                    this.isPurging = true;
+                    try {
+                        const res = await fetch('{{ route('admin.films.posters.empty_quarantine') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            this.modalOpen = false;
+                            if (typeof window.showToast === 'function') {
+                                window.showToast({ type: 'success', message: data.message });
+                            }
+                        } else {
+                            if (typeof window.showToast === 'function') {
+                                window.showToast({ type: 'error', message: data.message || 'Gagal mengosongkan karantina.' });
+                            }
+                        }
+                    } catch (e) {
+                        if (typeof window.showToast === 'function') {
+                            window.showToast({ type: 'error', message: 'Koneksi terputus: ' + e.message });
+                        }
+                    } finally {
+                        this.isPurging = false;
                     }
                 }
             }"
@@ -113,21 +176,124 @@
                         Kotak Sampah Film &rarr;
                     </a>
                 </div>
-                <p class="text-xs font-semibold text-text mt-1">Sisa Upload & Poster Yatim</p>
+                <p class="text-xs font-semibold text-text mt-1">Sisa Upload & Berkas Yatim</p>
                 <p class="text-[10px] text-text-muted mt-0.5">Bersihkan folder sementara hasil upload & poster tak terpakai agar memori 8 GB STB tetap lega.</p>
             </div>
             <div class="pt-2">
                 <button
                     type="button"
-                    @click="cleanStorage()"
+                    @click="openCleanupPreview()"
                     :disabled="isCleaning"
                     class="w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-border bg-surface-2 hover:bg-surface-2/80 px-3 py-1.5 text-xs font-bold text-text transition disabled:opacity-50"
                 >
                     <svg class="size-3.5 text-amber-500" :class="isCleaning ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                    <span x-text="isCleaning ? 'Membersihkan...' : 'Bersihkan Sampah Berkas'"></span>
+                    <span x-text="isCleaning ? 'Memeriksa...' : 'Bersihkan Sampah Berkas'"></span>
                 </button>
+            </div>
+
+            {{-- Modal In-App Pratinjau Pembersihan (Tanpa Dialog Browser) --}}
+            <div
+                x-show="modalOpen"
+                x-cloak
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+                @keydown.escape.window="modalOpen = false"
+            >
+                <div
+                    class="w-full max-w-lg rounded-2xl border border-border bg-surface p-5 shadow-2xl space-y-4"
+                    @click.outside="modalOpen = false"
+                >
+                    <div class="flex items-center justify-between border-b border-border pb-3">
+                        <div>
+                            <h3 class="text-base font-bold text-text">Pratinjau Sampah Penyimpanan</h3>
+                            <p class="text-xs text-text-muted mt-0.5">Pemeriksaan berkas yatim dan folder sementara STB</p>
+                        </div>
+                        <button type="button" @click="modalOpen = false" class="size-7 rounded-lg flex items-center justify-center text-text-muted hover:text-text hover:bg-surface-2">
+                            <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+
+                    <template x-if="previewData">
+                        <div class="space-y-3">
+                            <div class="rounded-xl border border-border bg-surface-2/60 p-3 flex items-center justify-between text-xs">
+                                <div>
+                                    <span class="font-bold text-text" x-text="previewData.total_orphan_count + previewData.total_temp_count"></span>
+                                    <span class="text-text-muted"> item ditemukan</span>
+                                </div>
+                                <div class="font-bold text-amber-500 font-mono" x-text="'Potensi bebas: ' + previewData.freed_formatted"></div>
+                            </div>
+
+                            <template x-if="previewData.orphan_files && previewData.orphan_files.length > 0">
+                                <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1 text-xs">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-text-muted">Berkas Yatim (Tidak Terkait Data):</span>
+                                    <template x-for="item in previewData.orphan_files" :key="item.path">
+                                        <div class="flex items-center justify-between rounded-lg border border-border/60 bg-surface px-2.5 py-1.5">
+                                            <div class="min-w-0 flex-1 truncate pr-2">
+                                                <div class="font-semibold text-text truncate" x-text="item.filename"></div>
+                                                <div class="text-[10px] text-text-muted truncate" x-text="item.reason"></div>
+                                            </div>
+                                            <div class="shrink-0 font-mono text-[11px] text-text-muted" x-text="item.size_formatted"></div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+
+                            <template x-if="previewData.temp_folders && previewData.temp_folders.length > 0">
+                                <div class="space-y-1.5 max-h-36 overflow-y-auto pr-1 text-xs">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-text-muted">Folder Sementara Tak Selesai:</span>
+                                    <template x-for="tf in previewData.temp_folders" :key="tf.path">
+                                        <div class="flex items-center justify-between rounded-lg border border-border/60 bg-surface px-2.5 py-1.5">
+                                            <div class="truncate text-text font-semibold" x-text="tf.path"></div>
+                                            <div class="font-mono text-[11px] text-text-muted" x-text="tf.size_formatted"></div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+
+                            <template x-if="previewData.total_orphan_count === 0 && previewData.total_temp_count === 0">
+                                <div class="p-6 text-center text-xs text-text-muted">
+                                    Penyimpanan bersih. Tidak ada berkas yatim atau folder sementara yang perlu dikarantina.
+                                </div>
+                            </template>
+
+                            <p class="text-[11px] text-text-muted pt-1">
+                                Berkas akan dipindahkan ke folder karantina bertanda tanggal (<span class="font-mono">{{ date('Y-m-d') }}</span>) dan otomatis terhapus permanen setelah 7 hari.
+                            </p>
+                        </div>
+                    </template>
+
+                    <div class="flex items-center justify-between pt-3 border-t border-border">
+                        <button
+                            type="button"
+                            @click="emptyQuarantineNow()"
+                            :disabled="isPurging"
+                            class="inline-flex items-center gap-1.5 rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-xs font-bold text-danger hover:bg-danger hover:text-white transition"
+                        >
+                            <span x-text="isPurging ? 'Mengosongkan...' : 'Kosongkan Karantina'"></span>
+                        </button>
+
+                        <div class="flex items-center gap-2">
+                            <button
+                                type="button"
+                                @click="modalOpen = false"
+                                class="rounded-xl border border-border px-3.5 py-2 text-xs font-semibold text-text hover:bg-surface-2 transition"
+                            >
+                                Tutup
+                            </button>
+                            <template x-if="previewData && (previewData.total_orphan_count > 0 || previewData.total_temp_count > 0)">
+                                <button
+                                    type="button"
+                                    @click="executeQuarantine()"
+                                    :disabled="isCleaning"
+                                    class="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-amber-400 transition shadow-sm"
+                                >
+                                    <span x-text="isCleaning ? 'Memindahkan...' : 'Pindahkan ke Karantina'"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1735,7 +1901,7 @@
                         const filmId = this.selectedFilms[poster.filename];
                         if (filmId) {
                             let filmTitle = this.filmTitles[filmId] || ('Film #' + filmId);
-                            filmTitle = filmTitle.replace(/^★\s*\[Belum Ada Poster\]\s*/, '').replace(/\s*\(Ganti poster\)\s*$/, '');
+                            filmTitle = filmTitle.replace(/^\[Belum Ada Poster\]\s*/, '').replace(/\s*\(Ganti poster\)\s*$/, '');
 
                             items.push({
                                 filename: poster.filename,

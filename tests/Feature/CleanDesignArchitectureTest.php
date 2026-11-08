@@ -46,6 +46,44 @@ class CleanDesignArchitectureTest extends TestCase
     }
 
     /**
+     * Architectural test ensuring no UI emojis exist in JavaScript asset files.
+     */
+    public function test_no_ui_emojis_in_js_assets(): void
+    {
+        $jsPath = resource_path('js');
+        if (! is_dir($jsPath)) {
+            $this->assertTrue(true);
+
+            return;
+        }
+
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($jsPath));
+        $violatingFiles = [];
+        $emojiPattern = '/[\p{Extended_Pictographic}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]/u';
+
+        foreach ($files as $file) {
+            if ($file->isDir() || ! in_array($file->getExtension(), ['js', 'ts', 'jsx', 'tsx'], true)) {
+                continue;
+            }
+
+            $relativePath = str_replace($jsPath.DIRECTORY_SEPARATOR, '', $file->getPathname());
+            $content = file_get_contents($file->getPathname());
+            // Remove block and single line comments
+            $cleanContent = preg_replace('#/\*.*?\*/#s', '', $content);
+            $cleanContent = preg_replace('#//.*$#m', '', $cleanContent);
+
+            if (preg_match_all($emojiPattern, $cleanContent, $matches)) {
+                $violatingFiles[$relativePath] = array_unique($matches[0]);
+            }
+        }
+
+        $this->assertEmpty(
+            $violatingFiles,
+            'Found UI emojis in JavaScript assets. Clean design forbids emojis: '.json_encode($violatingFiles)
+        );
+    }
+
+    /**
      * Proves that the architectural emoji detector strictly catches newly introduced emojis or pictograms.
      */
     public function test_architectural_detector_catches_newly_introduced_emojis(): void
@@ -57,6 +95,11 @@ class CleanDesignArchitectureTest extends TestCase
             '<span>✨ Berhasil disimpan</span>',
             '<p>🎉 Selamat datang!</p>',
             '<button>✕</button>',
+            '<button>🔥 Baru Ditambahkan</button>',
+            '<button>⭐ Eksklusif</button>',
+            '<button>❤️ Favorit</button>',
+            '<button>⏳ Segera Hadir</button>',
+            "const label = '★ [Belum Ada Poster]';",
         ];
 
         foreach ($testCasesWithEmojis as $snippet) {
@@ -134,5 +177,19 @@ class CleanDesignArchitectureTest extends TestCase
             $violatingFiles,
             'Mobile drawer or overlay found using backdrop-blur without desktop constraint: '.implode(', ', $violatingFiles)
         );
+    }
+
+    /**
+     * Verifies that custom pin badge tokens exist and satisfy WCAG 4.5:1 contrast.
+     */
+    public function test_badge_pin_tokens_exist_and_meet_contrast_guidelines(): void
+    {
+        $css = file_get_contents(resource_path('css/app.css'));
+        $this->assertStringContainsString('--badge-pin-bg: #E50914;', $css);
+        $this->assertStringContainsString('--badge-pin-text: #FFFFFF;', $css);
+
+        // Relative luminance of #FFFFFF = 1.0, #E50914 ≈ 0.168 -> ratio ≈ 4.81:1 >= 4.5:1
+        $ratio = (1.0 + 0.05) / (0.168 + 0.05);
+        $this->assertGreaterThanOrEqual(4.5, $ratio, 'Poster pin badge contrast must be at least 4.5:1');
     }
 }

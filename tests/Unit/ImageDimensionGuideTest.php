@@ -22,6 +22,8 @@ class ImageDimensionGuideTest extends TestCase
             'site_logo',
             'site_og_image',
             'site_favicon',
+            'member_photo',
+            'snack_photo',
         ];
 
         foreach ($expectedKeys as $key) {
@@ -54,5 +56,18 @@ class ImageDimensionGuideTest extends TestCase
 
         $nonExistent = ImageDimensionGuide::get('invalid_key');
         $this->assertNull($nonExistent);
+    }
+
+    public function test_validation_rule_generation_matches_spec(): void
+    {
+        $heroRule = ImageDimensionGuide::validationRule('hero_desktop', true);
+        $this->assertContains('required', $heroRule);
+        $this->assertContains('image', $heroRule);
+        $this->assertContains('max:3072', $heroRule);
+
+        $memberRule = ImageDimensionGuide::validationRule('member_photo', false);
+        $this->assertContains('nullable', $memberRule);
+        $this->assertContains('image', $memberRule);
+        $this->assertContains('max:1024', $memberRule);
     }
 }

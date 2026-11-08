@@ -121,6 +121,26 @@ class ImageDimensionGuide
                 'hint' => 'Persegi 512 × 512 px, PNG/SVG/ICO, maks 1 MB.',
                 'allowed_mimes' => ['image/png', 'image/x-icon', 'image/svg+xml'],
             ],
+            'member_photo' => [
+                'key' => 'member_photo',
+                'label' => 'Foto Kartu Member',
+                'width' => 400,
+                'height' => 400,
+                'ratio' => '1:1',
+                'max_mb' => 1,
+                'hint' => 'Persegi 1:1 (400 × 400 px), WebP/JPG/PNG, disarankan <= 60 KB.',
+                'allowed_mimes' => ['image/jpeg', 'image/png', 'image/webp'],
+            ],
+            'snack_photo' => [
+                'key' => 'snack_photo',
+                'label' => 'Foto Menu Jajan',
+                'width' => 600,
+                'height' => 600,
+                'ratio' => '1:1',
+                'max_mb' => 2,
+                'hint' => 'Persegi 1:1 (600 × 600 px), WebP/JPG/PNG, maks 2 MB.',
+                'allowed_mimes' => ['image/jpeg', 'image/png', 'image/webp'],
+            ],
         ];
     }
 
@@ -139,5 +159,47 @@ class ImageDimensionGuide
     public static function get(string $key): ?array
     {
         return static::all()[$key] ?? null;
+    }
+
+    /**
+     * Kembalikan teks petunjuk unggah untuk suatu komponen gambar.
+     */
+    public static function hint(string $key): string
+    {
+        return static::get($key)['hint'] ?? '';
+    }
+
+    /**
+     * Kembalikan aturan validasi Laravel terpadu untuk komponen gambar.
+     *
+     * @return list<string>
+     */
+    public static function validationRule(string $key, bool $required = false): array
+    {
+        $spec = static::get($key);
+        if (! $spec) {
+            return [$required ? 'required' : 'nullable', 'image'];
+        }
+
+        $extensions = array_map(function (string $mime): string {
+            return match ($mime) {
+                'image/jpeg' => 'jpeg,jpg',
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+                'image/svg+xml' => 'svg',
+                'image/x-icon' => 'ico',
+                default => 'png',
+            };
+        }, $spec['allowed_mimes']);
+
+        $mimesList = implode(',', $extensions);
+        $maxKb = $spec['max_mb'] * 1024;
+
+        return [
+            $required ? 'required' : 'nullable',
+            'image',
+            "mimes:{$mimesList}",
+            "max:{$maxKb}",
+        ];
     }
 }

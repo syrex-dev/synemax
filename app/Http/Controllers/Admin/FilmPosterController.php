@@ -3,12 +3,21 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Banner;
 use App\Models\Film;
+use App\Models\MenuItem;
+use App\Models\NewsArticle;
+use App\Models\NobarEvent;
+use App\Models\Promo;
+use App\Models\Setting;
 use App\Services\FilmBulkImporter;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -64,7 +73,7 @@ class FilmPosterController extends Controller
         foreach ($allFilms as $film) {
             $year = $film->release_year ?: ($film->release_date ? $film->release_date->format('Y') : '');
             $hasPoster = ! empty($film->poster_path);
-            $prefix = $hasPoster ? '' : '★ [Belum Ada Poster] ';
+            $prefix = $hasPoster ? '' : '[Belum Ada Poster] ';
             $suffix = $hasPoster ? ' (Ganti poster)' : '';
             $label = $prefix.$film->title.($year ? " ({$year})" : '').' - '.$film->genre.$suffix;
             $filmOptions[$film->id] = $label;
@@ -377,63 +386,317 @@ class FilmPosterController extends Controller
     }
 
     /**
-     * Clean up abandoned temporary folders and orphaned poster files to free disk space on STB.
+     * Clean up abandoned temporary folders and orphaned image files via 2-step quarantine flow.
      */
     public function cleanStorage(Request $request): JsonResponse
     {
-        $deletedTempFolders = 0;
-        $deletedOrphanPosters = 0;
-        $freedBytes = 0;
+        $dryRun = $request->boolean('dry_run') || $request->input('action') === 'preview';
+        $referenced = $this->collectAllReferencedImagePaths();
 
-        // 1. Clean up abandoned folders in storage/app/tmp_posters
+        $orphanFiles = [];
+        $tempFolders = [];
+        $totalBytes = 0;
+
+        // 1. Scan abandoned staging folders in storage/app/tmp_posters
         $tmpDir = storage_path('app/tmp_posters');
         if (is_dir($tmpDir)) {
             $folders = glob($tmpDir.'/*', GLOB_ONLYDIR);
             foreach ($folders ?: [] as $folder) {
-                $freedBytes += $this->getDirectorySize($folder);
-                $this->deleteStagingDirectory($folder);
-                $deletedTempFolders++;
+                $dirSize = $this->getDirectorySize($folder);
+                $tempFolders[] = [
+                    'path' => 'tmp_posters/'.basename($folder),
+                    'full_path' => $folder,
+                    'size' => $dirSize,
+                    'size_formatted' => $this->formatBytes($dirSize),
+                    'reason' => 'Folder berkas sementara unggah tidak diselesaikan',
+                ];
+                $totalBytes += $dirSize;
             }
         }
 
-        // 2. Clean up any tmp_bulk_posters_* folders
+        // 2. Scan abandoned staging folders in storage/app/tmp_bulk_posters_*
         $bulkDirs = glob(storage_path('app/tmp_bulk_posters_*'), GLOB_ONLYDIR);
         foreach ($bulkDirs ?: [] as $bulkFolder) {
-            $freedBytes += $this->getDirectorySize($bulkFolder);
-            $this->deleteStagingDirectory($bulkFolder);
+            $dirSize = $this->getDirectorySize($bulkFolder);
+            $tempFolders[] = [
+                'path' => basename($bulkFolder),
+                'full_path' => $bulkFolder,
+                'size' => $dirSize,
+                'size_formatted' => $this->formatBytes($dirSize),
+                'reason' => 'Folder batch upload poster sementara',
+            ];
+            $totalBytes += $dirSize;
+        }
+
+        // 3. Scan public directories for orphaned image files
+        $directoriesToScan = [
+            'posters' => 'Poster tidak terhubung dengan film manapun',
+            'banners' => 'Banner tidak terhubung dengan hero atau promo aktif',
+            'promos' => 'Gambar promo tidak terhubung dengan promo manapun',
+            'nobar' => 'Poster nobar tidak terhubung dengan acara manapun',
+            'news' => 'Sampul kabar tidak terhubung dengan artikel manapun',
+            'snacks' => 'Foto menu jajan tidak terhubung dengan menu aktif',
+            'settings' => 'Aset pengaturan lama tidak terpakai',
+            'members' => 'Foto member tidak terhubung dengan member manapun',
+        ];
+
+        foreach ($directoriesToScan as $dir => $orphanReason) {
+            if (! Storage::disk('public')->exists($dir)) {
+                continue;
+            }
+
+            $files = Storage::disk('public')->files($dir);
+            foreach ($files as $file) {
+                $base = basename($file);
+
+                // Abaikan jika sampel resmi atau direktori unmatched sementara
+                if (str_starts_with($file, 'samples/') || str_starts_with($file, self::UNMATCHED_DIR)) {
+                    continue;
+                }
+
+                $isReferenced = isset($referenced[$base]) || isset($referenced[$file]) || isset($referenced[ltrim($file, '/')]);
+
+                if (! $isReferenced) {
+                    $fileSize = Storage::disk('public')->size($file);
+                    $orphanFiles[] = [
+                        'path' => $file,
+                        'filename' => $base,
+                        'directory' => $dir,
+                        'size' => $fileSize,
+                        'size_formatted' => $this->formatBytes($fileSize),
+                        'reason' => $orphanReason,
+                    ];
+                    $totalBytes += $fileSize;
+                }
+            }
+        }
+
+        // Jika dry-run (Langkah 1: Pratinjau)
+        if ($dryRun) {
+            return response()->json([
+                'success' => true,
+                'dry_run' => true,
+                'orphan_files' => $orphanFiles,
+                'temp_folders' => $tempFolders,
+                'total_orphan_count' => count($orphanFiles),
+                'total_temp_count' => count($tempFolders),
+                'freed_bytes' => $totalBytes,
+                'freed_formatted' => $this->formatBytes($totalBytes),
+                'message' => 'Pratinjau pembersihan: Ditemukan '.count($orphanFiles).' berkas yatim dan '.count($tempFolders).' folder sementara ('.$this->formatBytes($totalBytes).') siap dipindahkan ke karantina.',
+            ]);
+        }
+
+        // Langkah 2: Pindahkan ke direktori karantina storage/app/karantina/{YYYY-MM-DD}
+        $today = now()->format('Y-m-d');
+        $quarantineBase = storage_path('app/karantina');
+        $quarantineTodayDir = $quarantineBase.DIRECTORY_SEPARATOR.$today;
+
+        if (! is_dir($quarantineTodayDir)) {
+            @mkdir($quarantineTodayDir, 0755, true);
+        }
+
+        $quarantinedFiles = 0;
+        foreach ($orphanFiles as $item) {
+            $srcFullPath = Storage::disk('public')->path($item['path']);
+            if (file_exists($srcFullPath)) {
+                $targetPath = $quarantineTodayDir.DIRECTORY_SEPARATOR.$item['directory'].DIRECTORY_SEPARATOR.$item['filename'];
+                $targetDir = dirname($targetPath);
+                if (! is_dir($targetDir)) {
+                    @mkdir($targetDir, 0755, true);
+                }
+                @rename($srcFullPath, $targetPath);
+                $quarantinedFiles++;
+            }
+        }
+
+        $deletedTempFolders = 0;
+        foreach ($tempFolders as $tf) {
+            $this->deleteStagingDirectory($tf['full_path']);
             $deletedTempFolders++;
         }
 
-        // 3. Clean up orphaned permanent poster files (not attached to any active or trashed film)
-        $allPosterPathsInDb = Film::withTrashed()
-            ->whereNotNull('poster_path')
-            ->where('poster_path', '!=', '')
-            ->pluck('poster_path')
-            ->map(fn ($p) => basename($p))
-            ->flip()
-            ->all();
-
-        $permanentFiles = Storage::disk('public')->files('posters');
-        foreach ($permanentFiles as $file) {
-            $base = basename($file);
-            if (! isset($allPosterPathsInDb[$base])) {
-                $size = Storage::disk('public')->size($file);
-                Storage::disk('public')->delete($file);
-                $freedBytes += $size;
-                $deletedOrphanPosters++;
-            }
-        }
-
-        $formattedFreed = round($freedBytes / 1024 / 1024, 2).' MB';
+        // Pembersihan otomatis berkas karantina yang berusia lebih dari 7 hari
+        $this->purgeExpiredQuarantine(7);
 
         return response()->json([
             'success' => true,
+            'dry_run' => false,
+            'quarantined_files' => $quarantinedFiles,
             'deleted_temp_folders' => $deletedTempFolders,
-            'deleted_orphan_posters' => $deletedOrphanPosters,
-            'freed_bytes' => $freedBytes,
-            'freed_formatted' => $formattedFreed,
-            'message' => "Pembersihan berhasil! {$deletedTempFolders} folder berkas sementara dan {$deletedOrphanPosters} poster yatim dihapus. Ruang penyimpanan bebas: {$formattedFreed}.",
+            'freed_bytes' => $totalBytes,
+            'freed_formatted' => $this->formatBytes($totalBytes),
+            'message' => "Pembersihan berhasil! {$quarantinedFiles} berkas yatim dipindahkan ke karantina ({$today}) dan {$deletedTempFolders} folder sementara dibersihkan. Ruang bebas: {$this->formatBytes($totalBytes)}.",
         ]);
+    }
+
+    /**
+     * Kosongkan seluruh direktori karantina secara permanen.
+     */
+    public function emptyQuarantine(Request $request): JsonResponse
+    {
+        $quarantineBase = storage_path('app/karantina');
+        $freedBytes = 0;
+        $deletedFolders = 0;
+
+        if (is_dir($quarantineBase)) {
+            $folders = glob($quarantineBase.'/*', GLOB_ONLYDIR);
+            foreach ($folders ?: [] as $folder) {
+                $freedBytes += $this->getDirectorySize($folder);
+                $this->deleteStagingDirectory($folder);
+                $deletedFolders++;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'freed_bytes' => $freedBytes,
+            'freed_formatted' => $this->formatBytes($freedBytes),
+            'deleted_folders' => $deletedFolders,
+            'message' => "Karantina berhasil dikosongkan. {$deletedFolders} folder karantina dihapus permanen. Ruang bebas: {$this->formatBytes($freedBytes)}.",
+        ]);
+    }
+
+    /**
+     * Hapus folder karantina yang berumur >= $days hari.
+     */
+    protected function purgeExpiredQuarantine(int $days = 7): int
+    {
+        $quarantineBase = storage_path('app/karantina');
+        if (! is_dir($quarantineBase)) {
+            return 0;
+        }
+
+        $purgedCount = 0;
+        $folders = glob($quarantineBase.'/*', GLOB_ONLYDIR);
+
+        foreach ($folders ?: [] as $folder) {
+            $name = basename($folder);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $name)) {
+                try {
+                    $folderDate = Carbon::parse($name)->startOfDay();
+                    if ($folderDate->diffInDays(now()->startOfDay()) >= $days) {
+                        $this->deleteStagingDirectory($folder);
+                        $purgedCount++;
+                    }
+                } catch (\Throwable) {
+                    // Abaikan jika nama folder bukan tanggal valid
+                }
+            }
+        }
+
+        return $purgedCount;
+    }
+
+    /**
+     * Kumpulkan seluruh referensi berkas gambar di seluruh database SynemaX.
+     *
+     * @return array<string, string>
+     */
+    protected function collectAllReferencedImagePaths(): array
+    {
+        $referenced = [];
+
+        // 1. Film posters & backdrops
+        foreach (Film::withTrashed()->select(['poster_path', 'banner_path'])->get() as $f) {
+            if (! empty($f->poster_path)) {
+                $referenced[basename($f->poster_path)] = 'film_poster';
+                $referenced[ltrim($f->poster_path, '/')] = 'film_poster';
+            }
+            if (! empty($f->banner_path)) {
+                $referenced[basename($f->banner_path)] = 'film_banner';
+                $referenced[ltrim($f->banner_path, '/')] = 'film_banner';
+            }
+        }
+
+        // 2. Banners (Hero, Promo, Snack)
+        if (class_exists(Banner::class) && Schema::hasTable('banners')) {
+            foreach (Banner::withTrashed()->select(['image_path', 'mobile_image_path'])->get() as $b) {
+                if (! empty($b->image_path)) {
+                    $referenced[basename($b->image_path)] = 'banner_image';
+                    $referenced[ltrim($b->image_path, '/')] = 'banner_image';
+                }
+                if (! empty($b->mobile_image_path)) {
+                    $referenced[basename($b->mobile_image_path)] = 'banner_mobile';
+                    $referenced[ltrim($b->mobile_image_path, '/')] = 'banner_mobile';
+                }
+            }
+        }
+
+        // 3. Promos
+        if (class_exists(Promo::class) && Schema::hasTable('promos')) {
+            foreach (Promo::withTrashed()->get() as $p) {
+                $path = $p->image_path ?? $p->banner_path ?? null;
+                if (! empty($path)) {
+                    $referenced[basename($path)] = 'promo_banner';
+                    $referenced[ltrim($path, '/')] = 'promo_banner';
+                }
+            }
+        }
+
+        // 4. Nobar events
+        if (class_exists(NobarEvent::class) && Schema::hasTable('nobar_events')) {
+            foreach (NobarEvent::withTrashed()->select(['poster_path'])->get() as $n) {
+                if (! empty($n->poster_path)) {
+                    $referenced[basename($n->poster_path)] = 'nobar_poster';
+                    $referenced[ltrim($n->poster_path, '/')] = 'nobar_poster';
+                }
+            }
+        }
+
+        // 5. News articles / kabar
+        if (class_exists(NewsArticle::class) && Schema::hasTable('news_articles')) {
+            foreach (NewsArticle::withTrashed()->get() as $a) {
+                $path = $a->cover_path ?? $a->cover_image_path ?? null;
+                if (! empty($path)) {
+                    $referenced[basename($path)] = 'news_cover';
+                    $referenced[ltrim($path, '/')] = 'news_cover';
+                }
+            }
+        }
+
+        // 6. Snack menu items
+        if (class_exists(MenuItem::class) && Schema::hasTable('menu_items')) {
+            foreach (MenuItem::query()->select(['photo_path'])->get() as $m) {
+                if (! empty($m->photo_path)) {
+                    $referenced[basename($m->photo_path)] = 'snack_photo';
+                    $referenced[ltrim($m->photo_path, '/')] = 'snack_photo';
+                }
+            }
+        }
+
+        // 7. Settings (logos, favicon, OG, QRIS, banner)
+        if (class_exists(Setting::class) && Schema::hasTable('settings')) {
+            $settingKeys = ['site_logo', 'site_logo_dark', 'site_favicon', 'site_og_image', 'qris_image', 'snack_banner_image'];
+            foreach (Setting::query()->whereIn('key', $settingKeys)->pluck('value') as $val) {
+                if (! empty($val) && is_string($val)) {
+                    $referenced[basename($val)] = 'setting_asset';
+                    $referenced[ltrim($val, '/')] = 'setting_asset';
+                }
+            }
+        }
+
+        // 8. Members (photo_path)
+        if (Schema::hasTable('members')) {
+            $memberPhotos = DB::table('members')->whereNotNull('photo_path')->where('photo_path', '!=', '')->pluck('photo_path');
+            foreach ($memberPhotos as $mp) {
+                $referenced[basename($mp)] = 'member_photo';
+                $referenced[ltrim($mp, '/')] = 'member_photo';
+            }
+        }
+
+        return $referenced;
+    }
+
+    private function formatBytes(int $bytes): string
+    {
+        if ($bytes >= 1048576) {
+            return round($bytes / 1048576, 2).' MB';
+        }
+        if ($bytes >= 1024) {
+            return round($bytes / 1024, 1).' KB';
+        }
+
+        return $bytes.' B';
     }
 
     private function getDirectorySize(string $dir): int

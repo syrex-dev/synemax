@@ -136,6 +136,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/films/posters/process-batch-item', [FilmPosterController::class, 'processBatchItem'])->name('films.posters.process_batch_item');
     Route::post('/films/posters/cleanup-batch', [FilmPosterController::class, 'cleanupBatch'])->name('films.posters.cleanup_batch');
     Route::post('/films/posters/cleanup-storage', [FilmPosterController::class, 'cleanStorage'])->name('films.posters.cleanup_storage');
+    Route::post('/films/posters/empty-quarantine', [FilmPosterController::class, 'emptyQuarantine'])->name('films.posters.empty_quarantine');
     Route::post('/films/posters/assign', [FilmPosterController::class, 'assign'])->name('films.posters.assign');
     Route::post('/films/posters/assign-batch', [FilmPosterController::class, 'assignBatch'])->name('films.posters.assign_batch');
     Route::post('/films/posters/undo-batch', [FilmPosterController::class, 'undoBatch'])->name('films.posters.undo_batch');

@@ -224,7 +224,7 @@
                                                 </span>
                                             @elseif ($isCancelledQuorum)
                                                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold bg-danger/15 text-danger border border-danger/25">
-                                                    Dibatalkan kuorum
+                                                    Dibatalkan (kurang pemesan)
                                                 </span>
                                             @elseif ($isClosed)
                                                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold bg-slate-500/15 text-text-muted border border-border">
@@ -241,7 +241,7 @@
                                                 </span>
                                             @elseif ($occupied > 0)
                                                 <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold bg-blue-500/15 text-blue-600 dark:text-blue-300 border border-blue-500/20">
-                                                    Menunggu kuorum
+                                                    Menunggu minimal penonton
                                                 </span>
                                             @else
                                                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold bg-surface-2 text-text-muted border border-border">
@@ -250,10 +250,10 @@
                                             @endif
                                         </div>
 
-                                        {{-- Progres Kuorum --}}
+                                        {{-- Progres Kuorum / Minimal Penonton --}}
                                         <div>
                                             <div class="flex items-center justify-between text-xs font-semibold text-text-muted mb-1">
-                                                <span>Kuorum</span>
+                                                <span>Minimal</span>
                                                 <span class="font-tabular font-bold {{ $isConfirmed ? 'text-emerald-500' : ($leadingSeats > 0 ? 'text-amber-500' : '') }}">
                                                     {{ $leadingSeats }}/{{ $quorum }}
                                                 </span>
@@ -371,7 +371,7 @@
                                                 @endif
                                             </div>
                                             <div class="shrink-0 font-semibold text-text-muted">
-                                                Kursi: {{ $occupied }}/{{ $capacity }}
+                                                Terisi: {{ $occupied }}/{{ $capacity }} orang
                                             </div>
                                         </div>
                                     </div>
@@ -388,14 +388,14 @@
 
                                         {{-- 1. PEMINAT PER FILM --}}
                                         <div class="rounded-xl border border-border bg-surface p-3.5 space-y-2">
-                                            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-500">Peminat per Film Calon (Kuorum: {{ $quorum }} Kursi):</span>
+                                            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-500">Peminat per Film Calon (Minimal: {{ $quorum }} Orang):</span>
                                             @if ($tallies->isNotEmpty())
                                                 <div class="grid gap-1.5 sm:grid-cols-2">
                                                     @foreach ($tallies as $t)
                                                         <div class="flex items-center justify-between rounded-lg border border-border/60 bg-surface-2 px-3 py-2 text-xs">
                                                             <span class="font-bold text-text truncate max-w-[200px]">{{ $t['title'] }}</span>
                                                             <span class="font-tabular font-black text-amber-400 shrink-0">
-                                                                {{ $t['seats'] }}/{{ $quorum }} kursi ({{ $t['bookings_count'] ?? $t['count'] ?? 1 }} booking)
+                                                                {{ $t['seats'] }}/{{ $quorum }} orang ({{ $t['bookings_count'] ?? $t['count'] ?? 1 }} booking)
                                                             </span>
                                                         </div>
                                                     @endforeach
@@ -411,7 +411,7 @@
                                             <div class="flex items-center justify-between">
                                                 <div>
                                                     <h4 class="text-xs font-black uppercase tracking-wider text-amber-500">Panel Selesaikan Sesi</h4>
-                                                    <p class="mt-0.5 text-[11px] text-text-muted">Gunakan bila sesi membutuhkan keputusan manual penayangan, pemindahan, atau pembatalan kuorum.</p>
+                                                    <p class="mt-0.5 text-[11px] text-text-muted">Gunakan bila sesi membutuhkan keputusan manual penayangan, pemindahan, atau pembatalan minimal penonton.</p>
                                                 </div>
                                             </div>
 
@@ -497,7 +497,7 @@
                                                     <input type="hidden" name="action" value="batalkan_sesi">
                                                     <div>
                                                         <label class="block text-[11px] font-bold text-text">Alasan Pembatalan (Wajib):</label>
-                                                        <textarea name="reason" rows="2" required placeholder="Contoh: Kuorum tidak tercapai sampai batas konfirmasi" class="mt-1 w-full rounded-lg border border-border bg-surface p-2 text-xs text-text"></textarea>
+                                                        <textarea name="reason" rows="2" required placeholder="Contoh: Minimal penonton tidak tercapai sampai batas konfirmasi" class="mt-1 w-full rounded-lg border border-border bg-surface p-2 text-xs text-text"></textarea>
                                                     </div>
                                                     <div class="flex justify-end gap-2">
                                                         <button type="button" @click="activeAction = null" class="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-text">Batal</button>
@@ -519,7 +519,8 @@
                                                             $myFilmTally = $tallies->firstWhere('film_id', $booking->film_id)['seats'] ?? $booking->seats_reserved;
                                                             $msgAjakan = "Halo {$booking->customer_name}, kami dari SynemaX. Sesi nonton " . ($booking->film->title ?? 'film') . " pada {$dayHeading} {$startTimeId} saat ini sudah ada {$myFilmTally} penonton, kurang " . max(0, 4 - $myFilmTally) . " orang lagi agar pasti tayang! Ajak temanmu bergabung ya: " . route('booking.create', ['session' => $session->id, 'film' => $booking->film_id]);
                                                             $msgKesepakatan = "Halo {$booking->customer_name}, kami dari SynemaX. Sesi nonton pada {$dayHeading} {$startTimeId} akan segera tayang dalam 3 jam. Mau bergabung ke film terdepan agar sesi pasti tayang? Cek pilihanmu di: " . route('booking.ticket', ['code' => $booking->code]);
-                                                            $msgBatal = "Halo {$booking->customer_name}, mohon maaf sesi nonton pada {$dayHeading} {$startTimeId} tidak mencapai kuorum sehingga dibatalkan tanpa biaya. " . ($booking->isPaid() ? "Tim kami akan segera memproses pengembalian dana (refund) penuh Anda. " : "") . "Anda dapat memilih jadwal lain di: " . route('schedule.index');
+                                                            $msgBatal = "Halo {$booking->customer_name}, mohon maaf sesi nonton pada {$dayHeading} {$startTimeId} tidak mencapai minimal penonton sehingga dibatalkan tanpa biaya. " . ($booking->isPaid() ? "Tim kami akan segera memproses pengembalian dana (refund) penuh Anda. " : "") . "Anda dapat memilih jadwal lain di: " . route('schedule.index');
+                                                            $msgGeser = "Halo {$booking->customer_name}, pemberitahuan dari SynemaX: Jam tayang sesi tanggal {$dayHeading} bergeser dari 19.30 menjadi {$startTimeId} WIB. Tiket Anda dengan kode {$booking->code} tetap berlaku. Detail tiket: " . route('booking.ticket', ['code' => $booking->code]);
                                                         @endphp
                                                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border bg-surface p-3.5">
                                                             <div class="space-y-0.5">
@@ -531,7 +532,7 @@
                                                                     @endif
                                                                 </div>
                                                                 <div class="text-text-muted text-[11px] flex flex-wrap gap-2 items-center">
-                                                                    <span>{{ $booking->seats_reserved }} kursi ({{ $booking->package }})</span>
+                                                                    <span>{{ $booking->seats_reserved }} orang ({{ $booking->package }})</span>
                                                                     <span>·</span>
                                                                     <span>Film: <strong>{{ $booking->film->title ?? 'Belum ditentukan' }}</strong></span>
                                                                     <span>·</span>
@@ -539,7 +540,7 @@
                                                                 </div>
                                                             </div>
 
-                                                            {{-- Hubungi WhatsApp: Tiga Template --}}
+                                                            {{-- Hubungi WhatsApp: Template Pesan --}}
                                                             <div class="flex flex-wrap items-center gap-1.5 shrink-0" x-data="{ openWa: false }">
                                                                 <div class="relative">
                                                                     <button type="button" @click="openWa = !openWa"
@@ -551,6 +552,10 @@
 
                                                                     <div x-show="openWa" @click.outside="openWa = false" x-cloak
                                                                          class="absolute right-0 top-10 z-30 w-56 rounded-xl border border-border bg-surface p-1.5 shadow-xl space-y-1 text-left">
+                                                                        <a href="https://wa.me/{{ $booking->whatsapp }}?text={{ urlencode($msgGeser) }}" target="_blank" rel="noopener noreferrer"
+                                                                           class="block rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-text hover:bg-surface-2">
+                                                                            Template: Jam Tayang Bergeser
+                                                                        </a>
                                                                         <a href="https://wa.me/{{ $booking->whatsapp }}?text={{ urlencode($msgAjakan) }}" target="_blank" rel="noopener noreferrer"
                                                                            class="block rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-text hover:bg-surface-2">
                                                                             Template: Ajakan Bergabung
@@ -561,7 +566,7 @@
                                                                         </a>
                                                                         <a href="https://wa.me/{{ $booking->whatsapp }}?text={{ urlencode($msgBatal) }}" target="_blank" rel="noopener noreferrer"
                                                                            class="block rounded-lg px-2.5 py-1.5 text-[11px] font-semibold text-danger hover:bg-danger/10">
-                                                                            Template: Pembatalan Kuorum
+                                                                            Template: Pembatalan (Kurang Penonton)
                                                                         </a>
                                                                     </div>
                                                                 </div>

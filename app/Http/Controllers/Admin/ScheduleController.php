@@ -49,7 +49,7 @@ class ScheduleController extends Controller
         $targetSessionOptions = $allSessions
             ->where('status', 'tersedia')
             ->mapWithKeys(fn ($s) => [
-                $s->id => Carbon::parse($s->session_date)->locale('id')->translatedFormat('D, d M').' · '.substr((string) $s->start_time, 0, 5).' WIB (Sisa '.$s->remainingSeats().' kursi)',
+                $s->id => Carbon::parse($s->session_date)->locale('id')->translatedFormat('D, d M').' · '.substr((string) $s->start_time, 0, 5).' WIB (Sisa '.$s->remainingSeats().' orang)',
             ])
             ->all();
 
@@ -216,14 +216,66 @@ class ScheduleController extends Controller
         return back()->with('status', 'Penutupan berhasil dihapus. Jika perlu, buka kembali sesinya dari daftar sesi.');
     }
 
-    public function updateSession(Request $request, Session $session): RedirectResponse
+    public function updateSession(Request $request, Session $session): JsonResponse|RedirectResponse
     {
         $data = $request->validate([
             'film_id' => ['nullable', 'integer', 'exists:films,id'],
             'status' => ['required', Rule::in(['tersedia', 'ditutup'])],
+            'start_time' => ['nullable', 'date_format:H:i'],
+            'confirm_reschedule' => ['nullable', 'boolean'],
         ]);
 
-        DB::transaction(function () use ($session, $data): void {
+        $newStartTime = $data['start_time'] ?? null;
+        $currentStartTime = substr((string) $session->start_time, 0, 5);
+        $isChangingTime = $newStartTime !== null && $newStartTime !== $currentStartTime;
+
+        if ($isChangingTime) {
+            $conflict = Session::query()
+                ->where('session_date', $session->session_date)
+                ->where('start_time', $newStartTime)
+                ->where('id', '!=', $session->id)
+                ->exists();
+
+            if ($conflict) {
+                throw ValidationException::withMessages([
+                    'start_time' => 'Sudah ada sesi lain pada jam tersebut untuk tanggal yang sama.',
+                ]);
+            }
+
+            $activeBookings = $session->occupiedBookings()->with(['film:id,title'])->get();
+            $hasActiveBookings = $activeBookings->isNotEmpty();
+            $confirmed = $request->boolean('confirm_reschedule');
+
+            if ($hasActiveBookings && ! $confirmed) {
+                $sessionDateFormatted = Carbon::parse($session->session_date)->locale('id')->translatedFormat('l, j F Y');
+                $affectedBookings = $activeBookings->map(fn ($b) => [
+                    'code' => $b->code,
+                    'customer_name' => $b->customer_name,
+                    'seats' => $b->seats_reserved,
+                    'is_paid' => $b->isPaid(),
+                    'phone' => $b->whatsapp,
+                    'wa_link' => 'https://wa.me/'.$b->whatsapp.'?text='.urlencode("Halo {$b->customer_name}, pemberitahuan dari SynemaX: Jam tayang sesi tanggal {$sessionDateFormatted} bergeser dari {$currentStartTime} menjadi {$newStartTime} WIB. Tiket Anda dengan kode {$b->code} tetap berlaku."),
+                ]);
+
+                if ($request->wantsJson()) {
+                    return response()->json([
+                        'requires_confirmation' => true,
+                        'reason' => 'reschedule_with_active_bookings',
+                        'message' => "Sesi ini memiliki {$activeBookings->count()} pemesanan aktif. Mengubah jam tayang akan menggeser jam sesi tiket pemesan.",
+                        'old_time' => $currentStartTime,
+                        'new_time' => $newStartTime,
+                        'session_date' => $session->session_date,
+                        'affected_count' => $activeBookings->count(),
+                        'affected_bookings' => $affectedBookings,
+                    ], 422);
+                }
+
+                return back()->with('error', "Sesi memiliki {$activeBookings->count()} pemesanan aktif. Harap konfirmasi perubahan jam sesi terlebih dahulu.")
+                    ->with('affected_bookings', $affectedBookings);
+            }
+        }
+
+        DB::transaction(function () use ($session, $data, $isChangingTime, $newStartTime): void {
             $lockedSession = Session::query()->lockForUpdate()->findOrFail($session->id);
 
             if ($data['film_id'] !== null && ! Film::query()->where('is_active', true)->find($data['film_id'])) {
@@ -232,10 +284,11 @@ class ScheduleController extends Controller
 
             if ($data['status'] === 'tersedia') {
                 $date = CarbonImmutable::parse($lockedSession->session_date, config('app.timezone'));
+                $checkSlot = $isChangingTime ? $newStartTime : substr((string) $lockedSession->start_time, 0, 5);
 
                 if (
                     app(ScheduleResolver::class)->dayTypeFor($date) === null
-                    || app(ScheduleResolver::class)->isSlotBlocked($date, substr((string) $lockedSession->start_time, 0, 5))
+                    || app(ScheduleResolver::class)->isSlotBlocked($date, $checkSlot)
                 ) {
                     throw ValidationException::withMessages([
                         'status' => 'Hapus penutupan tanggal atau sesi terlebih dahulu.',
@@ -243,8 +296,26 @@ class ScheduleController extends Controller
                 }
             }
 
-            $lockedSession->update($data);
+            $updatePayload = [
+                'film_id' => $data['film_id'],
+                'status' => $data['status'],
+            ];
+
+            if ($isChangingTime) {
+                $startCarbon = Carbon::parse($newStartTime);
+                $updatePayload['start_time'] = $newStartTime;
+                $updatePayload['end_time'] = $startCarbon->addMinutes(150)->format('H:i:s');
+            }
+
+            $lockedSession->update($updatePayload);
         });
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Sesi berhasil diperbarui.',
+            ]);
+        }
 
         return back()->with('status', 'Sesi berhasil diperbarui.');
     }

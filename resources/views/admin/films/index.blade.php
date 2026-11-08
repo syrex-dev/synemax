@@ -322,7 +322,7 @@
                                                     {{ $film->title }}
                                                 </a>
                                                 @if ($film->custom_badge)
-                                                    <span class="inline-flex items-center rounded bg-[#E50914] px-1.5 py-0.5 text-[9px] font-black text-white border border-white/20 shadow-2xs tracking-wide">
+                                                    <span class="inline-flex items-center rounded bg-[var(--badge-pin-bg)] px-1.5 py-0.5 text-[9px] font-black text-[var(--badge-pin-text)] border border-white/20 shadow-2xs tracking-wide">
                                                         {{ $film->custom_badge }}
                                                     </span>
                                                 @endif
@@ -427,7 +427,7 @@
                                         {{ $film->title }}
                                     </a>
                                     @if ($film->custom_badge)
-                                        <span class="inline-flex items-center rounded bg-[#E50914] px-1.5 py-0.5 text-[9px] font-black text-white border border-white/20 shadow-2xs tracking-wide">
+                                        <span class="inline-flex items-center rounded bg-[var(--badge-pin-bg)] px-1.5 py-0.5 text-[9px] font-black text-[var(--badge-pin-text)] border border-white/20 shadow-2xs tracking-wide">
                                             {{ $film->custom_badge }}
                                         </span>
                                     @endif
@@ -596,7 +596,8 @@
                         class="inline-flex items-center gap-1.5 rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-500/20 transition-colors"
                         title="Pasang atau ubah pin badge pada film terpilih"
                     >
-                        <span>🔥 Pin Poster</span>
+                        <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.386l3.593-2.114c.827-.486 1.157-1.493.754-2.361l-2.091-4.498a2.25 2.25 0 00-1.282-1.226L9.568 3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/></svg>
+                        <span>Pin Poster</span>
                     </button>
 
                     {{-- Hapus (Pindahkan ke Sampah) --}}
@@ -791,35 +792,43 @@
                         <div class="flex flex-wrap gap-1.5">
                             <button
                                 type="button"
-                                @click="bulkBadgeValue = 'Baru Ditambahkan'"
+                                @click="bulkBadgeValue = 'Baru ditambahkan'"
                                 class="rounded-full px-2.5 py-1 text-xs font-bold transition shadow-xs"
-                                :class="bulkBadgeValue === 'Baru Ditambahkan' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                                :class="bulkBadgeValue === 'Baru ditambahkan' ? 'bg-[var(--badge-pin-bg)] text-[var(--badge-pin-text)] ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
                             >
-                                🔥 Baru Ditambahkan
+                                Baru ditambahkan
                             </button>
                             <button
                                 type="button"
                                 @click="bulkBadgeValue = 'Trending'"
                                 class="rounded-full px-2.5 py-1 text-xs font-bold transition shadow-xs"
-                                :class="bulkBadgeValue === 'Trending' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                                :class="bulkBadgeValue === 'Trending' ? 'bg-[var(--badge-pin-bg)] text-[var(--badge-pin-text)] ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
                             >
-                                ⚡ Trending
+                                Trending
                             </button>
                             <button
                                 type="button"
-                                @click="bulkBadgeValue = 'Segera Hadir'"
+                                @click="bulkBadgeValue = 'Segera hadir'"
                                 class="rounded-full px-2.5 py-1 text-xs font-bold transition shadow-xs"
-                                :class="bulkBadgeValue === 'Segera Hadir' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                                :class="bulkBadgeValue === 'Segera hadir' ? 'bg-[var(--badge-pin-bg)] text-[var(--badge-pin-text)] ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
                             >
-                                ⏳ Segera Hadir
+                                Segera hadir
                             </button>
                             <button
                                 type="button"
                                 @click="bulkBadgeValue = 'Eksklusif'"
                                 class="rounded-full px-2.5 py-1 text-xs font-bold transition shadow-xs"
-                                :class="bulkBadgeValue === 'Eksklusif' ? 'bg-[#E50914] text-white ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                                :class="bulkBadgeValue === 'Eksklusif' ? 'bg-[var(--badge-pin-bg)] text-[var(--badge-pin-text)] ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
                             >
-                                ⭐ Eksklusif
+                                Eksklusif
+                            </button>
+                            <button
+                                type="button"
+                                @click="bulkBadgeValue = 'Favorit'"
+                                class="rounded-full px-2.5 py-1 text-xs font-bold transition shadow-xs"
+                                :class="bulkBadgeValue === 'Favorit' ? 'bg-[var(--badge-pin-bg)] text-[var(--badge-pin-text)] ring-2 ring-red-400' : 'bg-surface-2 text-text border border-border hover:border-red-400'"
+                            >
+                                Favorit
                             </button>
                         </div>
                     </div>
@@ -833,7 +842,7 @@
                             name="custom_badge"
                             x-model="bulkBadgeValue"
                             maxlength="50"
-                            placeholder="Contoh: Baru Ditambahkan"
+                            placeholder="Contoh: Baru ditambahkan"
                             class="w-full rounded-xl border border-border bg-surface px-3.5 py-2 text-xs text-text focus:border-red-500 focus:ring-1 focus:ring-red-500"
                         >
                     </div>
@@ -844,7 +853,7 @@
                             @click="$refs.clearBadgeForm.submit()"
                             class="text-xs font-bold text-danger hover:underline"
                         >
-                            ✕ Hapus Pin (Kosongkan)
+                            Hapus pin
                         </button>
 
                         <div class="flex items-center gap-2">
@@ -990,7 +999,7 @@
             ratingModalOpen: false,
             genreModalOpen: false,
             badgeModalOpen: false,
-            bulkBadgeValue: 'Baru Ditambahkan',
+            bulkBadgeValue: 'Baru ditambahkan',
             exportModalOpen: false,
             showUndoToast: Boolean(config.undoBatchId),
             undoCountdown: 8,

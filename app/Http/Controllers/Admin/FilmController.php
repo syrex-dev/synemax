@@ -173,12 +173,25 @@ class FilmController extends Controller
         $title = $film->title;
         $posterPath = $film->poster_path;
 
-        DB::transaction(function () use ($film, $posterPath): void {
-            if (! empty($posterPath) && Storage::disk('public')->exists($posterPath) && ! str_starts_with($posterPath, 'samples/')) {
-                Storage::disk('public')->delete($posterPath);
-            }
+        $bookingCount = $film->bookings()->count();
+        $sessionCount = $film->sessions()->count();
+
+        if ($bookingCount > 0 || $sessionCount > 0) {
+            return redirect()->route('admin.films.index', ['trash' => 1])
+                ->with('error', "Film \"{$title}\" tidak dapat dihapus permanen karena masih dirujuk oleh {$bookingCount} pemesanan dan {$sessionCount} sesi tayang. Hapus atau pindahkan riwayat sesi dan pemesanan terlebih dahulu.");
+        }
+
+        DB::transaction(function () use ($film): void {
             $film->forceDelete();
         });
+
+        // Hapus fisik poster HANYA setelah baris DB terhapus dan HANYA bila tidak dipakai film lain
+        if (! empty($posterPath) && ! str_starts_with($posterPath, 'samples/')) {
+            $isUsedElsewhere = Film::withTrashed()->where('poster_path', $posterPath)->exists();
+            if (! $isUsedElsewhere && Storage::disk('public')->exists($posterPath)) {
+                Storage::disk('public')->delete($posterPath);
+            }
+        }
 
         return redirect()->route('admin.films.index', ['trash' => 1])
             ->with('status', 'Film "'.$title.'" dan berkas posternya berhasil dihapus permanen dari STB.');
@@ -230,8 +243,9 @@ class FilmController extends Controller
         $action = $validated['action'];
         $selectAll = $request->boolean('select_all');
         $count = 0;
+        $skippedCount = 0;
 
-        DB::transaction(function () use ($request, $action, $selectAll, $validated, &$count): void {
+        DB::transaction(function () use ($request, $action, $selectAll, $validated, &$count, &$skippedCount): void {
             if ($selectAll) {
                 $query = Film::query();
                 if ($request->boolean('trash')) {
@@ -266,10 +280,21 @@ class FilmController extends Controller
                     $film->restore();
                     $count++;
                 } elseif ($action === 'force_delete' && $film->trashed()) {
-                    if (! empty($film->poster_path) && Storage::disk('public')->exists($film->poster_path) && ! str_starts_with($film->poster_path, 'samples/')) {
-                        Storage::disk('public')->delete($film->poster_path);
+                    $bCount = $film->bookings()->count();
+                    $sCount = $film->sessions()->count();
+                    if ($bCount > 0 || $sCount > 0) {
+                        $skippedCount++;
+
+                        continue;
                     }
+                    $posterPath = $film->poster_path;
                     $film->forceDelete();
+                    if (! empty($posterPath) && ! str_starts_with($posterPath, 'samples/')) {
+                        $isUsedElsewhere = Film::withTrashed()->where('poster_path', $posterPath)->exists();
+                        if (! $isUsedElsewhere && Storage::disk('public')->exists($posterPath)) {
+                            Storage::disk('public')->delete($posterPath);
+                        }
+                    }
                     $count++;
                 } elseif ($action === 'delete') {
                     $this->closeUpcomingSessions($film);
@@ -307,12 +332,16 @@ class FilmController extends Controller
         });
 
         $badgeLabel = $request->input('custom_badge') ?: 'Pin';
+        $forceDeleteMessage = $skippedCount > 0
+            ? "{$count} film dan berkas posternya berhasil dihapus permanen. {$skippedCount} film dilewati karena masih memiliki riwayat pemesanan atau sesi."
+            : "{$count} film dan berkas posternya berhasil dihapus permanen.";
+
         $messages = [
             'activate' => "{$count} film berhasil ditampilkan.",
             'deactivate' => "{$count} film berhasil disembunyikan.",
             'delete' => "{$count} film berhasil dipindahkan ke sampah.",
             'restore' => "{$count} film berhasil dipulihkan.",
-            'force_delete' => "{$count} film dan berkas posternya berhasil dihapus permanen.",
+            'force_delete' => $forceDeleteMessage,
             'set_rating' => "Klasifikasi usia {$count} film berhasil diatur ke '{$request->input('age_rating')}'.",
             'add_genre' => "Genre berhasil ditambahkan ke {$count} film.",
             'replace_genre' => "Genre {$count} film berhasil diperbarui.",

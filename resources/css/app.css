@@ -100,6 +100,8 @@
     --color-ticket-paper: var(--ticket-paper-color);
     --color-overlay: var(--overlay);
     --color-focus: var(--focus-ring);
+    --color-badge-pin-bg: var(--badge-pin-bg);
+    --color-badge-pin-text: var(--badge-pin-text);
     --shadow-token: var(--shadow-panel-token);
 }
 
@@ -211,6 +213,10 @@
 
     --token-progress-track: #E2E8F0;
     --token-progress-fill: #F59E0B;
+
+    /* Custom Poster Pin Badge Token (WCAG AA 4.8:1) */
+    --badge-pin-bg: #E50914;
+    --badge-pin-text: #FFFFFF;
 }
 
 :root.dark {
@@ -322,6 +328,10 @@
 
     --token-progress-track: #1E293B;
     --token-progress-fill: #F59E0B;
+
+    /* Custom Poster Pin Badge Token (Dark theme contrast >= 4.5:1) */
+    --badge-pin-bg: #E50914;
+    --badge-pin-text: #FFFFFF;
 }
 
 html {
