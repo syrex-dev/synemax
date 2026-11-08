@@ -43,4 +43,6 @@ tests/inspect_*.php
 tests/screenshots/
 LAPORAN_*.md
 LAPORAN*
+new report.md
+*report*.md
 
