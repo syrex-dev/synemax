@@ -78,7 +78,7 @@ class TicketScannerController extends Controller
     {
         $data = $request->validate([
             'code' => ['required', 'string', 'max:255'],
-            'session_id' => ['nullable', 'string'],
+            'session_id' => ['nullable'],
         ]);
 
         $adminId = (int) $request->user()?->id;
@@ -97,6 +97,7 @@ class TicketScannerController extends Controller
 
         $rawCode = trim($data['code']);
         $normCode = MemberCodeGenerator::normalize($rawCode);
+        $sessionId = isset($data['session_id']) && $data['session_id'] !== 'none' ? (string) $data['session_id'] : null;
 
         // 1. Cek apakah kode merupakan ID Member
         $member = null;
@@ -115,9 +116,8 @@ class TicketScannerController extends Controller
             RateLimiter::clear($failedKey);
 
             // Sesi terpilih
-            $sessionId = $data['session_id'] ?? null;
             $session = null;
-            if ($sessionId && $sessionId !== 'all') {
+            if ($sessionId && $sessionId !== 'all' && is_numeric($sessionId)) {
                 $session = Session::find((int) $sessionId);
             }
 
@@ -181,7 +181,7 @@ class TicketScannerController extends Controller
         }
 
         // 2. Jika bukan member, jalankan lookup booking biasa
-        $result = $checkIn->lookup($data['code'], $data['session_id'] ?? null);
+        $result = $checkIn->lookup($data['code'], $sessionId);
 
         if ($result['status'] === 'not_found') {
             RateLimiter::hit($failedKey, 60);
@@ -202,15 +202,22 @@ class TicketScannerController extends Controller
     {
         $data = $request->validate([
             'member_id' => ['required', 'integer'],
-            'session_id' => ['required', 'integer'],
+            'session_id' => ['required'],
             'booking_id' => ['nullable', 'integer'],
             'method' => ['nullable', 'string', 'in:qr,kode,cari'],
             'allow_override' => ['nullable', 'boolean'],
             'override_reason' => ['nullable', 'string', 'max:255'],
         ]);
 
+        if (empty($data['session_id']) || $data['session_id'] === 'none' || ! is_numeric($data['session_id'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pilih sesi penayangan yang valid terlebih dahulu.',
+            ], 422)->header('Cache-Control', 'no-store');
+        }
+
         $member = Member::findOrFail($data['member_id']);
-        $session = Session::findOrFail($data['session_id']);
+        $session = Session::findOrFail((int) $data['session_id']);
         $booking = ! empty($data['booking_id']) ? Booking::find($data['booking_id']) : null;
 
         $userId = (int) $request->user()?->id;
@@ -298,14 +305,14 @@ class TicketScannerController extends Controller
             'method' => ['nullable', 'string', 'in:qr,kode,daftar,admin_manual'],
             'reason' => ['nullable', 'string', 'max:255'],
             'allow_override' => ['nullable', 'boolean'],
-            'session_id' => ['nullable', 'string'],
+            'session_id' => ['nullable'],
         ]);
 
         $userId = (int) $request->user()->id;
         $method = $data['method'] ?? 'qr';
         $reason = $data['reason'] ?? null;
         $allowOverride = (bool) ($data['allow_override'] ?? false);
-        $sessionId = $data['session_id'] ?? null;
+        $sessionId = isset($data['session_id']) && $data['session_id'] !== 'none' ? (string) $data['session_id'] : null;
 
         $result = $checkIn->checkIn(
             bookingId: (int) $data['booking_id'],

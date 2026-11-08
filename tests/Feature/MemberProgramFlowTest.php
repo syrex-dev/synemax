@@ -525,6 +525,7 @@ class MemberProgramFlowTest extends TestCase
         // Lookup member code returns type: member
         $resMember = $this->postJson(route('admin.scan.lookup'), [
             'code' => $member->code,
+            'session_id' => $this->session->id, // integer session_id must be accepted
         ]);
         $resMember->assertOk();
         $resMember->assertJson([
@@ -536,9 +537,23 @@ class MemberProgramFlowTest extends TestCase
             ],
         ]);
 
+        // Lookup member code with string or none session_id
+        $resMemberString = $this->postJson(route('admin.scan.lookup'), [
+            'code' => $member->code,
+            'session_id' => (string) $this->session->id,
+        ]);
+        $resMemberString->assertOk();
+
+        $resMemberNone = $this->postJson(route('admin.scan.lookup'), [
+            'code' => $member->code,
+            'session_id' => 'none',
+        ]);
+        $resMemberNone->assertOk();
+
         // Lookup booking code returns type: booking
         $resBooking = $this->postJson(route('admin.scan.lookup'), [
             'code' => $booking->code,
+            'session_id' => $this->session->id,
         ]);
         $resBooking->assertOk();
         $resBooking->assertJson([

@@ -625,6 +625,14 @@
 
                 async recordVisit() {
                     if (!this.activeMember || this.isRecording) return;
+                    if (!this.selectedSessionId || this.selectedSessionId === 'none') {
+                        this.playBeep(false);
+                        window.showToast({
+                            type: 'warning',
+                            message: 'Pilih sesi penayangan terlebih dahulu sebelum mencatat kunjungan.'
+                        });
+                        return;
+                    }
                     this.isRecording = true;
 
                     try {
@@ -637,7 +645,7 @@
                             },
                             body: JSON.stringify({
                                 member_id: this.activeMember.id,
-                                session_id: this.selectedSessionId,
+                                session_id: this.selectedSessionId !== 'none' ? this.selectedSessionId : null,
                                 booking_id: this.selectedBookingId || null,
                                 method: 'qr'
                             })
