@@ -127,13 +127,13 @@
                 <label for="opening_visits" class="block text-xs font-semibold text-text-muted mb-1.5">
                     Saldo Awal Kunjungan
                 </label>
-                <x-ui.select id="opening_visits" name="opening_visits" class="w-full min-h-[44px] text-xs">
-                    @for ($i = 0; $i <= 9; $i++)
-                        <option value="{{ $i }}" {{ old('opening_visits', 0) == $i ? 'selected' : '' }}>
-                            {{ $i }} kunjungan
-                        </option>
-                    @endfor
-                </x-ui.select>
+                <x-ui.select
+                    id="opening_visits"
+                    name="opening_visits"
+                    :options="collect(range(0, 9))->map(fn($i) => ['value' => (string)$i, 'label' => $i . ' kunjungan'])->all()"
+                    :value="(string) old('opening_visits', 0)"
+                    class="w-full min-h-[44px] text-xs"
+                />
                 <p class="text-[11px] text-text-muted mt-1">Isi hanya jika member ini merupakan pindahan dari kartu stempel fisik lama (tidak langsung memicu reward).</p>
             </div>
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\PublicMemberController;
 use App\Models\Member;
 use App\Models\MemberReward;
 use App\Models\MemberVisit;
@@ -13,6 +14,7 @@ use App\Services\MemberCodeGenerator;
 use App\Services\WebpImageProcessor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -106,7 +108,11 @@ class MemberController extends Controller
             $raw = $request->input('opening_visits');
             if (is_string($raw) && preg_match('/^\s*(\d+)/', $raw, $m)) {
                 $request->merge(['opening_visits' => (int) $m[1]]);
+            } elseif ($raw === '' || $raw === null) {
+                $request->merge(['opening_visits' => 0]);
             }
+        } else {
+            $request->merge(['opening_visits' => 0]);
         }
 
         $validated = $request->validate([
@@ -126,6 +132,10 @@ class MemberController extends Controller
             'opening_visits.integer' => 'Saldo awal kunjungan harus berupa angka bulat.',
             'opening_visits.min' => 'Saldo awal kunjungan minimal 0.',
             'opening_visits.max' => 'Saldo awal kunjungan tidak boleh lebih dari 9.',
+        ], [
+            'opening_visits' => 'saldo awal kunjungan',
+            'name' => 'nama member',
+            'status' => 'status member',
         ]);
 
         // Duplicate name warning
@@ -366,6 +376,9 @@ class MemberController extends Controller
             'opening_visits.integer' => 'Saldo awal kunjungan harus berupa angka bulat.',
             'opening_visits.min' => 'Saldo awal kunjungan minimal 0.',
             'opening_visits.max' => 'Saldo awal kunjungan tidak boleh lebih dari 9.',
+        ], [
+            'opening_visits' => 'saldo awal kunjungan',
+            'reason' => 'alasan koreksi',
         ]);
 
         $oldVal = $member->opening_visits;
@@ -465,8 +478,19 @@ class MemberController extends Controller
             ->with('status', "Member {$member->name} berhasil dihapus (soft delete).");
     }
 
-    public function printSingle(Member $member): View
+    public function printSingle(Request $request, Member $member, CinemaSettings $settings): View|Response
     {
+        if ($request->query('format') === 'svg') {
+            $svg = app(PublicMemberController::class)->renderCardSvg($member, $settings);
+            $filename = 'kartu-member-synemax-'.strtolower((string) preg_replace('/[^A-Za-z0-9]/', '-', $member->formattedCode())).'.svg';
+
+            return response($svg, 200, [
+                'Content-Type' => 'image/svg+xml; charset=utf-8',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+            ]);
+        }
+
         return view('admin.members.print-single', [
             'member' => $member,
         ]);

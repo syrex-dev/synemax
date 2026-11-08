@@ -41,6 +41,23 @@
             cursor: pointer;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        .btn-download {
+            background-color: #0f172a;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-download:hover {
+            background-color: #1e293b;
+        }
         .btn-close {
             background-color: #fff;
             color: #334155;
@@ -191,6 +208,12 @@
 <body>
     <div class="no-print-bar">
         <button type="button" class="btn-print" onclick="window.print()">Cetak Kartu</button>
+        <button type="button" id="btn-download-member-card" class="btn-download" onclick="downloadMemberCardPng()">
+            <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            <span id="btn-download-text">Download Gambar (PNG)</span>
+        </button>
         <a href="{{ route('admin.members.show', $member) }}" class="btn-close">Kembali</a>
     </div>
 
@@ -224,6 +247,8 @@
             <span class="card-notice">Tunjukkan kartu ini saat datang ke bioskop untuk mencatat kunjungan & reward.</span>
         </div>
     </div>
+
+    <x-member.card-download-script :member="$member" />
 </body>
 </html>
 

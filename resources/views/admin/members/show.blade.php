@@ -87,6 +87,17 @@
             </a>
             <button
                 type="button"
+                id="btn-download-member-card"
+                onclick="downloadMemberCardPng()"
+                class="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 py-2 text-xs font-semibold text-text hover:bg-surface-2 transition"
+            >
+                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                <span id="btn-download-text">Download Kartu (PNG)</span>
+            </button>
+            <button
+                type="button"
                 @click="copyText('{{ $digitalUrl }}', 'url')"
                 class="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 py-2 text-xs font-semibold text-text hover:bg-surface-2 transition"
             >
@@ -160,6 +171,16 @@
                 >
                     Cetak Kartu
                 </a>
+                <button
+                    type="button"
+                    onclick="downloadMemberCardPng()"
+                    class="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2 text-xs font-semibold text-text hover:bg-surface-2 transition"
+                >
+                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    <span>Download Kartu (PNG)</span>
+                </button>
                 <button
                     type="button"
                     @click="copyText('{{ $digitalUrl }}', 'url')"
@@ -688,11 +709,13 @@
                 @csrf
                 <div>
                     <label for="opening_visits_input" class="block text-xs font-semibold text-text-muted mb-1.5">Saldo Awal Baru</label>
-                    <x-ui.select id="opening_visits_input" name="opening_visits" class="w-full min-h-[44px] text-xs">
-                        @for ($i = 0; $i <= 9; $i++)
-                            <option value="{{ $i }}" {{ $member->opening_visits == $i ? 'selected' : '' }}>{{ $i }} kunjungan</option>
-                        @endfor
-                    </x-ui.select>
+                    <x-ui.select
+                        id="opening_visits_input"
+                        name="opening_visits"
+                        :options="collect(range(0, 9))->map(fn($i) => ['value' => (string)$i, 'label' => $i . ' kunjungan'])->all()"
+                        :value="(string) old('opening_visits', $member->opening_visits)"
+                        class="w-full min-h-[44px] text-xs"
+                    />
                 </div>
                 <div>
                     <label for="opening_reason" class="block text-xs font-semibold text-text-muted mb-1.5">Alasan Koreksi <span class="text-red-500">*</span></label>
@@ -753,6 +776,8 @@
             </form>
         </div>
     </div>
+
+    <x-member.card-download-script :member="$member" />
 </div>
 @endsection
 
