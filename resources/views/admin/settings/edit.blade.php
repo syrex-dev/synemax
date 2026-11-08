@@ -3,7 +3,44 @@
 @section('title', 'Pengaturan Bioskop')
 
 @section('content')
-    <div x-data="{ activeTab: '{{ old('_tab', $currentTab ?? 'identitas') }}' }">
+    <div
+        x-data="{
+            activeTab: '{{ old('_tab', $currentTab ?? 'identitas') }}',
+            canScrollLeft: false,
+            canScrollRight: false,
+
+            updateScrollState() {
+                const nav = this.$refs.tabsNav;
+                if (!nav) return;
+                this.canScrollLeft = nav.scrollLeft > 4;
+                this.canScrollRight = nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 4;
+            },
+
+            scrollTabs(offset) {
+                const nav = this.$refs.tabsNav;
+                if (!nav) return;
+                nav.scrollBy({ left: offset, behavior: 'smooth' });
+                setTimeout(() => this.updateScrollState(), 320);
+            },
+
+            scrollToActive() {
+                this.$nextTick(() => {
+                    const nav = this.$refs.tabsNav;
+                    if (!nav) return;
+                    const activeBtn = nav.querySelector(`[data-tab-key='${this.activeTab}']`);
+                    if (activeBtn) {
+                        activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                    }
+                    this.updateScrollState();
+                });
+            },
+
+            init() {
+                this.scrollToActive();
+                window.addEventListener('resize', () => this.updateScrollState());
+            }
+        }"
+    >
         <x-admin.page-header
             eyebrow="Konfigurasi Sistem"
             title="Pengaturan Home Cinema"
@@ -50,9 +87,31 @@
             </div>
         @endif
 
-        {{-- Tab Navigation Bar --}}
-        <div class="mt-6 border-b border-border">
-            <nav class="flex space-x-2 overflow-x-auto pb-px scrollbar-none" aria-label="Tabs Pengaturan">
+        {{-- Tab Navigation Bar (Scrollable dengan Panah Kontrol, Scroll Mouse & Sentuh) --}}
+        <div class="mt-6 relative flex items-center border-b border-border bg-surface-2/30 rounded-2xl p-1 shadow-xs">
+            {{-- Tombol Geser Kiri --}}
+            <button
+                type="button"
+                x-show="canScrollLeft"
+                x-cloak
+                @click="scrollTabs(-250)"
+                class="absolute left-1 z-10 flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-text shadow-md hover:bg-surface-2 transition"
+                aria-label="Geser tab ke kiri"
+                title="Geser tab ke kiri"
+            >
+                <svg class="size-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+            </button>
+
+            {{-- Navigasi Tab Horizontal --}}
+            <nav
+                x-ref="tabsNav"
+                @scroll.passive="updateScrollState()"
+                @wheel.passive="if ($event.deltaY !== 0 && $el.scrollWidth > $el.clientWidth) { $el.scrollLeft += $event.deltaY; updateScrollState(); }"
+                class="flex w-full space-x-1.5 overflow-x-auto scroll-smooth py-1 px-1 touch-pan-x [scrollbar-width:thin]"
+                aria-label="Tabs Pengaturan"
+            >
                 @php
                     $tabs = [
                         'identitas' => '1. Identitas Situs',
@@ -69,16 +128,32 @@
                 @foreach ($tabs as $tabKey => $tabLabel)
                     <button
                         type="button"
-                        @click="activeTab = '{{ $tabKey }}'; const url = new URL(window.location); url.searchParams.set('tab', '{{ $tabKey }}'); window.history.replaceState({}, '', url);"
+                        data-tab-key="{{ $tabKey }}"
+                        @click="activeTab = '{{ $tabKey }}'; const url = new URL(window.location); url.searchParams.set('tab', '{{ $tabKey }}'); window.history.replaceState({}, '', url); scrollToActive();"
                         :class="activeTab === '{{ $tabKey }}'
-                            ? 'border-amber-500 text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10'
-                            : 'border-transparent text-text-muted hover:text-text hover:border-slate-300 dark:hover:border-white/20'"
-                        class="whitespace-nowrap border-b-2 px-4 py-3 text-xs sm:text-sm font-semibold transition-colors rounded-t-xl"
+                            ? 'border-amber-500 bg-amber-500 text-slate-950 font-bold shadow-xs'
+                            : 'border-border bg-surface text-text-muted hover:text-text hover:bg-surface-2'"
+                        class="whitespace-nowrap shrink-0 border px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all rounded-xl min-h-[42px] flex items-center justify-center"
                     >
                         {{ $tabLabel }}
                     </button>
                 @endforeach
             </nav>
+
+            {{-- Tombol Geser Kanan --}}
+            <button
+                type="button"
+                x-show="canScrollRight"
+                x-cloak
+                @click="scrollTabs(250)"
+                class="absolute right-1 z-10 flex size-9 items-center justify-center rounded-xl border border-border bg-surface text-text shadow-md hover:bg-surface-2 transition"
+                aria-label="Geser tab ke kanan"
+                title="Geser tab ke kanan"
+            >
+                <svg class="size-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+            </button>
         </div>
 
         {{-- ============================================================== --}}
@@ -1074,25 +1149,29 @@
 
                 {{-- Tarif Tiket --}}
                 <div class="rounded-2xl border border-border bg-surface p-6 shadow-token space-y-4">
-                    <h2 class="text-base font-bold text-text">Tarif Tiket Bioskop</h2>
-                    <p class="text-xs text-text-muted">Harga tiket per kursi dan paket sewa studio privat.</p>
+                    <h2 class="text-base font-bold text-text">Tarif Tiket & Paket Nonton</h2>
+                    <p class="text-xs text-text-muted">Harga tiket per orang, paket couple, dan paket sewa studio privat.</p>
 
-                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                         <div>
                             <label for="weekday_price" class="block text-xs font-bold uppercase tracking-wider text-text">Hari Biasa / Jumat (Rp)</label>
-                            <input id="weekday_price" name="weekday_price" type="number" min="500" step="500" required value="{{ old('weekday_price', $settings->weekdayPrice()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm">
+                            <input id="weekday_price" name="weekday_price" type="number" min="500" step="500" required value="{{ old('weekday_price', $settings->weekdayPrice()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border border-border bg-surface px-3 text-sm text-text">
                         </div>
                         <div>
                             <label for="weekend_price" class="block text-xs font-bold uppercase tracking-wider text-text">Sabtu – Minggu (Rp)</label>
-                            <input id="weekend_price" name="weekend_price" type="number" min="500" step="500" required value="{{ old('weekend_price', $settings->weekendPrice()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm">
+                            <input id="weekend_price" name="weekend_price" type="number" min="500" step="500" required value="{{ old('weekend_price', $settings->weekendPrice()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border border-border bg-surface px-3 text-sm text-text">
                         </div>
                         <div>
                             <label for="holiday_price" class="block text-xs font-bold uppercase tracking-wider text-text">Hari Libur Nasional (Rp)</label>
-                            <input id="holiday_price" name="holiday_price" type="number" min="500" step="500" required value="{{ old('holiday_price', $settings->holidayPrice()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm">
+                            <input id="holiday_price" name="holiday_price" type="number" min="500" step="500" required value="{{ old('holiday_price', $settings->holidayPrice()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border border-border bg-surface px-3 text-sm text-text">
+                        </div>
+                        <div>
+                            <label for="couple_price" class="block text-xs font-bold uppercase tracking-wider text-text">Paket Couple 2 Orang (Rp)</label>
+                            <input id="couple_price" name="couple_price" type="number" min="1000" step="1000" required value="{{ old('couple_price', $settings->defaultCouplePrice()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border border-border bg-surface px-3 text-sm text-text">
                         </div>
                         <div>
                             <label for="private_price" class="block text-xs font-bold uppercase tracking-wider text-text">Paket Sewa Studio Privat (Rp)</label>
-                            <input id="private_price" name="private_price" type="number" min="1000" step="1000" required value="{{ old('private_price', $settings->privatePrice()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border px-3 text-sm">
+                            <input id="private_price" name="private_price" type="number" min="1000" step="1000" required value="{{ old('private_price', $settings->privatePrice()) }}" class="mt-1.5 min-h-[44px] w-full rounded-xl border border-border bg-surface px-3 text-sm text-text">
                         </div>
                     </div>
                 </div>
@@ -1968,7 +2047,10 @@
                                     name="member_max_visits_per_day"
                                     class="w-full"
                                 >
-                                    @for ($i = 1; $i <= 4; $i++)
+                                    <option value="0" {{ old('member_max_visits_per_day', $settings->memberMaxVisitsPerDay()) == 0 ? 'selected' : '' }}>
+                                        Tidak ada batas
+                                    </option>
+                                    @for ($i = 1; $i <= 5; $i++)
                                         <option value="{{ $i }}" {{ old('member_max_visits_per_day', $settings->memberMaxVisitsPerDay()) == $i ? 'selected' : '' }}>
                                             {{ $i }} kunjungan per hari
                                         </option>

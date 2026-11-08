@@ -520,6 +520,16 @@ class CinemaSettings
         };
     }
 
+    public function defaultCouplePrice(): int
+    {
+        $override = $this->get('couple_price') ?: $this->get('couple_package_price') ?: $this->get('couple_price_weekday');
+        if (! empty($override) && is_numeric($override) && (int) $override > 0) {
+            return (int) $override;
+        }
+
+        return $this->couplePrice('weekday');
+    }
+
     public function couplePrice(?string $dayType = null): int
     {
         $isWeekend = in_array($dayType, ['weekend', 'jumat', 'libur'], true);
@@ -529,6 +539,11 @@ class CinemaSettings
 
         if (! empty($override) && is_numeric($override) && (int) $override > 0) {
             return (int) $override;
+        }
+
+        $single = $this->get('couple_price') ?: $this->get('couple_package_price');
+        if (! empty($single) && is_numeric($single) && (int) $single > 0) {
+            return (int) $single;
         }
 
         return $this->minimumViewers() * $this->ticketPriceForDayType($dayType);

@@ -121,6 +121,7 @@ class PublicInfoController extends Controller
             'weekdayPrice' => $settings->integer('weekday_price', 5000),
             'weekendPrice' => $settings->integer('weekend_price', 6000),
             'holidayPrice' => $settings->integer('holiday_price', 6000),
+            'couplePrice' => $settings->defaultCouplePrice(),
             'privatePrice' => $settings->integer('private_price', 36000),
             'adminWhatsAppUrl' => $adminWhatsApp !== '' ? 'https://wa.me/'.$adminWhatsApp : null,
         ]);

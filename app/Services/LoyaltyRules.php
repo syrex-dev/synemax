@@ -98,26 +98,28 @@ class LoyaltyRules
             ];
         }
 
-        // 2. Check daily limit
+        // 2. Check daily limit (0 means unlimited / tidak ada batas)
         $maxPerDay = $this->settings->memberMaxVisitsPerDay();
-        $todayVisits = MemberVisit::where('member_id', $member->id)
-            ->where('active', 1)
-            ->whereDate('created_at', Carbon::today())
-            ->count();
+        if ($maxPerDay > 0) {
+            $todayVisits = MemberVisit::where('member_id', $member->id)
+                ->where('active', 1)
+                ->whereDate('created_at', Carbon::today())
+                ->count();
 
-        if ($todayVisits >= $maxPerDay) {
-            return [
-                'verdict' => 'batas_harian',
-                'can_record' => false,
-                'requires_override' => false,
-                'message' => "Batas maksimal {$maxPerDay} kunjungan per hari untuk member ini telah tercapai.",
-                'member' => $member,
-                'session' => $session,
-                'next_position' => $nextPos,
-                'cycle_number' => $cycleNum,
-                'potential_reward' => $potentialReward,
-                'reward_amount' => $rewardAmount,
-            ];
+            if ($todayVisits >= $maxPerDay) {
+                return [
+                    'verdict' => 'batas_harian',
+                    'can_record' => false,
+                    'requires_override' => false,
+                    'message' => "Batas maksimal {$maxPerDay} kunjungan per hari untuk member ini telah tercapai.",
+                    'member' => $member,
+                    'session' => $session,
+                    'next_position' => $nextPos,
+                    'cycle_number' => $cycleNum,
+                    'potential_reward' => $potentialReward,
+                    'reward_amount' => $rewardAmount,
+                ];
+            }
         }
 
         if (! $session) {

@@ -202,6 +202,10 @@
                                     <span class="text-xs font-bold text-slate-700 dark:text-amber-200">Biaya sewa penuh 1 sesi:</span>
                                     <span class="font-tabular text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-400">Rp {{ number_format($privatePrice, 0, ',', '.') }}</span>
                                 </div>
+                                <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1 py-2.5 border-b border-amber-500/15 dark:border-amber-400/15">
+                                    <span class="text-xs font-bold text-slate-700 dark:text-amber-200">Paket Couple (2 orang):</span>
+                                    <span class="font-tabular text-base sm:text-lg font-black text-amber-600 dark:text-amber-400">Rp {{ number_format($couplePrice, 0, ',', '.') }}</span>
+                                </div>
                                 <ul class="mt-3.5 space-y-2 text-xs text-slate-700 dark:text-slate-300 font-medium">
                                     <li class="flex items-center gap-2.5">
                                         <span class="flex size-4 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 shrink-0">

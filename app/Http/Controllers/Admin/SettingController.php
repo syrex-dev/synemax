@@ -122,7 +122,7 @@ class SettingController extends Controller
                 $tab = 'navbar';
             } elseif ($request->has('default_theme') || $request->has('chips')) {
                 $tab = 'tampilan';
-            } elseif ($request->has('weekday_price') || $request->has('faq_question')) {
+            } elseif ($request->has('weekday_price') || $request->has('faq_question') || $request->has('couple_price')) {
                 $tab = 'harga';
             } elseif ($request->has('contact_address') || $request->has('contact_email') || $request->has('admin_whatsapp') || $request->has('cinema_phone') || $request->has('cinema_address') || $request->has('whatsapp_number')) {
                 $tab = 'kontak';
@@ -479,12 +479,16 @@ class SettingController extends Controller
             'weekday_price' => 'required|integer|between:500,1000000',
             'weekend_price' => 'required|integer|between:500,1000000',
             'holiday_price' => 'required|integer|between:500,1000000',
+            'couple_price' => 'nullable|integer|between:1000,6000000',
             'private_price' => 'required|integer|between:1000,6000000',
         ]);
 
         $settings->set('weekday_price', $validated['weekday_price'], 'harga');
         $settings->set('weekend_price', $validated['weekend_price'], 'harga');
         $settings->set('holiday_price', $validated['holiday_price'], 'harga');
+        if (isset($validated['couple_price']) && filled($validated['couple_price'])) {
+            $settings->set('couple_price', (int) $validated['couple_price'], 'harga');
+        }
         $settings->set('private_price', $validated['private_price'], 'harga');
 
         // Handle FAQs
@@ -864,7 +868,7 @@ class SettingController extends Controller
             'member_discount_visit' => ['required', 'integer', 'min:1'],
             'member_discount_amount' => ['required', 'integer', 'min:0'],
             'member_free_visit' => ['required', 'integer', 'min:2'],
-            'member_max_visits_per_day' => ['required', 'integer', 'min:1', 'max:4'],
+            'member_max_visits_per_day' => ['required', 'integer', 'min:0', 'max:20'],
         ], [
             'member_discount_visit.required' => 'Nomor kunjungan potongan wajib diisi.',
             'member_discount_amount.required' => 'Nominal potongan wajib diisi.',

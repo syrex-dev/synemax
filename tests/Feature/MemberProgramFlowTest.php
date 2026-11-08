@@ -289,6 +289,12 @@ class MemberProgramFlowTest extends TestCase
         $res3 = $loyaltyRules->recordVisit($member, $sess3, null, $this->admin->id);
         $this->assertFalse($res3['success']);
         $this->assertEquals('batas_harian', $res3['verdict']);
+
+        // When member_max_visits_per_day is 0 (tidak ada batas), visit 3 is allowed
+        Setting::updateOrCreate(['key' => 'member_max_visits_per_day'], ['value' => '0']);
+        app(CinemaSettings::class)->clearCache();
+        $res3Unlimited = $loyaltyRules->recordVisit($member, $sess3, null, $this->admin->id);
+        $this->assertTrue($res3Unlimited['success']);
     }
 
     /**

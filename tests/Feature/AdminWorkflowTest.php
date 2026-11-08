@@ -12,6 +12,7 @@ use App\Models\ScheduleTemplate;
 use App\Models\Session;
 use App\Models\SnackOrderEdit;
 use App\Models\User;
+use App\Services\CinemaSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -497,6 +498,46 @@ class AdminWorkflowTest extends TestCase
         $this->get(route('admin.reports.export', ['period' => 'bulanan', 'date' => '2026-10-14']))
             ->assertOk()
             ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+    }
+
+    public function test_admin_can_update_couple_price_and_member_unlimited_visits(): void
+    {
+        // 1. Update harga including couple_price
+        $this->put(route('admin.settings.update'), [
+            '_tab' => 'harga',
+            'weekday_price' => 5000,
+            'weekend_price' => 6000,
+            'holiday_price' => 6000,
+            'couple_price' => 20000,
+            'private_price' => 30000,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('settings', ['key' => 'couple_price', 'value' => '20000']);
+        $this->assertSame(20000, app(CinemaSettings::class)->couplePrice('weekday'));
+
+        // 2. Update member settings with 0 (tidak ada batas)
+        $this->put(route('admin.settings.update'), [
+            'active_tab' => 'member',
+            'member_program_enabled' => 1,
+            'member_discount_visit' => 5,
+            'member_discount_amount' => 2000,
+            'member_free_visit' => 10,
+            'member_max_visits_per_day' => 0,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('settings', ['key' => 'member_max_visits_per_day', 'value' => '0']);
+        $this->assertSame(0, app(CinemaSettings::class)->memberMaxVisitsPerDay());
+
+        // 3. Settings page renders couple_price and "Tidak ada batas"
+        $page = $this->get(route('admin.settings.edit', ['tab' => 'harga']));
+        $page->assertOk();
+        $page->assertSee('Paket Couple 2 Orang (Rp)');
+        $page->assertSee('id="couple_price"', false);
+
+        $memberPage = $this->get(route('admin.settings.edit', ['tab' => 'member']));
+        $memberPage->assertOk();
+        $memberPage->assertSee('Tidak ada batas');
+        $memberPage->assertSee('scrollTabs', false);
     }
 
     private function createFilm(): Film
