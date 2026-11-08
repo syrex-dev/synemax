@@ -79,6 +79,18 @@
         </div>
 
         <div class="flex items-center gap-2 shrink-0">
+            {{-- Tombol Beralih ke Scan Member --}}
+            <a
+                href="{{ route('admin.members.scan') }}"
+                class="inline-flex h-9 sm:h-10 items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-2.5 sm:px-3 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition shadow-xs"
+                title="Buka Scan Khusus Kartu Member"
+            >
+                <svg class="size-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span class="hidden sm:inline">Scan Member</span>
+            </a>
+
             {{-- Tombol Bunyi Pemindaian --}}
             <button
                 type="button"

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Member;
 use App\Models\MemberReward;
 use App\Models\MemberVisit;
+use App\Models\Session;
 use App\Services\CinemaSettings;
 use App\Services\LoyaltyRules;
 use App\Services\MemberCodeGenerator;
@@ -54,6 +55,42 @@ class MemberController extends Controller
             'stats' => $stats,
             'search' => $search,
             'selectedStatus' => $status,
+            'settings' => $settings,
+        ]);
+    }
+
+    public function scan(Request $request, CinemaSettings $settings): View
+    {
+        $todayDate = now()->toDateString();
+        $todaySessions = Session::query()
+            ->with(['film', 'occupiedBookings'])
+            ->where('session_date', $todayDate)
+            ->orderBy('start_time')
+            ->get();
+
+        $selectedSessionId = $request->query('session_id');
+        $selectedSession = null;
+
+        if ($selectedSessionId && $selectedSessionId !== 'all') {
+            $selectedSession = $todaySessions->firstWhere('id', (int) $selectedSessionId);
+        }
+
+        if (! $selectedSession && $todaySessions->isNotEmpty()) {
+            $now = now();
+            $selectedSession = $todaySessions->first(fn (Session $s) => $now->greaterThanOrEqualTo($s->startsAt()) && $now->lessThan($s->endsAt()));
+            if (! $selectedSession) {
+                $selectedSession = $todaySessions->first(fn (Session $s) => $now->lessThan($s->startsAt()));
+            }
+            if (! $selectedSession) {
+                $selectedSession = $todaySessions->last();
+            }
+        }
+
+        return view('admin.members.scan', [
+            'todaySessions' => $todaySessions,
+            'selectedSession' => $selectedSession,
+            'selectedSessionId' => $selectedSession?->id ?? 'all',
+            'soundEnabled' => $settings->checkInSoundEnabled(),
             'settings' => $settings,
         ]);
     }

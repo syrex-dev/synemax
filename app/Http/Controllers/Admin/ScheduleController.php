@@ -216,23 +216,98 @@ class ScheduleController extends Controller
         return back()->with('status', 'Penutupan berhasil dihapus. Jika perlu, buka kembali sesinya dari daftar sesi.');
     }
 
+    public function storeSession(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'session_date' => ['required', 'date_format:Y-m-d'],
+            'start_time' => ['required', 'date_format:H:i'],
+            'duration_minutes' => ['nullable', 'integer', 'between:30,360'],
+            'film_id' => ['nullable', 'integer', 'exists:films,id'],
+            'is_private' => ['nullable', 'boolean'],
+            'status' => ['required', Rule::in(['tersedia', 'ditutup'])],
+        ], [
+            'session_date.required' => 'Tanggal sesi wajib diisi.',
+            'start_time.required' => 'Jam mulai sesi wajib diisi.',
+            'start_time.date_format' => 'Format jam mulai tidak valid (HH:MM).',
+            'duration_minutes.between' => 'Durasi sesi harus antara 30 dan 360 menit.',
+        ]);
+
+        $date = $validated['session_date'];
+        $startTime = $validated['start_time'].':00';
+        $duration = (int) ($validated['duration_minutes'] ?? 150);
+        $endTime = Carbon::parse($startTime)->addMinutes($duration)->format('H:i:s');
+
+        $conflict = Session::query()
+            ->where('session_date', $date)
+            ->where(function ($q) use ($startTime, $validated) {
+                $q->where('start_time', $startTime)
+                    ->orWhere('start_time', $validated['start_time']);
+            })
+            ->exists();
+
+        if ($conflict) {
+            throw ValidationException::withMessages([
+                'start_time' => "Sudah ada sesi pada jam {$validated['start_time']} WIB di tanggal tersebut.",
+            ]);
+        }
+
+        Session::create([
+            'session_date' => $date,
+            'start_time' => $startTime,
+            'end_time' => $endTime,
+            'film_id' => $validated['film_id'] ?? null,
+            'is_private' => $request->boolean('is_private'),
+            'status' => $validated['status'],
+        ]);
+
+        $jamFormat = $validated['start_time'];
+        $tglFormat = Carbon::parse($date)->locale('id')->translatedFormat('j M Y');
+
+        return back()->with('status', "Sesi baru jam {$jamFormat} WIB ({$tglFormat}) berhasil ditambahkan.");
+    }
+
+    public function destroySession(Session $session): RedirectResponse
+    {
+        $activeBookingsCount = $session->occupiedBookings()->count();
+        if ($activeBookingsCount > 0) {
+            return back()->with('error', 'Sesi jam '.substr((string) $session->start_time, 0, 5)." tidak dapat dihapus karena memiliki {$activeBookingsCount} pemesanan aktif. Batalkan sesi atau pindahkan pemesan ke sesi lain terlebih dahulu.");
+        }
+
+        if ($session->memberVisits()->where('active', 1)->exists()) {
+            return back()->with('error', 'Sesi ini tidak dapat dihapus karena sudah memiliki data kunjungan member yang tercatat.');
+        }
+
+        $jamFormatted = substr((string) $session->start_time, 0, 5);
+        $dateFormatted = Carbon::parse($session->session_date)->locale('id')->translatedFormat('j M Y');
+
+        $session->delete();
+
+        return back()->with('status', "Sesi jam {$jamFormatted} WIB ({$dateFormatted}) berhasil dihapus.");
+    }
+
     public function updateSession(Request $request, Session $session): JsonResponse|RedirectResponse
     {
         $data = $request->validate([
             'film_id' => ['nullable', 'integer', 'exists:films,id'],
             'status' => ['required', Rule::in(['tersedia', 'ditutup'])],
             'start_time' => ['nullable', 'date_format:H:i'],
+            'duration_minutes' => ['nullable', 'integer', 'between:30,360'],
+            'is_private' => ['nullable', 'boolean'],
             'confirm_reschedule' => ['nullable', 'boolean'],
         ]);
 
-        $newStartTime = $data['start_time'] ?? null;
+        $newStartTime = ! empty($data['start_time']) ? $data['start_time'] : null;
         $currentStartTime = substr((string) $session->start_time, 0, 5);
         $isChangingTime = $newStartTime !== null && $newStartTime !== $currentStartTime;
+        $newStartTimeFormatted = $newStartTime ? (strlen($newStartTime) === 5 ? $newStartTime.':00' : $newStartTime) : null;
 
         if ($isChangingTime) {
             $conflict = Session::query()
                 ->where('session_date', $session->session_date)
-                ->where('start_time', $newStartTime)
+                ->where(function ($q) use ($newStartTime, $newStartTimeFormatted) {
+                    $q->where('start_time', $newStartTime)
+                        ->orWhere('start_time', $newStartTimeFormatted);
+                })
                 ->where('id', '!=', $session->id)
                 ->exists();
 
@@ -275,16 +350,18 @@ class ScheduleController extends Controller
             }
         }
 
-        DB::transaction(function () use ($session, $data, $isChangingTime, $newStartTime): void {
+        DB::transaction(function () use ($session, $data, $isChangingTime, $newStartTime, $newStartTimeFormatted, $request): void {
             $lockedSession = Session::query()->lockForUpdate()->findOrFail($session->id);
 
-            if ($data['film_id'] !== null && ! Film::query()->where('is_active', true)->find($data['film_id'])) {
+            $filmId = array_key_exists('film_id', $data) ? $data['film_id'] : $lockedSession->film_id;
+
+            if ($filmId !== null && ! Film::query()->where('is_active', true)->find($filmId)) {
                 throw ValidationException::withMessages(['film_id' => 'Pilih film yang masih aktif.']);
             }
 
             if ($data['status'] === 'tersedia') {
                 $date = CarbonImmutable::parse($lockedSession->session_date, config('app.timezone'));
-                $checkSlot = $isChangingTime ? $newStartTime : substr((string) $lockedSession->start_time, 0, 5);
+                $checkSlot = $isChangingTime ? substr($newStartTime, 0, 5) : substr((string) $lockedSession->start_time, 0, 5);
 
                 if (
                     app(ScheduleResolver::class)->dayTypeFor($date) === null
@@ -297,14 +374,23 @@ class ScheduleController extends Controller
             }
 
             $updatePayload = [
-                'film_id' => $data['film_id'],
+                'film_id' => $filmId,
                 'status' => $data['status'],
             ];
 
+            if ($request->has('is_private')) {
+                $updatePayload['is_private'] = $request->boolean('is_private');
+            }
+
             if ($isChangingTime) {
+                $duration = (int) ($data['duration_minutes'] ?? 150);
                 $startCarbon = Carbon::parse($newStartTime);
-                $updatePayload['start_time'] = $newStartTime;
-                $updatePayload['end_time'] = $startCarbon->addMinutes(150)->format('H:i:s');
+                $updatePayload['start_time'] = $newStartTimeFormatted;
+                $updatePayload['end_time'] = $startCarbon->addMinutes($duration)->format('H:i:s');
+            } elseif ($request->filled('duration_minutes')) {
+                $duration = (int) $data['duration_minutes'];
+                $startCarbon = Carbon::parse($lockedSession->start_time);
+                $updatePayload['end_time'] = $startCarbon->addMinutes($duration)->format('H:i:s');
             }
 
             $lockedSession->update($updatePayload);

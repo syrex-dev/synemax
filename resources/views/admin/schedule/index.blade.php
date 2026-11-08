@@ -28,6 +28,59 @@
     <section class="mt-8" x-data="{
         showMoreDays: false,
         openSessionId: null,
+
+        // Modal Tambah Sesi
+        addModalOpen: false,
+        addSessionDate: '',
+        addSessionDateHeading: '',
+        addStartTime: '19:00',
+        addDurationMinutes: 150,
+        addFilmId: '',
+        addIsPrivate: false,
+        addStatus: 'tersedia',
+
+        openAddSessionModal(dateStr, heading) {
+            this.addSessionDate = dateStr;
+            this.addSessionDateHeading = heading;
+            this.addStartTime = '19:00';
+            this.addDurationMinutes = 150;
+            this.addFilmId = '';
+            this.addIsPrivate = false;
+            this.addStatus = 'tersedia';
+            this.addModalOpen = true;
+        },
+
+        // Modal Edit Sesi
+        editModalOpen: false,
+        editSessionId: null,
+        editSessionActionUrl: '',
+        editSessionDate: '',
+        editSessionDateHeading: '',
+        editStartTime: '',
+        editOriginalStartTime: '',
+        editDurationMinutes: 150,
+        editFilmId: '',
+        editIsPrivate: false,
+        editStatus: 'tersedia',
+        editBookingsCount: 0,
+        editConfirmReschedule: false,
+
+        openEditSessionModal(data) {
+            this.editSessionId = data.id;
+            this.editSessionActionUrl = `/admin/jadwal/sesi/${data.id}`;
+            this.editSessionDate = data.session_date;
+            this.editSessionDateHeading = data.date_heading;
+            this.editStartTime = data.start_time;
+            this.editOriginalStartTime = data.start_time;
+            this.editDurationMinutes = data.duration_minutes || 150;
+            this.editFilmId = data.film_id ? String(data.film_id) : '';
+            this.editIsPrivate = Boolean(data.is_private);
+            this.editStatus = data.status || 'tersedia';
+            this.editBookingsCount = data.bookings_count || 0;
+            this.editConfirmReschedule = false;
+            this.editModalOpen = true;
+        },
+
         toggleSession(sessionId, event) {
             event.stopPropagation();
             const checkbox = event.target;
@@ -132,8 +185,22 @@
                                 </span>
                             </div>
 
-                            {{-- Menu Titik Tiga per Hari --}}
-                            <div class="relative" x-data="{ openDayMenu: false }">
+                            <div class="flex items-center gap-2">
+                                {{-- Tombol Tambah Sesi --}}
+                                <button
+                                    type="button"
+                                    @click="openAddSessionModal('{{ $dateString }}', '{{ $dayHeading }}')"
+                                    class="inline-flex min-h-[34px] items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 text-xs font-semibold text-text hover:bg-surface-2 hover:border-accent transition shadow-2xs"
+                                    title="Tambah Sesi Baru pada tanggal ini"
+                                >
+                                    <svg class="size-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                                    </svg>
+                                    <span class="hidden sm:inline">Tambah Sesi</span>
+                                </button>
+
+                                {{-- Menu Titik Tiga per Hari --}}
+                                <div class="relative" x-data="{ openDayMenu: false }">
                                 <button type="button" 
                                         @click="openDayMenu = !openDayMenu" 
                                         class="flex size-10 items-center justify-center rounded-lg text-text-muted hover:text-text hover:bg-surface transition-colors"
@@ -180,6 +247,7 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
 
                         {{-- Daftar Sesi (Satu Baris per Sesi) --}}
                         {{-- Daftar Sesi (Satu Baris per Sesi) --}}
@@ -291,8 +359,8 @@
                                             @endif
                                         </div>
 
-                                        {{-- Switch Buka/Ditutup --}}
-                                        <div class="flex items-center gap-3 shrink-0" @click.stop>
+                                        {{-- Switch Buka/Ditutup, Edit, Hapus, Expand --}}
+                                        <div class="flex items-center gap-2 shrink-0" @click.stop>
                                             @if ($isCompleted)
                                                 <label class="flex min-h-[44px] min-w-[44px] cursor-not-allowed items-center gap-2 pr-1 opacity-50" title="Sesi telah selesai">
                                                     <input type="checkbox" disabled class="peer sr-only">
@@ -314,9 +382,71 @@
                                                 </label>
                                             @endif
 
+                                            {{-- Tombol Edit Sesi --}}
+                                            <button
+                                                type="button"
+                                                @click="openEditSessionModal({
+                                                    id: {{ $session->id }},
+                                                    session_date: '{{ $session->session_date }}',
+                                                    date_heading: '{{ $dayHeading }}',
+                                                    start_time: '{{ substr((string) $session->start_time, 0, 5) }}',
+                                                    duration_minutes: {{ (int) (\Carbon\Carbon::parse($session->start_time)->diffInMinutes(\Carbon\Carbon::parse($session->end_time)) ?: 150) }},
+                                                    film_id: {{ $session->film_id ? $session->film_id : 'null' }},
+                                                    is_private: {{ $session->is_private ? 'true' : 'false' }},
+                                                    status: '{{ $session->status }}',
+                                                    bookings_count: {{ $session->occupiedBookings->count() }}
+                                                })"
+                                                class="flex size-9 items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:text-text hover:bg-surface-2 transition"
+                                                title="Edit sesi jam {{ $startTimeId }}"
+                                                aria-label="Edit sesi jam {{ $startTimeId }}"
+                                            >
+                                                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                                                </svg>
+                                            </button>
+
+                                            {{-- Tombol Hapus Sesi --}}
+                                            @if ($session->occupiedBookings->count() === 0)
+                                                <form
+                                                    method="POST"
+                                                    action="{{ route('admin.schedule.sessions.destroy', $session) }}"
+                                                    data-confirm="Yakin ingin menghapus sesi jam {{ $startTimeId }} WIB tanggal {{ $dayCarbon->translatedFormat('j M Y') }} secara permanen?"
+                                                    data-confirm-title="Hapus Sesi"
+                                                    data-confirm-action="Hapus Sesi"
+                                                    data-confirm-is-danger="true"
+                                                    novalidate
+                                                    class="inline"
+                                                >
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button
+                                                        type="submit"
+                                                        class="flex size-9 items-center justify-center rounded-lg border border-danger/30 text-danger hover:bg-danger/10 transition"
+                                                        title="Hapus sesi jam {{ $startTimeId }}"
+                                                        aria-label="Hapus sesi jam {{ $startTimeId }}"
+                                                    >
+                                                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <button
+                                                    type="button"
+                                                    @click="window.showToast({ type: 'warning', message: 'Sesi jam {{ $startTimeId }} memiliki {{ $session->occupiedBookings->count() }} pemesanan aktif. Batalkan sesi atau pindahkan pemesan terlebih dahulu sebelum menghapus.' })"
+                                                    class="flex size-9 items-center justify-center rounded-lg border border-border/40 text-text-muted/40 hover:text-text-muted transition cursor-not-allowed"
+                                                    title="Sesi memiliki {{ $session->occupiedBookings->count() }} pemesanan aktif (tidak dapat dihapus langsung)"
+                                                    aria-label="Sesi memiliki {{ $session->occupiedBookings->count() }} pemesanan aktif"
+                                                >
+                                                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                                    </svg>
+                                                </button>
+                                            @endif
+
                                             {{-- Indikator Expand Detail --}}
                                             <button type="button" 
-                                                    class="flex size-8 items-center justify-center rounded-lg text-text-muted hover:text-text hover:bg-surface-2 transition-transform"
+                                                    class="flex size-9 items-center justify-center rounded-lg text-text-muted hover:text-text hover:bg-surface-2 transition-transform"
                                                     :class="{ 'rotate-180': openSessionId === {{ $session->id }} }"
                                                     aria-label="Detail pemesan sesi">
                                                 <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
@@ -344,12 +474,57 @@
                                                 @endif
                                             </div>
 
-                                            <div class="flex items-center shrink-0" @click.stop>
+                                            <div class="flex items-center gap-1.5 shrink-0" @click.stop>
+                                                {{-- Tombol Edit Sesi Mobile --}}
+                                                <button
+                                                    type="button"
+                                                    @click="openEditSessionModal({
+                                                        id: {{ $session->id }},
+                                                        session_date: '{{ $session->session_date }}',
+                                                        date_heading: '{{ $dayHeading }}',
+                                                        start_time: '{{ substr((string) $session->start_time, 0, 5) }}',
+                                                        duration_minutes: {{ (int) (\Carbon\Carbon::parse($session->start_time)->diffInMinutes(\Carbon\Carbon::parse($session->end_time)) ?: 150) }},
+                                                        film_id: {{ $session->film_id ? $session->film_id : 'null' }},
+                                                        is_private: {{ $session->is_private ? 'true' : 'false' }},
+                                                        status: '{{ $session->status }}',
+                                                        bookings_count: {{ $session->occupiedBookings->count() }}
+                                                    })"
+                                                    class="flex size-8 items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:text-text"
+                                                    title="Edit sesi"
+                                                >
+                                                    <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                                                    </svg>
+                                                </button>
+
+                                                {{-- Tombol Hapus Sesi Mobile --}}
+                                                @if ($session->occupiedBookings->count() === 0)
+                                                    <form
+                                                        method="POST"
+                                                        action="{{ route('admin.schedule.sessions.destroy', $session) }}"
+                                                        data-confirm="Yakin ingin menghapus sesi jam {{ $startTimeId }} WIB tanggal {{ $dayCarbon->translatedFormat('j M Y') }} secara permanen?"
+                                                        data-confirm-title="Hapus Sesi"
+                                                        data-confirm-action="Hapus Sesi"
+                                                        data-confirm-is-danger="true"
+                                                        novalidate
+                                                        class="inline"
+                                                    >
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button
+                                                            type="submit"
+                                                            class="flex size-8 items-center justify-center rounded-lg border border-danger/30 text-danger hover:bg-danger/10"
+                                                            title="Hapus sesi"
+                                                        >
+                                                            <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                                            </svg>
+                                                        </button>
+                                                    </form>
+                                                @endif
+
                                                 @if (!$isCompleted)
-                                                    <label class="flex min-h-[44px] min-w-[44px] cursor-pointer items-center gap-2 justify-end">
-                                                        <span class="text-xs font-bold text-text-muted peer-checked:text-success">
-                                                            {{ $isClosed ? 'Tutup' : 'Buka' }}
-                                                        </span>
+                                                    <label class="flex min-h-[44px] min-w-[44px] cursor-pointer items-center gap-1.5 justify-end">
                                                         <input type="checkbox" 
                                                                @checked(!$isClosed)
                                                                @change="toggleSession({{ $session->id }}, $event)"
@@ -381,9 +556,55 @@
                                          x-cloak 
                                          class="border-t border-border bg-surface-2/70 px-4 py-4 text-xs space-y-4 cursor-default"
                                          @click.stop>
-                                        <div class="flex items-center justify-between font-bold text-text border-b border-border pb-2">
-                                            <span class="text-sm">Detail Sesi: {{ $startTimeId }} · {{ $dayCarbon->translatedFormat('D, j M Y') }}</span>
-                                            <span class="text-text-muted font-normal">{{ $session->occupiedBookings->count() }} Booking Aktif</span>
+                                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
+                                            <span class="text-sm font-bold text-text">Detail Sesi: {{ $startTimeId }} · {{ $dayCarbon->translatedFormat('D, j M Y') }}</span>
+                                            <div class="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    @click="openEditSessionModal({
+                                                        id: {{ $session->id }},
+                                                        session_date: '{{ $session->session_date }}',
+                                                        date_heading: '{{ $dayHeading }}',
+                                                        start_time: '{{ substr((string) $session->start_time, 0, 5) }}',
+                                                        duration_minutes: {{ (int) (\Carbon\Carbon::parse($session->start_time)->diffInMinutes(\Carbon\Carbon::parse($session->end_time)) ?: 150) }},
+                                                        film_id: {{ $session->film_id ? $session->film_id : 'null' }},
+                                                        is_private: {{ $session->is_private ? 'true' : 'false' }},
+                                                        status: '{{ $session->status }}',
+                                                        bookings_count: {{ $session->occupiedBookings->count() }}
+                                                    })"
+                                                    class="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 text-xs font-semibold text-text hover:bg-surface-2 transition"
+                                                >
+                                                    <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                                                    </svg>
+                                                    <span>Edit Sesi</span>
+                                                </button>
+                                                @if ($session->occupiedBookings->count() === 0)
+                                                    <form
+                                                        method="POST"
+                                                        action="{{ route('admin.schedule.sessions.destroy', $session) }}"
+                                                        data-confirm="Yakin ingin menghapus sesi jam {{ $startTimeId }} WIB tanggal {{ $dayCarbon->translatedFormat('j M Y') }} secara permanen?"
+                                                        data-confirm-title="Hapus Sesi"
+                                                        data-confirm-action="Hapus Sesi"
+                                                        data-confirm-is-danger="true"
+                                                        novalidate
+                                                        class="inline"
+                                                    >
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button
+                                                            type="submit"
+                                                            class="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border border-danger/30 bg-surface px-2.5 text-xs font-semibold text-danger hover:bg-danger/10 transition"
+                                                        >
+                                                            <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                                            </svg>
+                                                            <span>Hapus Sesi</span>
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                                <span class="text-text-muted font-normal">({{ $session->occupiedBookings->count() }} Booking Aktif)</span>
+                                            </div>
                                         </div>
 
                                         {{-- 1. PEMINAT PER FILM --}}
@@ -601,6 +822,331 @@
                 </div>
             @endif
         @endif
+
+        {{-- MODAL 1: TAMBAH SESI BARU --}}
+        <div
+            x-show="addModalOpen"
+            x-cloak
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-session-modal-title"
+        >
+            <div
+                x-show="addModalOpen"
+                x-transition:enter="ease-out duration-200"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="ease-in duration-150"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                @click="addModalOpen = false"
+                class="fixed inset-0 bg-black/80"
+            ></div>
+
+            <div
+                x-show="addModalOpen"
+                x-transition:enter="ease-out duration-200"
+                x-transition:enter-start="opacity-0 scale-95"
+                x-transition:enter-end="opacity-100 scale-100"
+                x-transition:leave="ease-in duration-150"
+                x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-95"
+                @click.stop
+                class="relative w-full max-w-lg rounded-3xl border border-border bg-surface p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto"
+            >
+                <div class="flex items-start justify-between gap-3 border-b border-border pb-3">
+                    <div>
+                        <h3 id="add-session-modal-title" class="text-lg font-black text-text">Tambah Sesi Baru</h3>
+                        <p class="text-xs text-text-muted mt-0.5" x-text="addSessionDateHeading"></p>
+                    </div>
+                    <button
+                        type="button"
+                        @click="addModalOpen = false"
+                        class="rounded-lg p-1 text-text-muted hover:text-text hover:bg-surface-2 transition"
+                        aria-label="Tutup modal"
+                    >
+                        <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <form method="POST" action="{{ route('admin.schedule.sessions.store') }}" class="space-y-4" novalidate>
+                    @csrf
+                    <input type="hidden" name="session_date" :value="addSessionDate">
+
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-xs font-bold text-text mb-1.5">Jam Mulai (24 Jam) <span class="text-danger">*</span></label>
+                            <input
+                                type="time"
+                                name="start_time"
+                                x-model="addStartTime"
+                                required
+                                class="min-h-11 w-full rounded-xl border border-border bg-bg px-3 text-sm text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
+                            >
+                            <p class="mt-1 text-[11px] text-text-muted">Contoh: 13:00, 16:30, 19:00.</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-text mb-1.5">Durasi Sesi</label>
+                            <div class="flex min-h-11 items-center rounded-xl border border-border bg-bg px-3 focus-within:border-amber-500 focus-within:ring-1 focus-within:ring-amber-500/30">
+                                <input
+                                    type="number"
+                                    name="duration_minutes"
+                                    min="30"
+                                    max="360"
+                                    x-model.number="addDurationMinutes"
+                                    required
+                                    class="min-h-9 w-full border-0 bg-transparent p-0 text-sm text-text focus:ring-0"
+                                >
+                                <span class="text-xs text-text-muted shrink-0 ml-1">menit</span>
+                            </div>
+                            <p class="mt-1 text-[11px] text-text-muted" x-text="'= ' + Math.floor(addDurationMinutes / 60) + ' jam ' + (addDurationMinutes % 60 ? (addDurationMinutes % 60) + ' menit' : '')"></p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-text mb-1.5">Kunci Film Tertentu (Opsional)</label>
+                        <select
+                            name="film_id"
+                            x-model="addFilmId"
+                            class="min-h-11 w-full rounded-xl border border-border bg-bg px-3 text-xs font-semibold text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
+                        >
+                            <option value="">Belum ditentukan (Biarkan penonton memilih)</option>
+                            @foreach ($films as $f)
+                                <option value="{{ $f->id }}">{{ $f->title }}</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-[11px] text-text-muted">Bila dikosongkan, penonton pertama dapat menentukan film sesi.</p>
+                    </div>
+
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-xs font-bold text-text mb-1.5">Status Awal</label>
+                            <select
+                                name="status"
+                                x-model="addStatus"
+                                class="min-h-11 w-full rounded-xl border border-border bg-bg px-3 text-xs font-semibold text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
+                            >
+                                <option value="tersedia">Tersedia (Buka Reservasi)</option>
+                                <option value="ditutup">Ditutup Sementara</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center pt-6">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    name="is_private"
+                                    value="1"
+                                    x-model="addIsPrivate"
+                                    class="rounded border-border text-amber-500 focus:ring-amber-500"
+                                >
+                                <span class="text-xs font-bold text-text">Sesi Privat (Sewa studio)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-border">
+                        <button
+                            type="button"
+                            @click="addModalOpen = false"
+                            class="min-h-11 rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:bg-surface-2 transition"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="submit"
+                            class="min-h-11 rounded-xl bg-accent px-5 text-xs font-black text-accent-contrast hover:bg-accent-hover transition shadow-sm"
+                        >
+                            Simpan Sesi Baru
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {{-- MODAL 2: EDIT SESI --}}
+        <div
+            x-show="editModalOpen"
+            x-cloak
+            class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-session-modal-title"
+        >
+            <div
+                x-show="editModalOpen"
+                x-transition:enter="ease-out duration-200"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="ease-in duration-150"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                @click="editModalOpen = false"
+                class="fixed inset-0 bg-black/80"
+            ></div>
+
+            <div
+                x-show="editModalOpen"
+                x-transition:enter="ease-out duration-200"
+                x-transition:enter-start="opacity-0 scale-95"
+                x-transition:enter-end="opacity-100 scale-100"
+                x-transition:leave="ease-in duration-150"
+                x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-95"
+                @click.stop
+                class="relative w-full max-w-lg rounded-3xl border border-border bg-surface p-6 shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto"
+            >
+                <div class="flex items-start justify-between gap-3 border-b border-border pb-3">
+                    <div>
+                        <h3 id="edit-session-modal-title" class="text-lg font-black text-text">Edit Sesi</h3>
+                        <p class="text-xs text-text-muted mt-0.5" x-text="editSessionDateHeading + ' · Jam ' + editOriginalStartTime + ' WIB'"></p>
+                    </div>
+                    <button
+                        type="button"
+                        @click="editModalOpen = false"
+                        class="rounded-lg p-1 text-text-muted hover:text-text hover:bg-surface-2 transition"
+                        aria-label="Tutup modal"
+                    >
+                        <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <form :action="editSessionActionUrl" method="POST" class="space-y-4" novalidate>
+                    @csrf
+                    @method('PATCH')
+
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-xs font-bold text-text mb-1.5">Jam Mulai (24 Jam) <span class="text-danger">*</span></label>
+                            <input
+                                type="time"
+                                name="start_time"
+                                x-model="editStartTime"
+                                required
+                                class="min-h-11 w-full rounded-xl border border-border bg-bg px-3 text-sm text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
+                            >
+                            <p class="mt-1 text-[11px] text-text-muted" x-show="editStartTime !== editOriginalStartTime">
+                                Berubah dari jam awal <strong x-text="editOriginalStartTime"></strong> WIB.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-text mb-1.5">Durasi Sesi</label>
+                            <div class="flex min-h-11 items-center rounded-xl border border-border bg-bg px-3 focus-within:border-amber-500 focus-within:ring-1 focus-within:ring-amber-500/30">
+                                <input
+                                    type="number"
+                                    name="duration_minutes"
+                                    min="30"
+                                    max="360"
+                                    x-model.number="editDurationMinutes"
+                                    required
+                                    class="min-h-9 w-full border-0 bg-transparent p-0 text-sm text-text focus:ring-0"
+                                >
+                                <span class="text-xs text-text-muted shrink-0 ml-1">menit</span>
+                            </div>
+                            <p class="mt-1 text-[11px] text-text-muted" x-text="'= ' + Math.floor(editDurationMinutes / 60) + ' jam ' + (editDurationMinutes % 60 ? (editDurationMinutes % 60) + ' menit' : '')"></p>
+                        </div>
+                    </div>
+
+                    {{-- Warning jika jam digeser pada sesi yang memiliki pemesan aktif --}}
+                    <div
+                        x-show="editStartTime !== editOriginalStartTime && editBookingsCount > 0"
+                        x-cloak
+                        class="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 space-y-2.5"
+                    >
+                        <div class="flex items-start gap-2.5">
+                            <svg class="size-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <div class="space-y-1">
+                                <p class="text-xs font-bold text-text">
+                                    Konfirmasi Penggeseran Jam Sesi: Sesi memiliki <span x-text="editBookingsCount" class="font-extrabold text-amber-500"></span> pemesanan aktif!
+                                </p>
+                                <p class="text-[11px] text-text-muted leading-relaxed">
+                                    Mengubah jam mulai sesi akan langsung mengubah jadwal pada tiket pemesan. Beri tahu pemesan via WhatsApp setelah perubahan disimpan.
+                                </p>
+                                <label class="flex items-center gap-2 pt-1.5 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        name="confirm_reschedule"
+                                        value="1"
+                                        x-model="editConfirmReschedule"
+                                        class="rounded border-border text-amber-500 focus:ring-amber-500"
+                                    >
+                                    <span class="text-xs font-bold text-amber-600 dark:text-amber-400">
+                                        Saya menyetujui penggeseran jam sesi & siap memberi tahu pemesan
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-text mb-1.5">Film Sesi (Kunci / Biarkan Penonton Memilih)</label>
+                        <select
+                            name="film_id"
+                            x-model="editFilmId"
+                            class="min-h-11 w-full rounded-xl border border-border bg-bg px-3 text-xs font-semibold text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
+                        >
+                            <option value="">Belum ditentukan (Biarkan penonton memilih)</option>
+                            @foreach ($films as $f)
+                                <option value="{{ $f->id }}">{{ $f->title }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <label class="block text-xs font-bold text-text mb-1.5">Status Sesi</label>
+                            <select
+                                name="status"
+                                x-model="editStatus"
+                                class="min-h-11 w-full rounded-xl border border-border bg-bg px-3 text-xs font-semibold text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
+                            >
+                                <option value="tersedia">Tersedia (Buka Reservasi)</option>
+                                <option value="ditutup">Ditutup Sementara</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center pt-6">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    name="is_private"
+                                    value="1"
+                                    x-model="editIsPrivate"
+                                    class="rounded border-border text-amber-500 focus:ring-amber-500"
+                                >
+                                <span class="text-xs font-bold text-text">Sesi Privat (Sewa studio)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-border">
+                        <button
+                            type="button"
+                            @click="editModalOpen = false"
+                            class="min-h-11 rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:bg-surface-2 transition"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="editStartTime !== editOriginalStartTime && editBookingsCount > 0 && !editConfirmReschedule"
+                            class="min-h-11 rounded-xl bg-accent px-5 text-xs font-black text-accent-contrast hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+                        >
+                            Simpan Perubahan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </section>
 
     {{-- Template Jam Sesi --}}

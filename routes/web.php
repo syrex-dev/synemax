@@ -184,7 +184,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/jadwal/libur', [ScheduleController::class, 'storeHoliday'])->name('schedule.holidays.store');
     Route::delete('/jadwal/libur/{holiday}', [ScheduleController::class, 'destroyHoliday'])->name('schedule.holidays.destroy');
     Route::post('/jadwal/tutup', [ScheduleController::class, 'storeBlockedDate'])->name('schedule.blocked.store');
+    Route::post('/jadwal/sesi', [ScheduleController::class, 'storeSession'])->name('schedule.sessions.store');
     Route::patch('/jadwal/sesi/{session}', [ScheduleController::class, 'updateSession'])->name('schedule.sessions.update');
+    Route::delete('/jadwal/sesi/{session}', [ScheduleController::class, 'destroySession'])->name('schedule.sessions.destroy');
     Route::patch('/jadwal/sesi/{session}/toggle', [ScheduleController::class, 'toggleSessionStatus'])->name('schedule.sessions.toggle');
     Route::post('/jadwal/sesi/{session}/selesaikan', [ScheduleController::class, 'resolveSession'])->name('schedule.sessions.resolve');
     Route::post('/jadwal/hari/toggle', [ScheduleController::class, 'toggleDaySessions'])->name('schedule.day.toggle');
@@ -283,6 +285,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
     // Program Member & Loyalitas
     Route::get('/members', [MemberController::class, 'index'])->name('members.index');
+    Route::get('/members/scan', [MemberController::class, 'scan'])->name('members.scan');
     Route::get('/members/create', [MemberController::class, 'create'])->name('members.create');
     Route::post('/members', [MemberController::class, 'store'])->name('members.store');
     Route::get('/members/kartu', [MemberController::class, 'printBatch'])->name('members.print_batch');
@@ -308,6 +311,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
 
 // Alias /scan dan /members mengarah ke panel admin
 Route::get('/scan', fn () => redirect()->route('admin.scan.index'))->middleware('auth');
+Route::get('/scan-member', fn () => redirect()->route('admin.members.scan'))->middleware('auth');
 Route::get('/members', fn () => redirect()->route('admin.members.index'))->middleware('auth');
 
 require __DIR__.'/auth.php';

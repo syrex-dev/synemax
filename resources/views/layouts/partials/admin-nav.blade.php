@@ -26,6 +26,17 @@
             </a>
 
             <a
+                href="{{ route('admin.members.scan') }}"
+                @if (request()->routeIs('admin.members.scan')) aria-current="page" @endif
+                class="flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors {{ request()->routeIs('admin.members.scan') ? 'bg-[#FEF3C7] text-[#78350F] font-bold border-l-4 border-[#F59E0B] rounded-r-xl rounded-l-none pl-2.5 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 dark:rounded-xl dark:pl-3' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}"
+            >
+                <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span>Scan member</span>
+            </a>
+
+            <a
                 href="{{ route('admin.bookings.index') }}"
                 @if (request()->routeIs('admin.bookings.*')) aria-current="page" @endif
                 class="flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors {{ request()->routeIs('admin.bookings.*') ? 'bg-[#FEF3C7] text-[#78350F] font-bold border-l-4 border-[#F59E0B] rounded-r-xl rounded-l-none pl-2.5 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 dark:rounded-xl dark:pl-3' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}"
@@ -38,8 +49,8 @@
 
             <a
                 href="{{ route('admin.members.index') }}"
-                @if (request()->routeIs('admin.members.*')) aria-current="page" @endif
-                class="flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors {{ request()->routeIs('admin.members.*') ? 'bg-[#FEF3C7] text-[#78350F] font-bold border-l-4 border-[#F59E0B] rounded-r-xl rounded-l-none pl-2.5 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 dark:rounded-xl dark:pl-3' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}"
+                @if (request()->routeIs('admin.members.*') && ! request()->routeIs('admin.members.scan')) aria-current="page" @endif
+                class="flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors {{ (request()->routeIs('admin.members.*') && ! request()->routeIs('admin.members.scan')) ? 'bg-[#FEF3C7] text-[#78350F] font-bold border-l-4 border-[#F59E0B] rounded-r-xl rounded-l-none pl-2.5 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 dark:rounded-xl dark:pl-3' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}"
             >
                 <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
