@@ -29,7 +29,7 @@ class FilmCatalogQuery
      * @param  array{genre?: ?string, tahun?: ?string|int, cari?: ?string, q?: ?string}  $filters
      * @return LengthAwarePaginator<Film>
      */
-    public function paginateCatalog(array $filters = [], int $perPage = 24): LengthAwarePaginator
+    public function paginateCatalog(array $filters = [], int $perPage = 30): LengthAwarePaginator
     {
         $query = $this->baseQuery();
 
@@ -44,8 +44,10 @@ class FilmCatalogQuery
 
             if ($genreModel) {
                 $familyIds = $genreModel->getFamilyIds();
-                $query->whereHas('genres', function ($q) use ($familyIds) {
-                    $q->whereIn('genres.id', $familyIds);
+                $query->where(function ($sub) use ($familyIds, $genreInput) {
+                    $sub->whereHas('genres', function ($q) use ($familyIds) {
+                        $q->whereIn('genres.id', $familyIds);
+                    })->orWhere('genre', 'like', '%'.$genreInput.'%');
                 });
             } else {
                 // Fallback text matching on denormalized string
@@ -80,7 +82,22 @@ class FilmCatalogQuery
             : $film->genres()->orderByPivot('position')->get();
 
         if ($filmGenres->isEmpty()) {
-            return new Collection;
+            $rawGenres = array_filter(array_map('trim', explode(',', (string) $film->genre)));
+            if (empty($rawGenres)) {
+                return new Collection;
+            }
+
+            return Film::query()
+                ->where('is_active', true)
+                ->where('id', '!=', $film->id)
+                ->where(function ($q) use ($rawGenres) {
+                    foreach ($rawGenres as $g) {
+                        $q->orWhere('genre', 'like', '%'.$g.'%');
+                    }
+                })
+                ->applyCustomSort()
+                ->take($limit)
+                ->get();
         }
 
         $primaryGenre = $filmGenres->first();

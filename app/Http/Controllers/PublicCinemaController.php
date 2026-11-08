@@ -130,7 +130,7 @@ class PublicCinemaController extends Controller
             'genre' => $genre,
             'tahun' => $tahun,
             'cari' => $search,
-        ], 24);
+        ], 30);
 
         $rootGenres = Genre::whereNull('parent_id')
             ->where('is_active', true)
