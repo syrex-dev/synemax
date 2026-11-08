@@ -101,6 +101,9 @@ class FilmController extends Controller
         }
 
         $film = Film::query()->create($data);
+        $orderedGenres = array_filter(array_map('trim', explode(',', (string) $data['genre'])));
+        $film->syncOrderedGenres($orderedGenres);
+        FilmBulkImporter::clearCatalogCaches();
 
         return redirect()->route('admin.films.index')
             ->with('status', 'Film "'.$film->title.'" berhasil ditambahkan.')
@@ -136,6 +139,10 @@ class FilmController extends Controller
         } else {
             $film->update($data);
         }
+
+        $orderedGenres = array_filter(array_map('trim', explode(',', (string) $data['genre'])));
+        $film->syncOrderedGenres($orderedGenres);
+        FilmBulkImporter::clearCatalogCaches();
 
         if ($oldPoster !== null) {
             Storage::disk('public')->delete($oldPoster);

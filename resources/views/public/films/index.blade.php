@@ -122,7 +122,7 @@
         </form>
 
         {{-- Unified Accessible Film Filter Bar --}}
-        <x-public.film-filter-bar :genres="$genres" :years="$years" />
+        <x-public.film-filter-bar :genres="$genres" :years="$years" :child-genres="$childGenres" :selected-genre-model="$selectedGenreModel" />
 
         {{-- Dynamic Film Grid & Pagination Container --}}
         <div

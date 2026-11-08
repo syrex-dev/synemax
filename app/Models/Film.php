@@ -6,6 +6,7 @@ use App\Services\CinemaSettings;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
@@ -62,11 +63,72 @@ class Film extends Model
      */
     public function genresList(): array
     {
+        if ($this->relationLoaded('genres') && $this->genres->isNotEmpty()) {
+            return $this->genres->pluck('name')->all();
+        }
+
         if (empty($this->genre)) {
             return [];
         }
 
         return array_values(array_filter(array_map('trim', explode(',', (string) $this->genre))));
+    }
+
+    /**
+     * Relationship to Genre models ordered by position (0 = primary).
+     *
+     * @return BelongsToMany<Genre, $this>
+     */
+    public function genres(): BelongsToMany
+    {
+        return $this->belongsToMany(Genre::class, 'film_genre')
+            ->withPivot('position')
+            ->withTimestamps()
+            ->orderByPivot('position');
+    }
+
+    /**
+     * Get the primary genre of this film.
+     */
+    public function primaryGenre(): ?Genre
+    {
+        if ($this->relationLoaded('genres')) {
+            return $this->genres->first();
+        }
+
+        return $this->genres()->first();
+    }
+
+    /**
+     * Synchronize ordered genres into pivot table and keep films.genre column in sync.
+     *
+     * @param  array<int, int|string>  $genreNamesOrIds
+     */
+    public function syncOrderedGenres(array $genreNamesOrIds): void
+    {
+        $pivotData = [];
+        $names = [];
+        $position = 0;
+
+        foreach ($genreNamesOrIds as $item) {
+            $genre = null;
+            if (is_numeric($item)) {
+                $genre = Genre::find($item);
+            } elseif (is_string($item) && trim($item) !== '') {
+                $genre = Genre::findOrCreateByName(trim($item));
+            }
+
+            if ($genre && ! isset($pivotData[$genre->id])) {
+                $pivotData[$genre->id] = ['position' => $position++];
+                $names[] = $genre->name;
+            }
+        }
+
+        $this->genres()->sync($pivotData);
+
+        // Keep denormalized string in films.genre in sync
+        $this->genre = implode(', ', $names);
+        $this->saveQuietly();
     }
 
     /**

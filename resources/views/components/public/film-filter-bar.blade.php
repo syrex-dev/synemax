@@ -1,6 +1,8 @@
 @props([
     'genres' => [],
     'years' => [],
+    'childGenres' => null,
+    'selectedGenreModel' => null,
 ])
 
 <div
@@ -198,4 +200,42 @@
             </button>
         @endforeach
     </div>
+
+    {{-- Sub-genre Chips when Parent Genre or Child Genre is Selected --}}
+    @if (!empty($childGenres) && $childGenres->isNotEmpty())
+        @php
+            $parentName = $selectedGenreModel?->parent ? $selectedGenreModel->parent->name : $selectedGenreModel?->name;
+        @endphp
+        <div
+            class="flex items-center gap-1.5 overflow-x-auto pt-2.5 border-t border-border/60 custom-scrollbar -mx-1 px-1 text-xs"
+            style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch;"
+            @wheel.passive="$el.scrollLeft += $event.deltaY"
+        >
+            <span class="text-[10px] font-bold uppercase tracking-wider text-text-muted shrink-0 mr-1">
+                Turunan {{ $parentName }}:
+            </span>
+            <button
+                type="button"
+                @click="setFilter('{{ $parentName }}', undefined)"
+                class="min-h-7 shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all focus-visible:outline-2 focus-visible:outline-amber-500"
+                :class="genre === '{{ $parentName }}'
+                    ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-bold'
+                    : 'border border-border/80 bg-surface-2/60 text-text-muted hover:text-text hover:border-amber-500/30'"
+            >
+                Semua {{ $parentName }}
+            </button>
+            @foreach ($childGenres as $cg)
+                <button
+                    type="button"
+                    @click="setFilter('{{ $cg->name }}', undefined)"
+                    class="min-h-7 shrink-0 whitespace-nowrap rounded-lg px-2.5 py-1 text-[11px] font-bold transition-all focus-visible:outline-2 focus-visible:outline-amber-500"
+                    :class="genre === '{{ $cg->name }}'
+                        ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                        : 'border border-border/80 bg-surface-2/60 text-text-muted hover:text-text hover:border-amber-500/40'"
+                >
+                    {{ $cg->name }}
+                </button>
+            @endforeach
+        </div>
+    @endif
 </div>

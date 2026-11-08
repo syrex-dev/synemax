@@ -10,6 +10,7 @@ use App\Models\Holiday;
 use App\Models\NobarEvent;
 use App\Models\Promo;
 use App\Models\Session;
+use App\Queries\FilmCatalogQuery;
 use App\Services\CinemaSettings;
 use App\Services\ScheduleResolver;
 use Carbon\CarbonImmutable;
@@ -119,29 +120,35 @@ class PublicCinemaController extends Controller
     /**
      * Full Film Catalog Page with live filtering.
      */
-    public function filmIndex(Request $request): View|JsonResponse
+    public function filmIndex(Request $request, FilmCatalogQuery $catalogQuery): View|JsonResponse
     {
         $genre = $request->query('genre');
         $tahun = $request->query('tahun');
         $search = $request->query('cari') ?: $request->query('q');
 
-        $query = Film::query()->where('is_active', true);
+        $films = $catalogQuery->paginateCatalog([
+            'genre' => $genre,
+            'tahun' => $tahun,
+            'cari' => $search,
+        ], 24);
 
-        if (filled($genre)) {
-            $query->where('genre', 'like', '%'.$genre.'%');
+        $rootGenres = Genre::whereNull('parent_id')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        $genres = $rootGenres->pluck('name')->all();
+
+        $selectedGenreModel = $genre ? Genre::where('name', $genre)->orWhere('normalized_name', Genre::normalizeName($genre))->first() : null;
+        $childGenres = collect();
+        if ($selectedGenreModel) {
+            if ($selectedGenreModel->isParent()) {
+                $childGenres = $selectedGenreModel->children()->where('is_active', true)->get();
+            } elseif ($selectedGenreModel->parent_id && $selectedGenreModel->parent) {
+                $childGenres = $selectedGenreModel->parent->children()->where('is_active', true)->get();
+            }
         }
-
-        if (filled($tahun)) {
-            $query->where('release_year', (int) $tahun);
-        }
-
-        if (filled($search)) {
-            $query->where('title', 'like', '%'.$search.'%');
-        }
-
-        $films = $query->applyCustomSort()->paginate(30)->withQueryString();
-
-        $genres = Genre::allActiveNames();
 
         $years = Film::query()
             ->where('is_active', true)
@@ -172,6 +179,8 @@ class PublicCinemaController extends Controller
         return view('public.films.index', [
             'films' => $films,
             'genres' => $genres,
+            'childGenres' => $childGenres,
+            'selectedGenreModel' => $selectedGenreModel,
             'years' => $years,
             'selectedGenre' => $genre,
             'selectedYear' => $tahun,
@@ -182,13 +191,14 @@ class PublicCinemaController extends Controller
     /**
      * Film Detail Page with showtimes and booking CTA.
      */
-    public function filmShow(string $slug): View
+    public function filmShow(string $slug, FilmCatalogQuery $catalogQuery): View
     {
         $film = Film::query()
             ->where('is_active', true)
             ->where(function ($q) use ($slug) {
                 $q->where('slug', $slug)->orWhere('id', $slug);
             })
+            ->with(['genres' => fn ($q) => $q->orderByPivot('position')])
             ->firstOrFail();
 
         $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
@@ -211,40 +221,8 @@ class PublicCinemaController extends Controller
             ->take(3)
             ->get();
 
-        $currentGenres = array_filter(array_map('trim', explode(',', (string) $film->genre)));
-        $matchedGenreLabel = implode(', ', $currentGenres);
-
-        // 1. Fetch active films that share at least one genre with the current film
-        $matchingFilms = collect();
-        if (! empty($currentGenres)) {
-            $matchingFilms = Film::query()
-                ->where('is_active', true)
-                ->where('id', '!=', $film->id)
-                ->where(function ($q) use ($currentGenres) {
-                    foreach ($currentGenres as $genre) {
-                        $q->orWhere('genre', 'like', '%'.$genre.'%');
-                    }
-                })
-                ->inRandomOrder()
-                ->take(4)
-                ->get();
-        }
-
-        // 2. If fewer than 4 films match the genre, top up with other active films
-        if ($matchingFilms->count() < 4) {
-            $needed = 4 - $matchingFilms->count();
-            $excludedIds = array_merge([$film->id], $matchingFilms->pluck('id')->all());
-            $fallbackFilms = Film::query()
-                ->where('is_active', true)
-                ->whereNotIn('id', $excludedIds)
-                ->inRandomOrder()
-                ->take($needed)
-                ->get();
-
-            $otherFilms = $matchingFilms->concat($fallbackFilms);
-        } else {
-            $otherFilms = $matchingFilms;
-        }
+        $otherFilms = $catalogQuery->similarFilms($film, 4);
+        $matchedGenreLabel = $film->primaryGenre()?->name ?: $film->genre;
 
         return view('public.films.show', [
             'film' => $film,

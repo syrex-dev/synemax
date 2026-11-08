@@ -206,6 +206,20 @@
                                 if (nIdx !== -1) this.newChips.splice(nIdx, 1);
                             },
 
+                            moveUp(index) {
+                                if (index > 0) {
+                                    const item = this.selected.splice(index, 1)[0];
+                                    this.selected.splice(index - 1, 0, item);
+                                }
+                            },
+
+                            moveDown(index) {
+                                if (index < this.selected.length - 1) {
+                                    const item = this.selected.splice(index, 1)[0];
+                                    this.selected.splice(index + 1, 0, item);
+                                }
+                            },
+
                             clearAll() {
                                 this.selected = [];
                                 this.newChips = [];
@@ -256,19 +270,68 @@
                             <input type="hidden" name="new_genres[]" :value="newG">
                         </template>
 
-                        {{-- Pinned Selected Genres Badges (At Top) --}}
-                        <div class="rounded-xl border border-border bg-surface-2/30 p-2.5">
-                            <div class="flex flex-wrap items-center gap-1.5" x-show="selected.length > 0">
-                                <template x-for="genre in selected" :key="'badge_' + genre">
-                                    <span class="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold px-2.5 py-1 text-xs shadow-xs transition-transform hover:scale-105">
+                        {{-- Pinned Selected Genres Badges (At Top) with Priority Labels & Reordering --}}
+                        <div class="rounded-xl border border-border bg-surface-2/30 p-2.5 space-y-2">
+                            <div class="flex items-center justify-between text-[11px] text-text-muted">
+                                <span>Urutan menentukan prioritas: <strong>Genre Pertama = Utama</strong>, berikutnya = Terkait.</span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2" x-show="selected.length > 0">
+                                <template x-for="(genre, index) in selected" :key="'badge_' + genre">
+                                    <span
+                                        class="inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs shadow-xs transition-all select-none"
+                                        :class="index === 0
+                                            ? 'bg-amber-500 text-slate-950 font-bold border-amber-600'
+                                            : 'bg-surface text-text font-medium border-border'"
+                                    >
+                                        {{-- Priority Indicator Tag --}}
+                                        <span
+                                            class="text-[9px] uppercase tracking-wider font-black px-1.5 py-0.5 rounded leading-none"
+                                            :class="index === 0
+                                                ? 'bg-slate-950 text-amber-400'
+                                                : 'bg-surface-2 text-text-muted border border-border'"
+                                            x-text="index === 0 ? 'Utama' : 'Terkait'"
+                                        ></span>
+
                                         <span x-text="genre"></span>
-                                        <button
-                                            type="button"
-                                            @click="remove(genre)"
-                                            class="text-slate-950/70 hover:text-slate-950 text-sm leading-none ml-0.5"
-                                            title="Hapus genre ini"
-                                            aria-label="Hapus genre"
-                                        >&times;</button>
+
+                                        {{-- Reorder Buttons --}}
+                                        <span class="inline-flex items-center gap-0.5 ml-1">
+                                            <button
+                                                type="button"
+                                                x-show="index > 0"
+                                                @click="moveUp(index)"
+                                                class="size-5 rounded flex items-center justify-center text-text-muted hover:text-text hover:bg-black/10 dark:hover:bg-white/10 transition"
+                                                title="Geser ke kiri / prioritaskan"
+                                                aria-label="Geser ke kiri"
+                                            >
+                                                <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                x-show="index < selected.length - 1"
+                                                @click="moveDown(index)"
+                                                class="size-5 rounded flex items-center justify-center text-text-muted hover:text-text hover:bg-black/10 dark:hover:bg-white/10 transition"
+                                                title="Geser ke kanan / turunkan prioritas"
+                                                aria-label="Geser ke kanan"
+                                            >
+                                                <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                @click="remove(genre)"
+                                                class="size-5 rounded flex items-center justify-center text-danger hover:bg-danger/10 transition ml-0.5"
+                                                title="Hapus genre ini"
+                                                aria-label="Hapus genre"
+                                            >
+                                                <svg class="size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </span>
                                     </span>
                                 </template>
                             </div>

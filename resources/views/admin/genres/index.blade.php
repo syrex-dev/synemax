@@ -12,6 +12,7 @@
             currentGenre: {
                 id: null,
                 name: '',
+                parent_id: '',
                 sort_order: 0,
                 is_active: true,
                 films_count: 0
@@ -24,6 +25,7 @@
                 this.currentGenre = {
                     id: genre.id,
                     name: genre.name,
+                    parent_id: genre.parent_id ? String(genre.parent_id) : '',
                     sort_order: genre.sort_order,
                     is_active: Boolean(genre.is_active),
                     films_count: genre.films_count
@@ -166,10 +168,27 @@
 
                                 {{-- Nama Genre --}}
                                 <td class="py-3 px-4">
-                                    <div class="flex items-center gap-2">
-                                        <span class="inline-flex items-center rounded-lg bg-surface-2 px-2.5 py-1 font-bold text-text text-xs border border-border">
-                                            {{ $genre->name }}
-                                        </span>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        @if ($genre->parent_id)
+                                            <span class="text-text-muted font-mono select-none pl-2">└─</span>
+                                            <span class="inline-flex items-center rounded-lg bg-surface-2 px-2.5 py-1 font-bold text-text text-xs border border-border">
+                                                {{ $genre->name }}
+                                            </span>
+                                            <span class="text-[10px] text-text-muted px-1.5 py-0.5 rounded bg-surface-2 border border-border">
+                                                Turunan dari {{ $genre->parent?->name }}
+                                            </span>
+                                        @elseif ($genre->children->isNotEmpty())
+                                            <span class="inline-flex items-center rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold px-2.5 py-1 text-xs border border-amber-500/30">
+                                                {{ $genre->name }}
+                                            </span>
+                                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                                                Induk ({{ $genre->children->count() }} turunan)
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center rounded-lg bg-surface-2 px-2.5 py-1 font-bold text-text text-xs border border-border">
+                                                {{ $genre->name }}
+                                            </span>
+                                        @endif
                                     </div>
                                 </td>
 
@@ -277,6 +296,17 @@
                         <p class="text-[11px] text-text-muted mt-1">Nama akan otomatis disesuaikan ke huruf besar di awal tiap kata (Title Case).</p>
                     </div>
 
+                    <div>
+                        <label for="add-parent-id" class="block text-xs font-bold text-text mb-1">Induk Genre (Opsional)</label>
+                        <x-ui.select id="add-parent-id" name="parent_id">
+                            <option value="">-- Tanpa Induk (Genre Utama / Mandiri) --</option>
+                            @foreach ($parentCandidates as $p)
+                                <option value="{{ $p->id }}">{{ $p->name }}</option>
+                            @endforeach
+                        </x-ui.select>
+                        <p class="text-[11px] text-text-muted mt-1">Pilih induk jika genre ini merupakan turunan (misal: "Horor Religi" induknya "Horor"). Maksimal kedalaman 2 level.</p>
+                    </div>
+
                     <div class="flex items-center gap-2">
                         <input type="checkbox" id="add-is-active" name="is_active" value="1" checked class="size-4 rounded border-border-input text-amber-500 focus:ring-amber-400">
                         <label for="add-is-active" class="text-xs font-semibold text-text">Aktifkan langsung (tampil di pilihan filter dan form film)</label>
@@ -336,6 +366,16 @@
                         <p class="text-[11px] text-text-muted mt-1" x-show="currentGenre.films_count > 0">
                             Mengubah nama genre ini akan secara otomatis memperbarui <span class="font-bold text-amber-500" x-text="currentGenre.films_count"></span> film yang menggunakannya dalam satu transaksi.
                         </p>
+                    </div>
+
+                    <div>
+                        <label for="edit-parent-id" class="block text-xs font-bold text-text mb-1">Induk Genre (Opsional)</label>
+                        <x-ui.select id="edit-parent-id" name="parent_id" x-model="currentGenre.parent_id">
+                            <option value="">-- Tanpa Induk (Genre Utama / Mandiri) --</option>
+                            @foreach ($parentCandidates as $p)
+                                <option value="{{ $p->id }}" x-show="currentGenre.id !== {{ $p->id }}">{{ $p->name }}</option>
+                            @endforeach
+                        </x-ui.select>
                     </div>
 
                     <div class="flex items-center gap-2">

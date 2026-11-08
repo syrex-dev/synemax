@@ -24,6 +24,7 @@ class GenreController extends Controller
         }
 
         $genres = Genre::query()
+            ->with(['parent', 'children'])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
@@ -35,8 +36,13 @@ class GenreController extends Controller
             return $genre;
         });
 
+        $parentCandidates = Genre::whereNull('parent_id')
+            ->orderBy('name')
+            ->get();
+
         return view('admin.genres.index', [
             'genres' => $genresWithCount,
+            'parentCandidates' => $parentCandidates,
             'activeCount' => $genres->where('is_active', true)->count(),
         ]);
     }
@@ -48,10 +54,12 @@ class GenreController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:50'],
+            'parent_id' => ['nullable', 'integer', 'exists:genres,id'],
             'is_active' => ['nullable', 'boolean'],
         ], [
             'name.required' => 'Nama genre wajib diisi.',
             'name.max' => 'Nama genre maksimal 50 karakter.',
+            'parent_id.exists' => 'Induk genre yang dipilih tidak ditemukan.',
         ]);
 
         $formatted = Genre::formatDisplayName($validated['name']);
@@ -65,11 +73,20 @@ class GenreController extends Controller
             return back()->with('error', "Genre '{$formatted}' sudah terdaftar.")->withInput();
         }
 
+        $parentId = ! empty($validated['parent_id']) ? (int) $validated['parent_id'] : null;
+        if ($parentId) {
+            $parent = Genre::find($parentId);
+            if (! $parent || $parent->parent_id !== null) {
+                return back()->with('error', 'Induk genre tidak valid. Induk tidak boleh merupakan turunan dari genre lain (maksimal kedalaman 2 level).')->withInput();
+            }
+        }
+
         $maxOrder = (int) Genre::max('sort_order');
 
         Genre::create([
             'name' => $formatted,
             'normalized_name' => $normalized,
+            'parent_id' => $parentId,
             'sort_order' => $maxOrder + 1,
             'is_active' => $request->boolean('is_active', true),
         ]);
@@ -85,16 +102,32 @@ class GenreController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:50'],
+            'parent_id' => ['nullable', 'integer', 'exists:genres,id'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
         ], [
             'name.required' => 'Nama genre wajib diisi.',
             'name.max' => 'Nama genre maksimal 50 karakter.',
+            'parent_id.exists' => 'Induk genre yang dipilih tidak ditemukan.',
         ]);
 
         $formatted = Genre::formatDisplayName($validated['name']);
         if (! $formatted) {
             return back()->with('error', 'Nama genre tidak boleh kosong atau hanya berupa simbol.');
+        }
+
+        $parentId = ! empty($validated['parent_id']) ? (int) $validated['parent_id'] : null;
+        if ($parentId) {
+            if ($parentId === $genre->id) {
+                return back()->with('error', 'Genre tidak dapat menjadi induk bagi dirinya sendiri.');
+            }
+            if ($genre->isParent()) {
+                return back()->with('error', 'Genre yang sudah memiliki turunan tidak dapat dijadikan turunan dari genre lain (maksimal kedalaman 2 level).');
+            }
+            $parent = Genre::find($parentId);
+            if (! $parent || $parent->parent_id !== null) {
+                return back()->with('error', 'Induk genre tidak valid (maksimal kedalaman 2 level).');
+            }
         }
 
         $wantsActive = $request->boolean('is_active');
@@ -110,7 +143,10 @@ class GenreController extends Controller
                 $genre->renameWithFilms($formatted);
             }
 
-            $updateData = ['is_active' => $wantsActive];
+            $updateData = [
+                'is_active' => $wantsActive,
+                'parent_id' => $parentId,
+            ];
             if (isset($validated['sort_order'])) {
                 $updateData['sort_order'] = (int) $validated['sort_order'];
             }

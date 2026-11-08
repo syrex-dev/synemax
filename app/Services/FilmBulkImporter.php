@@ -1108,6 +1108,10 @@ class FilmBulkImporter
                             'is_sample' => false,
                         ]);
 
+                        if (! empty($savedGenres)) {
+                            $existing->syncOrderedGenres($savedGenres);
+                        }
+
                         $chunkImported++;
 
                         continue;
@@ -1136,7 +1140,7 @@ class FilmBulkImporter
                     $posterPath = $matchedPosterPath;
                 }
 
-                Film::create([
+                $createdFilm = Film::create([
                     'title' => $title,
                     'slug' => $slug,
                     'duration_minutes' => $duration,
@@ -1150,6 +1154,10 @@ class FilmBulkImporter
                     'import_batch_id' => $batchId,
                     'is_sample' => false,
                 ]);
+
+                if (! empty($savedGenres)) {
+                    $createdFilm->syncOrderedGenres($savedGenres);
+                }
 
                 $chunkImported++;
             }
