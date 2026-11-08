@@ -160,7 +160,7 @@ class BookingController extends Controller
         $films = Film::query()
             ->where('is_active', true)
             ->orderBy('title')
-            ->get(['id', 'title', 'poster_url', 'duration_minutes', 'age_rating']);
+            ->get(['id', 'title', 'poster_path', 'duration_minutes', 'age_rating']);
 
         $categories = MenuCategory::query()
             ->with(['items' => fn ($q) => $q->where('is_available', true)->orderBy('sort_order')->orderBy('name')])

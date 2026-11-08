@@ -13,7 +13,7 @@
             'time_formatted' => format_jam_id($s->start_time),
             'film_id' => $s->film_id,
             'film_title' => $s->film?->title,
-            'film_poster' => $s->film?->poster_url,
+            'film_poster' => $s->film?->posterUrl(),
             'is_confirmed' => $s->isConfirmed(),
             'remaining_seats' => $s->remainingSeats(),
             'capacity' => $s->seatCapacity(),
@@ -27,7 +27,7 @@
     $filmsData = $films->map(fn ($f) => [
         'id' => $f->id,
         'title' => $f->title,
-        'poster_url' => $f->poster_url,
+        'poster_url' => $f->posterUrl(),
         'duration_minutes' => $f->duration_minutes,
         'age_rating' => $f->age_rating,
     ]);

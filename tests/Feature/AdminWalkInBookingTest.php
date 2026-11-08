@@ -37,6 +37,7 @@ class AdminWalkInBookingTest extends TestCase
             'duration_minutes' => 90,
             'age_rating' => 'SU',
             'synopsis' => 'Sinopsis petualangan rimba.',
+            'poster_path' => 'posters/rimba.jpg',
             'is_active' => true,
         ]);
 
