@@ -15,6 +15,17 @@
             </a>
 
             <a
+                href="{{ route('admin.bookings.create') }}"
+                @if (request()->routeIs('admin.bookings.create')) aria-current="page" @endif
+                class="flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors {{ request()->routeIs('admin.bookings.create') ? 'bg-[#FEF3C7] text-[#78350F] font-bold border-l-4 border-[#F59E0B] rounded-r-xl rounded-l-none pl-2.5 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 dark:rounded-xl dark:pl-3' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}"
+            >
+                <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span>Loket (Pesan di Tempat)</span>
+            </a>
+
+            <a
                 href="{{ route('admin.scan.index') }}"
                 @if (request()->routeIs('admin.scan.*')) aria-current="page" @endif
                 class="flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors {{ request()->routeIs('admin.scan.*') ? 'bg-[#FEF3C7] text-[#78350F] font-bold border-l-4 border-[#F59E0B] rounded-r-xl rounded-l-none pl-2.5 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 dark:rounded-xl dark:pl-3' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}"
@@ -38,8 +49,8 @@
 
             <a
                 href="{{ route('admin.bookings.index') }}"
-                @if (request()->routeIs('admin.bookings.*')) aria-current="page" @endif
-                class="flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors {{ request()->routeIs('admin.bookings.*') ? 'bg-[#FEF3C7] text-[#78350F] font-bold border-l-4 border-[#F59E0B] rounded-r-xl rounded-l-none pl-2.5 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 dark:rounded-xl dark:pl-3' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}"
+                @if (request()->routeIs('admin.bookings.*') && ! request()->routeIs('admin.bookings.create')) aria-current="page" @endif
+                class="flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors {{ (request()->routeIs('admin.bookings.*') && ! request()->routeIs('admin.bookings.create')) ? 'bg-[#FEF3C7] text-[#78350F] font-bold border-l-4 border-[#F59E0B] rounded-r-xl rounded-l-none pl-2.5 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 dark:rounded-xl dark:pl-3' : 'text-text-muted hover:bg-surface-2 hover:text-text' }}"
             >
                 <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />

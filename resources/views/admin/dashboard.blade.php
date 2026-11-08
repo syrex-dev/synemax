@@ -40,6 +40,16 @@
 
         <div class="flex items-center gap-2.5 no-print" x-data="{ moreOpen: false }">
             <a
+                href="{{ route('admin.bookings.create') }}"
+                class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 text-xs sm:text-sm font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition shadow-xs"
+            >
+                <svg class="size-4 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span>Loket Walk-in</span>
+            </a>
+
+            <a
                 href="{{ route('admin.scan.index') }}"
                 class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-slate-300 dark:border-white/15 bg-surface px-4 text-xs sm:text-sm font-bold text-text hover:bg-surface-2 transition shadow-xs"
             >

@@ -5,12 +5,17 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\CustomerProfile;
+use App\Models\Film;
+use App\Models\Member;
 use App\Models\MenuCategory;
 use App\Models\Session;
 use App\Models\User;
 use App\Services\BookingService;
 use App\Services\CheckInService;
 use App\Services\CinemaSettings;
+use App\Services\LoyaltyRules;
+use App\Services\MemberCodeGenerator;
+use App\Services\ScheduleResolver;
 use App\Services\SnackOrderService;
 use App\Services\TelegramNotificationService;
 use App\Support\WhatsAppNumber;
@@ -138,6 +143,142 @@ class BookingController extends Controller
             'results' => $results,
             'count' => $results->count(),
         ]);
+    }
+
+    public function create(Request $request, CinemaSettings $settings, ScheduleResolver $scheduleResolver): View
+    {
+        $today = now(config('app.timezone'))->toDateString();
+
+        $sessions = Session::query()
+            ->with(['film', 'occupiedBookings'])
+            ->where('session_date', '>=', $today)
+            ->where('status', 'tersedia')
+            ->orderBy('session_date')
+            ->orderBy('start_time')
+            ->get();
+
+        $films = Film::query()
+            ->where('is_active', true)
+            ->orderBy('title')
+            ->get(['id', 'title', 'poster_url', 'duration_minutes', 'age_rating']);
+
+        $categories = MenuCategory::query()
+            ->with(['items' => fn ($q) => $q->where('is_available', true)->orderBy('sort_order')->orderBy('name')])
+            ->orderBy('sort_order')
+            ->get();
+
+        $selectedSessionId = (int) $request->input('session_id', 0);
+        $selectedSession = $sessions->firstWhere('id', $selectedSessionId) ?? $sessions->first();
+
+        return view('admin.bookings.create', [
+            'sessions' => $sessions,
+            'selectedSession' => $selectedSession,
+            'films' => $films,
+            'categories' => $categories,
+            'settings' => $settings,
+            'today' => $today,
+            'snackMaxQty' => $settings->integer('snack_max_qty_per_item', 10),
+            'lastBooking' => session('walk_in_success'),
+        ]);
+    }
+
+    public function memberLookup(Request $request, LoyaltyRules $loyaltyRules): JsonResponse
+    {
+        $raw = trim((string) $request->input('q', ''));
+        if ($raw === '') {
+            return response()->json(['found' => false, 'message' => 'Masukkan kode atau nama member.']);
+        }
+
+        $norm = MemberCodeGenerator::normalize($raw);
+        $member = Member::query()
+            ->where('code', $norm)
+            ->orWhere('member_code', $norm)
+            ->orWhere('code', 'like', "%{$norm}")
+            ->orWhere('name', 'like', "%{$raw}%")
+            ->orWhere('nickname', 'like', "%{$raw}%")
+            ->first();
+
+        if (! $member) {
+            return response()->json(['found' => false, 'message' => 'Member tidak ditemukan.']);
+        }
+
+        $sessionId = $request->input('session_id');
+        $session = $sessionId ? Session::find((int) $sessionId) : null;
+        $eval = $loyaltyRules->evaluateCheckIn($member, $session);
+        $cycleMax = app(CinemaSettings::class)->memberFreeVisit();
+        $nextPos = $member->nextVisitPosition($cycleMax);
+
+        return response()->json([
+            'found' => true,
+            'member' => [
+                'id' => $member->id,
+                'code' => $member->code,
+                'name' => $member->name,
+                'nickname' => $member->nickname,
+                'display_name' => $member->nickname ? "{$member->name} ({$member->nickname})" : $member->name,
+                'photo_url' => $member->photo_path ? Storage::url($member->photo_path) : null,
+                'status' => $member->status,
+                'is_active' => (bool) $member->is_active,
+                'next_position' => $nextPos,
+                'cycle_max' => $cycleMax,
+                'potential_reward' => $eval['potential_reward'],
+                'potential_reward_label' => LoyaltyRules::REWARD_LABELS[$eval['potential_reward']] ?? 'Tanpa Reward',
+                'reward_amount' => $eval['reward_amount'],
+                'reward_amount_formatted' => 'Rp '.number_format($eval['reward_amount'], 0, ',', '.'),
+            ],
+        ]);
+    }
+
+    public function store(Request $request, BookingService $bookingService): RedirectResponse
+    {
+        $data = $request->validate([
+            'session_id' => ['required', 'integer', 'exists:screening_sessions,id'],
+            'package' => ['required', 'in:reguler,couple,private'],
+            'pax' => ['nullable', 'integer', 'min:1', 'max:6'],
+            'film_id' => ['nullable', 'integer', 'exists:films,id'],
+            'customer_name' => ['nullable', 'string', 'max:80'],
+            'whatsapp' => ['nullable', 'string', 'max:30'],
+            'member_code' => ['nullable', 'string', 'max:60'],
+            'apply_member_reward' => ['nullable', 'boolean'],
+            'payment_method' => ['nullable', 'in:di_tempat,qris,transfer'],
+            'cash_received' => ['nullable', 'integer', 'min:0'],
+            'mark_as_attended' => ['nullable', 'boolean'],
+            'notes' => ['nullable', 'string', 'max:500'],
+            'snacks' => ['nullable', 'array', 'max:100'],
+            'snacks.*.qty' => ['nullable', 'integer', 'min:0'],
+            'snacks.*.note' => ['nullable', 'string', 'max:250'],
+        ]);
+
+        $session = Session::findOrFail($data['session_id']);
+        $result = $bookingService->createWalkIn($session, $data, $request->user());
+        $booking = $result['booking'];
+        $changeAmount = $result['change_amount'];
+        $cashReceived = $result['cash_received'];
+
+        $flashMessage = 'Pemesanan loket berhasil dibuat!';
+        if ($changeAmount > 0) {
+            $flashMessage .= ' Kembalian tunai: Rp '.number_format($changeAmount, 0, ',', '.');
+        }
+
+        return redirect()
+            ->route('admin.bookings.create', ['session_id' => $session->id])
+            ->with('status', $flashMessage)
+            ->with('walk_in_success', [
+                'id' => $booking->id,
+                'code' => $booking->code,
+                'customer_name' => $booking->customer_name,
+                'total_price' => $booking->total_price,
+                'total_price_formatted' => 'Rp '.number_format($booking->total_price, 0, ',', '.'),
+                'cash_received' => $cashReceived,
+                'cash_received_formatted' => 'Rp '.number_format($cashReceived, 0, ',', '.'),
+                'change_amount' => $changeAmount,
+                'change_amount_formatted' => 'Rp '.number_format($changeAmount, 0, ',', '.'),
+                'ticket_url' => route('admin.bookings.ticket', $booking),
+                'show_url' => route('admin.bookings.show', $booking),
+                'attended' => $booking->status === 'hadir',
+                'member_name' => $result['member']?->name,
+                'member_code' => $result['member']?->code,
+            ]);
     }
 
     public function show(Booking $booking, CinemaSettings $settings, BookingService $bookingService): View

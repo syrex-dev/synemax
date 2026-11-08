@@ -4,8 +4,19 @@
 
 @section('content')
     <div class="flex flex-wrap items-end justify-between gap-4">
-        <div><p class="text-xs font-bold uppercase tracking-[0.2em] text-accent">Pelanggan</p><h1 class="mt-2 text-3xl font-black">Kelola booking</h1></div>
-        <a href="{{ route('admin.dashboard') }}" class="text-sm text-accent hover:underline">← Kembali ke ringkasan</a>
+        <div>
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-accent">Pelanggan</p>
+            <h1 class="mt-2 text-3xl font-black">Kelola booking</h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('admin.bookings.create') }}" class="inline-flex min-h-11 items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-bold text-accent-contrast shadow-sm transition hover:opacity-90 active:scale-95">
+                <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Pesan di Tempat (Loket)</span>
+            </a>
+            <a href="{{ route('admin.dashboard') }}" class="text-sm text-accent hover:underline">← Ringkasan</a>
+        </div>
     </div>
 
     {{-- Live Quick Search --}}

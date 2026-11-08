@@ -3,9 +3,12 @@
 namespace App\Services;
 
 use App\Models\Booking;
+use App\Models\BookingCheckin;
 use App\Models\CustomerProfile;
 use App\Models\Film;
+use App\Models\Member;
 use App\Models\Session;
+use App\Models\User;
 use App\Support\WhatsAppNumber;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
@@ -670,6 +673,244 @@ class BookingService
             }
 
             return $lockedBooking->fresh(['session', 'film']);
+        }, attempts: 3);
+    }
+
+    /**
+     * Buat pemesanan langsung di tempat (Walk-in / Loket POS) untuk penonton/anak-anak di lokasi.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{
+     *     booking: Booking,
+     *     cash_received: int,
+     *     change_amount: int,
+     *     member: ?Member,
+     *     loyalty_result: ?array<string, mixed>
+     * }
+     */
+    public function createWalkIn(Session $requestedSession, array $data, ?User $creator = null): array
+    {
+        return DB::transaction(function () use ($requestedSession, $data, $creator): array {
+            $session = Session::query()->lockForUpdate()->findOrFail($requestedSession->getKey());
+
+            if ($session->session_date < now()->toDateString()) {
+                $this->reject('session_id', 'Sesi pada tanggal lampau tidak dapat dipesan.');
+            }
+
+            $package = $data['package'] ?? 'reguler';
+            if (! in_array($package, ['reguler', 'couple', 'private'], true)) {
+                $package = 'reguler';
+            }
+
+            $isPrivate = $package === 'private';
+            $isCouple = $package === 'couple';
+            $isReguler = $package === 'reguler';
+
+            if ($isReguler) {
+                $pax = (int) ($data['people_count'] ?? $data['pax'] ?? 1);
+                if ($pax < 1 || $pax > Session::MAX_CAPACITY) {
+                    $this->reject('pax', 'Jumlah penonton harus antara 1 sampai 6 orang.');
+                }
+                if ($pax > $session->remainingSeats()) {
+                    $this->reject('pax', 'Kapasitas tersisa tidak mencukupi ('.$session->remainingSeats().' orang tersisa).');
+                }
+                $seatsReserved = $pax;
+                $peopleCount = $pax;
+            } elseif ($isCouple) {
+                if ($session->isPrivateActive()) {
+                    $this->reject('package', 'Sesi ini sudah disewa private.');
+                }
+                if ($session->remainingSeats() < 2) {
+                    $this->reject('package', 'Kapasitas tersisa kurang dari 2 orang.');
+                }
+                $pax = 2;
+                $seatsReserved = 2;
+                $peopleCount = 2;
+            } else {
+                $check = $session->canAcceptPrivateBooking();
+                if (! $check['allowed']) {
+                    $this->reject('package', $check['reason'] ?? 'Sewa private tidak tersedia.');
+                }
+                $pax = Session::MAX_CAPACITY;
+                $seatsReserved = Session::MAX_CAPACITY;
+                $peopleCount = (int) ($data['people_count'] ?? $data['pax'] ?? Session::MAX_CAPACITY);
+            }
+
+            // Film resolution
+            $requestedFilmId = ! empty($data['film_id']) ? (int) $data['film_id'] : null;
+            if ($session->isConfirmed() && $session->film_id !== null) {
+                if ($requestedFilmId !== null && $requestedFilmId !== (int) $session->film_id) {
+                    $this->reject('film_id', 'Sesi ini sudah memiliki film yang terkonfirmasi.');
+                }
+                $filmId = (int) $session->film_id;
+            } else {
+                $filmId = $requestedFilmId ?: (int) $session->film_id;
+            }
+
+            if (! $filmId) {
+                $this->reject('film_id', 'Pilih film untuk sesi ini.');
+            }
+
+            $film = Film::query()->where('is_active', true)->find($filmId);
+            if ($film === null) {
+                $this->reject('film_id', 'Film yang dipilih tidak ditemukan atau sedang nonaktif.');
+            }
+
+            // Day type & pricing
+            $startsAt = $session->startsAt();
+            $dayType = $this->scheduleResolver->dayTypeFor($startsAt) ?? 'biasa';
+            $ticketPrice = match (true) {
+                $isPrivate => $this->settings->privatePriceForDayType($dayType),
+                $isCouple => $this->settings->couplePrice($dayType),
+                default => $this->settings->ticketPriceForDayType($dayType) * $pax,
+            };
+
+            // Member lookup
+            $member = null;
+            $memberQuery = trim((string) ($data['member_code'] ?? ''));
+            if ($memberQuery !== '') {
+                $normCode = MemberCodeGenerator::normalize($memberQuery);
+                $member = Member::query()->where('code', $normCode)->orWhere('member_code', $normCode)->first();
+                if (! $member && is_numeric($memberQuery)) {
+                    $member = Member::query()->find((int) $memberQuery);
+                }
+            } elseif (! empty($data['member_id'])) {
+                $member = Member::query()->find((int) $data['member_id']);
+            }
+
+            // Evaluate member reward discount if applicable
+            $loyaltyRules = app(LoyaltyRules::class);
+            $applyMemberReward = filter_var($data['apply_member_reward'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            if ($member !== null && $applyMemberReward) {
+                $eval = $loyaltyRules->evaluateCheckIn($member, $session);
+                if ($eval['potential_reward'] !== LoyaltyRules::REWARD_NONE && $eval['reward_amount'] > 0) {
+                    $discount = min($eval['reward_amount'], $ticketPrice);
+                    $ticketPrice = max(0, $ticketPrice - $discount);
+                }
+            }
+
+            // Customer Name & WhatsApp fallback for kids
+            $rawWa = trim((string) ($data['whatsapp'] ?? ''));
+            if ($rawWa === '') {
+                $rawWa = $this->settings->string('admin_whatsapp') ?: '080000000000';
+            }
+            $whatsapp = WhatsAppNumber::normalize($rawWa);
+            if (! WhatsAppNumber::isValid($whatsapp)) {
+                $whatsapp = '628000000000';
+            }
+
+            $customerName = trim((string) ($data['customer_name'] ?? ''));
+            if ($customerName === '') {
+                if ($member !== null) {
+                    $customerName = $member->nickname ? "{$member->name} ({$member->nickname})" : $member->name;
+                } else {
+                    $customerName = 'Anak (Walk-in)';
+                }
+            }
+
+            $profile = CustomerProfile::query()->firstOrCreate(['whatsapp' => $whatsapp]);
+
+            // Status & payment
+            $paymentMethod = $data['payment_method'] ?? 'di_tempat';
+            if (! in_array($paymentMethod, ['di_tempat', 'qris', 'transfer'], true)) {
+                $paymentMethod = 'di_tempat';
+            }
+
+            $markAttended = filter_var($data['mark_as_attended'] ?? true, FILTER_VALIDATE_BOOLEAN);
+            $status = $markAttended ? 'hadir' : 'terkonfirmasi';
+
+            $notes = ! empty($data['notes']) ? trim((string) $data['notes']) : '';
+            if ($member !== null) {
+                $memberNote = "Member: {$member->name} ({$member->code})";
+                $notes = $notes !== '' ? "{$memberNote} · {$notes}" : $memberNote;
+            }
+
+            // Confirm & lock session if needed
+            if ($isPrivate) {
+                $session->confirmAndLock($film->id, 'private');
+            } elseif ($isCouple) {
+                $session->confirmAndLock($film->id, 'couple');
+            } else {
+                $existingSeats = (int) $session->occupiedBookings()->where('film_id', $film->id)->sum('seats_reserved');
+                $newTotal = $existingSeats + $seatsReserved;
+                if (! $session->isConfirmed() && $newTotal >= $session->quorum()) {
+                    $session->confirmAndLock($film->id, 'quorum');
+                }
+            }
+
+            $booking = Booking::query()->create([
+                'code' => $this->newBookingCode($startsAt),
+                'session_id' => $session->getKey(),
+                'film_id' => $film->getKey(),
+                'customer_profile_id' => $profile->getKey(),
+                'customer_name' => $customerName,
+                'whatsapp' => $whatsapp,
+                'pax' => $pax,
+                'seats_reserved' => $seatsReserved,
+                'booking_type' => $isPrivate ? 'private' : 'per_orang',
+                'package' => $package,
+                'people_count' => $peopleCount,
+                'reselect_needed' => false,
+                'refund_needed' => false,
+                'total_price' => $ticketPrice,
+                'ticket_total' => $ticketPrice,
+                'snack_total' => 0,
+                'payment_method' => $paymentMethod,
+                'payment_proof_path' => null,
+                'payment_expires_at' => null,
+                'status' => $status,
+                'confirmed_at' => now(),
+                'attended_at' => $markAttended ? now() : null,
+                'checked_in_at' => $markAttended ? now() : null,
+                'checked_in_by' => $markAttended ? $creator?->id : null,
+                'check_in_method' => $markAttended ? 'pos' : null,
+                'notes' => $notes !== '' ? $notes : null,
+            ]);
+
+            // Add snacks if provided
+            if (! empty($data['snacks']) && is_array($data['snacks'])) {
+                $booking = $this->snackOrders->replaceItems($booking, $data['snacks'], enforceDeadline: false, auditActor: $creator);
+            }
+
+            // Record check-in audit log if marked attended
+            if ($markAttended) {
+                BookingCheckin::create([
+                    'booking_id' => $booking->id,
+                    'user_id' => $creator?->id ?? 1,
+                    'method' => 'pos',
+                    'result' => 'success',
+                    'reason' => 'Pemesanan langsung di loket (Walk-in POS)',
+                    'created_at' => now(),
+                ]);
+            }
+
+            // Record loyalty visit
+            $loyaltyResult = null;
+            if ($member !== null) {
+                try {
+                    $loyaltyResult = $loyaltyRules->recordVisit(
+                        $member,
+                        $session,
+                        $booking,
+                        $creator?->id,
+                        method: 'loket',
+                        overrideReason: 'Pemesanan langsung di loket'
+                    );
+                } catch (\Throwable) {
+                    // Do not fail transaction if visit recording has issues
+                }
+            }
+
+            $cashReceived = (int) ($data['cash_received'] ?? 0);
+            $changeAmount = $cashReceived > 0 ? max(0, $cashReceived - (int) $booking->total_price) : 0;
+
+            return [
+                'booking' => $booking,
+                'cash_received' => $cashReceived,
+                'change_amount' => $changeAmount,
+                'member' => $member,
+                'loyalty_result' => $loyaltyResult,
+            ];
         }, attempts: 3);
     }
 

@@ -193,6 +193,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::patch('/density', [DashboardController::class, 'updateDensity'])->name('density.update');
     Route::get('/polling/status', [DashboardController::class, 'pollStatus'])->name('polling.status');
     Route::get('/booking', [BookingController::class, 'index'])->name('bookings.index');
+    Route::get('/booking/pesan-di-tempat', [BookingController::class, 'create'])->name('bookings.create');
+    Route::post('/booking/pesan-di-tempat', [BookingController::class, 'store'])->name('bookings.store');
+    Route::get('/booking/member-lookup', [BookingController::class, 'memberLookup'])->name('bookings.member_lookup');
     Route::get('/booking/search', [BookingController::class, 'liveSearch'])->name('bookings.live_search');
     Route::get('/booking/{booking}', [BookingController::class, 'show'])->name('bookings.show');
     Route::get('/booking/{booking}/tiket', [BookingController::class, 'ticket'])->name('bookings.ticket');
