@@ -54,7 +54,7 @@
                            autocapitalize="none"
                            spellcheck="false"
                            enterkeyhint="done"
-                           class="min-h-11 w-full rounded-xl border {{ $errors->has('password') || $errors->any() ? 'border-danger' : 'border-border-input' }} bg-surface-2 pl-3 pr-11 text-sm text-text focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden">
+                           class="min-h-11 w-full rounded-xl border {{ $errors->has('password') || $errors->any() ? 'border-danger' : 'border-border-input' }} bg-surface-2 pl-3 pr-11 text-sm text-text focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400">
                     <button type="button"
                             @click="showPassword = !showPassword; $refs.pwdInput.focus()"
                             :aria-label="showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'"
