@@ -46,10 +46,10 @@ class DatabaseSeeder extends Seeder
     private function seedScheduleTemplates(): void
     {
         $schedules = [
-            'weekday' => ['13:00', '16:00', '19:00'],
-            'jumat' => ['09:00', '13:00', '16:00', '19:00'],
-            'weekend' => ['09:00', '13:00', '16:00', '19:00'],
-            'libur' => ['09:00', '13:00', '16:00', '19:00'],
+            'weekday' => ['12:00', '14:00', '16:00', '18:00'],
+            'jumat' => ['09:00', '11:00', '13:00', '15:00', '18:00'],
+            'weekend' => ['07:00', '09:00', '11:00', '13:00', '15:00', '18:00'],
+            'libur' => ['07:00', '09:00', '11:00', '13:00', '15:00', '18:00'],
         ];
 
         foreach ($schedules as $dayType => $startTimes) {
@@ -59,6 +59,10 @@ class DatabaseSeeder extends Seeder
                     ['duration_minutes' => 120, 'is_active' => true],
                 );
             }
+
+            ScheduleTemplate::where('day_type', $dayType)
+                ->whereNotIn('start_time', $startTimes)
+                ->delete();
         }
     }
 
