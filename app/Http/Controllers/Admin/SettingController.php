@@ -468,6 +468,7 @@ class SettingController extends Controller
 
         if (isset($data['capacity_per_session'])) {
             $newCapacity = (int) $data['capacity_per_session'];
+            $settings->set('seats_capacity', (string) $newCapacity, 'operasional');
             Session::query()
                 ->where('session_date', '>=', now(config('app.timezone'))->toDateString())
                 ->where('status', 'tersedia')

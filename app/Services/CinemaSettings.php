@@ -441,7 +441,7 @@ class CinemaSettings
     // === TAB 4: OPERASIONAL ===
     public function capacityPerSession(): int
     {
-        return $this->integer('capacity_per_session', 6);
+        return $this->integer('capacity_per_session', $this->integer('seats_capacity', 6));
     }
 
     public function maxSeatsPerBooking(): int

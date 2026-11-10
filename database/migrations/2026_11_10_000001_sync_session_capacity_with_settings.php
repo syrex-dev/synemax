@@ -10,11 +10,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $settingVal = DB::table('settings')->where('key', 'capacity_per_session')->value('value');
-        $capacity = (int) ($settingVal ?: 10);
+        $settingVal = DB::table('settings')->where('key', 'capacity_per_session')->value('value')
+            ?: DB::table('settings')->where('key', 'seats_capacity')->value('value');
 
-        if ($capacity > 0) {
-            // Sinkronkan kapasitas sesi yang masih bernilai 6 ke kapasitas pengaturan
+        if ($settingVal && (int) $settingVal > 6) {
+            $capacity = (int) $settingVal;
             DB::table('screening_sessions')
                 ->where('capacity', 6)
                 ->update(['capacity' => $capacity]);
@@ -24,8 +24,5 @@ return new class extends Migration
     /**
      * Reverse the migrations.
      */
-    public function down(): void
-    {
-        // Tidak perlu revert paksa karena kapasitas adalah preferensi operasional
-    }
+    public function down(): void {}
 };

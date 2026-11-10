@@ -468,7 +468,7 @@ class Session extends Model
             ];
         }
 
-        if ($this->seatCapacity() < app(CinemaSettings::class)->capacityPerSession()) {
+        if ($this->seatCapacity() < min(6, app(CinemaSettings::class)->capacityPerSession())) {
             return [
                 'allowed' => false,
                 'reason' => 'Kapasitas sesi tidak mencukupi untuk sewa privat.',
