@@ -36,7 +36,6 @@ class ScheduleController extends Controller
                 'film:id,title,slug,duration_minutes,poster_path',
                 'occupiedBookings.film:id,title,slug',
                 'bookings.film:id,title,slug',
-                'bookings.customerProfile:id,name,phone',
             ])
             ->withSum('occupiedBookings as occupied_seats', 'seats_reserved')
             ->orderBy('session_date')

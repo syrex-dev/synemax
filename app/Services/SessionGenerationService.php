@@ -12,6 +12,7 @@ class SessionGenerationService
 {
     public function __construct(
         private readonly ScheduleResolver $scheduleResolver,
+        private readonly CinemaSettings $settings,
     ) {}
 
     public function generateDays(int $days = 14, ?CarbonImmutable $fromDate = null): int

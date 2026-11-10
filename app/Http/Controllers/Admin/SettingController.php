@@ -10,6 +10,7 @@ use App\Models\NewsArticle;
 use App\Models\NobarEvent;
 use App\Models\NotificationOutbox;
 use App\Models\Promo;
+use App\Models\Session;
 use App\Models\Setting;
 use App\Services\CinemaSettings;
 use App\Services\TelegramNotificationService;

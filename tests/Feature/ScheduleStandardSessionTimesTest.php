@@ -72,13 +72,13 @@ class ScheduleStandardSessionTimesTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
-        // Uji untuk pekan tertentu: Senin 2026-11-09 hingga Minggu 2026-11-15
-        $monday = CarbonImmutable::create(2026, 11, 9, 0, 0, 0, 'Asia/Jakarta');
+        // Uji untuk pekan mendatang: Senin hingga Minggu
+        $monday = CarbonImmutable::now('Asia/Jakarta')->next(CarbonImmutable::MONDAY)->startOfDay();
         app(SessionGenerationService::class)->generateDays(7, $monday);
 
         // Senin (Weekday): 3 sesi
         $mondaySessions = Session::query()
-            ->where('session_date', '2026-11-09')
+            ->where('session_date', $monday->toDateString())
             ->where('status', 'tersedia')
             ->orderBy('start_time')
             ->pluck('start_time')
@@ -88,7 +88,7 @@ class ScheduleStandardSessionTimesTest extends TestCase
 
         // Kamis (Weekday): 3 sesi
         $thursdaySessions = Session::query()
-            ->where('session_date', '2026-11-12')
+            ->where('session_date', $monday->addDays(3)->toDateString())
             ->where('status', 'tersedia')
             ->orderBy('start_time')
             ->pluck('start_time')
@@ -98,7 +98,7 @@ class ScheduleStandardSessionTimesTest extends TestCase
 
         // Jumat: 4 sesi
         $fridaySessions = Session::query()
-            ->where('session_date', '2026-11-13')
+            ->where('session_date', $monday->addDays(4)->toDateString())
             ->where('status', 'tersedia')
             ->orderBy('start_time')
             ->pluck('start_time')
@@ -108,7 +108,7 @@ class ScheduleStandardSessionTimesTest extends TestCase
 
         // Sabtu: 4 sesi
         $saturdaySessions = Session::query()
-            ->where('session_date', '2026-11-14')
+            ->where('session_date', $monday->addDays(5)->toDateString())
             ->where('status', 'tersedia')
             ->orderBy('start_time')
             ->pluck('start_time')
@@ -118,7 +118,7 @@ class ScheduleStandardSessionTimesTest extends TestCase
 
         // Minggu: 4 sesi
         $sundaySessions = Session::query()
-            ->where('session_date', '2026-11-15')
+            ->where('session_date', $monday->addDays(6)->toDateString())
             ->where('status', 'tersedia')
             ->orderBy('start_time')
             ->pluck('start_time')
