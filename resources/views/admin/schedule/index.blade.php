@@ -24,206 +24,212 @@
         </div>
     @endif
 
-    {{-- Sesi 14 Hari ke Depan (Rombak Total: Baris per sesi, tanpa dropdown film/status, switch otomatis) --}}
-    <section class="mt-8" x-data="{
-        showMoreDays: false,
-        openSessionId: null,
+    <script>
+    function scheduleManager() {
+        return {
+            showMoreDays: false,
+            openSessionId: null,
 
-        // Modal Tambah Sesi
-        addModalOpen: false,
-        addSessionDate: '',
-        addSessionDateHeading: '',
-        addStartTime: '19:00',
-        addDurationMinutes: 120,
-        addFilmId: '',
-        addIsPrivate: false,
-        addStatus: 'tersedia',
+            // Modal Tambah Sesi
+            addModalOpen: false,
+            addSessionDate: '',
+            addSessionDateHeading: '',
+            addStartTime: '12:00',
+            addDurationMinutes: 120,
+            addFilmId: '',
+            addIsPrivate: false,
+            addStatus: 'tersedia',
 
-        openAddSessionModal(dateStr, heading) {
-            this.addSessionDate = dateStr;
-            this.addSessionDateHeading = heading;
-            this.addStartTime = '19:00';
-            this.addDurationMinutes = 120;
-            this.addFilmId = '';
-            this.addIsPrivate = false;
-            this.addStatus = 'tersedia';
-            this.addModalOpen = true;
-        },
+            openAddSessionModal(dateStr, heading) {
+                this.addSessionDate = dateStr;
+                this.addSessionDateHeading = heading;
+                this.addStartTime = '12:00';
+                this.addDurationMinutes = 120;
+                this.addFilmId = '';
+                this.addIsPrivate = false;
+                this.addStatus = 'tersedia';
+                this.addModalOpen = true;
+            },
 
-        // Modal Edit Sesi
-        editModalOpen: false,
-        editSubmitting: false,
-        editSessionId: null,
-        editSessionActionUrl: '',
-        editSessionDate: '',
-        editSessionDateHeading: '',
-        editStartTime: '',
-        editOriginalStartTime: '',
-        editDurationMinutes: 120,
-        editFilmId: '',
-        editIsPrivate: false,
-        editStatus: 'tersedia',
-        editBookingsCount: 0,
-        editConfirmReschedule: false,
+            // Modal Edit Sesi
+            editModalOpen: false,
+            editSubmitting: false,
+            editSessionId: null,
+            editSessionActionUrl: '',
+            editSessionDate: '',
+            editSessionDateHeading: '',
+            editStartTime: '',
+            editOriginalStartTime: '',
+            editDurationMinutes: 120,
+            editFilmId: '',
+            editIsPrivate: false,
+            editStatus: 'tersedia',
+            editBookingsCount: 0,
+            editConfirmReschedule: false,
 
-        openEditSessionModal(data, event = null) {
-            let btn = event ? event.currentTarget : null;
-            let startTime = btn && btn.dataset.startTime ? btn.dataset.startTime : data.start_time;
-            let duration = btn && btn.dataset.durationMinutes ? parseInt(btn.dataset.durationMinutes) : (data.duration_minutes || 120);
-            let filmId = btn && btn.dataset.filmId !== undefined ? btn.dataset.filmId : (data.film_id ? String(data.film_id) : '');
-            let status = btn && btn.dataset.status ? btn.dataset.status : (data.status || 'tersedia');
-            let isPrivate = btn && btn.dataset.isPrivate !== undefined ? btn.dataset.isPrivate === '1' : Boolean(data.is_private);
+            openEditSessionModal(data, event = null) {
+                let btn = event ? event.currentTarget : null;
+                let startTime = btn && btn.dataset.startTime ? btn.dataset.startTime : data.start_time;
+                let duration = btn && btn.dataset.durationMinutes ? parseInt(btn.dataset.durationMinutes) : (data.duration_minutes || 120);
+                let filmId = btn && btn.dataset.filmId !== undefined ? btn.dataset.filmId : (data.film_id ? String(data.film_id) : '');
+                let status = btn && btn.dataset.status ? btn.dataset.status : (data.status || 'tersedia');
+                let isPrivate = btn && btn.dataset.isPrivate !== undefined ? btn.dataset.isPrivate === '1' : Boolean(data.is_private);
 
-            this.editSessionId = data.id;
-            this.editSessionActionUrl = `/admin/jadwal/sesi/${data.id}`;
-            this.editSessionDate = data.session_date;
-            this.editSessionDateHeading = data.date_heading;
-            this.editStartTime = startTime;
-            this.editOriginalStartTime = startTime;
-            this.editDurationMinutes = duration;
-            this.editFilmId = filmId;
-            this.editIsPrivate = isPrivate;
-            this.editStatus = status;
-            this.editBookingsCount = data.bookings_count || 0;
-            this.editConfirmReschedule = false;
-            this.editSubmitting = false;
-            this.editModalOpen = true;
-        },
-
-        async submitEditSession(event) {
-            if (this.editStartTime !== this.editOriginalStartTime && this.editBookingsCount > 0 && !this.editConfirmReschedule) {
-                return;
-            }
-            this.editSubmitting = true;
-            const form = event.target;
-            const formData = new FormData(form);
-            const csrfToken = document.querySelector('meta[name=csrf-token]') ? document.querySelector('meta[name=csrf-token]').content : '';
-
-            try {
-                const response = await fetch(this.editSessionActionUrl, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: formData,
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.status === 'ok') {
-                    this.editModalOpen = false;
-                    window.showToast({ type: 'success', message: data.message || 'Sesi berhasil diperbarui.' });
-
-                    // Update row in DOM without full page reload
-                    const row = document.getElementById('session-' + this.editSessionId);
-                    if (row && data.session) {
-                        row.querySelectorAll('.session-start-time').forEach(el => {
-                            if (data.session.start_time_formatted) {
-                                el.textContent = data.session.start_time_formatted;
-                            }
-                        });
-
-                        row.querySelectorAll('.session-film-container').forEach(el => {
-                            if (data.session.film_title) {
-                                el.innerHTML = `<div class="flex items-center gap-1.5 truncate"><span class="truncate font-black text-sm text-emerald-600 dark:text-emerald-400" title="${data.session.film_title}">${data.session.film_title}</span><span class="shrink-0 text-[10px] font-black text-emerald-500 px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30">Terkunci</span></div>`;
-                            } else {
-                                el.innerHTML = `<span class="text-xs text-text-muted italic">Belum ada film</span>`;
-                            }
-                        });
-
-                        row.querySelectorAll('.session-status-toggle').forEach(input => {
-                            input.checked = (data.session.status === 'tersedia');
-                        });
-                        row.querySelectorAll('.session-status-label').forEach(label => {
-                            label.textContent = (data.session.status === 'tersedia' ? 'Buka' : 'Tutup');
-                        });
-
-                        document.querySelectorAll(`[data-session-id="${data.session.id}"]`).forEach(btn => {
-                            btn.setAttribute('data-start-time', data.session.start_time);
-                            btn.setAttribute('data-duration-minutes', data.session.duration_minutes);
-                            btn.setAttribute('data-film-id', data.session.film_id || '');
-                            btn.setAttribute('data-status', data.session.status);
-                            btn.setAttribute('data-is-private', data.session.is_private ? '1' : '0');
-                        });
-                    }
-                } else if (data.requires_confirmation) {
-                    this.editBookingsCount = data.affected_count || 1;
-                    window.showToast({ type: 'warning', message: data.message });
-                } else if (data.errors) {
-                    const firstErr = Object.values(data.errors)[0];
-                    const msg = Array.isArray(firstErr) ? firstErr[0] : firstErr;
-                    window.showToast({ type: 'error', message: msg || 'Terjadi kesalahan validasi.' });
-                } else {
-                    window.showToast({ type: 'error', message: data.message || 'Gagal menyimpan perubahan sesi.' });
-                }
-            } catch (err) {
-                window.showToast({ type: 'error', message: 'Koneksi terputus saat menyimpan sesi.' });
-            } finally {
+                this.editSessionId = data.id;
+                this.editSessionActionUrl = `/admin/jadwal/sesi/${data.id}`;
+                this.editSessionDate = data.session_date;
+                this.editSessionDateHeading = data.date_heading;
+                this.editStartTime = startTime;
+                this.editOriginalStartTime = startTime;
+                this.editDurationMinutes = duration;
+                this.editFilmId = filmId;
+                this.editIsPrivate = isPrivate;
+                this.editStatus = status;
+                this.editBookingsCount = data.bookings_count || 0;
+                this.editConfirmReschedule = false;
                 this.editSubmitting = false;
-            }
-        },
+                this.editModalOpen = true;
+            },
 
-        toggleSession(sessionId, event) {
-            event.stopPropagation();
-            const checkbox = event.target;
-            const targetStatus = checkbox.checked ? 'tersedia' : 'ditutup';
-            const csrfToken = document.querySelector('meta[name=csrf-token]') ? document.querySelector('meta[name=csrf-token]').content : '';
+            async submitEditSession(event) {
+                if (this.editStartTime !== this.editOriginalStartTime && this.editBookingsCount > 0 && !this.editConfirmReschedule) {
+                    return;
+                }
+                this.editSubmitting = true;
+                const form = event.target;
+                const formData = new FormData(form);
+                const csrfToken = document.querySelector('meta[name=csrf-token]') ? document.querySelector('meta[name=csrf-token]').content : '';
 
-            fetch(`/admin/jadwal/sesi/${sessionId}/toggle`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ status: targetStatus })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.requires_confirmation) {
-                    checkbox.checked = !checkbox.checked; // kembalikan sementara
-                    window.openConfirmModal({
-                        title: 'Tutup Sesi Ini?',
-                        message: data.message,
-                        confirmText: 'Ya, Tutup Sesi & Batalkan Booking',
-                        isDanger: true,
-                        onConfirm: () => {
-                            fetch(`/admin/jadwal/sesi/${sessionId}/toggle`, {
-                                method: 'PATCH',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': csrfToken,
-                                    'Accept': 'application/json'
-                                },
-                                body: JSON.stringify({ status: 'ditutup', confirmed: true })
-                            })
-                            .then(r => r.json())
-                            .then(confirmData => {
-                                if (confirmData.status === 'ok') {
-                                    checkbox.checked = false;
-                                    window.showToast({ type: 'success', message: confirmData.message });
-                                    setTimeout(() => window.location.reload(), 500);
-                                } else {
-                                    window.showToast({ type: 'error', message: confirmData.message || 'Gagal menutup sesi.' });
+                try {
+                    const response = await fetch(this.editSessionActionUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: formData,
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.status === 'ok') {
+                        this.editModalOpen = false;
+                        window.showToast({ type: 'success', message: data.message || 'Sesi berhasil diperbarui.' });
+
+                        // Update row in DOM without full page reload
+                        const row = document.getElementById('session-' + this.editSessionId);
+                        if (row && data.session) {
+                            row.querySelectorAll('.session-start-time').forEach(el => {
+                                if (data.session.start_time_formatted) {
+                                    el.textContent = data.session.start_time_formatted;
                                 }
                             });
+
+                            row.querySelectorAll('.session-film-container').forEach(el => {
+                                if (data.session.film_title) {
+                                    el.innerHTML = `<div class="flex items-center gap-1.5 truncate"><span class="truncate font-black text-sm text-emerald-600 dark:text-emerald-400" title="${data.session.film_title}">${data.session.film_title}</span><span class="shrink-0 text-[10px] font-black text-emerald-500 px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30">Terkunci</span></div>`;
+                                } else {
+                                    el.innerHTML = `<span class="text-xs text-text-muted italic">Belum ada film</span>`;
+                                }
+                            });
+
+                            row.querySelectorAll('.session-status-toggle').forEach(input => {
+                                input.checked = (data.session.status === 'tersedia');
+                            });
+                            row.querySelectorAll('.session-status-label').forEach(label => {
+                                label.textContent = (data.session.status === 'tersedia' ? 'Buka' : 'Tutup');
+                            });
+
+                            document.querySelectorAll(`[data-session-id="${data.session.id}"]`).forEach(btn => {
+                                btn.setAttribute('data-start-time', data.session.start_time);
+                                btn.setAttribute('data-duration-minutes', data.session.duration_minutes);
+                                btn.setAttribute('data-film-id', data.session.film_id || '');
+                                btn.setAttribute('data-status', data.session.status);
+                                btn.setAttribute('data-is-private', data.session.is_private ? '1' : '0');
+                            });
                         }
-                    });
-                } else if (data.status === 'ok') {
-                    window.showToast({ type: 'success', message: data.message });
-                } else {
-                    checkbox.checked = !checkbox.checked;
-                    window.showToast({ type: 'error', message: data.message || 'Gagal mengubah status sesi.' });
+                    } else if (data.requires_confirmation) {
+                        this.editBookingsCount = data.affected_count || 1;
+                        window.showToast({ type: 'warning', message: data.message });
+                    } else if (data.errors) {
+                        const firstErr = Object.values(data.errors)[0];
+                        const msg = Array.isArray(firstErr) ? firstErr[0] : firstErr;
+                        window.showToast({ type: 'error', message: msg || 'Terjadi kesalahan validasi.' });
+                    } else {
+                        window.showToast({ type: 'error', message: data.message || 'Gagal menyimpan perubahan sesi.' });
+                    }
+                } catch (err) {
+                    window.showToast({ type: 'error', message: 'Koneksi terputus saat menyimpan sesi.' });
+                } finally {
+                    this.editSubmitting = false;
                 }
-            })
-            .catch(() => {
-                checkbox.checked = !checkbox.checked;
-                window.showToast({ type: 'error', message: 'Koneksi terputus saat mengubah status sesi.' });
-            });
-        }
-    }">
+            },
+
+            toggleSession(sessionId, event) {
+                event.stopPropagation();
+                const checkbox = event.target;
+                const targetStatus = checkbox.checked ? 'tersedia' : 'ditutup';
+                const csrfToken = document.querySelector('meta[name=csrf-token]') ? document.querySelector('meta[name=csrf-token]').content : '';
+
+                fetch(`/admin/jadwal/sesi/${sessionId}/toggle`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ status: targetStatus })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.requires_confirmation) {
+                        checkbox.checked = !checkbox.checked; // kembalikan sementara
+                        window.openConfirmModal({
+                            title: 'Tutup Sesi Ini?',
+                            message: data.message,
+                            confirmText: 'Ya, Tutup Sesi & Batalkan Booking',
+                            isDanger: true,
+                            onConfirm: () => {
+                                fetch(`/admin/jadwal/sesi/${sessionId}/toggle`, {
+                                    method: 'PATCH',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': csrfToken,
+                                        'Accept': 'application/json'
+                                    },
+                                    body: JSON.stringify({ status: 'ditutup', confirmed: true })
+                                })
+                                .then(r => r.json())
+                                .then(confirmData => {
+                                    if (confirmData.status === 'ok') {
+                                        checkbox.checked = false;
+                                        window.showToast({ type: 'success', message: confirmData.message });
+                                        setTimeout(() => window.location.reload(), 500);
+                                    } else {
+                                        window.showToast({ type: 'error', message: confirmData.message || 'Gagal menutup sesi.' });
+                                    }
+                                });
+                            }
+                        });
+                    } else if (data.status === 'ok') {
+                        window.showToast({ type: 'success', message: data.message });
+                    } else {
+                        checkbox.checked = !checkbox.checked;
+                        window.showToast({ type: 'error', message: data.message || 'Gagal mengubah status sesi.' });
+                    }
+                })
+                .catch(() => {
+                    checkbox.checked = !checkbox.checked;
+                    window.showToast({ type: 'error', message: 'Koneksi terputus saat mengubah status sesi.' });
+                });
+            }
+        };
+    }
+    </script>
+
+    {{-- Sesi 14 Hari ke Depan (Rombak Total: Baris per sesi, tanpa dropdown film/status, switch otomatis) --}}
+    <section class="mt-8" x-data="scheduleManager()">
         <div class="flex items-center justify-between gap-4">
             <div>
                 <h2 class="text-xl font-bold">Sesi 14 hari ke depan</h2>
