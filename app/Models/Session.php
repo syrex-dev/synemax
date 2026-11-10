@@ -154,7 +154,11 @@ class Session extends Model
     {
         $settingCapacity = app(CinemaSettings::class)->capacityPerSession();
 
-        return (int) ($this->capacity > 0 ? $this->capacity : $settingCapacity);
+        if ($this->capacity > 0 && ($this->capacity !== 6 || $settingCapacity === 6)) {
+            return (int) $this->capacity;
+        }
+
+        return (int) ($settingCapacity > 0 ? $settingCapacity : ($this->capacity > 0 ? $this->capacity : 6));
     }
 
     public function quorum(): int

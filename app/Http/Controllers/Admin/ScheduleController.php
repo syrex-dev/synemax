@@ -10,6 +10,7 @@ use App\Models\Holiday;
 use App\Models\ScheduleTemplate;
 use App\Models\Session;
 use App\Services\BookingService;
+use App\Services\CinemaSettings;
 use App\Services\ScheduleResolver;
 use App\Services\SessionGenerationService;
 use App\Services\SnackOrderService;
@@ -255,6 +256,7 @@ class ScheduleController extends Controller
             'start_time' => $startTime,
             'end_time' => $endTime,
             'film_id' => $validated['film_id'] ?? null,
+            'capacity' => app(CinemaSettings::class)->capacityPerSession(),
             'is_private' => $request->boolean('is_private'),
             'status' => $validated['status'],
         ]);

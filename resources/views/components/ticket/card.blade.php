@@ -119,7 +119,7 @@
         <div>
             <span class="text-[12px] font-medium text-[#475569] block">Paket</span>
             <span class="text-[16px] font-bold text-[#0F172A] block">
-                {{ $booking->isPrivate() ? 'Sewa Private · 6 orang' : ($booking->isCouple() ? 'Paket Couple · 2 orang' : 'Reguler · ' . ($booking->people_count ?? $booking->pax) . ' orang') }}
+                {{ $booking->isPrivate() ? ('Sewa Private · ' . ($booking->seats_reserved ?: 6) . ' orang') : ($booking->isCouple() ? 'Paket Couple · 2 orang' : 'Reguler · ' . ($booking->people_count ?? $booking->pax) . ' orang') }}
             </span>
             <span class="sr-only">Paket</span>
         </div>
@@ -234,7 +234,7 @@
         {{-- Baris Tiket --}}
         <div class="flex justify-between text-slate-600">
             <span>
-                Tiket ({{ $booking->isPrivate() ? 'Sewa Private · 6 orang' : ($booking->isCouple() ? 'Paket Couple · 2 orang' : 'Reguler · ' . ($booking->people_count ?? $booking->pax) . ' orang') }})
+                Tiket ({{ $booking->isPrivate() ? ('Sewa Private · ' . ($booking->seats_reserved ?: 6) . ' orang') : ($booking->isCouple() ? 'Paket Couple · 2 orang' : 'Reguler · ' . ($booking->people_count ?? $booking->pax) . ' orang') }})
             </span>
             <span class="font-semibold text-slate-900 tabular-nums">
                 Rp {{ number_format($booking->ticket_total, 0, ',', '.') }}

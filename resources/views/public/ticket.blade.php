@@ -617,8 +617,8 @@
                                 <div class="flex items-center gap-2">
                                     <input type="radio" name="package" value="private" class="sr-only" {{ ! $canUpgradeCouple ? 'checked' : '' }}>
                                     <div>
-                                        <p class="text-xs font-bold text-text">Sewa Studio Privat (6 orang)</p>
-                                        <p class="text-[10px] text-text-muted">Kunci seluruh 6 tempat studio.</p>
+                                        <p class="text-xs font-bold text-text">Sewa Studio Privat ({{ (int) $session->seatCapacity() }} orang)</p>
+                                        <p class="text-[10px] text-text-muted">Kunci seluruh {{ (int) $session->seatCapacity() }} tempat studio.</p>
                                     </div>
                                 </div>
                                 <div class="text-right">

@@ -318,7 +318,7 @@
                 <div class="mt-3.5 pt-3 border-t border-border space-y-2 text-xs">
                     <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Rincian Pembayaran</p>
                     <div class="flex justify-between items-center text-text-muted">
-                        <span>Tiket ({{ $booking->isPrivate() ? 'Sewa Private (6 orang)' : ($booking->isCouple() ? 'Paket Couple' : ($booking->seat_price ? $booking->pax . ' × Rp ' . number_format($booking->seat_price, 0, ',', '.') : $booking->pax . ' orang')) }})</span>
+                        <span>Tiket ({{ $booking->isPrivate() ? ('Sewa Private (' . ($booking->seats_reserved ?: 6) . ' orang)') : ($booking->isCouple() ? 'Paket Couple' : ($booking->seat_price ? $booking->pax . ' × Rp ' . number_format($booking->seat_price, 0, ',', '.') : $booking->pax . ' orang')) }})</span>
                         <span class="font-tabular font-bold text-text">Rp {{ number_format($booking->ticket_total, 0, ',', '.') }}</span>
                     </div>
 

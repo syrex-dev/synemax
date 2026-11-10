@@ -473,8 +473,13 @@ class SettingController extends Controller
             Session::query()
                 ->where('session_date', '>=', now(config('app.timezone'))->toDateString())
                 ->where('status', 'tersedia')
-                ->whereDoesntHave('occupiedBookings')
-                ->update(['capacity' => $newCapacity]);
+                ->get()
+                ->each(function (Session $session) use ($newCapacity) {
+                    $occupied = (int) $session->occupiedBookings()->sum('seats_reserved');
+                    if ($newCapacity >= $occupied) {
+                        $session->update(['capacity' => $newCapacity]);
+                    }
+                });
         }
 
         $settings->set('enabled_payment_methods', $paymentMethods, 'operasional');

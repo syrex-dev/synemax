@@ -641,8 +641,8 @@
             <input type="hidden" name="wizard_step" value="5">
             <input type="hidden" name="package" :value="package">
             <input type="hidden" name="booking_type" :value="package === 'private' ? 'private' : (package === 'couple' ? 'couple' : 'per_orang')">
-            <input type="hidden" name="pax" :value="package === 'private' ? 6 : (package === 'couple' ? 2 : pax)">
-            <input type="hidden" name="people_count" :value="package === 'private' ? 6 : (package === 'couple' ? 2 : pax)">
+            <input type="hidden" name="pax" :value="package === 'private' ? totalCapacity : (package === 'couple' ? 2 : pax)">
+            <input type="hidden" name="people_count" :value="package === 'private' ? totalCapacity : (package === 'couple' ? 2 : pax)">
             <input type="hidden" name="film_id" :value="filmId">
             <input type="hidden" name="payment_method" :value="paymentMethod">
             <input type="hidden" name="promo_code" :value="promoApplied || ''">
