@@ -25,7 +25,7 @@ use Illuminate\Support\Collection;
 ])]
 class Session extends Model
 {
-    public const MAX_CAPACITY = 6;
+    public const MAX_CAPACITY = 20;
 
     protected $table = 'screening_sessions';
 
@@ -152,7 +152,9 @@ class Session extends Model
 
     public function seatCapacity(): int
     {
-        return min(self::MAX_CAPACITY, $this->capacity);
+        $settingCapacity = app(CinemaSettings::class)->capacityPerSession();
+
+        return (int) ($this->capacity > 0 ? $this->capacity : $settingCapacity);
     }
 
     public function quorum(): int
@@ -466,7 +468,7 @@ class Session extends Model
             ];
         }
 
-        if ($this->seatCapacity() < self::MAX_CAPACITY) {
+        if ($this->seatCapacity() < app(CinemaSettings::class)->capacityPerSession()) {
             return [
                 'allowed' => false,
                 'reason' => 'Kapasitas sesi tidak mencukupi untuk sewa privat.',

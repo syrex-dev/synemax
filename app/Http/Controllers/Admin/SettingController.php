@@ -466,6 +466,15 @@ class SettingController extends Controller
             }
         }
 
+        if (isset($data['capacity_per_session'])) {
+            $newCapacity = (int) $data['capacity_per_session'];
+            Session::query()
+                ->where('session_date', '>=', now(config('app.timezone'))->toDateString())
+                ->where('status', 'tersedia')
+                ->whereDoesntHave('occupiedBookings')
+                ->update(['capacity' => $newCapacity]);
+        }
+
         $settings->set('enabled_payment_methods', $paymentMethods, 'operasional');
 
         if (count($warnings) > 0) {

@@ -40,6 +40,7 @@
         sessions: {{ Js::from($sessionData) }},
         films: {{ Js::from($filmsData) }},
         initialSessionId: {{ $initialSession['id'] ?? 'null' }},
+        maxPax: {{ (int) $settings->capacityPerSession() }},
         lookupUrl: '{{ route('admin.bookings.member_lookup') }}',
         adminWhatsapp: '{{ $settings->string('admin_whatsapp') ?: '080000000000' }}'
     })"
@@ -233,7 +234,7 @@
                             <span class="flex size-7 items-center justify-center rounded-lg bg-amber-500 text-slate-950 font-black text-xs">2</span>
                             <h2 class="text-base font-black text-text">Paket & Jumlah Penonton</h2>
                         </div>
-                        <span class="text-xs text-text-muted">Kapasitas maksimal 6 orang</span>
+                        <span class="text-xs text-text-muted" x-text="'Kapasitas maksimal ' + (currentSession?.capacity || maxPax) + ' orang'"></span>
                     </div>
 
                     {{-- Pilihan Paket --}}
@@ -250,7 +251,7 @@
                                 <span class="text-sm font-bold text-text">Reguler</span>
                                 <input type="radio" name="package_radio" value="reguler" x-model="packageType" class="text-amber-500 focus:ring-amber-500">
                             </div>
-                            <span class="mt-1 text-xs text-text-muted">Per orang (1 - 6 orang)</span>
+                            <span class="mt-1 text-xs text-text-muted" x-text="'Per orang (1 - ' + (currentSession?.capacity || maxPax) + ' orang)'"></span>
                             <span class="mt-2 text-xs font-bold text-amber-600 dark:text-amber-400" x-text="formatRupiah(currentSession?.regular_price || 5000) + ' / orang'"></span>
                         </label>
 
@@ -284,7 +285,7 @@
                                 <span class="text-sm font-bold text-text">Sewa Privat</span>
                                 <input type="radio" name="package_radio" value="private" x-model="packageType" :disabled="currentSession && currentSession.remaining_seats < currentSession.capacity" class="text-amber-500 focus:ring-amber-500">
                             </div>
-                            <span class="mt-1 text-xs text-text-muted">1 Studio penuh (maks 6 orang)</span>
+                            <span class="mt-1 text-xs text-text-muted" x-text="'1 Studio penuh (maks ' + (currentSession?.capacity || maxPax) + ' orang)'"></span>
                             <span class="mt-2 text-xs font-bold text-amber-600 dark:text-amber-400" x-text="formatRupiah(currentSession?.private_price || 30000)"></span>
                         </label>
                     </div>
@@ -293,7 +294,7 @@
                     <div x-show="packageType === 'reguler'" class="mt-4 pt-4 border-t border-border/60">
                         <label class="block text-xs font-bold uppercase tracking-wider text-text-muted mb-2">Jumlah Orang (Anak)</label>
                         <div class="flex flex-wrap gap-2">
-                            <template x-for="n in 6" :key="n">
+                            <template x-for="n in (currentSession ? currentSession.capacity : maxPax)" :key="n">
                                 <button
                                     type="button"
                                     @click="pax = n"
@@ -591,182 +592,184 @@
             </div>
 
             {{-- KOLOM KANAN: KASIR & STRUK RINGKASAN (4 kolom desktop sticky) --}}
-            <div class="w-full min-w-0 lg:col-span-4 sticky top-6 space-y-5">
-                <div class="rounded-2xl border-2 border-border bg-surface p-5 shadow-lg">
-                    <div class="flex items-center justify-between pb-3 border-b border-border">
+            <div class="w-full min-w-0 lg:col-span-4 lg:sticky lg:top-4">
+                <div class="rounded-2xl border-2 border-border bg-surface p-4 sm:p-5 shadow-lg flex flex-col lg:max-h-[calc(100vh-2rem)]">
+                    <div class="flex items-center justify-between pb-3 border-b border-border shrink-0">
                         <h2 class="text-base font-black text-text">Ringkasan Tagihan</h2>
                         <span class="rounded bg-accent/15 px-2 py-0.5 text-xs font-bold text-accent">Kasir Loket</span>
                     </div>
 
-                    {{-- Detail Rincian Sesi & Film --}}
-                    <div class="mt-4 space-y-2 text-xs border-b border-border/60 pb-3">
-                        <div class="flex justify-between">
-                            <span class="text-text-muted">Sesi:</span>
-                            <span class="font-bold text-text text-right" x-text="(currentSession?.time_formatted || '-') + ' · ' + (currentSession?.date_formatted || '-')"></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-text-muted">Film:</span>
-                            <span class="font-bold text-text text-right truncate max-w-[180px]" x-text="resolvedFilmTitle"></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-text-muted">Paket:</span>
-                            <span class="font-bold text-text capitalize" x-text="packageType === 'private' ? 'Sewa Privat (6 org)' : (packageType === 'couple' ? 'Couple (2 org)' : 'Reguler (' + pax + ' org)')"></span>
-                        </div>
-                        <template x-if="memberFound">
-                            <div class="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
-                                <span>Member:</span>
-                                <span class="truncate max-w-[180px]" x-text="memberFound.display_name"></span>
+                    {{-- Scrollable content body --}}
+                    <div class="flex-1 overflow-y-auto space-y-4 pr-1 my-2">
+                        {{-- Detail Rincian Sesi & Film --}}
+                        <div class="space-y-2 text-xs border-b border-border/60 pb-3">
+                            <div class="flex justify-between">
+                                <span class="text-text-muted">Sesi:</span>
+                                <span class="font-bold text-text text-right" x-text="(currentSession?.time_formatted || '-') + ' · ' + (currentSession?.date_formatted || '-')"></span>
                             </div>
-                        </template>
-                    </div>
-
-                    {{-- Hitungan Biaya --}}
-                    <div class="mt-3 space-y-1.5 text-xs">
-                        <div class="flex justify-between">
-                            <span class="text-text-muted">Subtotal Tiket:</span>
-                            <span class="font-bold text-text" x-text="formatRupiah(ticketSubtotalBeforeDiscount)"></span>
-                        </div>
-                        <template x-if="memberDiscount > 0">
-                            <div class="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
-                                <span>Diskon Member:</span>
-                                <span x-text="'-' + formatRupiah(memberDiscount)"></span>
+                            <div class="flex justify-between">
+                                <span class="text-text-muted">Film:</span>
+                                <span class="font-bold text-text text-right truncate max-w-[180px]" x-text="resolvedFilmTitle"></span>
                             </div>
-                        </template>
-                        <div class="flex justify-between">
-                            <span class="text-text-muted">Subtotal Jajanan:</span>
-                            <span class="font-bold text-text" x-text="formatRupiah(snackTotal)"></span>
+                            <div class="flex justify-between">
+                                <span class="text-text-muted">Paket:</span>
+                                <span class="font-bold text-text capitalize" x-text="packageType === 'private' ? ('Sewa Privat (' + (currentSession?.capacity || maxPax) + ' org)') : (packageType === 'couple' ? 'Couple (2 org)' : 'Reguler (' + pax + ' org)')"></span>
+                            </div>
+                            <template x-if="memberFound">
+                                <div class="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
+                                    <span>Member:</span>
+                                    <span class="truncate max-w-[180px]" x-text="memberFound.display_name"></span>
+                                </div>
+                            </template>
                         </div>
-                    </div>
 
-                    {{-- GRAND TOTAL TAGIHAN --}}
-                    <div class="mt-4 pt-3 border-t-2 border-border flex items-baseline justify-between">
-                        <div>
-                            <span class="text-xs font-black uppercase tracking-wider text-text-muted">Total Bayar</span>
-                            <p class="text-[10px] text-text-muted">Termasuk tiket & jajan</p>
+                        {{-- Hitungan Biaya --}}
+                        <div class="space-y-1.5 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-text-muted">Subtotal Tiket:</span>
+                                <span class="font-bold text-text" x-text="formatRupiah(ticketSubtotalBeforeDiscount)"></span>
+                            </div>
+                            <template x-if="memberDiscount > 0">
+                                <div class="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
+                                    <span>Diskon Member:</span>
+                                    <span x-text="'-' + formatRupiah(memberDiscount)"></span>
+                                </div>
+                            </template>
+                            <div class="flex justify-between">
+                                <span class="text-text-muted">Subtotal Jajanan:</span>
+                                <span class="font-bold text-text" x-text="formatRupiah(snackTotal)"></span>
+                            </div>
                         </div>
-                        <div class="text-2xl font-black text-accent tracking-tight" x-text="formatRupiah(grandTotal)"></div>
-                    </div>
 
-                    {{-- Metode Pembayaran --}}
-                    <div class="mt-5 pt-4 border-t border-border">
-                        <label class="block text-xs font-bold uppercase tracking-wider text-text-muted mb-2">Metode Bayar</label>
-                        <div class="grid grid-cols-3 gap-2">
-                            <label
-                                :class="{
-                                    'bg-amber-500 text-slate-950 font-black shadow-sm': paymentMethod === 'di_tempat',
-                                    'bg-bg border border-border text-text hover:bg-surface-2': paymentMethod !== 'di_tempat'
-                                }"
-                                class="flex items-center justify-center p-2 rounded-xl text-xs font-bold cursor-pointer transition text-center"
-                            >
-                                <input type="radio" name="payment_method" value="di_tempat" x-model="paymentMethod" class="sr-only">
-                                <span>Tunai</span>
+                        {{-- Metode Pembayaran --}}
+                        <div class="pt-3 border-t border-border">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-text-muted mb-2">Metode Bayar</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <label
+                                    :class="{
+                                        'bg-amber-500 text-slate-950 font-black shadow-sm': paymentMethod === 'di_tempat',
+                                        'bg-bg border border-border text-text hover:bg-surface-2': paymentMethod !== 'di_tempat'
+                                    }"
+                                    class="flex items-center justify-center p-2 rounded-xl text-xs font-bold cursor-pointer transition text-center"
+                                >
+                                    <input type="radio" name="payment_method" value="di_tempat" x-model="paymentMethod" class="sr-only">
+                                    <span>Tunai</span>
+                                </label>
+                                <label
+                                    :class="{
+                                        'bg-amber-500 text-slate-950 font-black shadow-sm': paymentMethod === 'qris',
+                                        'bg-bg border border-border text-text hover:bg-surface-2': paymentMethod !== 'qris'
+                                    }"
+                                    class="flex items-center justify-center p-2 rounded-xl text-xs font-bold cursor-pointer transition text-center"
+                                >
+                                    <input type="radio" name="payment_method" value="qris" x-model="paymentMethod" class="sr-only">
+                                    <span>QRIS</span>
+                                </label>
+                                <label
+                                    :class="{
+                                        'bg-amber-500 text-slate-950 font-black shadow-sm': paymentMethod === 'transfer',
+                                        'bg-bg border border-border text-text hover:bg-surface-2': paymentMethod !== 'transfer'
+                                    }"
+                                    class="flex items-center justify-center p-2 rounded-xl text-xs font-bold cursor-pointer transition text-center"
+                                >
+                                    <input type="radio" name="payment_method" value="transfer" x-model="paymentMethod" class="sr-only">
+                                    <span>Transfer</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {{-- KALKULATOR UANG TUNAI & KEMBALIAN (Khusus Pembayaran Tunai) --}}
+                        <div x-show="paymentMethod === 'di_tempat'" class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <label class="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Uang Tunai Diterima</label>
+                                <button
+                                    type="button"
+                                    @click="setExactCash()"
+                                    class="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+                                >
+                                    Uang Pas
+                                </button>
+                            </div>
+
+                            {{-- Tombol Cepat Pecahan Uang --}}
+                            <div class="grid grid-cols-3 gap-1.5">
+                                <button type="button" @click="setCash(5000)" class="rounded-lg border border-border bg-surface py-1 text-xs font-bold text-text hover:bg-surface-2 transition cursor-pointer">5.000</button>
+                                <button type="button" @click="setCash(10000)" class="rounded-lg border border-border bg-surface py-1 text-xs font-bold text-text hover:bg-surface-2 transition cursor-pointer">10.000</button>
+                                <button type="button" @click="setCash(20000)" class="rounded-lg border border-border bg-surface py-1 text-xs font-bold text-text hover:bg-surface-2 transition cursor-pointer">20.000</button>
+                                <button type="button" @click="setCash(50000)" class="rounded-lg border border-border bg-surface py-1 text-xs font-bold text-text hover:bg-surface-2 transition cursor-pointer">50.000</button>
+                                <button type="button" @click="setCash(100000)" class="rounded-lg border border-border bg-surface py-1 text-xs font-bold text-text hover:bg-surface-2 transition cursor-pointer">100.000</button>
+                                <button type="button" @click="cashReceived = ''" class="rounded-lg border border-border bg-surface py-1 text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition cursor-pointer">Reset</button>
+                            </div>
+
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-xs font-bold text-text-muted">Rp</span>
+                                <input
+                                    type="number"
+                                    x-model="cashReceived"
+                                    placeholder="0"
+                                    class="min-h-9 w-full rounded-lg border border-border bg-surface pl-9 pr-3 text-sm font-bold text-text placeholder:text-text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                                >
+                            </div>
+
+                            {{-- Tampilan Kembalian --}}
+                            <div class="rounded-lg bg-surface border border-border p-2 flex items-center justify-between">
+                                <span class="text-xs font-bold text-text-muted">Kembalian:</span>
+                                <span
+                                    :class="{
+                                        'text-emerald-600 dark:text-emerald-400 font-black text-base': changeAmount >= 0,
+                                        'text-rose-500 font-bold text-xs': cashReceivedNumeric > 0 && cashReceivedNumeric < grandTotal
+                                    }"
+                                >
+                                    <span x-show="cashReceivedNumeric >= grandTotal" x-text="formatRupiah(changeAmount)"></span>
+                                    <span x-show="cashReceivedNumeric > 0 && cashReceivedNumeric < grandTotal" x-text="'Kurang ' + formatRupiah(grandTotal - cashReceivedNumeric)"></span>
+                                    <span x-show="!cashReceivedNumeric" class="text-text-muted text-xs">-</span>
+                                </span>
+                            </div>
+                        </div>
+
+                        {{-- Status Hadir Langsung --}}
+                        <div class="pt-3 border-t border-border">
+                            <label class="flex items-start gap-2.5 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    x-model="markAsAttended"
+                                    class="mt-0.5 rounded text-amber-500 focus:ring-amber-500"
+                                >
+                                <div>
+                                    <span class="text-xs font-bold text-text block">Langsung Masuk Studio (Tandai Hadir)</span>
+                                    <span class="text-[11px] text-text-muted block">Tiket langsung berstatus hadir tanpa perlu scan di pintu lagi.</span>
+                                </div>
                             </label>
-                            <label
-                                :class="{
-                                    'bg-amber-500 text-slate-950 font-black shadow-sm': paymentMethod === 'qris',
-                                    'bg-bg border border-border text-text hover:bg-surface-2': paymentMethod !== 'qris'
-                                }"
-                                class="flex items-center justify-center p-2 rounded-xl text-xs font-bold cursor-pointer transition text-center"
-                            >
-                                <input type="radio" name="payment_method" value="qris" x-model="paymentMethod" class="sr-only">
-                                <span>QRIS</span>
-                            </label>
-                            <label
-                                :class="{
-                                    'bg-amber-500 text-slate-950 font-black shadow-sm': paymentMethod === 'transfer',
-                                    'bg-bg border border-border text-text hover:bg-surface-2': paymentMethod !== 'transfer'
-                                }"
-                                class="flex items-center justify-center p-2 rounded-xl text-xs font-bold cursor-pointer transition text-center"
-                            >
-                                <input type="radio" name="payment_method" value="transfer" x-model="paymentMethod" class="sr-only">
-                                <span>Transfer</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    {{-- KALKULATOR UANG TUNAI & KEMBALIAN (Khusus Pembayaran Tunai) --}}
-                    <div x-show="paymentMethod === 'di_tempat'" class="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <label class="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Uang Tunai Diterima</label>
-                            <button
-                                type="button"
-                                @click="setExactCash()"
-                                class="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline"
-                            >
-                                Uang Pas
-                            </button>
                         </div>
 
-                        {{-- Tombol Cepat Pecahan Uang --}}
-                        <div class="grid grid-cols-3 gap-1.5">
-                            <button type="button" @click="setCash(5000)" class="rounded-lg border border-border bg-surface py-1 text-xs font-bold text-text hover:bg-surface-2 transition">5.000</button>
-                            <button type="button" @click="setCash(10000)" class="rounded-lg border border-border bg-surface py-1 text-xs font-bold text-text hover:bg-surface-2 transition">10.000</button>
-                            <button type="button" @click="setCash(20000)" class="rounded-lg border border-border bg-surface py-1 text-xs font-bold text-text hover:bg-surface-2 transition">20.000</button>
-                            <button type="button" @click="setCash(50000)" class="rounded-lg border border-border bg-surface py-1 text-xs font-bold text-text hover:bg-surface-2 transition">50.000</button>
-                            <button type="button" @click="setCash(100000)" class="rounded-lg border border-border bg-surface py-1 text-xs font-bold text-text hover:bg-surface-2 transition">100.000</button>
-                            <button type="button" @click="cashReceived = ''" class="rounded-lg border border-border bg-surface py-1 text-xs font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition">Reset</button>
-                        </div>
-
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-xs font-bold text-text-muted">Rp</span>
+                        {{-- Catatan Tambahan --}}
+                        <div class="pt-3 border-t border-border">
+                            <label for="notes" class="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1">Catatan Tambahan</label>
                             <input
-                                type="number"
-                                x-model="cashReceived"
-                                placeholder="0"
-                                class="min-h-10 w-full rounded-lg border border-border bg-surface pl-9 pr-3 text-sm font-bold text-text placeholder:text-text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                                type="text"
+                                id="notes"
+                                name="notes"
+                                x-model="notes"
+                                placeholder="Opsional (misal: rombongan ultah)"
+                                class="min-h-9 w-full rounded-lg border border-border bg-bg px-2.5 text-xs text-text placeholder:text-text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                             >
-                        </div>
-
-                        {{-- Tampilan Kembalian --}}
-                        <div class="rounded-lg bg-surface border border-border p-2.5 flex items-center justify-between">
-                            <span class="text-xs font-bold text-text-muted">Kembalian:</span>
-                            <span
-                                :class="{
-                                    'text-emerald-600 dark:text-emerald-400 font-black text-lg': changeAmount >= 0,
-                                    'text-rose-500 font-bold text-xs': cashReceivedNumeric > 0 && cashReceivedNumeric < grandTotal
-                                }"
-                            >
-                                <span x-show="cashReceivedNumeric >= grandTotal" x-text="formatRupiah(changeAmount)"></span>
-                                <span x-show="cashReceivedNumeric > 0 && cashReceivedNumeric < grandTotal" x-text="'Kurang ' + formatRupiah(grandTotal - cashReceivedNumeric)"></span>
-                                <span x-show="!cashReceivedNumeric" class="text-text-muted text-xs">-</span>
-                            </span>
                         </div>
                     </div>
 
-                    {{-- Status Hadir Langsung --}}
-                    <div class="mt-4 pt-4 border-t border-border">
-                        <label class="flex items-start gap-2.5 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                x-model="markAsAttended"
-                                class="mt-0.5 rounded text-amber-500 focus:ring-amber-500"
-                            >
+                    {{-- PINNED FOOTER: GRAND TOTAL & TOMBOL SUBMIT (SELALU TERLIHAT DI BAWAH) --}}
+                    <div class="pt-3 border-t-2 border-border mt-auto bg-surface shrink-0">
+                        <div class="flex items-baseline justify-between mb-2.5">
                             <div>
-                                <span class="text-xs font-bold text-text block">Langsung Masuk Studio (Tandai Hadir)</span>
-                                <span class="text-[11px] text-text-muted block">Tiket langsung berstatus hadir tanpa perlu scan di pintu lagi.</span>
+                                <span class="text-xs font-black uppercase tracking-wider text-text-muted">Total Bayar</span>
+                                <p class="text-[10px] text-text-muted">Termasuk tiket & jajan</p>
                             </div>
-                        </label>
-                    </div>
+                            <div class="text-2xl font-black text-accent tracking-tight" x-text="formatRupiah(grandTotal)"></div>
+                        </div>
 
-                    {{-- Catatan Tambahan --}}
-                    <div class="mt-4 pt-3 border-t border-border">
-                        <label for="notes" class="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1">Catatan Tambahan</label>
-                        <input
-                            type="text"
-                            id="notes"
-                            name="notes"
-                            x-model="notes"
-                            placeholder="Opsional (misal: rombongan ulang tahun)"
-                            class="min-h-9 w-full rounded-lg border border-border bg-bg px-2.5 text-xs text-text placeholder:text-text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                        >
-                    </div>
-
-                    {{-- Tombol Submit --}}
-                    <div class="mt-5">
                         <button
                             type="submit"
                             :disabled="isSubmitting || !canSubmit"
-                            class="w-full min-h-12 rounded-xl bg-amber-500 px-5 text-sm font-black text-slate-950 shadow-md hover:bg-amber-400 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            class="w-full min-h-12 rounded-xl bg-amber-500 px-5 text-sm font-black text-slate-950 shadow-md hover:bg-amber-400 active:scale-95 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                         >
                             <svg x-show="isSubmitting" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -792,6 +795,7 @@ function walkInPos(config) {
         sessions: config.sessions || [],
         films: config.films || [],
         selectedSessionId: config.initialSessionId,
+        maxPax: config.maxPax || 10,
         packageType: 'reguler',
         pax: 1,
         selectedFilmId: null,

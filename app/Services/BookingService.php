@@ -84,13 +84,13 @@ class BookingService
             }
 
             $pax = match (true) {
-                $isPrivate => Session::MAX_CAPACITY,
+                $isPrivate => $session->seatCapacity(),
                 $isCouple => 2,
                 default => (int) ($data['people_count'] ?? $data['pax'] ?? 1),
             };
 
             $peopleCount = match (true) {
-                $isPrivate => (int) ($data['people_count'] ?? $data['pax'] ?? Session::MAX_CAPACITY),
+                $isPrivate => (int) ($data['people_count'] ?? $data['pax'] ?? $session->seatCapacity()),
                 $isCouple => 2,
                 default => $pax,
             };
@@ -125,8 +125,8 @@ class BookingService
                 if ($session->isPrivateActive()) {
                     $this->reject('booking_type', 'Sesi ini sudah disewa private.');
                 }
-                if ($pax < 1 || $pax > Session::MAX_CAPACITY) {
-                    $this->reject('pax', 'Jumlah orang harus antara 1 sampai 6.');
+                if ($pax < 1 || $pax > $session->seatCapacity()) {
+                    $this->reject('pax', 'Jumlah orang harus antara 1 sampai '.$session->seatCapacity().'.');
                 }
                 if ($pax > $session->remainingSeats()) {
                     $this->reject('pax', 'Jumlah kursi tersisa tidak cukup. Silakan pilih jumlah orang lebih sedikit.');
@@ -162,7 +162,7 @@ class BookingService
             $onlineExpiresAt = $maxTimeByLimit->lessThan($maxTimeBySession) ? $maxTimeByLimit : $maxTimeBySession;
 
             $seatsReserved = match (true) {
-                $isPrivate => Session::MAX_CAPACITY,
+                $isPrivate => $session->seatCapacity(),
                 $isCouple => 2,
                 default => $pax,
             };
@@ -655,9 +655,9 @@ class BookingService
                 $lockedBooking->update([
                     'package' => 'private',
                     'booking_type' => 'private',
-                    'pax' => Session::MAX_CAPACITY,
-                    'seats_reserved' => Session::MAX_CAPACITY,
-                    'people_count' => Session::MAX_CAPACITY,
+                    'pax' => $session->seatCapacity(),
+                    'seats_reserved' => $session->seatCapacity(),
+                    'people_count' => $session->seatCapacity(),
                     'ticket_total' => $newPrice,
                     'total_price' => $lockedBooking->total_price + $diff,
                     'reselect_needed' => false,
@@ -712,8 +712,8 @@ class BookingService
 
             if ($isReguler) {
                 $pax = (int) ($data['people_count'] ?? $data['pax'] ?? 1);
-                if ($pax < 1 || $pax > Session::MAX_CAPACITY) {
-                    $this->reject('pax', 'Jumlah penonton harus antara 1 sampai 6 orang.');
+                if ($pax < 1 || $pax > $session->seatCapacity()) {
+                    $this->reject('pax', 'Jumlah penonton harus antara 1 sampai '.$session->seatCapacity().' orang.');
                 }
                 if ($pax > $session->remainingSeats()) {
                     $this->reject('pax', 'Kapasitas tersisa tidak mencukupi ('.$session->remainingSeats().' orang tersisa).');
@@ -735,9 +735,9 @@ class BookingService
                 if (! $check['allowed']) {
                     $this->reject('package', $check['reason'] ?? 'Sewa private tidak tersedia.');
                 }
-                $pax = Session::MAX_CAPACITY;
-                $seatsReserved = Session::MAX_CAPACITY;
-                $peopleCount = (int) ($data['people_count'] ?? $data['pax'] ?? Session::MAX_CAPACITY);
+                $pax = $session->seatCapacity();
+                $seatsReserved = $session->seatCapacity();
+                $peopleCount = (int) ($data['people_count'] ?? $data['pax'] ?? $session->seatCapacity());
             }
 
             // Film resolution

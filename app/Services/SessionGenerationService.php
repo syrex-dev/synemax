@@ -89,7 +89,7 @@ class SessionGenerationService
             ],
             [
                 'end_time' => $endTime,
-                'capacity' => 6,
+                'capacity' => $this->settings->capacityPerSession(),
                 'status' => 'tersedia',
             ],
         );

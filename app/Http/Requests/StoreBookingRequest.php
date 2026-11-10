@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\MenuItem;
+use App\Services\CinemaSettings;
 use App\Support\WhatsAppNumber;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -48,12 +49,13 @@ class StoreBookingRequest extends FormRequest
         $package = $this->input('package') ?: ($this->input('booking_type') === 'private' ? 'private' : ($this->input('booking_type') === 'couple' ? 'couple' : 'reguler'));
         $isRegular = ! in_array($package, ['couple', 'private'], true);
         $maxQty = (int) config('cinema.snack_max_qty_per_item', 10);
+        $maxCapacity = max(6, app(CinemaSettings::class)->capacityPerSession());
 
         return [
             'customer_name' => ['required', 'string', 'max:120'],
             'whatsapp' => ['required', 'string', 'regex:/^62\d{9,12}$/'],
-            'pax' => [$isRegular ? 'required_without:people_count' : 'nullable', 'integer', 'between:1,6'],
-            'people_count' => ['nullable', 'integer', 'between:1,6'],
+            'pax' => [$isRegular ? 'required_without:people_count' : 'nullable', 'integer', "between:1,{$maxCapacity}"],
+            'people_count' => ['nullable', 'integer', "between:1,{$maxCapacity}"],
             'booking_type' => ['nullable', 'in:per_orang,private,couple'],
             'package' => ['nullable', 'in:reguler,couple,private'],
             'film_id' => ['nullable', 'integer', 'exists:films,id'],
@@ -100,13 +102,15 @@ class StoreBookingRequest extends FormRequest
 
     public function messages(): array
     {
+        $maxCapacity = max(6, app(CinemaSettings::class)->capacityPerSession());
+
         return [
             'customer_name.required' => 'Nama pemesan wajib diisi.',
             'customer_name.max' => 'Nama pemesan maksimal 120 karakter.',
             'whatsapp.required' => 'Nomor WhatsApp wajib diisi.',
             'whatsapp.regex' => 'Masukkan nomor WhatsApp Indonesia yang valid, misalnya 081234567890 atau +6281234567890.',
             'pax.required' => 'Pilih jumlah orang.',
-            'pax.between' => 'Jumlah orang harus antara 1 sampai 6.',
+            'pax.between' => "Jumlah orang harus antara 1 sampai {$maxCapacity}.",
             'booking_type.required' => 'Pilih tipe booking yang tersedia.',
             'booking_type.in' => 'Pilih tipe booking yang tersedia.',
             'film_id.exists' => 'Film yang dipilih sudah tidak tersedia.',

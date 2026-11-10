@@ -229,12 +229,13 @@ class BookingController extends Controller
         ]);
     }
 
-    public function store(Request $request, BookingService $bookingService): RedirectResponse
+    public function store(Request $request, BookingService $bookingService, CinemaSettings $settings): RedirectResponse
     {
+        $maxSeats = max(6, $settings->capacityPerSession());
         $data = $request->validate([
             'session_id' => ['required', 'integer', 'exists:screening_sessions,id'],
             'package' => ['required', 'in:reguler,couple,private'],
-            'pax' => ['nullable', 'integer', 'min:1', 'max:6'],
+            'pax' => ['nullable', 'integer', 'min:1', "max:{$maxSeats}"],
             'film_id' => ['nullable', 'integer', 'exists:films,id'],
             'customer_name' => ['nullable', 'string', 'max:80'],
             'whatsapp' => ['nullable', 'string', 'max:30'],

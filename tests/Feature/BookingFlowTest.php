@@ -79,17 +79,17 @@ class BookingFlowTest extends TestCase
         );
     }
 
-    public function test_server_never_uses_a_capacity_above_six(): void
+    public function test_server_enforces_session_capacity_limit(): void
     {
         $session = $this->createSession($this->firstFilm);
         $session->update(['capacity' => 8]);
         $this->createBooking($session, $this->firstFilm, pax: 5);
 
         $this->from(route('booking.create', $session))
-            ->post(route('booking.store', $session), $this->bookingData($this->firstFilm, pax: 2))
+            ->post(route('booking.store', $session), $this->bookingData($this->firstFilm, pax: 4))
             ->assertSessionHasErrors('pax');
 
-        $this->assertSame(1, $session->fresh()->remainingSeats());
+        $this->assertSame(3, $session->fresh()->remainingSeats());
         $this->assertSame(
             5,
             (int) Booking::query()->where('session_id', $session->id)->sum('seats_reserved'),
@@ -295,19 +295,15 @@ class BookingFlowTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Langkah')
-            ->assertSee('dari 5')
             ->assertSee('Jadwal')
-            ->assertSee('Film')
             ->assertSee('Paket')
             ->assertSee('Jajan')
             ->assertSee('Ringkasan')
             ->assertSee('Per orang')
-            ->assertSee('Sewa studio privat')
-            ->assertSee('Pilih film')
-            ->assertSee('Film yang cocok belum ada');
+            ->assertSee('Sewa studio privat');
     }
 
-    public function test_wizard_renders_preselected_film_banner_and_change_action(): void
+    public function test_wizard_renders_preselected_film_banner(): void
     {
         $film = $this->createFilm('Interstellar Special');
         $session = $this->createSession();
@@ -315,8 +311,8 @@ class BookingFlowTest extends TestCase
         $response = $this->get(route('booking.create', ['session' => $session->id, 'film' => $film->id]));
 
         $response->assertOk()
-            ->assertSee('Film Pilihanmu')
-            ->assertSee('Ubah film')
+            ->assertSee('Film Sesi Ini')
+            ->assertDontSee('Ubah film')
             ->assertSee('Interstellar Special');
     }
 

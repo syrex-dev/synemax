@@ -566,7 +566,7 @@ class CinemaSettings
             return (int) $legacy;
         }
 
-        return Session::MAX_CAPACITY * $this->ticketPriceForDayType($dayType);
+        return $this->capacityPerSession() * $this->ticketPriceForDayType($dayType);
     }
 
     public function bookingCutoffMinutes(): int
