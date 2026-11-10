@@ -7,6 +7,7 @@ use App\Models\Genre;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
 
 class FilmCatalogQuery
@@ -56,7 +57,15 @@ class FilmCatalogQuery
         }
 
         if ($yearInput !== '' && is_numeric($yearInput)) {
-            $query->where('release_year', (int) $yearInput);
+            $yearInt = (int) $yearInput;
+            $query->where(function (Builder $sub) use ($yearInt): void {
+                $sub->where('release_year', $yearInt)
+                    ->orWhere(function (Builder $dateSub) use ($yearInt): void {
+                        $dateSub->whereNull('release_year')
+                            ->whereNotNull('release_date')
+                            ->whereYear('release_date', $yearInt);
+                    });
+            });
         }
 
         if ($searchInput !== '') {
@@ -66,6 +75,33 @@ class FilmCatalogQuery
         return $query->applyCustomSort()
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    /**
+     * Get sorted unique release years from all active films.
+     *
+     * @return SupportCollection<int, int>
+     */
+    public function availableYears(): SupportCollection
+    {
+        return Film::query()
+            ->where('is_active', true)
+            ->get(['release_year', 'release_date'])
+            ->map(function (Film $film): ?int {
+                if ($film->release_year) {
+                    return (int) $film->release_year;
+                }
+
+                if ($film->release_date) {
+                    return (int) $film->release_date->format('Y');
+                }
+
+                return null;
+            })
+            ->filter()
+            ->unique()
+            ->sortDesc()
+            ->values();
     }
 
     /**

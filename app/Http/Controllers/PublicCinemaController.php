@@ -20,7 +20,7 @@ use Illuminate\View\View;
 
 class PublicCinemaController extends Controller
 {
-    public function index(): View
+    public function index(Request $request, FilmCatalogQuery $catalogQuery): View
     {
         $settings = app(CinemaSettings::class);
 
@@ -52,13 +52,28 @@ class PublicCinemaController extends Controller
         $filmsMode = $settings->homeFilmsMode();
         $featuredIds = $settings->homeFeaturedFilmIds();
 
-        if ($filmsMode === 'custom' && ! empty($featuredIds)) {
-            $films = Film::query()
-                ->where('is_active', true)
-                ->whereIn('id', $featuredIds)
-                ->get()
-                ->sortBy(fn ($f) => array_search($f->id, $featuredIds, true))
-                ->values();
+        $selectedGenre = trim((string) $request->query('genre', ''));
+        $selectedYear = trim((string) $request->query('tahun', ''));
+        $hasActiveFilter = $selectedGenre !== '' || ($selectedYear !== '' && is_numeric($selectedYear));
+
+        if ($hasActiveFilter) {
+            $filteredPaginator = $catalogQuery->paginateCatalog([
+                'genre' => $selectedGenre,
+                'tahun' => $selectedYear,
+            ], $filmsLimit);
+
+            $films = collect($filteredPaginator->items());
+            $totalFilteredCount = $filteredPaginator->total();
+        } else {
+            $films = collect();
+            if ($filmsMode === 'custom' && ! empty($featuredIds)) {
+                $films = Film::query()
+                    ->where('is_active', true)
+                    ->whereIn('id', $featuredIds)
+                    ->get()
+                    ->sortBy(fn ($f) => array_search($f->id, $featuredIds, true))
+                    ->values();
+            }
 
             if ($films->isEmpty()) {
                 $films = Film::query()
@@ -68,25 +83,15 @@ class PublicCinemaController extends Controller
                     ->take($filmsLimit)
                     ->get();
             }
-        } else {
-            $films = Film::query()
-                ->where('is_active', true)
-                ->orderByRaw("CASE WHEN poster_path IS NOT NULL AND poster_path != '' THEN 0 ELSE 1 END")
-                ->applyCustomSort()
-                ->take($filmsLimit)
-                ->get();
+
+            $totalFilteredCount = $films->count();
         }
-        $allActiveFilms = Film::query()->where('is_active', true)->get(['id', 'genre', 'release_year']);
 
         // Single source of truth from genres table
         $genres = Genre::allActiveNames();
 
-        // Collect unique release years
-        $years = $allActiveFilms->pluck('release_year')
-            ->filter()
-            ->unique()
-            ->sortDesc()
-            ->values();
+        // Collect unique release years across all active films
+        $years = $catalogQuery->availableYears();
 
         // 4. Promo & Penawaran (pure image banners)
         $promos = Promo::query()->active()->current()->ordered()->take(6)->get();
@@ -107,6 +112,11 @@ class PublicCinemaController extends Controller
             'heroBanners' => $heroBanners,
             'infoChips' => $infoChips,
             'films' => $films,
+            'filmsData' => $films->map(fn (Film $f): array => $this->serializeCatalogCard($f))->values(),
+            'selectedGenre' => $selectedGenre,
+            'selectedYear' => $selectedYear,
+            'totalFilteredCount' => $totalFilteredCount,
+            'filmsLimit' => $filmsLimit,
             'genres' => $genres,
             'years' => $years,
             'promos' => $promos,
@@ -125,12 +135,16 @@ class PublicCinemaController extends Controller
         $genre = $request->query('genre');
         $tahun = $request->query('tahun');
         $search = $request->query('cari') ?: $request->query('q');
+        $isJsonRequest = $request->wantsJson() || $request->ajax();
+        $perPage = $isJsonRequest && $request->filled('limit')
+            ? max(1, min(30, $request->integer('limit', 30)))
+            : 30;
 
         $films = $catalogQuery->paginateCatalog([
             'genre' => $genre,
             'tahun' => $tahun,
             'cari' => $search,
-        ], 30);
+        ], $perPage);
 
         $rootGenres = Genre::whereNull('parent_id')
             ->where('is_active', true)
@@ -150,29 +164,12 @@ class PublicCinemaController extends Controller
             }
         }
 
-        $years = Film::query()
-            ->where('is_active', true)
-            ->whereNotNull('release_year')
-            ->pluck('release_year')
-            ->filter()
-            ->unique()
-            ->sortDesc()
-            ->values();
+        $years = $catalogQuery->availableYears();
 
-        if ($request->wantsJson() || $request->ajax()) {
+        if ($isJsonRequest) {
             return response()->json([
                 'count' => $films->total(),
-                'films' => collect($films->items())->map(fn (Film $f) => [
-                    'id' => $f->id,
-                    'title' => $f->title,
-                    'slug' => $f->slug,
-                    'genre' => $f->genre,
-                    'release_year' => $f->release_year,
-                    'duration_minutes' => $f->duration_minutes,
-                    'age_rating' => $f->age_rating,
-                    'poster_url' => $f->posterUrl(),
-                    'url' => route('films.show', $f->slug ?: $f->id),
-                ]),
+                'films' => collect($films->items())->map(fn (Film $f): array => $this->serializeCatalogCard($f))->values(),
             ]);
         }
 
@@ -186,6 +183,27 @@ class PublicCinemaController extends Controller
             'selectedYear' => $tahun,
             'searchQuery' => $search,
         ]);
+    }
+
+    /**
+     * Serialize a film model into the public catalog card payload.
+     *
+     * @return array{id: int, title: string, slug: ?string, genre: ?string, release_year: ?int, duration_minutes: ?int, age_rating: ?string, poster_url: ?string, custom_badge: ?string, url: string}
+     */
+    private function serializeCatalogCard(Film $film): array
+    {
+        return [
+            'id' => $film->id,
+            'title' => $film->title,
+            'slug' => $film->slug,
+            'genre' => $film->genre,
+            'release_year' => $film->release_year ?: ($film->release_date ? (int) $film->release_date->format('Y') : null),
+            'duration_minutes' => $film->duration_minutes,
+            'age_rating' => $film->age_rating,
+            'poster_url' => $film->posterUrl(),
+            'custom_badge' => $film->custom_badge,
+            'url' => route('films.show', $film->slug ?: $film->id),
+        ];
     }
 
     /**

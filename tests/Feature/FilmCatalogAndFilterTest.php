@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Film;
 use App\Models\Session;
+use App\Services\CinemaSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -249,5 +250,96 @@ class FilmCatalogAndFilterTest extends TestCase
         $response->assertOk();
         $response->assertSee('Rekomendasi Film Serupa');
         $response->assertSee('Drama Sahabat Sejati');
+    }
+
+    public function test_homepage_year_and_genre_filter_searches_beyond_homepage_limit(): void
+    {
+        app(CinemaSettings::class)->set('home_films_count', 3, 'tampilan');
+
+        foreach (range(1, 5) as $i) {
+            Film::query()->create([
+                'title' => "Film Terbaru 2026 #{$i}",
+                'slug' => "film-terbaru-2026-{$i}",
+                'genre' => 'Aksi',
+                'release_year' => 2026,
+                'duration_minutes' => 100,
+                'age_rating' => '13+',
+                'synopsis' => 'Sinopsis aksi terbaru.',
+                'is_active' => true,
+            ]);
+        }
+
+        $film2024Drama = Film::query()->create([
+            'title' => 'Film Pilihan Tahun 2024',
+            'slug' => 'film-pilihan-tahun-2024',
+            'genre' => 'Drama',
+            'release_year' => 2024,
+            'duration_minutes' => 110,
+            'age_rating' => 'SU',
+            'synopsis' => 'Sinopsis film 2024.',
+            'custom_badge' => 'Populer',
+            'is_active' => true,
+        ]);
+
+        // Unfiltered homepage respects home_films_count = 3 (only shows top 3 of 2026)
+        $homeDefault = $this->get(route('home'));
+        $homeDefault->assertOk();
+        $homeDefault->assertViewHas('films', fn ($films) => $films->count() === 3);
+        $homeDefault->assertViewHas('years', fn ($years) => $years->contains(2024) && $years->contains(2026));
+
+        // Filtering by tahun=2024 on homepage MUST find Film 2024 even though it wasn't in top 3
+        $homeByYear = $this->get(route('home', ['tahun' => 2024]));
+        $homeByYear->assertOk();
+        $homeByYear->assertSee('Film Pilihan Tahun 2024');
+        $homeByYear->assertDontSee('Film Terbaru 2026 #1');
+        $homeByYear->assertViewHas('films', fn ($films) => $films->pluck('id')->all() === [$film2024Drama->id]);
+
+        // Combined genre + year filter on homepage
+        $homeByBoth = $this->get(route('home', ['genre' => 'Drama', 'tahun' => 2024]));
+        $homeByBoth->assertOk();
+        $homeByBoth->assertSee('Film Pilihan Tahun 2024');
+    }
+
+    public function test_film_catalog_json_respects_limit_and_returns_custom_badge_and_release_date_fallback(): void
+    {
+        foreach (range(1, 5) as $i) {
+            Film::query()->create([
+                'title' => "Koleksi 2024 Ke-{$i}",
+                'slug' => "koleksi-2024-{$i}",
+                'genre' => 'Horor',
+                'release_year' => 2024,
+                'duration_minutes' => 95,
+                'age_rating' => '17+',
+                'synopsis' => 'Sinopsis horor.',
+                'custom_badge' => $i === 1 ? 'Baru' : null,
+                'is_active' => true,
+            ]);
+        }
+
+        Film::query()->create([
+            'title' => 'Film Dari Tanggal Rilis 2024',
+            'slug' => 'film-dari-tanggal-rilis-2024',
+            'genre' => 'Drama',
+            'release_year' => null,
+            'release_date' => '2024-08-17',
+            'duration_minutes' => 100,
+            'age_rating' => 'SU',
+            'synopsis' => 'Sinopsis dari release_date.',
+            'is_active' => true,
+        ]);
+
+        $res = $this->getJson(route('films.index', ['tahun' => 2024, 'limit' => 2]));
+        $res->assertOk();
+        $res->assertJsonPath('count', 6);
+        $this->assertCount(2, $res->json('films'));
+        $res->assertJsonFragment(['custom_badge' => 'Baru']);
+
+        $resDateFallback = $this->getJson(route('films.index', ['tahun' => 2024, 'genre' => 'Drama']));
+        $resDateFallback->assertOk();
+        $resDateFallback->assertJsonPath('count', 1);
+        $resDateFallback->assertJsonFragment([
+            'title' => 'Film Dari Tanggal Rilis 2024',
+            'release_year' => 2024,
+        ]);
     }
 }

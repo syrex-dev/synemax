@@ -15,11 +15,19 @@
     </div>
 
     {{-- Interactive Film Filter & Search Section --}}
-    <section
-        x-data="{
-            genre: '{{ $selectedGenre }}',
-            tahun: '{{ $selectedYear }}',
-            search: '{{ $searchQuery }}',
+    <script>
+    function filmsCatalogManager() {
+        const config = {{ Js::from([
+            'genre' => $selectedGenre ?? '',
+            'tahun' => (string) ($selectedYear ?? ''),
+            'search' => $searchQuery ?? '',
+            'resetUrl' => route('films.index'),
+        ]) }};
+
+        return {
+            genre: config.genre,
+            tahun: config.tahun,
+            search: config.search,
             isSearching: false,
             setFilter(g, y) {
                 const url = new URL(window.location.origin + window.location.pathname);
@@ -74,12 +82,17 @@
                 this.liveSearch();
             },
             resetFilters() {
-                window.location.href = '{{ route('films.index') }}';
+                window.location.href = config.resetUrl;
             },
             resetFilter() {
                 this.resetFilters();
             }
-        }"
+        };
+    }
+    </script>
+
+    <section
+        x-data="filmsCatalogManager()"
         class="space-y-6"
     >
         {{-- Search Input Form Live Search --}}

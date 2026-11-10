@@ -87,43 +87,125 @@
         {{-- ============================================================== --}}
         {{-- 3. KATALOG FILM (Carousel Horisontal Mobile ~2.3 Poster)       --}}
         {{-- ============================================================== --}}
-        <section
-            aria-label="Katalog Film"
-            id="katalog-film"
-            x-data="{
-                genre: new URLSearchParams(window.location.search).get('genre') || '',
-                tahun: new URLSearchParams(window.location.search).get('tahun') || '',
-                allFilms: {{ Js::from($films->map(fn($f) => [
-                    'id' => $f->id,
-                    'title' => $f->title,
-                    'slug' => $f->slug,
-                    'genre' => $f->genre,
-                    'release_year' => $f->release_year ?: ($f->release_date ? $f->release_date->format('Y') : null),
-                    'duration_minutes' => $f->duration_minutes,
-                    'age_rating' => $f->age_rating,
-                    'poster_url' => $f->posterUrl(),
-                    'custom_badge' => $f->custom_badge,
-                    'url' => route('films.show', $f->slug ?: $f->id),
-                ])) }},
-                get filteredFilms() {
-                    return this.allFilms.filter(f => {
-                        const matchGenre = !this.genre || (f.genre && f.genre.toLowerCase().split(',').map(s => s.trim()).includes(this.genre.toLowerCase()));
-                        const matchTahun = !this.tahun || String(f.release_year) === String(this.tahun);
-                        return matchGenre && matchTahun;
-                    });
+        <script>
+        function homeCatalogManager() {
+            const config = {{ Js::from([
+                'initialGenre' => $selectedGenre ?? '',
+                'initialTahun' => (string) ($selectedYear ?? ''),
+                'initialFilms' => $filmsData ?? [],
+                'hasActiveFilterOnLoad' => (($selectedGenre ?? '') !== '') || (($selectedYear ?? '') !== '' && is_numeric($selectedYear)),
+                'initialTotalCount' => $totalFilteredCount ?? 0,
+                'filmsLimit' => $filmsLimit ?? 12,
+                'catalogEndpoint' => route('films.index', [], false),
+                'homeEndpoint' => route('home', [], false),
+            ]) }};
+
+            const initialList = Array.isArray(config.initialFilms) ? config.initialFilms : [];
+
+            return {
+                genre: config.initialGenre || new URLSearchParams(window.location.search).get('genre') || '',
+                tahun: config.initialTahun || new URLSearchParams(window.location.search).get('tahun') || '',
+                films: initialList,
+                defaultFilms: config.hasActiveFilterOnLoad ? null : initialList,
+                totalMatchCount: Number(config.initialTotalCount || initialList.length),
+                isLoading: false,
+                abortController: null,
+                requestSeq: 0,
+
+                get hasActiveFilter() {
+                    return Boolean(this.genre || this.tahun);
                 },
-                setFilter(g, t) {
+
+                get filteredFilms() {
+                    return this.films;
+                },
+
+                get catalogUrl() {
+                    const url = new URL(config.catalogEndpoint, window.location.origin);
+                    if (this.genre) url.searchParams.set('genre', this.genre);
+                    if (this.tahun) url.searchParams.set('tahun', this.tahun);
+                    return url.toString();
+                },
+
+                async setFilter(g, t) {
                     if (g !== undefined) this.genre = g;
                     if (t !== undefined) this.tahun = t;
+
                     const url = new URL(window.location);
                     if (this.genre) url.searchParams.set('genre', this.genre); else url.searchParams.delete('genre');
                     if (this.tahun) url.searchParams.set('tahun', this.tahun); else url.searchParams.delete('tahun');
                     window.history.replaceState({}, '', url);
+
+                    if (!this.genre && !this.tahun) {
+                        if (this.abortController) {
+                            this.abortController.abort();
+                            this.abortController = null;
+                        }
+                        this.requestSeq++;
+                        if (this.defaultFilms !== null) {
+                            this.isLoading = false;
+                            this.films = this.defaultFilms;
+                            this.totalMatchCount = this.defaultFilms.length;
+                            return;
+                        }
+                        window.location.href = config.homeEndpoint;
+                        return;
+                    }
+
+                    if (this.abortController) {
+                        this.abortController.abort();
+                    }
+                    const controller = new AbortController();
+                    this.abortController = controller;
+                    const currentSeq = ++this.requestSeq;
+                    this.isLoading = true;
+
+                    try {
+                        const fetchUrl = new URL(config.catalogEndpoint, window.location.origin);
+                        if (this.genre) fetchUrl.searchParams.set('genre', this.genre);
+                        if (this.tahun) fetchUrl.searchParams.set('tahun', this.tahun);
+                        fetchUrl.searchParams.set('limit', String(config.filmsLimit || 12));
+
+                        const response = await fetch(fetchUrl.toString(), {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                            signal: controller.signal,
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Gagal memuat film.');
+                        }
+
+                        const data = await response.json();
+                        if (currentSeq !== this.requestSeq) return;
+
+                        this.films = Array.isArray(data.films) ? data.films : [];
+                        this.totalMatchCount = typeof data.count === 'number' ? data.count : this.films.length;
+                    } catch (error) {
+                        if (error && error.name === 'AbortError') return;
+                        if (typeof window.showToast === 'function') {
+                            window.showToast({ type: 'error', message: 'Gagal memuat hasil filter film.' });
+                        }
+                    } finally {
+                        if (currentSeq === this.requestSeq) {
+                            this.isLoading = false;
+                        }
+                    }
                 },
+
                 resetFilter() {
                     this.setFilter('', '');
                 }
-            }"
+            };
+        }
+        </script>
+
+        <section
+            aria-label="Katalog Film"
+            id="katalog-film"
+            x-data="homeCatalogManager()"
             class="space-y-4 sm:space-y-6"
         >
             {{-- Header Section: Amber Accent Line + Title + Action in 1 Line --}}
@@ -132,7 +214,7 @@
                     <h2 class="text-xl sm:text-2xl font-black text-text tracking-tight">Katalog Film</h2>
                     <p class="mt-0.5 text-xs text-text-muted line-clamp-1 sm:line-clamp-none">Pilihan film on-demand berkualitas untuk diputar di studio</p>
                 </div>
-                <a href="{{ route('films.index') }}" class="shrink-0 whitespace-nowrap text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-400 hover:underline">
+                <a href="{{ route('films.index') }}" :href="catalogUrl" class="shrink-0 whitespace-nowrap text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-400 hover:underline">
                     <span class="sm:hidden">Semua &gt;</span>
                     <span class="hidden sm:inline">Lihat semua film &gt;</span>
                 </a>
@@ -142,7 +224,10 @@
             <x-public.film-filter-bar :genres="$genres" :years="$years" />
 
             {{-- Responsive Film Grid (2 Kolom Mobile, 3 Kolom Tablet, 4 Kolom Desktop) --}}
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6">
+            <div
+                class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6 transition-opacity duration-150"
+                :class="{ 'opacity-60 pointer-events-none': isLoading }"
+            >
                 <template x-for="film in filteredFilms" :key="film.id">
                     <a
                         :href="film.url"
@@ -195,8 +280,26 @@
                 </template>
             </div>
 
+            {{-- Footer Action when Filter Yields More Films Than Homepage Limit --}}
+            <div
+                x-show="hasActiveFilter && !isLoading && totalMatchCount > filteredFilms.length"
+                x-cloak
+                class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-xs"
+            >
+                <span class="text-text-muted">
+                    Menampilkan <strong class="text-text" x-text="filteredFilms.length"></strong> dari <strong class="text-text" x-text="totalMatchCount"></strong> film yang cocok.
+                </span>
+                <a
+                    :href="catalogUrl"
+                    class="inline-flex items-center gap-1 font-bold text-amber-800 dark:text-amber-400 hover:underline"
+                >
+                    <span>Lihat semua <span x-text="totalMatchCount"></span> film</span>
+                    <span aria-hidden="true">&gt;</span>
+                </a>
+            </div>
+
             {{-- Empty State for Filter --}}
-            <div x-show="filteredFilms.length === 0" x-cloak class="rounded-xl border border-border bg-surface p-8 text-center">
+            <div x-show="!isLoading && filteredFilms.length === 0" x-cloak class="rounded-xl border border-border bg-surface p-8 text-center">
                 <p class="text-sm font-bold text-text">Belum ada film untuk filter ini</p>
                 <p class="mt-1 text-xs text-text-muted">Coba ubah pilihan genre atau tahun rilis Anda.</p>
                 <button type="button" @click="resetFilter()" class="mt-3 inline-flex min-h-11 items-center rounded-xl bg-accent px-4 py-1.5 text-xs font-bold text-accent-contrast shadow-xs">
