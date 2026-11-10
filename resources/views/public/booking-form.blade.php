@@ -727,9 +727,9 @@
                             </span>
                         </li>
                         @if (! $loop->last)
-                            <li class="flex-1 mx-1.5 sm:mx-3 min-w-2">
+                            <li class="flex-1 mx-1.5 sm:mx-3 min-w-2" aria-hidden="true">
                                 <div class="h-0.5 rounded-full transition-all duration-300"
-                                     :class="step > {{ $stepNum }} ? 'bg-emerald-500' : (step === {{ $stepNum }} ? 'bg-amber-500/50' : 'bg-border')"></div>
+                                     :class="step > {{ $stepNum }} ? 'bg-emerald-500' : 'bg-border'"></div>
                             </li>
                         @endif
                     @endforeach
