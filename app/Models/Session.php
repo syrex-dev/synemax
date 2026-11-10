@@ -259,9 +259,12 @@ class Session extends Model
             return $this->_talliesCache;
         }
 
-        $bookings = $this->relationLoaded('occupiedBookings')
-            ? $this->occupiedBookings->filter(fn ($b) => $b->film_id !== null)
-            : $this->occupiedBookings()->whereNotNull('film_id')->with('film')->get();
+        if ($this->relationLoaded('occupiedBookings')) {
+            $this->occupiedBookings->loadMissing('film');
+            $bookings = $this->occupiedBookings->filter(fn ($b) => $b->film_id !== null);
+        } else {
+            $bookings = $this->occupiedBookings()->whereNotNull('film_id')->with('film')->get();
+        }
         $grouped = $bookings->groupBy('film_id');
         $quorum = $this->quorum();
 

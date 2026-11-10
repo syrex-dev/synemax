@@ -27,7 +27,7 @@ class DashboardController extends Controller
 
         $todaySessions = Session::query()
             ->where('session_date', $today->toDateString())
-            ->with(['film', 'bookings.film'])
+            ->with(['film', 'bookings.film', 'occupiedBookings.film'])
             ->with([
                 'occupiedBookings.items' => fn ($query) => $query
                     ->where('status', '!=', 'dibatalkan')
@@ -52,7 +52,7 @@ class DashboardController extends Controller
             ->whereBetween('session_date', [$today->toDateString(), $today->addDays(13)->toDateString()])
             ->where('status', 'tersedia')
             ->where('is_private', false)
-            ->with(['film', 'bookings.film', 'occupiedBookings'])
+            ->with(['film', 'bookings.film', 'occupiedBookings.film'])
             ->withSum(['occupiedBookings as viewer_count' => $activeBookings], 'seats_reserved')
             ->orderBy('session_date')
             ->orderBy('start_time')
