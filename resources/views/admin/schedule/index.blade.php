@@ -34,7 +34,7 @@
         addSessionDate: '',
         addSessionDateHeading: '',
         addStartTime: '19:00',
-        addDurationMinutes: 150,
+        addDurationMinutes: 120,
         addFilmId: '',
         addIsPrivate: false,
         addStatus: 'tersedia',
@@ -43,7 +43,7 @@
             this.addSessionDate = dateStr;
             this.addSessionDateHeading = heading;
             this.addStartTime = '19:00';
-            this.addDurationMinutes = 150;
+            this.addDurationMinutes = 120;
             this.addFilmId = '';
             this.addIsPrivate = false;
             this.addStatus = 'tersedia';
@@ -52,33 +52,117 @@
 
         // Modal Edit Sesi
         editModalOpen: false,
+        editSubmitting: false,
         editSessionId: null,
         editSessionActionUrl: '',
         editSessionDate: '',
         editSessionDateHeading: '',
         editStartTime: '',
         editOriginalStartTime: '',
-        editDurationMinutes: 150,
+        editDurationMinutes: 120,
         editFilmId: '',
         editIsPrivate: false,
         editStatus: 'tersedia',
         editBookingsCount: 0,
         editConfirmReschedule: false,
 
-        openEditSessionModal(data) {
+        openEditSessionModal(data, event = null) {
+            let btn = event ? event.currentTarget : null;
+            let startTime = btn && btn.dataset.startTime ? btn.dataset.startTime : data.start_time;
+            let duration = btn && btn.dataset.durationMinutes ? parseInt(btn.dataset.durationMinutes) : (data.duration_minutes || 120);
+            let filmId = btn && btn.dataset.filmId !== undefined ? btn.dataset.filmId : (data.film_id ? String(data.film_id) : '');
+            let status = btn && btn.dataset.status ? btn.dataset.status : (data.status || 'tersedia');
+            let isPrivate = btn && btn.dataset.isPrivate !== undefined ? btn.dataset.isPrivate === '1' : Boolean(data.is_private);
+
             this.editSessionId = data.id;
             this.editSessionActionUrl = `/admin/jadwal/sesi/${data.id}`;
             this.editSessionDate = data.session_date;
             this.editSessionDateHeading = data.date_heading;
-            this.editStartTime = data.start_time;
-            this.editOriginalStartTime = data.start_time;
-            this.editDurationMinutes = data.duration_minutes || 150;
-            this.editFilmId = data.film_id ? String(data.film_id) : '';
-            this.editIsPrivate = Boolean(data.is_private);
-            this.editStatus = data.status || 'tersedia';
+            this.editStartTime = startTime;
+            this.editOriginalStartTime = startTime;
+            this.editDurationMinutes = duration;
+            this.editFilmId = filmId;
+            this.editIsPrivate = isPrivate;
+            this.editStatus = status;
             this.editBookingsCount = data.bookings_count || 0;
             this.editConfirmReschedule = false;
+            this.editSubmitting = false;
             this.editModalOpen = true;
+        },
+
+        async submitEditSession(event) {
+            if (this.editStartTime !== this.editOriginalStartTime && this.editBookingsCount > 0 && !this.editConfirmReschedule) {
+                return;
+            }
+            this.editSubmitting = true;
+            const form = event.target;
+            const formData = new FormData(form);
+            const csrfToken = document.querySelector('meta[name=csrf-token]') ? document.querySelector('meta[name=csrf-token]').content : '';
+
+            try {
+                const response = await fetch(this.editSessionActionUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: formData,
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.status === 'ok') {
+                    this.editModalOpen = false;
+                    window.showToast({ type: 'success', message: data.message || 'Sesi berhasil diperbarui.' });
+
+                    // Update row in DOM without full page reload
+                    const row = document.getElementById('session-' + this.editSessionId);
+                    if (row && data.session) {
+                        row.querySelectorAll('.session-start-time').forEach(el => {
+                            if (data.session.start_time_formatted) {
+                                el.textContent = data.session.start_time_formatted;
+                            }
+                        });
+
+                        row.querySelectorAll('.session-film-container').forEach(el => {
+                            if (data.session.film_title) {
+                                el.innerHTML = `<div class="flex items-center gap-1.5 truncate"><span class="truncate font-black text-sm text-emerald-600 dark:text-emerald-400" title="${data.session.film_title}">${data.session.film_title}</span><span class="shrink-0 text-[10px] font-black text-emerald-500 px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30">Terkunci</span></div>`;
+                            } else {
+                                el.innerHTML = `<span class="text-xs text-text-muted italic">Belum ada film</span>`;
+                            }
+                        });
+
+                        row.querySelectorAll('.session-status-toggle').forEach(input => {
+                            input.checked = (data.session.status === 'tersedia');
+                        });
+                        row.querySelectorAll('.session-status-label').forEach(label => {
+                            label.textContent = (data.session.status === 'tersedia' ? 'Buka' : 'Tutup');
+                        });
+
+                        document.querySelectorAll(`[data-session-id="${data.session.id}"]`).forEach(btn => {
+                            btn.setAttribute('data-start-time', data.session.start_time);
+                            btn.setAttribute('data-duration-minutes', data.session.duration_minutes);
+                            btn.setAttribute('data-film-id', data.session.film_id || '');
+                            btn.setAttribute('data-status', data.session.status);
+                            btn.setAttribute('data-is-private', data.session.is_private ? '1' : '0');
+                        });
+                    }
+                } else if (data.requires_confirmation) {
+                    this.editBookingsCount = data.affected_count || 1;
+                    window.showToast({ type: 'warning', message: data.message });
+                } else if (data.errors) {
+                    const firstErr = Object.values(data.errors)[0];
+                    const msg = Array.isArray(firstErr) ? firstErr[0] : firstErr;
+                    window.showToast({ type: 'error', message: msg || 'Terjadi kesalahan validasi.' });
+                } else {
+                    window.showToast({ type: 'error', message: data.message || 'Gagal menyimpan perubahan sesi.' });
+                }
+            } catch (err) {
+                window.showToast({ type: 'error', message: 'Koneksi terputus saat menyimpan sesi.' });
+            } finally {
+                this.editSubmitting = false;
+            }
         },
 
         toggleSession(sessionId, event) {
@@ -174,7 +258,7 @@
                         $dayIndex++;
                     @endphp
 
-                    <div x-show="{{ $isBeyondSeven ? 'showMoreDays' : 'true' }}" x-cloak class="rounded-2xl border border-border bg-surface overflow-hidden shadow-sm">
+                    <div id="date-{{ $dateString }}" x-show="{{ $isBeyondSeven ? 'showMoreDays' : 'true' }}" x-cloak class="scroll-mt-24 rounded-2xl border border-border bg-surface overflow-hidden shadow-sm">
                         {{-- Header Tanggal --}}
                         <div class="flex items-center justify-between bg-surface-2/60 px-4 py-3 border-b border-border">
                             <div class="flex items-center gap-2">
@@ -271,12 +355,12 @@
                                     $isConfirmed = $session->isConfirmed();
                                     $isCancelledQuorum = $session->isCancelledByQuorum();
                                 @endphp
-                                <div class="transition-colors hover:bg-surface-2/40 cursor-pointer {{ $isCompleted ? 'opacity-60 bg-surface/30' : '' }}"
+                                <div id="session-{{ $session->id }}" class="scroll-mt-28 transition-colors hover:bg-surface-2/40 cursor-pointer {{ $isCompleted ? 'opacity-60 bg-surface/30' : '' }}"
                                      @click="openSessionId = (openSessionId === {{ $session->id }} ? null : {{ $session->id }})">
                                     {{-- Desktop Row --}}
                                     <div class="hidden sm:grid sm:grid-cols-[6.5rem_9.5rem_7.5rem_1fr_auto] items-center gap-3 px-4 py-3 min-h-[52px]">
                                         {{-- Jam --}}
-                                        <div class="font-bold text-sm text-text whitespace-nowrap">
+                                        <div class="font-bold text-sm text-text whitespace-nowrap session-start-time">
                                             {{ $startTimeId }}
                                         </div>
 
@@ -333,10 +417,10 @@
                                         </div>
 
                                         {{-- Film Terkunci / Terdepan --}}
-                                        <div class="min-w-0 pr-2">
+                                        <div class="min-w-0 pr-2 session-film-container">
                                             @if ($lockedFilm)
                                                 <div class="flex items-center gap-1.5 truncate">
-                                                    <span class="truncate font-black text-sm text-emerald-600 dark:text-emerald-400" title="{{ $lockedFilm->title }}">
+                                                    <span class="truncate font-black text-sm text-emerald-600 dark:text-emerald-400 session-film-title" title="{{ $lockedFilm->title }}">
                                                         {{ $lockedFilm->title }}
                                                     </span>
                                                     <span class="shrink-0 text-[10px] font-black text-emerald-500 px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/30">
@@ -345,7 +429,7 @@
                                                 </div>
                                             @elseif ($leadingTally)
                                                 <div class="flex items-center gap-1.5 truncate">
-                                                    <span class="truncate font-bold text-sm text-text" title="{{ $leadingTally['title'] }}">
+                                                    <span class="truncate font-bold text-sm text-text session-film-title" title="{{ $leadingTally['title'] }}">
                                                         {{ $leadingTally['title'] }}
                                                     </span>
                                                     <span class="shrink-0 text-[10px] font-bold text-amber-500 px-1.5 py-0.2 rounded bg-amber-500/10 border border-amber-500/30">
@@ -353,7 +437,7 @@
                                                     </span>
                                                 </div>
                                             @else
-                                                <span class="text-xs text-text-muted italic">
+                                                <span class="text-xs text-text-muted italic session-film-title">
                                                     Belum ada film
                                                 </span>
                                             @endif
@@ -374,9 +458,9 @@
                                                     <input type="checkbox" 
                                                            @checked(!$isClosed)
                                                            @change="toggleSession({{ $session->id }}, $event)"
-                                                           class="peer sr-only">
+                                                           class="peer sr-only session-status-toggle">
                                                     <span aria-hidden="true" class="relative h-6 w-11 shrink-0 rounded-full bg-border transition-colors peer-checked:bg-success after:absolute after:left-1 after:top-1 after:size-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5 shadow-inner"></span>
-                                                    <span class="text-xs font-bold text-text-muted peer-checked:text-success w-12 text-left">
+                                                    <span class="text-xs font-bold text-text-muted peer-checked:text-success w-12 text-left session-status-label">
                                                         {{ $isClosed ? 'Tutup' : 'Buka' }}
                                                     </span>
                                                 </label>
@@ -385,18 +469,24 @@
                                             {{-- Tombol Edit Sesi --}}
                                             <button
                                                 type="button"
+                                                data-session-id="{{ $session->id }}"
+                                                data-start-time="{{ substr((string) $session->start_time, 0, 5) }}"
+                                                data-duration-minutes="{{ (int) (\Carbon\Carbon::parse($session->start_time)->diffInMinutes(\Carbon\Carbon::parse($session->end_time)) ?: 120) }}"
+                                                data-film-id="{{ $session->film_id ?? '' }}"
+                                                data-status="{{ $session->status }}"
+                                                data-is-private="{{ $session->is_private ? '1' : '0' }}"
                                                 @click="openEditSessionModal({
                                                     id: {{ $session->id }},
                                                     session_date: '{{ $session->session_date }}',
                                                     date_heading: '{{ $dayHeading }}',
                                                     start_time: '{{ substr((string) $session->start_time, 0, 5) }}',
-                                                    duration_minutes: {{ (int) (\Carbon\Carbon::parse($session->start_time)->diffInMinutes(\Carbon\Carbon::parse($session->end_time)) ?: 150) }},
+                                                    duration_minutes: {{ (int) (\Carbon\Carbon::parse($session->start_time)->diffInMinutes(\Carbon\Carbon::parse($session->end_time)) ?: 120) }},
                                                     film_id: {{ $session->film_id ? $session->film_id : 'null' }},
                                                     is_private: {{ $session->is_private ? 'true' : 'false' }},
                                                     status: '{{ $session->status }}',
                                                     bookings_count: {{ $session->occupiedBookings->count() }}
-                                                })"
-                                                class="flex size-9 items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:text-text hover:bg-surface-2 transition"
+                                                }, $event)"
+                                                class="session-edit-btn flex size-9 items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:text-text hover:bg-surface-2 transition"
                                                 title="Edit sesi jam {{ $startTimeId }}"
                                                 aria-label="Edit sesi jam {{ $startTimeId }}"
                                             >
@@ -458,7 +548,7 @@
                                     <div class="sm:hidden px-4 py-3">
                                         <div class="flex items-center justify-between gap-2">
                                             <div class="flex items-center gap-1.5 flex-wrap">
-                                                <span class="font-bold text-sm text-text">{{ $startTimeId }}</span>
+                                                <span class="font-bold text-sm text-text session-start-time">{{ $startTimeId }}</span>
                                                 @if ($isConfirmed)
                                                     <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-black bg-emerald-500/15 text-emerald-400">
                                                         Pasti tayang
@@ -478,18 +568,24 @@
                                                 {{-- Tombol Edit Sesi Mobile --}}
                                                 <button
                                                     type="button"
+                                                    data-session-id="{{ $session->id }}"
+                                                    data-start-time="{{ substr((string) $session->start_time, 0, 5) }}"
+                                                    data-duration-minutes="{{ (int) (\Carbon\Carbon::parse($session->start_time)->diffInMinutes(\Carbon\Carbon::parse($session->end_time)) ?: 120) }}"
+                                                    data-film-id="{{ $session->film_id ?? '' }}"
+                                                    data-status="{{ $session->status }}"
+                                                    data-is-private="{{ $session->is_private ? '1' : '0' }}"
                                                     @click="openEditSessionModal({
                                                         id: {{ $session->id }},
                                                         session_date: '{{ $session->session_date }}',
                                                         date_heading: '{{ $dayHeading }}',
                                                         start_time: '{{ substr((string) $session->start_time, 0, 5) }}',
-                                                        duration_minutes: {{ (int) (\Carbon\Carbon::parse($session->start_time)->diffInMinutes(\Carbon\Carbon::parse($session->end_time)) ?: 150) }},
+                                                        duration_minutes: {{ (int) (\Carbon\Carbon::parse($session->start_time)->diffInMinutes(\Carbon\Carbon::parse($session->end_time)) ?: 120) }},
                                                         film_id: {{ $session->film_id ? $session->film_id : 'null' }},
                                                         is_private: {{ $session->is_private ? 'true' : 'false' }},
                                                         status: '{{ $session->status }}',
                                                         bookings_count: {{ $session->occupiedBookings->count() }}
-                                                    })"
-                                                    class="flex size-8 items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:text-text"
+                                                    }, $event)"
+                                                    class="session-edit-btn flex size-8 items-center justify-center rounded-lg border border-border bg-surface text-text-muted hover:text-text"
                                                     title="Edit sesi"
                                                 >
                                                     <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -528,7 +624,7 @@
                                                         <input type="checkbox" 
                                                                @checked(!$isClosed)
                                                                @change="toggleSession({{ $session->id }}, $event)"
-                                                               class="peer sr-only">
+                                                               class="peer sr-only session-status-toggle">
                                                         <span aria-hidden="true" class="relative h-6 w-11 shrink-0 rounded-full bg-border transition-colors peer-checked:bg-success after:absolute after:left-1 after:top-1 after:size-4 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5 shadow-inner"></span>
                                                     </label>
                                                 @endif
@@ -536,13 +632,13 @@
                                         </div>
 
                                         <div class="mt-2 flex items-center justify-between gap-3 text-xs">
-                                            <div class="min-w-0 flex-1 truncate">
+                                            <div class="min-w-0 flex-1 truncate session-film-container">
                                                 @if ($lockedFilm)
-                                                    <span class="font-black text-emerald-400 truncate block">{{ $lockedFilm->title }} (Terkunci)</span>
+                                                    <span class="font-black text-emerald-400 truncate block session-film-title">{{ $lockedFilm->title }} (Terkunci)</span>
                                                 @elseif ($leadingTally)
-                                                    <span class="font-bold text-text truncate block">{{ $leadingTally['title'] }} ({{ $leadingSeats }}/{{ $quorum }})</span>
+                                                    <span class="font-bold text-text truncate block session-film-title">{{ $leadingTally['title'] }} ({{ $leadingSeats }}/{{ $quorum }})</span>
                                                 @else
-                                                    <span class="text-text-muted italic">Belum ada film</span>
+                                                    <span class="text-text-muted italic session-film-title">Belum ada film</span>
                                                 @endif
                                             </div>
                                             <div class="shrink-0 font-semibold text-text-muted">
@@ -557,22 +653,29 @@
                                          class="border-t border-border bg-surface-2/70 px-4 py-4 text-xs space-y-4 cursor-default"
                                          @click.stop>
                                         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
-                                            <span class="text-sm font-bold text-text">Detail Sesi: {{ $startTimeId }} · {{ $dayCarbon->translatedFormat('D, j M Y') }}</span>
+                                            <span class="text-sm font-bold text-text">Detail Sesi: <span class="session-start-time">{{ $startTimeId }}</span> · {{ $dayCarbon->translatedFormat('D, j M Y') }}</span>
                                             <div class="flex items-center gap-2">
                                                 <button
                                                     type="button"
+                                                    data-session-id="{{ $session->id }}"
+                                                    data-start-time="{{ substr((string) $session->start_time, 0, 5) }}"
+                                                    data-duration-minutes="{{ (int) (\Carbon\Carbon::parse($session->start_time)->diffInMinutes(\Carbon\Carbon::parse($session->end_time)) ?: 120) }}"
+                                                    data-film-id="{{ $session->film_id ?? '' }}"
+                                                    data-status="{{ $session->status }}"
+                                                    data-is-private="{{ $session->is_private ? '1' : '0' }}"
                                                     @click="openEditSessionModal({
                                                         id: {{ $session->id }},
                                                         session_date: '{{ $session->session_date }}',
                                                         date_heading: '{{ $dayHeading }}',
                                                         start_time: '{{ substr((string) $session->start_time, 0, 5) }}',
-                                                        duration_minutes: {{ (int) (\Carbon\Carbon::parse($session->start_time)->diffInMinutes(\Carbon\Carbon::parse($session->end_time)) ?: 150) }},
+                                                        duration_minutes: {{ (int) (\Carbon\Carbon::parse($session->start_time)->diffInMinutes(\Carbon\Carbon::parse($session->end_time)) ?: 120) }},
                                                         film_id: {{ $session->film_id ? $session->film_id : 'null' }},
                                                         is_private: {{ $session->is_private ? 'true' : 'false' }},
                                                         status: '{{ $session->status }}',
                                                         bookings_count: {{ $session->occupiedBookings->count() }}
-                                                    })"
-                                                    class="inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 text-xs font-semibold text-text hover:bg-surface-2 transition"
+                                                    }, $event)"
+                                                    class="session-edit-btn inline-flex min-h-[32px] items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 text-xs font-semibold text-text hover:bg-surface-2 transition"
+                                                >
                                                 >
                                                     <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
@@ -1017,7 +1120,7 @@
                     </button>
                 </div>
 
-                <form :action="editSessionActionUrl" method="POST" class="space-y-4" novalidate>
+                <form :action="editSessionActionUrl" method="POST" @submit.prevent="submitEditSession($event)" class="space-y-4" novalidate>
                     @csrf
                     @method('PATCH')
 
@@ -1138,10 +1241,14 @@
                         </button>
                         <button
                             type="submit"
-                            :disabled="editStartTime !== editOriginalStartTime && editBookingsCount > 0 && !editConfirmReschedule"
-                            class="min-h-11 rounded-xl bg-accent px-5 text-xs font-black text-accent-contrast hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+                            :disabled="editSubmitting || (editStartTime !== editOriginalStartTime && editBookingsCount > 0 && !editConfirmReschedule)"
+                            class="min-h-11 rounded-xl bg-accent px-5 text-xs font-black text-accent-contrast hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm inline-flex items-center justify-center gap-2"
                         >
-                            Simpan Perubahan
+                            <svg x-show="editSubmitting" class="size-4 animate-spin text-accent-contrast" viewBox="0 0 24 24" fill="none">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                            <span x-text="editSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'"></span>
                         </button>
                     </div>
                 </form>
@@ -1154,7 +1261,7 @@
         <div class="flex flex-wrap items-end justify-between gap-3">
             <div>
                 <h2 class="text-xl font-bold">Template jam sesi</h2>
-                <p class="mt-1 text-sm text-text-muted">Durasi adalah lama sesi sejak jam mulai. Standar template 150 menit.</p>
+                <p class="mt-1 text-sm text-text-muted">Durasi adalah lama sesi sejak jam mulai. Standar template 120 menit.</p>
             </div>
         </div>
         <div class="mt-4 grid gap-4">
@@ -1285,13 +1392,13 @@
                             <input id="new-time-{{ $type }}" name="start_time" type="time" required class="min-h-11 w-full rounded-lg border border-border bg-surface px-3 text-base text-text">
                             <p class="mt-1 text-xs text-text-muted">Format 24 jam, contoh 19:00.</p>
                         </div>
-                        <div x-data="{ minutes: 150, format(value) { const hours = Math.floor(Number(value) / 60); const remainder = Number(value) % 60; return '= ' + (hours ? hours + ' jam' : '') + (hours && remainder ? ' ' : '') + (remainder ? remainder + ' menit' : '') } }">
+                        <div x-data="{ minutes: 120, format(value) { const hours = Math.floor(Number(value) / 60); const remainder = Number(value) % 60; return '= ' + (hours ? hours + ' jam' : '') + (hours && remainder ? ' ' : '') + (remainder ? remainder + ' menit' : '') } }">
                             <label for="new-duration-{{ $type }}" class="mb-1 block text-sm font-semibold">Durasi sesi</label>
                             <div class="flex min-h-11 items-center rounded-lg border border-border bg-surface focus-within:ring-2 focus-within:ring-focus">
-                                <input id="new-duration-{{ $type }}" x-model.number="minutes" name="duration_minutes" type="number" min="30" max="600" value="150" required class="min-h-10 min-w-0 flex-1 border-0 bg-transparent px-3 text-base text-text focus:ring-0">
+                                <input id="new-duration-{{ $type }}" x-model.number="minutes" name="duration_minutes" type="number" min="30" max="600" value="120" required class="min-h-10 min-w-0 flex-1 border-0 bg-transparent px-3 text-base text-text focus:ring-0">
                                 <span class="px-3 text-sm text-text-muted">menit</span>
                             </div>
-                            <p class="mt-1 text-xs text-text-muted" x-text="format(minutes)">= 2 jam 30 menit</p>
+                            <p class="mt-1 text-xs text-text-muted" x-text="format(minutes)">= 2 jam</p>
                         </div>
                         <button class="min-h-11 rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-text hover:bg-surface-2">Tambah jam baru</button>
                     </form>

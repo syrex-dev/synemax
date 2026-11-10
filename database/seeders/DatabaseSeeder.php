@@ -56,7 +56,7 @@ class DatabaseSeeder extends Seeder
             foreach ($startTimes as $startTime) {
                 ScheduleTemplate::updateOrCreate(
                     ['day_type' => $dayType, 'start_time' => $startTime],
-                    ['duration_minutes' => 150, 'is_active' => true],
+                    ['duration_minutes' => 120, 'is_active' => true],
                 );
             }
         }

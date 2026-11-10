@@ -234,7 +234,7 @@ class ScheduleController extends Controller
 
         $date = $validated['session_date'];
         $startTime = $validated['start_time'].':00';
-        $duration = (int) ($validated['duration_minutes'] ?? 150);
+        $duration = (int) ($validated['duration_minutes'] ?? 120);
         $endTime = Carbon::parse($startTime)->addMinutes($duration)->format('H:i:s');
 
         $conflict = Session::query()
@@ -264,7 +264,8 @@ class ScheduleController extends Controller
         $jamFormat = $validated['start_time'];
         $tglFormat = Carbon::parse($date)->locale('id')->translatedFormat('j M Y');
 
-        return back()->with('status', "Sesi baru jam {$jamFormat} WIB ({$tglFormat}) berhasil ditambahkan.");
+        return redirect()->to(route('admin.schedule.index').'#date-'.$date)
+            ->with('status', "Sesi baru jam {$jamFormat} WIB ({$tglFormat}) berhasil ditambahkan.");
     }
 
     public function destroySession(Session $session): RedirectResponse
@@ -280,10 +281,12 @@ class ScheduleController extends Controller
 
         $jamFormatted = substr((string) $session->start_time, 0, 5);
         $dateFormatted = Carbon::parse($session->session_date)->locale('id')->translatedFormat('j M Y');
+        $sessionDate = $session->session_date;
 
         $session->delete();
 
-        return back()->with('status', "Sesi jam {$jamFormatted} WIB ({$dateFormatted}) berhasil dihapus.");
+        return redirect()->to(route('admin.schedule.index').'#date-'.$sessionDate)
+            ->with('status', "Sesi jam {$jamFormatted} WIB ({$dateFormatted}) berhasil dihapus.");
     }
 
     public function updateSession(Request $request, Session $session): JsonResponse|RedirectResponse
@@ -384,7 +387,7 @@ class ScheduleController extends Controller
             }
 
             if ($isChangingTime) {
-                $duration = (int) ($data['duration_minutes'] ?? 150);
+                $duration = (int) ($data['duration_minutes'] ?? 120);
                 $startCarbon = Carbon::parse($newStartTime);
                 $updatePayload['start_time'] = $newStartTimeFormatted;
                 $updatePayload['end_time'] = $startCarbon->addMinutes($duration)->format('H:i:s');
@@ -397,14 +400,29 @@ class ScheduleController extends Controller
             $lockedSession->update($updatePayload);
         });
 
+        $session->refresh()->loadMissing('film');
+
         if ($request->wantsJson()) {
+            $durationMinutes = (int) (Carbon::parse($session->start_time)->diffInMinutes(Carbon::parse($session->end_time)) ?: 120);
+
             return response()->json([
                 'status' => 'ok',
                 'message' => 'Sesi berhasil diperbarui.',
+                'session' => [
+                    'id' => $session->id,
+                    'start_time' => substr((string) $session->start_time, 0, 5),
+                    'start_time_formatted' => format_jam_id($session->start_time),
+                    'duration_minutes' => $durationMinutes,
+                    'film_id' => $session->film_id,
+                    'film_title' => $session->film?->title,
+                    'status' => $session->status,
+                    'is_private' => (bool) $session->is_private,
+                ],
             ]);
         }
 
-        return back()->with('status', 'Sesi berhasil diperbarui.');
+        return redirect()->to(route('admin.schedule.index').'#date-'.$session->session_date)
+            ->with('status', 'Sesi berhasil diperbarui.');
     }
 
     public function toggleSessionStatus(Request $request, Session $session): JsonResponse|RedirectResponse

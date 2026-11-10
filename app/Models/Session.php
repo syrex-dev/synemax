@@ -540,8 +540,12 @@ class Session extends Model
 
     public function isInAgreementWindow(): bool
     {
+        $hasOccupied = $this->relationLoaded('occupiedBookings')
+            ? $this->occupiedBookings->isNotEmpty()
+            : $this->occupiedBookings()->exists();
+
         return ! $this->isConfirmed()
-            && $this->occupiedBookings()->exists()
+            && $hasOccupied
             && now()->greaterThanOrEqualTo($this->agreementWindowStartsAt())
             && now()->lessThan($this->confirmationDeadline());
     }
