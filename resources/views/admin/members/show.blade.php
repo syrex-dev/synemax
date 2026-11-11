@@ -48,7 +48,7 @@
                 @endif
             </div>
             <div>
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2.5">
                     <h1 class="text-xl font-bold tracking-tight text-text sm:text-2xl">{{ $member->name }}</h1>
                     <x-ui.status
                         :status="match($member->status) {
@@ -56,12 +56,35 @@
                             'diblokir' => 'dibatalkan',
                             default => 'menunggu_pembayaran',
                         }"
-                        :label="match($member->status) {
-                            'aktif' => 'Aktif',
-                            'diblokir' => 'Diblokir',
-                            default => 'Nonaktif',
-                        }"
-                    />
+                    >{{ match($member->status) {
+                        'aktif' => 'Aktif',
+                        'diblokir' => 'Diblokir',
+                        default => 'Nonaktif',
+                    } }}</x-ui.status>
+                    <form method="POST" action="{{ route('admin.members.toggle_physical_card', $member) }}" class="inline-flex">
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="has_physical_card" value="{{ $member->hasPhysicalCard() ? '0' : '1' }}">
+                        <button
+                            type="submit"
+                            title="{{ $member->hasPhysicalCard() ? 'Kartu fisik sudah dibuat. Klik untuk ubah ke Belum Dibuatkan.' : 'Kartu fisik belum dibuatkan. Klik untuk tandai Sudah Ada.' }}"
+                            class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-bold transition {{ $member->hasPhysicalCard()
+                                ? 'border-emerald-500/35 bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20'
+                                : 'border-amber-500/45 bg-amber-500/12 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20' }}"
+                        >
+                            @if ($member->hasPhysicalCard())
+                                <svg class="size-3.5 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                                <span>Kartu Fisik: Sudah Ada</span>
+                            @else
+                                <svg class="size-3.5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                                </svg>
+                                <span>Kartu Fisik: Belum Dibuatkan</span>
+                            @endif
+                        </button>
+                    </form>
                 </div>
                 <div class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-muted">
                     <span class="font-mono font-bold text-text">{{ $member->formattedCode() }}</span>
@@ -490,6 +513,7 @@
                                         'reward_given' => 'Reward Diselesaikan',
                                         'reward_skipped' => 'Reward Dilewati',
                                         'opening_changed' => 'Koreksi Saldo Awal',
+                                        'physical_card_updated' => 'Status Kartu Fisik Diperbarui',
                                         'deleted' => 'Member Dihapus (Soft Delete)',
                                         default => $event->event,
                                     } }}

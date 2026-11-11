@@ -8,6 +8,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Cetak Lembar Kartu Member A4 ({{ $members->count() }} Kartu)</title>
     <style>
         @page {
@@ -54,6 +55,22 @@
             border: 1px solid #cbd5e1;
             cursor: pointer;
             text-decoration: none;
+        }
+        .btn-mark-issued {
+            background-color: #fef3c7;
+            color: #92400e;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            border: 1px solid #f59e0b;
+            cursor: pointer;
+        }
+        .btn-mark-issued.is-issued {
+            background-color: #dcfce7;
+            color: #166534;
+            border-color: #22c55e;
+            cursor: default;
         }
 
         /* A4 Page Grid Container (190mm usable width x 277mm usable height) */
@@ -266,6 +283,20 @@
         <button type="button" class="btn-print" onclick="window.print()">
             Cetak {{ $members->count() }} Kartu ({{ ceil($members->count() / 8) }} Lembar A4)
         </button>
+        @if ($members->isNotEmpty())
+            @php
+                $allHavePhysicalCards = $members->every(fn ($m) => $m->hasPhysicalCard());
+            @endphp
+            <button
+                type="button"
+                id="btn-mark-batch-issued"
+                class="btn-mark-issued {{ $allHavePhysicalCards ? 'is-issued' : '' }}"
+                onclick="markBatchIssued()"
+                {{ $allHavePhysicalCards ? 'disabled' : '' }}
+            >
+                {{ $allHavePhysicalCards ? 'Semua Sudah Ada Kartu Fisik' : 'Tandai '.$members->count().' Member Sudah Dicetak' }}
+            </button>
+        @endif
         <a href="{{ route('admin.members.index') }}" class="btn-close">Kembali ke Daftar</a>
     </div>
 
@@ -315,5 +346,38 @@
             @endforeach
         </div>
     @endforeach
+    <script>
+        async function markBatchIssued() {
+            const btn = document.getElementById('btn-mark-batch-issued');
+            if (!btn || btn.disabled) return;
+            const ids = @json($members->pluck('id')->values());
+            if (!ids.length) return;
+            btn.disabled = true;
+            btn.textContent = 'Menyimpan...';
+            try {
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                const res = await fetch(@json(route('admin.members.bulk_physical_card')), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ ids, has_physical_card: true }),
+                });
+                if (res.ok) {
+                    btn.classList.add('is-issued');
+                    btn.textContent = 'Semua Sudah Ada Kartu Fisik';
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = 'Tandai ' + ids.length + ' Member Sudah Dicetak';
+                }
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = 'Tandai ' + ids.length + ' Member Sudah Dicetak';
+            }
+        }
+    </script>
 </body>
 </html>

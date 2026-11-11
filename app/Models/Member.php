@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\URL;
     'notes',
     'status',
     'is_active',
+    'has_physical_card',
+    'physical_card_printed_at',
     'opening_visits',
     'link_version',
     'created_by',
@@ -31,6 +33,8 @@ class Member extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'has_physical_card' => 'boolean',
+        'physical_card_printed_at' => 'datetime',
         'opening_visits' => 'integer',
         'link_version' => 'integer',
     ];
@@ -177,5 +181,17 @@ class Member extends Model
     public function formattedCode(): string
     {
         return $this->code ?: (string) $this->member_code;
+    }
+
+    public function hasPhysicalCard(): bool
+    {
+        return (bool) $this->has_physical_card;
+    }
+
+    public function markPhysicalCard(bool $issued): void
+    {
+        $this->has_physical_card = $issued;
+        $this->physical_card_printed_at = $issued ? now() : null;
+        $this->save();
     }
 }

@@ -293,12 +293,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/members/create', [MemberController::class, 'create'])->name('members.create');
     Route::post('/members', [MemberController::class, 'store'])->name('members.store');
     Route::get('/members/kartu', [MemberController::class, 'printBatch'])->name('members.print_batch');
+    Route::post('/members/kartu-fisik-massal', [MemberController::class, 'bulkPhysicalCard'])->name('members.bulk_physical_card');
     Route::get('/members/export.csv', [MemberController::class, 'exportCsv'])->name('members.export');
     Route::get('/members/{member}', [MemberController::class, 'show'])->name('members.show');
     Route::get('/members/{member}/edit', [MemberController::class, 'edit'])->name('members.edit');
     Route::put('/members/{member}', [MemberController::class, 'update'])->name('members.update');
     Route::delete('/members/{member}', [MemberController::class, 'destroy'])->name('members.destroy');
     Route::post('/members/{member}/toggle-status', [MemberController::class, 'toggleStatus'])->name('members.toggle_status');
+    Route::patch('/members/{member}/physical-card', [MemberController::class, 'togglePhysicalCard'])->name('members.toggle_physical_card');
     Route::post('/members/{member}/new-link', [MemberController::class, 'regenerateLink'])->name('members.regenerate_link');
     Route::post('/members/{member}/opening-visits', [MemberController::class, 'updateOpeningVisits'])->name('members.update_opening_visits');
     Route::post('/members/{member}/void-visit/{visit}', [MemberController::class, 'voidVisit'])->name('members.void_visit');

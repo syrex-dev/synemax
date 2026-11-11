@@ -149,6 +149,25 @@
                 </x-ui.select>
             </div>
 
+            {{-- Status Kartu Fisik --}}
+            <div class="rounded-xl border border-border bg-surface-2 p-4">
+                <input type="hidden" name="has_physical_card" value="0">
+                <label for="has_physical_card" class="flex items-start gap-3 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        id="has_physical_card"
+                        name="has_physical_card"
+                        value="1"
+                        {{ old('has_physical_card') ? 'checked' : '' }}
+                        class="mt-0.5 size-4 rounded border-border text-amber-500 focus:ring-amber-500/30"
+                    >
+                    <div>
+                        <span class="block text-xs font-bold text-text">Kartu fisik member sudah dibuat / diserahkan</span>
+                        <span class="block text-[11px] text-text-muted mt-0.5">Centang jika member sudah memiliki kartu fisik. Biarkan kosong jika kartu fisik masih perlu dicetak.</span>
+                    </div>
+                </label>
+            </div>
+
             {{-- Catatan Internal --}}
             <div>
                 <label for="notes" class="block text-xs font-semibold text-text-muted mb-1.5">

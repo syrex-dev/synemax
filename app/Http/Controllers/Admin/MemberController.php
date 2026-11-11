@@ -12,9 +12,11 @@ use App\Services\CinemaSettings;
 use App\Services\LoyaltyRules;
 use App\Services\MemberCodeGenerator;
 use App\Services\WebpImageProcessor;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -42,6 +44,15 @@ class MemberController extends Controller
             $query->where('status', $status);
         }
 
+        $cardStatus = $request->query('card_status');
+        if ($cardStatus === 'sudah') {
+            $query->where('has_physical_card', true);
+        } elseif ($cardStatus === 'belum') {
+            $query->where('has_physical_card', false);
+        } else {
+            $cardStatus = null;
+        }
+
         $members = $query->latest('id')->paginate(24)->withQueryString();
 
         $stats = [
@@ -50,6 +61,8 @@ class MemberController extends Controller
             'nonaktif' => Member::where('status', 'nonaktif')->count(),
             'diblokir' => Member::where('status', 'diblokir')->count(),
             'pending_rewards' => MemberReward::where('status', 'pending')->count(),
+            'card_issued' => Member::where('has_physical_card', true)->count(),
+            'card_missing' => Member::where('has_physical_card', false)->count(),
         ];
 
         return view('admin.members.index', [
@@ -57,6 +70,7 @@ class MemberController extends Controller
             'stats' => $stats,
             'search' => $search,
             'selectedStatus' => $status,
+            'selectedCardStatus' => $cardStatus,
             'settings' => $settings,
         ]);
     }
@@ -122,6 +136,7 @@ class MemberController extends Controller
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,webp,jpg', 'max:2048'],
             'opening_visits' => ['nullable', 'integer', 'min:0', 'max:9'],
             'status' => ['required', 'string', 'in:aktif,nonaktif,diblokir'],
+            'has_physical_card' => ['nullable', 'boolean'],
             'ignore_duplicate_name' => ['nullable', 'boolean'],
         ], [
             'name.required' => 'Nama member wajib diisi.',
@@ -174,6 +189,8 @@ class MemberController extends Controller
             $photoPath = $images->storeSquare($request->file('photo'), 'members', 400);
         }
 
+        $hasPhysicalCard = $request->boolean('has_physical_card');
+
         $member = Member::create([
             'code' => $code,
             'member_code' => $code,
@@ -183,6 +200,8 @@ class MemberController extends Controller
             'photo_path' => $photoPath,
             'status' => $validated['status'],
             'is_active' => ($validated['status'] === 'aktif'),
+            'has_physical_card' => $hasPhysicalCard,
+            'physical_card_printed_at' => $hasPhysicalCard ? now() : null,
             'opening_visits' => (int) ($validated['opening_visits'] ?? 0),
             'link_version' => 1,
             'created_by' => $request->user()?->id,
@@ -196,6 +215,7 @@ class MemberController extends Controller
                 'code' => $code,
                 'name' => $member->name,
                 'opening_visits' => $member->opening_visits,
+                'has_physical_card' => $hasPhysicalCard,
             ],
             'ip' => $request->ip(),
             'created_at' => now(),
@@ -278,6 +298,7 @@ class MemberController extends Controller
             'photo' => ['nullable', 'image', 'mimes:jpeg,png,webp,jpg', 'max:2048'],
             'remove_photo' => ['nullable', 'boolean'],
             'status' => ['required', 'string', 'in:aktif,nonaktif,diblokir'],
+            'has_physical_card' => ['nullable', 'boolean'],
             'total_visits' => ['nullable', 'integer', 'min:0', 'max:999'],
         ], [
             'name.required' => 'Nama member wajib diisi.',
@@ -287,7 +308,7 @@ class MemberController extends Controller
             'total_visits.max' => 'Total kunjungan maksimal 999.',
         ]);
 
-        $oldValues = $member->only(['name', 'nickname', 'notes', 'status', 'photo_path', 'opening_visits']);
+        $oldValues = $member->only(['name', 'nickname', 'notes', 'status', 'has_physical_card', 'photo_path', 'opening_visits']);
         $oldTotal = $member->totalVisits();
 
         $photoPath = $member->photo_path;
@@ -326,6 +347,15 @@ class MemberController extends Controller
         $member->photo_path = $photoPath;
         $member->status = $validated['status'];
         $member->is_active = ($validated['status'] === 'aktif');
+
+        if ($request->has('has_physical_card')) {
+            $hasPhysicalCard = $request->boolean('has_physical_card');
+            if ($hasPhysicalCard !== (bool) $member->has_physical_card) {
+                $member->has_physical_card = $hasPhysicalCard;
+                $member->physical_card_printed_at = $hasPhysicalCard ? now() : null;
+            }
+        }
+
         $member->save();
 
         $member->events()->create([
@@ -334,7 +364,7 @@ class MemberController extends Controller
             'event_type' => 'updated',
             'meta' => [
                 'before' => array_merge($oldValues, ['total_visits' => $oldTotal]),
-                'after' => array_merge($member->only(['name', 'nickname', 'notes', 'status', 'photo_path', 'opening_visits']), ['total_visits' => $member->totalVisits()]),
+                'after' => array_merge($member->only(['name', 'nickname', 'notes', 'status', 'has_physical_card', 'photo_path', 'opening_visits']), ['total_visits' => $member->totalVisits()]),
             ],
             'ip' => $request->ip(),
             'created_at' => now(),
@@ -555,6 +585,113 @@ class MemberController extends Controller
         ]);
     }
 
+    public function togglePhysicalCard(Request $request, Member $member): RedirectResponse|JsonResponse
+    {
+        $request->validate([
+            'has_physical_card' => ['nullable', 'boolean'],
+        ]);
+
+        $previous = $member->hasPhysicalCard();
+        $issued = $request->has('has_physical_card')
+            ? $request->boolean('has_physical_card')
+            : ! $previous;
+
+        if ($issued !== $previous) {
+            $member->markPhysicalCard($issued);
+
+            $member->events()->create([
+                'user_id' => $request->user()?->id,
+                'event' => 'physical_card_updated',
+                'event_type' => 'physical_card_updated',
+                'meta' => [
+                    'before' => $previous,
+                    'after' => $issued,
+                ],
+                'ip' => $request->ip(),
+                'created_at' => now(),
+            ]);
+        }
+
+        $message = $issued
+            ? "Kartu fisik {$member->name} ditandai sudah dibuat."
+            : "Kartu fisik {$member->name} ditandai belum dibuatkan.";
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'status' => 'ok',
+                'has_physical_card' => $issued,
+                'printed_at' => $member->physical_card_printed_at?->format('d/m/Y H.i'),
+                'stats' => [
+                    'card_issued' => Member::where('has_physical_card', true)->count(),
+                    'card_missing' => Member::where('has_physical_card', false)->count(),
+                ],
+                'message' => $message,
+            ]);
+        }
+
+        return back()->with('status', $message);
+    }
+
+    public function bulkPhysicalCard(Request $request): RedirectResponse|JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:200'],
+            'ids.*' => ['integer', 'exists:members,id'],
+            'has_physical_card' => ['required', 'boolean'],
+        ], [
+            'ids.required' => 'Pilih minimal satu member terlebih dahulu.',
+        ]);
+
+        $issued = (bool) $validated['has_physical_card'];
+        $members = Member::query()->whereIn('id', $validated['ids'])->get();
+        $updatedCount = 0;
+
+        DB::transaction(function () use ($members, $issued, $request, &$updatedCount): void {
+            foreach ($members as $member) {
+                $previous = $member->hasPhysicalCard();
+                if ($previous === $issued) {
+                    continue;
+                }
+
+                $member->markPhysicalCard($issued);
+
+                $member->events()->create([
+                    'user_id' => $request->user()?->id,
+                    'event' => 'physical_card_updated',
+                    'event_type' => 'physical_card_updated',
+                    'meta' => [
+                        'before' => $previous,
+                        'after' => $issued,
+                        'bulk' => true,
+                    ],
+                    'ip' => $request->ip(),
+                    'created_at' => now(),
+                ]);
+
+                $updatedCount++;
+            }
+        });
+
+        $message = $issued
+            ? "{$updatedCount} member ditandai sudah punya kartu fisik."
+            : "{$updatedCount} member ditandai belum dibuatkan kartu fisik.";
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'status' => 'ok',
+                'updated_count' => $updatedCount,
+                'has_physical_card' => $issued,
+                'stats' => [
+                    'card_issued' => Member::where('has_physical_card', true)->count(),
+                    'card_missing' => Member::where('has_physical_card', false)->count(),
+                ],
+                'message' => $message,
+            ]);
+        }
+
+        return back()->with('status', $message);
+    }
+
     public function exportCsv(Request $request): StreamedResponse
     {
         $filename = 'members_'.date('Ymd_His').'.csv';
@@ -568,6 +705,7 @@ class MemberController extends Controller
                 'Nama',
                 'ID Member',
                 'Status',
+                'Kartu Fisik',
                 'Total Kunjungan Sah',
                 'Posisi Siklus',
                 'Kunjungan Terakhir',
@@ -592,6 +730,7 @@ class MemberController extends Controller
                         $safeName,
                         $safeCode,
                         $m->status,
+                        $m->hasPhysicalCard() ? 'Sudah Ada' : 'Belum Dibuatkan',
                         $m->valid_visits_count,
                         $m->nextVisitPosition() - 1,
                         $lastDate,

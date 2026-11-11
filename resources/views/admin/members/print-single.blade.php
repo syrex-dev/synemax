@@ -9,6 +9,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Cetak Kartu Member - {{ $displayName }}</title>
     <style>
         @page {
@@ -77,6 +78,22 @@
             border: 1px solid #cbd5e1;
             cursor: pointer;
             text-decoration: none;
+        }
+        .btn-mark-issued {
+            background-color: #fef3c7;
+            color: #92400e;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            border: 1px solid #f59e0b;
+            cursor: pointer;
+        }
+        .btn-mark-issued.is-issued {
+            background-color: #dcfce7;
+            color: #166534;
+            border-color: #22c55e;
+            cursor: default;
         }
 
         /* Kartu Standar ID Card ISO/IEC 7810 ID-1: 85.6mm x 53.98mm */
@@ -271,6 +288,15 @@
             </svg>
             <span id="btn-download-text">Download Gambar (PNG)</span>
         </button>
+        <button
+            type="button"
+            id="btn-mark-physical-card"
+            class="btn-mark-issued {{ $member->hasPhysicalCard() ? 'is-issued' : '' }}"
+            onclick="markPhysicalCardIssued()"
+            {{ $member->hasPhysicalCard() ? 'disabled' : '' }}
+        >
+            {{ $member->hasPhysicalCard() ? 'Sudah Ada Kartu Fisik' : 'Tandai Sudah Dicetak' }}
+        </button>
         <a href="{{ route('admin.members.show', $member) }}" class="btn-close">Kembali</a>
     </div>
 
@@ -313,5 +339,36 @@
     </div>
 
     <x-member.card-download-script :member="$member" />
+    <script>
+        async function markPhysicalCardIssued() {
+            const btn = document.getElementById('btn-mark-physical-card');
+            if (!btn || btn.disabled) return;
+            btn.disabled = true;
+            btn.textContent = 'Menyimpan...';
+            try {
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                const res = await fetch(@json(route('admin.members.toggle_physical_card', $member)), {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ has_physical_card: true }),
+                });
+                if (res.ok) {
+                    btn.classList.add('is-issued');
+                    btn.textContent = 'Sudah Ada Kartu Fisik';
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = 'Tandai Sudah Dicetak';
+                }
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = 'Tandai Sudah Dicetak';
+            }
+        }
+    </script>
 </body>
 </html>

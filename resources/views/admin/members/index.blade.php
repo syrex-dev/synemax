@@ -11,6 +11,10 @@
     deleteMemberName: '',
     searchQuery: {{ Js::from($search) }},
     selectedStatus: {{ Js::from($selectedStatus ?? '') }},
+    selectedCardStatus: {{ Js::from($selectedCardStatus ?? '') }},
+    cardIssuedCount: {{ (int) ($stats['card_issued'] ?? 0) }},
+    cardMissingCount: {{ (int) ($stats['card_missing'] ?? 0) }},
+    bulkUpdatingCard: false,
     isSearching: false,
     toggleAll() {
         if (this.selectAll) {
@@ -28,6 +32,62 @@
         if (this.selectedIds.length === 0) return;
         window.location.href = '{{ route('admin.members.print_batch') }}?ids=' + this.selectedIds.join(',');
     },
+    setCardFilter(val, toggle = false) {
+        if (toggle && this.selectedCardStatus === val) {
+            this.selectedCardStatus = '';
+        } else {
+            this.selectedCardStatus = val;
+        }
+        this.performSearch();
+    },
+    notifyToast(type, message) {
+        if (typeof window.showToast === 'function') {
+            window.showToast({ type, message });
+        }
+    },
+    setCardCounts(issued, missing) {
+        if (typeof issued === 'number') {
+            this.cardIssuedCount = issued;
+        }
+        if (typeof missing === 'number') {
+            this.cardMissingCount = missing;
+        }
+    },
+    async bulkSetPhysicalCard(issued) {
+        if (this.selectedIds.length === 0 || this.bulkUpdatingCard) return;
+        this.bulkUpdatingCard = true;
+        const csrfToken = document.querySelector('meta[name=csrf-token]') ? document.querySelector('meta[name=csrf-token]').content : '';
+        try {
+            const response = await fetch('{{ route('admin.members.bulk_physical_card') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    ids: this.selectedIds.map(Number),
+                    has_physical_card: issued,
+                }),
+            });
+            const data = await response.json();
+            if (response.ok && data.status === 'ok') {
+                if (data.stats) {
+                    this.cardIssuedCount = data.stats.card_issued;
+                    this.cardMissingCount = data.stats.card_missing;
+                }
+                this.notifyToast('success', data.message || 'Status kartu fisik berhasil diperbarui.');
+                await this.performSearch();
+            } else {
+                this.notifyToast('error', data.message || 'Gagal memperbarui status kartu fisik.');
+            }
+        } catch (err) {
+            this.notifyToast('error', 'Koneksi terputus saat memperbarui status kartu.');
+        } finally {
+            this.bulkUpdatingCard = false;
+        }
+    },
     async performSearch() {
         this.isSearching = true;
         const url = new URL('{{ route('admin.members.index') }}', window.location.origin);
@@ -37,6 +97,9 @@
         }
         if (this.selectedStatus) {
             url.searchParams.set('status', this.selectedStatus);
+        }
+        if (this.selectedCardStatus) {
+            url.searchParams.set('card_status', this.selectedCardStatus);
         }
         url.searchParams.delete('page');
 
@@ -133,8 +196,8 @@
         </div>
     @endif
 
-    {{-- Statistik Ringkas --}}
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+    {{-- Statistik Ringkas & Filter Cepat Kartu Fisik --}}
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div class="rounded-2xl border border-border bg-surface p-4">
             <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Total Member</p>
             <p class="text-xl font-extrabold text-text mt-1">{{ number_format($stats['total'], 0, ',', '.') }}</p>
@@ -143,6 +206,26 @@
             <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Member Aktif</p>
             <p class="text-xl font-extrabold text-emerald-500 mt-1">{{ number_format($stats['aktif'], 0, ',', '.') }}</p>
         </div>
+        <button
+            type="button"
+            @click="setCardFilter('sudah', true)"
+            class="text-left rounded-2xl border p-4 transition"
+            :class="selectedCardStatus === 'sudah' ? 'border-emerald-500 bg-emerald-500/10 ring-1 ring-emerald-500/30' : 'border-border bg-surface hover:bg-surface-2/70'"
+            title="Klik untuk memfilter member yang sudah punya kartu fisik"
+        >
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Punya Kartu Fisik</p>
+            <p class="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1" x-text="Number(cardIssuedCount).toLocaleString('id-ID')">{{ number_format($stats['card_issued'] ?? 0, 0, ',', '.') }}</p>
+        </button>
+        <button
+            type="button"
+            @click="setCardFilter('belum', true)"
+            class="text-left rounded-2xl border p-4 transition"
+            :class="selectedCardStatus === 'belum' ? 'border-amber-500 bg-amber-500/10 ring-1 ring-amber-500/30' : 'border-border bg-surface hover:bg-surface-2/70'"
+            title="Klik untuk memfilter member yang belum dibuatkan kartu fisik"
+        >
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Belum Ada Kartu</p>
+            <p class="text-xl font-extrabold text-amber-600 dark:text-amber-400 mt-1" x-text="Number(cardMissingCount).toLocaleString('id-ID')">{{ number_format($stats['card_missing'] ?? 0, 0, ',', '.') }}</p>
+        </button>
         <div class="rounded-2xl border border-border bg-surface p-4">
             <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Nonaktif / Diblokir</p>
             <p class="text-xl font-extrabold text-text-muted mt-1">{{ number_format($stats['nonaktif'] + $stats['diblokir'], 0, ',', '.') }}</p>
@@ -210,6 +293,8 @@
                 </x-ui.select>
             </div>
 
+            <input type="hidden" name="card_status" :value="selectedCardStatus">
+
             <button
                 type="submit"
                 class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-amber-500 px-5 text-xs font-bold text-black hover:bg-amber-400 transition"
@@ -219,13 +304,92 @@
 
             <a
                 href="{{ route('admin.members.index') }}"
-                x-show="(searchQuery && searchQuery.length > 0) || (selectedStatus && selectedStatus.length > 0)"
+                x-show="(searchQuery && searchQuery.length > 0) || (selectedStatus && selectedStatus.length > 0) || (selectedCardStatus && selectedCardStatus.length > 0)"
                 x-cloak
                 class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-semibold text-text hover:bg-surface-2 transition"
             >
                 Reset
             </a>
         </form>
+
+        {{-- Filter Cepat Status Kartu Fisik --}}
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-border/60">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-[11px] font-semibold text-text-muted mr-1">Filter Kartu Fisik:</span>
+                <button
+                    type="button"
+                    @click="setCardFilter('')"
+                    class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold border transition"
+                    :class="!selectedCardStatus ? 'border-amber-500 bg-amber-500 text-black' : 'border-border bg-surface-2 text-text-muted hover:text-text'"
+                >
+                    <span>Semua</span>
+                </button>
+                <button
+                    type="button"
+                    @click="setCardFilter('belum')"
+                    class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold border transition"
+                    :class="selectedCardStatus === 'belum' ? 'border-amber-500 bg-amber-500/20 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/40' : 'border-border bg-surface-2 text-text-muted hover:text-text'"
+                >
+                    <span class="size-2 rounded-full bg-amber-500"></span>
+                    <span>Belum Dibuatkan</span>
+                    <span class="font-bold" x-text="'(' + cardMissingCount + ')'">({{ $stats['card_missing'] ?? 0 }})</span>
+                </button>
+                <button
+                    type="button"
+                    @click="setCardFilter('sudah')"
+                    class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold border transition"
+                    :class="selectedCardStatus === 'sudah' ? 'border-emerald-500 bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/40' : 'border-border bg-surface-2 text-text-muted hover:text-text'"
+                >
+                    <span class="size-2 rounded-full bg-emerald-500"></span>
+                    <span>Sudah Punya Kartu</span>
+                    <span class="font-bold" x-text="'(' + cardIssuedCount + ')'">({{ $stats['card_issued'] ?? 0 }})</span>
+                </button>
+            </div>
+            <p class="text-[11px] text-text-muted">Klik lencana pada kolom <strong>Kartu Fisik</strong> untuk mengubah status dengan cepat.</p>
+        </div>
+    </div>
+
+    {{-- Bar Aksi Massal Saat Baris Dipilih --}}
+    <div
+        x-show="selectedIds.length > 0"
+        x-cloak
+        class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs"
+    >
+        <div class="flex items-center gap-2 font-semibold text-text">
+            <span class="inline-flex items-center justify-center rounded-full bg-amber-500 px-2.5 py-0.5 text-[11px] font-bold text-black" x-text="selectedIds.length"></span>
+            <span>member dipilih</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <button
+                type="button"
+                @click="bulkSetPhysicalCard(true)"
+                :disabled="bulkUpdatingCard"
+                class="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25 disabled:opacity-50 transition"
+            >
+                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <span>Tandai Sudah Punya Kartu</span>
+            </button>
+            <button
+                type="button"
+                @click="bulkSetPhysicalCard(false)"
+                :disabled="bulkUpdatingCard"
+                class="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-text hover:bg-surface-2 disabled:opacity-50 transition"
+            >
+                <span>Tandai Belum Ada Kartu</span>
+            </button>
+            <button
+                type="button"
+                @click="printSelected()"
+                class="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-black hover:bg-amber-400 transition"
+            >
+                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                <span>Cetak Kartu Terpilih</span>
+            </button>
+        </div>
     </div>
 
     {{-- Tabel Member --}}
@@ -249,6 +413,7 @@
                         </th>
                         <th class="px-4 py-3.5">Member</th>
                         <th class="px-4 py-3.5">ID Member</th>
+                        <th class="px-4 py-3.5">Kartu Fisik</th>
                         <th class="px-4 py-3.5">Progres Siklus</th>
                         <th class="px-4 py-3.5 text-center">Total Kunjungan</th>
                         <th class="px-4 py-3.5">Kunjungan Terakhir</th>
@@ -299,6 +464,66 @@
                             <td class="px-4 py-3 font-mono text-xs">
                                 <span class="text-text-muted">{{ $codePrefix }}</span><span class="font-bold text-text">{{ $codeSuffix }}</span>
                             </td>
+                            <td
+                                class="px-4 py-3"
+                                x-data="{
+                                    hasCard: {{ $member->hasPhysicalCard() ? 'true' : 'false' }},
+                                    printedAt: {{ Js::from($member->physical_card_printed_at?->format('d/m/Y')) }},
+                                    toggling: false,
+                                    async toggle() {
+                                        if (this.toggling) return;
+                                        this.toggling = true;
+                                        const csrfToken = document.querySelector('meta[name=csrf-token]') ? document.querySelector('meta[name=csrf-token]').content : '';
+                                        try {
+                                            const res = await fetch('{{ route('admin.members.toggle_physical_card', $member) }}', {
+                                                method: 'PATCH',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                    'Accept': 'application/json',
+                                                    'X-CSRF-TOKEN': csrfToken,
+                                                    'X-Requested-With': 'XMLHttpRequest',
+                                                },
+                                                body: JSON.stringify({ has_physical_card: !this.hasCard }),
+                                            });
+                                            const data = await res.json();
+                                            if (res.ok && data.status === 'ok') {
+                                                this.hasCard = Boolean(data.has_physical_card);
+                                                this.printedAt = data.printed_at ? String(data.printed_at).split(' ')[0] : null;
+                                                if (data.stats) {
+                                                    setCardCounts(data.stats.card_issued, data.stats.card_missing);
+                                                }
+                                                notifyToast('success', data.message);
+                                            } else {
+                                                notifyToast('error', data.message || 'Gagal memperbarui status kartu.');
+                                            }
+                                        } catch (err) {
+                                            notifyToast('error', 'Koneksi terputus saat mengubah status kartu.');
+                                        } finally {
+                                            this.toggling = false;
+                                        }
+                                    }
+                                }"
+                            >
+                                <button
+                                    type="button"
+                                    @click="toggle()"
+                                    :disabled="toggling"
+                                    :title="hasCard ? 'Kartu fisik sudah dibuat. Klik untuk ubah ke Belum Dibuatkan.' : 'Kartu fisik belum dibuatkan. Klik untuk tandai Sudah Ada.'"
+                                    class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold transition disabled:opacity-60"
+                                    :class="hasCard
+                                        ? 'border-emerald-500/35 bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20'
+                                        : 'border-amber-500/45 bg-amber-500/12 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20'"
+                                >
+                                    <svg x-show="hasCard" class="size-3.5 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                    </svg>
+                                    <svg x-show="!hasCard" x-cloak class="size-3.5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                                    </svg>
+                                    <span x-text="hasCard ? 'Sudah Ada' : 'Belum Ada'">{{ $member->hasPhysicalCard() ? 'Sudah Ada' : 'Belum Ada' }}</span>
+                                </button>
+                                <div x-show="hasCard && printedAt" x-cloak class="mt-0.5 pl-1 text-[10px] text-text-muted" x-text="'Tercatat ' + printedAt">{{ $member->physical_card_printed_at ? 'Tercatat '.$member->physical_card_printed_at->format('d/m/Y') : '' }}</div>
+                            </td>
                             <td class="px-4 py-3">
                                 <div class="space-y-1 min-w-[130px]">
                                     <div class="flex justify-between text-[11px] font-semibold">
@@ -331,12 +556,11 @@
                                         'diblokir' => 'dibatalkan',
                                         default => 'menunggu_pembayaran',
                                     }"
-                                    :label="match($member->status) {
-                                        'aktif' => 'Aktif',
-                                        'diblokir' => 'Diblokir',
-                                        default => 'Nonaktif',
-                                    }"
-                                />
+                                >{{ match($member->status) {
+                                    'aktif' => 'Aktif',
+                                    'diblokir' => 'Diblokir',
+                                    default => 'Nonaktif',
+                                } }}</x-ui.status>
                             </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
@@ -372,7 +596,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-12 text-center text-text-muted">
+                            <td colspan="9" class="px-6 py-12 text-center text-text-muted">
                                 <p class="text-sm font-semibold">Belum ada data member yang sesuai.</p>
                                 <p class="text-xs mt-1">Daftarkan member baru untuk memulai program loyalitas kunjungan.</p>
                             </td>
