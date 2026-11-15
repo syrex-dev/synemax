@@ -113,19 +113,25 @@
         },
 
         setValue(val) {
-            this.selectedValue = val;
-            const found = this.options.find(o => String(o.value) === String(val));
-            if (found) this.selectedLabel = found.label;
+            this.selectedValue = (val !== null && val !== undefined) ? String(val) : '';
+            const found = this.options.find(o => String(o.value) === String(this.selectedValue));
+            if (found) {
+                this.selectedLabel = found.label;
+            } else if (!this.selectedValue) {
+                this.selectedLabel = '{{ $placeholder }}';
+            } else {
+                this.selectedLabel = this.selectedValue;
+            }
             if (this.$refs.hiddenInput) {
-                this.$refs.hiddenInput.value = val;
+                this.$refs.hiddenInput.value = this.selectedValue;
                 this.$refs.hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
                 this.$refs.hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
-            this.$dispatch('change', val);
-            this.$dispatch('input', val);
+            this.$dispatch('change', this.selectedValue);
+            this.$dispatch('input', this.selectedValue);
             this.$dispatch('synemax-select-changed', {
                 name: '{{ $name }}',
-                value: val,
+                value: this.selectedValue,
                 label: this.selectedLabel
             });
         },
@@ -283,7 +289,7 @@
         }
     }"
     @keydown="onKeyDown($event)"
-    @synemax-select-set.window="if ($event.detail.name === '{{ $name }}') setValue($event.detail.value)"
+    @synemax-select-set.window="if (($event.detail.id && $event.detail.id === '{{ $selectId }}') || (!$event.detail.id && $event.detail.name === '{{ $name }}')) setValue($event.detail.value)"
 >
     @if ($label)
         <label id="{{ $selectId }}-label" class="block text-xs font-semibold text-text mb-1.5">
@@ -427,7 +433,7 @@
                 x-show="open"
                 x-ref="desktopPanel"
                 @click.outside="close()"
-                @scroll.window="if (open) updatePosition()"
+                @scroll.capture.window="if (open) updatePosition()"
                 @resize.window="if (open) updatePosition()"
                 x-transition:enter="transition ease-out duration-150"
                 x-transition:enter-start="opacity-0 scale-95"

@@ -227,4 +227,55 @@ class ScheduleSessionManagementTest extends TestCase
         $aliasResponse = $this->get('/scan-member');
         $aliasResponse->assertRedirect(route('admin.members.scan'));
     }
+
+    public function test_schedule_index_renders_searchable_film_select_options_and_updates_via_ajax(): void
+    {
+        $film = Film::query()->create([
+            'title' => 'Film Searchable Dropdown',
+            'duration_minutes' => 120,
+            'genre' => 'Aksi',
+            'age_rating' => '13+',
+            'synopsis' => 'Sinopsis film searchable dropdown.',
+            'is_active' => true,
+        ]);
+
+        $session = Session::query()->create([
+            'session_date' => Carbon::now()->addDays(1)->toDateString(),
+            'start_time' => '14:00:00',
+            'end_time' => '16:00:00',
+            'status' => 'tersedia',
+        ]);
+
+        $response = $this->get(route('admin.schedule.index'));
+        $response->assertOk();
+        $response->assertSee('Film Searchable Dropdown');
+        $response->assertSee('id="edit_film_id"', false);
+        $response->assertSee('id="add_film_id"', false);
+        $response->assertViewHas('filmOptions');
+
+        // Test updating session film via AJAX/JSON
+        $updateResponse = $this->patchJson(route('admin.schedule.sessions.update', $session), [
+            'film_id' => $film->id,
+            'status' => 'tersedia',
+        ]);
+
+        $updateResponse->assertOk()
+            ->assertJsonPath('status', 'ok')
+            ->assertJsonPath('session.film_id', $film->id)
+            ->assertJsonPath('session.film_title', 'Film Searchable Dropdown');
+
+        $this->assertSame($film->id, $session->fresh()->film_id);
+
+        // Test clearing film selection (set to null)
+        $clearResponse = $this->patchJson(route('admin.schedule.sessions.update', $session), [
+            'film_id' => '',
+            'status' => 'tersedia',
+        ]);
+
+        $clearResponse->assertOk()
+            ->assertJsonPath('status', 'ok')
+            ->assertJsonPath('session.film_id', null);
+
+        $this->assertNull($session->fresh()->film_id);
+    }
 }

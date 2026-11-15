@@ -24,11 +24,33 @@
         </div>
     @endif
 
+    @php
+        $filmOptions = $filmOptions ?? collect([
+            ['value' => '', 'label' => 'Belum ditentukan (Biarkan penonton memilih)'],
+        ])->concat($films->map(fn ($f) => [
+            'value' => (string) $f->id,
+            'label' => $f->title,
+        ]))->values()->all();
+    @endphp
+
     <script>
     function scheduleManager() {
         return {
             showMoreDays: false,
             openSessionId: null,
+
+            init() {
+                this.$watch('editFilmId', (val) => {
+                    window.dispatchEvent(new CustomEvent('synemax-select-set', {
+                        detail: { id: 'edit_film_id', name: 'film_id', value: val }
+                    }));
+                });
+                this.$watch('addFilmId', (val) => {
+                    window.dispatchEvent(new CustomEvent('synemax-select-set', {
+                        detail: { id: 'add_film_id', name: 'film_id', value: val }
+                    }));
+                });
+            },
 
             // Modal Tambah Sesi
             addModalOpen: false,
@@ -49,6 +71,12 @@
                 this.addIsPrivate = false;
                 this.addStatus = 'tersedia';
                 this.addModalOpen = true;
+
+                this.$nextTick(() => {
+                    window.dispatchEvent(new CustomEvent('synemax-select-set', {
+                        detail: { id: 'add_film_id', name: 'film_id', value: '' }
+                    }));
+                });
             },
 
             // Modal Edit Sesi
@@ -89,6 +117,12 @@
                 this.editConfirmReschedule = false;
                 this.editSubmitting = false;
                 this.editModalOpen = true;
+
+                this.$nextTick(() => {
+                    window.dispatchEvent(new CustomEvent('synemax-select-set', {
+                        detail: { id: 'edit_film_id', name: 'film_id', value: filmId }
+                    }));
+                });
             },
 
             async submitEditSession(event) {
@@ -1018,16 +1052,14 @@
 
                     <div>
                         <label class="block text-xs font-bold text-text mb-1.5">Kunci Film Tertentu (Opsional)</label>
-                        <select
+                        <x-ui.select
+                            id="add_film_id"
                             name="film_id"
-                            x-model="addFilmId"
-                            class="min-h-11 w-full rounded-xl border border-border bg-bg px-3 text-xs font-semibold text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
-                        >
-                            <option value="">Belum ditentukan (Biarkan penonton memilih)</option>
-                            @foreach ($films as $f)
-                                <option value="{{ $f->id }}">{{ $f->title }}</option>
-                            @endforeach
-                        </select>
+                            :searchable="true"
+                            placeholder="Belum ditentukan (Biarkan penonton memilih)"
+                            :options="$filmOptions"
+                            @synemax-select-changed="addFilmId = $event.detail.value"
+                        />
                         <p class="mt-1 text-[11px] text-text-muted">Bila dikosongkan, penonton pertama dapat menentukan film sesi.</p>
                     </div>
 
@@ -1198,16 +1230,14 @@
 
                     <div>
                         <label class="block text-xs font-bold text-text mb-1.5">Film Sesi (Kunci / Biarkan Penonton Memilih)</label>
-                        <select
+                        <x-ui.select
+                            id="edit_film_id"
                             name="film_id"
-                            x-model="editFilmId"
-                            class="min-h-11 w-full rounded-xl border border-border bg-bg px-3 text-xs font-semibold text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
-                        >
-                            <option value="">Belum ditentukan (Biarkan penonton memilih)</option>
-                            @foreach ($films as $f)
-                                <option value="{{ $f->id }}">{{ $f->title }}</option>
-                            @endforeach
-                        </select>
+                            :searchable="true"
+                            placeholder="Belum ditentukan (Biarkan penonton memilih)"
+                            :options="$filmOptions"
+                            @synemax-select-changed="editFilmId = $event.detail.value"
+                        />
                     </div>
 
                     <div class="grid gap-4 sm:grid-cols-2">

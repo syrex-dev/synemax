@@ -53,6 +53,14 @@ class ScheduleController extends Controller
             ])
             ->all();
 
+        $films = Film::query()->where('is_active', true)->select(['id', 'title'])->orderBy('title')->get();
+        $filmOptions = collect([
+            ['value' => '', 'label' => 'Belum ditentukan (Biarkan penonton memilih)'],
+        ])->concat($films->map(fn ($f) => [
+            'value' => (string) $f->id,
+            'label' => $f->title,
+        ]))->values()->all();
+
         return view('admin.schedule.index', [
             'templates' => ScheduleTemplate::query()->orderBy('day_type')->orderBy('start_time')->get(),
             'holidays' => Holiday::query()->where('holiday_date', '>=', $today->toDateString())->orderBy('holiday_date')->get(),
@@ -61,7 +69,8 @@ class ScheduleController extends Controller
             'sessionsByDate' => $sessionsByDate,
             'targetSessionOptions' => $targetSessionOptions,
             'todayDate' => $today->toDateString(),
-            'films' => Film::query()->where('is_active', true)->select(['id', 'title'])->orderBy('title')->get(),
+            'films' => $films,
+            'filmOptions' => $filmOptions,
             'dayTypes' => [
                 'weekday' => 'Senin–Kamis',
                 'jumat' => 'Jumat',
