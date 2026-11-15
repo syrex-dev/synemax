@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 #[Fillable([
     'code',
@@ -251,6 +252,16 @@ class Booking extends Model
         return $this->hasMany(SnackOrderEdit::class)
             ->orderByDesc('created_at')
             ->orderByDesc('id');
+    }
+
+    public function memberVisits(): HasMany
+    {
+        return $this->hasMany(MemberVisit::class);
+    }
+
+    public function members(): HasManyThrough
+    {
+        return $this->hasManyThrough(Member::class, MemberVisit::class, 'booking_id', 'id', 'id', 'member_id');
     }
 
     public function paymentStatusLabel(): string

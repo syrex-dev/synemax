@@ -270,4 +270,121 @@ class AdminWalkInBookingTest extends TestCase
 
         $response->assertSessionHasErrors('pax');
     }
+
+    public function test_admin_can_perform_member_lookup_and_get_multiple_results(): void
+    {
+        $member1 = Member::query()->create([
+            'code' => 'MBR-AAAA-1111-A',
+            'member_code' => 'MBR-AAAA-1111-A',
+            'name' => 'Kansa Putri',
+            'nickname' => 'Kansa',
+            'status' => 'aktif',
+            'opening_visits' => 1,
+        ]);
+
+        $member2 = Member::query()->create([
+            'code' => 'MBR-BBBB-2222-B',
+            'member_code' => 'MBR-BBBB-2222-B',
+            'name' => 'Kansa Aurelia',
+            'nickname' => 'Aurel',
+            'status' => 'aktif',
+            'opening_visits' => 2,
+        ]);
+
+        $response = $this->getJson(route('admin.bookings.member_lookup', [
+            'q' => 'Kansa',
+            'session_id' => $this->session->id,
+        ]));
+
+        $response->assertOk();
+        $response->assertJson([
+            'found' => true,
+            'member' => [
+                'id' => $member1->id,
+                'name' => 'Kansa Putri',
+            ],
+        ]);
+        $this->assertCount(2, $response->json('members'));
+    }
+
+    public function test_admin_can_create_walk_in_with_multiple_member_cards_and_all_visits_are_recorded(): void
+    {
+        $member1 = Member::query()->create([
+            'code' => 'MBR-KAN1-0001-A',
+            'member_code' => 'MBR-KAN1-0001-A',
+            'name' => 'Kansa',
+            'nickname' => 'Kansa',
+            'status' => 'aktif',
+            'opening_visits' => 1,
+        ]);
+
+        $member2 = Member::query()->create([
+            'code' => 'MBR-BAG2-0002-B',
+            'member_code' => 'MBR-BAG2-0002-B',
+            'name' => 'Bagas',
+            'nickname' => 'Bagas',
+            'status' => 'aktif',
+            'opening_visits' => 3,
+        ]);
+
+        $member3 = Member::query()->create([
+            'code' => 'MBR-ADI3-0003-C',
+            'member_code' => 'MBR-ADI3-0003-C',
+            'name' => 'Aditia',
+            'nickname' => 'Adit',
+            'status' => 'aktif',
+            'opening_visits' => 0,
+        ]);
+
+        $payload = [
+            'session_id' => $this->session->id,
+            'package' => 'reguler',
+            'pax' => 3,
+            'film_id' => $this->film->id,
+            'customer_name' => '', // fallback to all members
+            'whatsapp' => '',
+            'member_codes' => [$member1->code, $member2->code, $member3->code],
+            'payment_method' => 'di_tempat',
+            'cash_received' => 20000,
+            'mark_as_attended' => 1,
+        ];
+
+        $response = $this->post(route('admin.bookings.store'), $payload);
+        $response->assertRedirect();
+
+        $booking = Booking::query()->latest('id')->firstOrFail();
+        $this->assertSame(3, $booking->pax);
+        $this->assertSame(15000, $booking->total_price);
+        $this->assertSame(5000, session('walk_in_success')['change_amount']);
+
+        // Check customer_name combines all member names
+        $this->assertStringContainsString('Kansa', $booking->customer_name);
+        $this->assertStringContainsString('Bagas', $booking->customer_name);
+        $this->assertStringContainsString('Aditia', $booking->customer_name);
+
+        // Check notes record all members
+        $this->assertStringContainsString('Member: Kansa', (string) $booking->notes);
+        $this->assertStringContainsString('Bagas', (string) $booking->notes);
+        $this->assertStringContainsString('Aditia', (string) $booking->notes);
+
+        // Check all 3 member visits are recorded in database
+        $this->assertDatabaseHas('member_visits', [
+            'member_id' => $member1->id,
+            'session_id' => $this->session->id,
+            'booking_id' => $booking->id,
+            'method' => 'loket',
+        ]);
+        $this->assertDatabaseHas('member_visits', [
+            'member_id' => $member2->id,
+            'session_id' => $this->session->id,
+            'booking_id' => $booking->id,
+            'method' => 'loket',
+        ]);
+        $this->assertDatabaseHas('member_visits', [
+            'member_id' => $member3->id,
+            'session_id' => $this->session->id,
+            'booking_id' => $booking->id,
+            'method' => 'loket',
+        ]);
+    }
 }

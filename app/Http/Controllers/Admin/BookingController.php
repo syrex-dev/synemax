@@ -190,27 +190,28 @@ class BookingController extends Controller
         }
 
         $norm = MemberCodeGenerator::normalize($raw);
-        $member = Member::query()
+        $matchedMembers = Member::query()
             ->where('code', $norm)
             ->orWhere('member_code', $norm)
             ->orWhere('code', 'like', "%{$norm}")
             ->orWhere('name', 'like', "%{$raw}%")
             ->orWhere('nickname', 'like', "%{$raw}%")
-            ->first();
+            ->limit(10)
+            ->get();
 
-        if (! $member) {
+        if ($matchedMembers->isEmpty()) {
             return response()->json(['found' => false, 'message' => 'Member tidak ditemukan.']);
         }
 
         $sessionId = $request->input('session_id');
         $session = $sessionId ? Session::find((int) $sessionId) : null;
-        $eval = $loyaltyRules->evaluateCheckIn($member, $session);
         $cycleMax = app(CinemaSettings::class)->memberFreeVisit();
-        $nextPos = $member->nextVisitPosition($cycleMax);
 
-        return response()->json([
-            'found' => true,
-            'member' => [
+        $formattedMembers = $matchedMembers->map(function (Member $member) use ($loyaltyRules, $session, $cycleMax): array {
+            $eval = $loyaltyRules->evaluateCheckIn($member, $session);
+            $nextPos = $member->nextVisitPosition($cycleMax);
+
+            return [
                 'id' => $member->id,
                 'code' => $member->code,
                 'name' => $member->name,
@@ -225,7 +226,13 @@ class BookingController extends Controller
                 'potential_reward_label' => LoyaltyRules::REWARD_LABELS[$eval['potential_reward']] ?? 'Tanpa Reward',
                 'reward_amount' => $eval['reward_amount'],
                 'reward_amount_formatted' => 'Rp '.number_format($eval['reward_amount'], 0, ',', '.'),
-            ],
+            ];
+        });
+
+        return response()->json([
+            'found' => true,
+            'member' => $formattedMembers->first(),
+            'members' => $formattedMembers->values()->all(),
         ]);
     }
 
@@ -240,6 +247,8 @@ class BookingController extends Controller
             'customer_name' => ['nullable', 'string', 'max:80'],
             'whatsapp' => ['nullable', 'string', 'max:30'],
             'member_code' => ['nullable', 'string', 'max:60'],
+            'member_codes' => ['nullable', 'array', 'max:10'],
+            'member_codes.*' => ['string', 'max:60'],
             'apply_member_reward' => ['nullable', 'boolean'],
             'payment_method' => ['nullable', 'in:di_tempat,qris,transfer'],
             'cash_received' => ['nullable', 'integer', 'min:0'],
@@ -261,6 +270,14 @@ class BookingController extends Controller
             $flashMessage .= ' Kembalian tunai: Rp '.number_format($changeAmount, 0, ',', '.');
         }
 
+        $memberNames = ! empty($result['members'])
+            ? collect($result['members'])->map(fn (Member $m): string => $m->nickname ? "{$m->name} ({$m->nickname})" : $m->name)->implode(', ')
+            : $result['member']?->name;
+
+        $memberCodes = ! empty($result['members'])
+            ? collect($result['members'])->pluck('code')->implode(', ')
+            : $result['member']?->code;
+
         return redirect()
             ->route('admin.bookings.create', ['session_id' => $session->id])
             ->with('status', $flashMessage)
@@ -277,8 +294,9 @@ class BookingController extends Controller
                 'ticket_url' => route('admin.bookings.ticket', $booking),
                 'show_url' => route('admin.bookings.show', $booking),
                 'attended' => $booking->status === 'hadir',
-                'member_name' => $result['member']?->name,
-                'member_code' => $result['member']?->code,
+                'member_name' => $memberNames,
+                'member_code' => $memberCodes,
+                'members_count' => count($result['members'] ?? []),
             ]);
     }
 

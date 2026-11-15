@@ -75,7 +75,7 @@
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <article class="relative overflow-hidden rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-surface to-surface p-5 shadow-sm">
                 <div class="flex items-center justify-between">
-                    <p class="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Total pendapatan</p>
+                    <p class="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Total Pendapatan</p>
                     <span class="rounded-lg bg-amber-500/15 p-1.5 text-amber-600 dark:text-amber-400">
                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </span>
@@ -86,7 +86,7 @@
 
             <article class="relative overflow-hidden rounded-2xl border border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-surface to-surface p-5 shadow-sm">
                 <div class="flex items-center justify-between">
-                    <p class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Laba kasar studio</p>
+                    <p class="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Laba Kasar Studio</p>
                     <span class="rounded-lg bg-emerald-500/15 p-1.5 text-emerald-600 dark:text-emerald-400">
                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" /></svg>
                     </span>
@@ -108,7 +108,7 @@
 
             <article class="rounded-2xl border border-border bg-surface p-5 shadow-xs">
                 <div class="flex items-center justify-between">
-                    <p class="text-xs font-bold uppercase tracking-wider text-text-muted">Sesi batal karena kuorum</p>
+                    <p class="text-xs font-bold uppercase tracking-wider text-text-muted">Sesi Batal Kuorum</p>
                     <span class="rounded-lg bg-surface-2 p-1.5 text-text-muted">
                         <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
                     </span>
@@ -121,28 +121,28 @@
         {{-- Tingkat 2: 6 Kartu Rincian Finansial & Jajan --}}
         <div class="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             <article class="rounded-xl border border-border bg-surface p-3.5 shadow-2xs">
-                <p class="text-[11px] font-semibold text-text-muted">Pendapatan tiket</p>
-                <p class="mt-1 text-sm font-black text-text font-tabular">Rp {{ number_format($ticketRevenue, 0, ',', '.') }}</p>
+                <p class="text-[11px] font-semibold text-text-muted">Pendapatan Tiket</p>
+                <p class="mt-1 text-base font-black text-text font-tabular">Rp {{ number_format($ticketRevenue, 0, ',', '.') }}</p>
             </article>
             <article class="rounded-xl border border-border bg-surface p-3.5 shadow-2xs">
-                <p class="text-[11px] font-semibold text-text-muted">Pendapatan jajan</p>
-                <p class="mt-1 text-sm font-black text-text font-tabular">Rp {{ number_format($snackRevenue, 0, ',', '.') }}</p>
+                <p class="text-[11px] font-semibold text-text-muted">Pendapatan Jajan</p>
+                <p class="mt-1 text-base font-black text-text font-tabular">Rp {{ number_format($snackRevenue, 0, ',', '.') }}</p>
             </article>
             <article class="rounded-xl border border-border bg-surface p-3.5 shadow-2xs">
-                <p class="text-[11px] font-semibold text-text-muted">Laba jajan</p>
-                <p class="mt-1 text-sm font-black text-emerald-600 dark:text-emerald-400 font-tabular">Rp {{ number_format($snackProfit, 0, ',', '.') }}</p>
+                <p class="text-[11px] font-semibold text-text-muted">Laba Jajan</p>
+                <p class="mt-1 text-base font-black text-emerald-600 dark:text-emerald-400 font-tabular">Rp {{ number_format($snackProfit, 0, ',', '.') }}</p>
             </article>
             <article class="rounded-xl border border-border bg-surface p-3.5 shadow-2xs">
-                <p class="text-[11px] font-semibold text-text-muted">Rata-rata jajan / booking</p>
-                <p class="mt-1 text-sm font-black text-text font-tabular">Rp {{ number_format($averageSnackValue, 0, ',', '.') }}</p>
+                <p class="text-[11px] font-semibold text-text-muted">Rata-rata Jajan / Booking</p>
+                <p class="mt-1 text-base font-black text-text font-tabular">Rp {{ number_format($averageSnackValue, 0, ',', '.') }}</p>
             </article>
             <article class="rounded-xl border border-border bg-surface p-3.5 shadow-2xs">
-                <p class="text-[11px] font-semibold text-text-muted">Booking pesan jajan</p>
-                <p class="mt-1 text-sm font-black text-text font-tabular">{{ $snackBookingCount }} <span class="text-xs font-semibold text-text-muted">({{ $snackBookingPercent }}%)</span></p>
+                <p class="text-[11px] font-semibold text-text-muted">Booking Pesan Jajan</p>
+                <p class="mt-1 text-base font-black text-text font-tabular">{{ $snackBookingCount }} <span class="text-xs font-semibold text-text-muted">({{ $snackBookingPercent }}%)</span></p>
             </article>
             <article class="rounded-xl border border-border bg-surface p-3.5 shadow-2xs">
                 <p class="text-[11px] font-semibold text-text-muted">Listrik</p>
-                <p class="mt-1 text-sm font-black text-text font-tabular">Rp {{ number_format($electricityCost, 0, ',', '.') }}</p>
+                <p class="mt-1 text-base font-black text-text font-tabular">Rp {{ number_format($electricityCost, 0, ',', '.') }}</p>
             </article>
         </div>
     </div>
@@ -208,7 +208,7 @@
             <div>
                 <div class="flex items-center justify-between gap-3 pb-3 border-b border-border">
                     <div>
-                        <h2 class="text-base font-bold text-text">Jajan paling laris</h2>
+                        <h2 class="text-base font-bold text-text">Jajan Paling Laris</h2>
                         <p class="text-xs text-text-muted mt-0.5">Camilan & minuman dengan volume penjualan tertinggi.</p>
                     </div>
                     <span class="rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
@@ -256,7 +256,7 @@
             <div>
                 <div class="flex items-center justify-between gap-3 pb-3 border-b border-border">
                     <div>
-                        <h2 class="text-base font-bold text-text">Film terkonfirmasi ditonton</h2>
+                        <h2 class="text-base font-bold text-text">Film Terkonfirmasi Ditonton</h2>
                         <p class="text-xs text-text-muted mt-0.5">Hanya dari booking yang sudah terbayar/terkonfirmasi.</p>
                     </div>
                     <span class="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
@@ -302,7 +302,7 @@
             <div>
                 <div class="flex items-center justify-between gap-3 pb-3 border-b border-border">
                     <div>
-                        <h2 class="text-base font-bold text-text">Film paling sering diminati</h2>
+                        <h2 class="text-base font-bold text-text">Film Paling Sering Diminati</h2>
                         <p class="text-xs text-text-muted mt-0.5">Termasuk pilihan pemesan pada sesi batal kuorum.</p>
                     </div>
                     <span class="rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/25">

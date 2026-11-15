@@ -158,7 +158,10 @@
         <input type="hidden" name="package" :value="packageType">
         <input type="hidden" name="pax" :value="pax">
         <input type="hidden" name="film_id" :value="resolvedFilmId">
-        <input type="hidden" name="member_code" :value="memberFound ? memberFound.code : ''">
+        <template x-for="m in selectedMembers" :key="m.id">
+            <input type="hidden" name="member_codes[]" :value="m.code">
+        </template>
+        <input type="hidden" name="member_code" :value="selectedMembers.length > 0 ? selectedMembers[0].code : ''">
         <input type="hidden" name="apply_member_reward" :value="applyMemberReward ? 1 : 0">
         <input type="hidden" name="cash_received" :value="cashReceivedNumeric">
         <input type="hidden" name="mark_as_attended" :value="markAsAttended ? 1 : 0">
@@ -393,87 +396,178 @@
                         <span class="text-xs text-text-muted">Nomor HP bersifat opsional</span>
                     </div>
 
-                    {{-- Pindai / Cari Kartu Member --}}
+                    {{-- Pindai / Cari Kartu Member (Multiple Select Support) --}}
                     <div class="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-                        <label class="block text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-1.5">
-                            Punya Kartu Member? (Scan Barcode / Ketik Kode / Cari Nama)
-                        </label>
-                        <div class="flex gap-2">
-                            <div class="relative flex-1">
-                                <input
-                                    type="text"
-                                    x-model="memberQuery"
-                                    @input.debounce.300ms="if (memberQuery.trim().length >= 3 || memberQuery.trim().toUpperCase().startsWith('MBR')) { lookupMember(); } else if (!memberQuery.trim()) { memberFound = null; memberNotFound = false; }"
-                                    @keydown.enter.prevent="lookupMember()"
-                                    placeholder="Contoh: MBR-ZRGH-V4B9-Q atau nama anak..."
-                                    class="min-h-11 w-full rounded-xl border border-border bg-surface px-3.5 text-sm text-text placeholder:text-text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-                                >
-                            </div>
-                            <button
-                                type="button"
-                                @click="lookupMember()"
-                                :disabled="memberSearching || !memberQuery.trim()"
-                                class="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-amber-500 px-4 text-xs font-bold text-slate-950 hover:bg-amber-400 active:scale-95 transition disabled:opacity-50"
+                        <div class="flex items-center justify-between gap-2 mb-2">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                                Punya Kartu Member? (Scan Barcode / Ketik Kode / Cari Nama)
+                            </label>
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold font-tabular border"
+                                :class="{
+                                    'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30': selectedMembers.length > 0,
+                                    'bg-surface-2 text-text-muted border-border': selectedMembers.length === 0
+                                }"
                             >
-                                <svg x-show="!memberSearching" class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                <span x-show="memberSearching">Mencari...</span>
-                                <span x-show="!memberSearching">Cari Member</span>
-                            </button>
+                                <span x-text="selectedMembers.length"></span>/<span x-text="maxMembersAllowed"></span> Member Terpilih
+                            </span>
                         </div>
 
-                        {{-- Keterangan Not Found --}}
-                        <div x-show="memberNotFound" class="mt-2 text-xs font-semibold text-rose-500">
-                            Member tidak ditemukan. Periksa kode atau ketik nama anak secara manual di bawah.
-                        </div>
-
-                        {{-- Kartu Member Terdeteksi --}}
-                        <div x-show="memberFound" class="mt-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3.5">
-                            <div class="flex items-center justify-between gap-3">
-                                <div class="flex items-center gap-3">
-                                    <div class="size-11 rounded-full bg-emerald-500/20 overflow-hidden shrink-0 border border-emerald-500/40 flex items-center justify-center">
-                                        <template x-if="memberFound && memberFound.photo_url">
-                                            <img :src="memberFound.photo_url" class="size-full object-cover">
-                                        </template>
-                                        <template x-if="!memberFound || !memberFound.photo_url">
-                                            <span class="text-xs font-black text-emerald-600 dark:text-emerald-400" x-text="memberFound ? memberFound.name.substring(0, 2).toUpperCase() : ''"></span>
-                                        </template>
-                                    </div>
-                                    <div>
-                                        <div class="flex items-center gap-2">
-                                            <h4 class="text-sm font-black text-text" x-text="memberFound?.display_name"></h4>
-                                            <span class="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-300" x-text="memberFound?.code"></span>
-                                        </div>
-                                        <p class="text-xs text-text-muted mt-0.5">
-                                            Stempel Kunjungan: <strong class="text-emerald-600 dark:text-emerald-400 font-bold" x-text="'Ke-' + memberFound?.next_position + ' dari ' + memberFound?.cycle_max"></strong>
-                                            <span class="text-[11px]"> (Otomatis ditambah saat disimpan)</span>
-                                        </p>
-                                    </div>
+                        {{-- Area Input Pencarian & Scan (Aktif jika kuota belum penuh) --}}
+                        <div x-show="!isMemberQuotaFull" class="space-y-2">
+                            <div class="flex gap-2">
+                                <div class="relative flex-1">
+                                    <input
+                                        type="text"
+                                        x-model="memberQuery"
+                                        @input.debounce.300ms="if (memberQuery.trim().length >= 2 || memberQuery.trim().toUpperCase().startsWith('MBR')) { lookupMember(); } else if (!memberQuery.trim()) { memberSearchResults = []; memberNotFound = false; }"
+                                        @keydown.enter.prevent="lookupMember()"
+                                        :placeholder="selectedMembers.length === 0 ? 'Contoh: MBR-ZRGH-V4B9-Q atau nama anak...' : 'Scan / ketik member ke-' + (selectedMembers.length + 1) + ' (maks ' + maxMembersAllowed + ')...'"
+                                        class="min-h-11 w-full rounded-xl border border-border bg-surface px-3.5 text-sm text-text placeholder:text-text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                                    >
+                                    <button
+                                        type="button"
+                                        x-show="memberQuery.trim()"
+                                        @click="memberQuery = ''; memberSearchResults = []; memberNotFound = false;"
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text text-xs p-1 cursor-pointer"
+                                    >
+                                        ✕
+                                    </button>
                                 </div>
                                 <button
                                     type="button"
-                                    @click="clearMember()"
-                                    class="text-xs text-text-muted hover:text-rose-500 transition underline p-1"
+                                    @click="lookupMember()"
+                                    :disabled="memberSearching || !memberQuery.trim()"
+                                    class="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-amber-500 px-4 text-xs font-bold text-slate-950 hover:bg-amber-400 active:scale-95 transition disabled:opacity-50 cursor-pointer shrink-0"
                                 >
-                                    Lepas
+                                    <svg x-show="!memberSearching" class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                    <svg x-show="memberSearching" class="size-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                    </svg>
+                                    <span x-show="memberSearching">Mencari...</span>
+                                    <span x-show="!memberSearching">Cari & Tambah</span>
                                 </button>
                             </div>
 
-                            {{-- Reward Loyalty Banner (Jika Memenuhi Syarat) --}}
-                            <template x-if="memberFound && memberFound.potential_reward !== 'none'">
-                                <div class="mt-2.5 pt-2.5 border-t border-emerald-500/20 flex items-center justify-between gap-3">
+                            <p class="text-[11px] text-text-muted">
+                                Bisa menambahkan hingga <strong class="text-text font-bold" x-text="maxMembersAllowed + ' member'"></strong> sesuai jumlah orang (<span x-text="maxMembersAllowed"></span> orang) yang dipilih.
+                            </p>
+                        </div>
+
+                        {{-- Area Jika Kuota Member Sudah Maksimal --}}
+                        <div x-show="isMemberQuotaFull" class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs flex items-center justify-between gap-3 text-emerald-700 dark:text-emerald-300">
+                            <div class="flex items-center gap-2">
+                                <svg class="size-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                                <span>Semua kuota member (<strong x-text="maxMembersAllowed"></strong> anak) sudah terisi lengkap.</span>
+                            </div>
+                            <span class="text-[11px] text-text-muted shrink-0">Lepas salah satu di bawah jika ingin mengganti</span>
+                        </div>
+
+                        {{-- Keterangan Not Found --}}
+                        <div x-show="memberNotFound" class="mt-2 text-xs font-semibold text-rose-500 flex items-center gap-1.5">
+                            <svg class="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                            <span>Member tidak ditemukan. Periksa kode atau ketik nama anak secara manual di bawah.</span>
+                        </div>
+
+                        {{-- Dropdown Hasil Pencarian Jika Ditemukan Banyak --}}
+                        <div x-show="memberSearchResults.length > 1" class="mt-3 rounded-xl border border-border bg-surface p-2 space-y-1.5 shadow-md">
+                            <p class="text-[11px] font-bold text-text-muted px-2 py-1">Pilih Member yang Sesuai:</p>
+                            <template x-for="result in memberSearchResults" :key="result.id">
+                                <div class="flex items-center justify-between gap-3 p-2 rounded-lg hover:bg-surface-2 transition">
+                                    <div class="flex items-center gap-2.5 min-w-0">
+                                        <div class="size-8 rounded-full bg-surface-2 flex items-center justify-center font-bold text-xs text-text-muted shrink-0 border border-border">
+                                            <span x-text="result.name.substring(0, 2).toUpperCase()"></span>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <p class="text-xs font-bold text-text truncate" x-text="result.display_name"></p>
+                                            <p class="text-[10px] font-mono text-text-muted" x-text="result.code"></p>
+                                        </div>
+                                    </div>
+                                    <div class="shrink-0 flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            @click="addMember(result)"
+                                            :disabled="selectedMembers.some(m => m.id === result.id)"
+                                            :class="{
+                                                'bg-surface-2 text-text-muted cursor-not-allowed': selectedMembers.some(m => m.id === result.id),
+                                                'bg-amber-500 text-slate-950 font-bold hover:bg-amber-400': !selectedMembers.some(m => m.id === result.id)
+                                            }"
+                                            class="rounded-lg px-2.5 py-1 text-xs transition cursor-pointer"
+                                        >
+                                            <span x-show="selectedMembers.some(m => m.id === result.id)">Sudah Dipilih</span>
+                                            <span x-show="!selectedMembers.some(m => m.id === result.id)">+ Tambah</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        {{-- Daftar Kartu Member Terpilih (Multiple Cards) --}}
+                        <div x-show="selectedMembers.length > 0" class="mt-3 space-y-2.5">
+                            <template x-for="(member, index) in selectedMembers" :key="member.id">
+                                <div class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3.5 transition">
+                                    <div class="flex items-center justify-between gap-3">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <span class="flex size-6 items-center justify-center rounded-full bg-emerald-500 text-white font-black text-xs shrink-0" x-text="index + 1"></span>
+                                            <div class="size-10 rounded-full bg-emerald-500/20 overflow-hidden shrink-0 border border-emerald-500/40 flex items-center justify-center">
+                                                <template x-if="member.photo_url">
+                                                    <img :src="member.photo_url" class="size-full object-cover">
+                                                </template>
+                                                <template x-if="!member.photo_url">
+                                                    <span class="text-xs font-black text-emerald-600 dark:text-emerald-400" x-text="member.name.substring(0, 2).toUpperCase()"></span>
+                                                </template>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    <h4 class="text-sm font-black text-text" x-text="member.display_name"></h4>
+                                                    <span class="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-300" x-text="member.code"></span>
+                                                </div>
+                                                <p class="text-xs text-text-muted mt-0.5">
+                                                    Stempel Kunjungan: <strong class="text-emerald-600 dark:text-emerald-400 font-bold" x-text="'Ke-' + member.next_position + ' dari ' + member.cycle_max"></strong>
+                                                    <span class="text-[11px]"> (Otomatis ditambah saat disimpan)</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            @click="removeMember(index)"
+                                            class="text-xs font-bold text-rose-500 hover:text-rose-600 transition underline p-1 shrink-0 cursor-pointer"
+                                        >
+                                            Lepas
+                                        </button>
+                                    </div>
+
+                                    {{-- Reward Loyalty Banner (Jika Memenuhi Syarat) --}}
+                                    <template x-if="member.potential_reward !== 'none'">
+                                        <div class="mt-2.5 pt-2 border-t border-emerald-500/20 flex items-center justify-between gap-3 text-xs">
+                                            <div class="flex items-center gap-1.5 text-amber-700 dark:text-amber-400 font-bold">
+                                                <span class="flex size-4 items-center justify-center rounded-full bg-amber-500 text-slate-950">
+                                                    <svg class="size-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                                                </span>
+                                                <span x-text="'Reward Member: ' + member.potential_reward_label + ' (' + member.reward_amount_formatted + ')'"></span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+
+                            {{-- Toggle Global Gunakan Diskon --}}
+                            <template x-if="hasAnyMemberReward">
+                                <div class="mt-2 rounded-xl bg-amber-500/10 border border-amber-500/30 p-3 flex items-center justify-between gap-3">
                                     <div class="flex items-center gap-2">
-                                        <span class="flex size-5 items-center justify-center rounded-full bg-amber-500 text-slate-950">
-                                            <svg class="size-3" fill="currentColor" viewBox="0 0 20 20">
-                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                            </svg>
+                                        <svg class="size-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        <span class="text-xs font-bold text-amber-700 dark:text-amber-400">
+                                            Gunakan diskon langsung (<span x-text="rewardMemberCount"></span> anak berhak reward)
                                         </span>
-                                        <span class="text-xs font-bold text-amber-700 dark:text-amber-400" x-text="'Mendapat Reward: ' + memberFound.potential_reward_label"></span>
                                     </div>
                                     <label class="flex items-center gap-1.5 text-xs font-bold text-text cursor-pointer">
                                         <input type="checkbox" x-model="applyMemberReward" class="rounded text-amber-500 focus:ring-amber-500">
-                                        <span>Gunakan Diskon Langsung</span>
+                                        <span>Gunakan Diskon</span>
                                     </label>
                                 </div>
                             </template>
@@ -491,6 +585,7 @@
                                 id="customer_name"
                                 name="customer_name"
                                 x-model="customerName"
+                                @input="customerNameManuallyEdited = true"
                                 placeholder="Contoh: Bagas (Bagas)"
                                 class="min-h-11 w-full rounded-xl border border-border bg-bg px-3.5 text-sm text-text placeholder:text-text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                             >
@@ -615,10 +710,19 @@
                                 <span class="text-text-muted">Paket:</span>
                                 <span class="font-bold text-text capitalize" x-text="packageType === 'private' ? ('Sewa Privat (' + (currentSession?.capacity || maxPax) + ' org)') : (packageType === 'couple' ? 'Couple (2 org)' : 'Reguler (' + pax + ' org)')"></span>
                             </div>
-                            <template x-if="memberFound">
-                                <div class="flex justify-between text-emerald-600 dark:text-emerald-400 font-semibold">
-                                    <span>Member:</span>
-                                    <span class="truncate max-w-[180px]" x-text="memberFound.display_name"></span>
+                            <template x-if="selectedMembers.length > 0">
+                                <div class="space-y-1 pt-1 border-t border-border/40">
+                                    <div class="flex justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                        <span>Member (<span x-text="selectedMembers.length + '/' + maxMembersAllowed"></span>):</span>
+                                    </div>
+                                    <div class="space-y-1">
+                                        <template x-for="(m, idx) in selectedMembers" :key="m.id">
+                                            <div class="flex items-center justify-between text-[11px] rounded bg-surface-2/60 px-2 py-1">
+                                                <span class="truncate max-w-[130px] font-bold text-text" x-text="(idx + 1) + '. ' + m.display_name"></span>
+                                                <span class="font-mono text-emerald-600 dark:text-emerald-400 font-bold" x-text="m.code"></span>
+                                            </div>
+                                        </template>
+                                    </div>
                                 </div>
                             </template>
                         </div>
@@ -801,15 +905,17 @@ function walkInPos(config) {
         selectedFilmId: null,
         filmSearch: '',
         
-        // Member
+        // Member state (multi-select)
         memberQuery: '',
         memberSearching: false,
-        memberFound: null,
         memberNotFound: false,
+        memberSearchResults: [],
+        selectedMembers: [],
         applyMemberReward: true,
 
         // Customer
         customerName: '',
+        customerNameManuallyEdited: false,
         whatsapp: '',
 
         // Snacks
@@ -828,6 +934,44 @@ function walkInPos(config) {
             } else if (this.films.length > 0) {
                 this.selectedFilmId = this.films[0].id;
             }
+
+            this.$watch('pax', () => {
+                this.enforceMemberQuota();
+            });
+
+            this.$watch('packageType', () => {
+                this.enforceMemberQuota();
+            });
+        },
+
+        enforceMemberQuota() {
+            const max = this.maxMembersAllowed;
+            if (this.selectedMembers.length > max) {
+                this.selectedMembers = this.selectedMembers.slice(0, max);
+                this.syncCustomerName();
+            }
+        },
+
+        get effectivePax() {
+            if (this.packageType === 'couple') return 2;
+            if (this.packageType === 'private') return (this.currentSession ? this.currentSession.capacity : this.maxPax);
+            return this.pax;
+        },
+
+        get maxMembersAllowed() {
+            return this.effectivePax;
+        },
+
+        get isMemberQuotaFull() {
+            return this.selectedMembers.length >= this.maxMembersAllowed;
+        },
+
+        get hasAnyMemberReward() {
+            return this.selectedMembers.some(m => m.potential_reward && m.potential_reward !== 'none');
+        },
+
+        get rewardMemberCount() {
+            return this.selectedMembers.filter(m => m.potential_reward && m.potential_reward !== 'none').length;
         },
 
         get currentSession() {
@@ -867,6 +1011,7 @@ function walkInPos(config) {
             if (this.currentSession && this.pax > this.currentSession.remaining_seats) {
                 this.pax = Math.max(1, this.currentSession.remaining_seats);
             }
+            this.enforceMemberQuota();
         },
 
         // Pricing calculations
@@ -882,10 +1027,25 @@ function walkInPos(config) {
         },
 
         get memberDiscount() {
-            if (!this.memberFound || !this.applyMemberReward) return 0;
-            if (this.memberFound.potential_reward === 'none') return 0;
-            const rewardAmt = this.memberFound.reward_amount || 0;
-            return Math.min(rewardAmt, this.ticketSubtotalBeforeDiscount);
+            if (!this.applyMemberReward || this.selectedMembers.length === 0) return 0;
+
+            let unitTicketPrice = 0;
+            if (this.packageType === 'private') {
+                unitTicketPrice = Math.round((this.currentSession?.private_price || 30000) / this.effectivePax);
+            } else if (this.packageType === 'couple') {
+                unitTicketPrice = Math.round((this.currentSession?.couple_price || 10000) / 2);
+            } else {
+                unitTicketPrice = this.currentSession?.regular_price || 5000;
+            }
+
+            let totalDisc = 0;
+            for (const m of this.selectedMembers) {
+                if (m.potential_reward && m.potential_reward !== 'none' && m.reward_amount > 0) {
+                    totalDisc += Math.min(m.reward_amount, unitTicketPrice);
+                }
+            }
+
+            return Math.min(totalDisc, this.ticketSubtotalBeforeDiscount);
         },
 
         get ticketSubtotal() {
@@ -954,44 +1114,96 @@ function walkInPos(config) {
             }
         },
 
-        // Member Lookup
+        // Member Multi-Select Handlers
         async lookupMember() {
             const q = this.memberQuery.trim();
             if (!q) {
-                this.memberFound = null;
                 this.memberNotFound = false;
+                this.memberSearchResults = [];
+                return;
+            }
+
+            if (this.isMemberQuotaFull) {
+                if (window.showToast) {
+                    window.showToast({ type: 'warning', message: `Kuota member (${this.maxMembersAllowed} orang) sudah penuh.` });
+                }
                 return;
             }
 
             this.memberSearching = true;
             this.memberNotFound = false;
+            this.memberSearchResults = [];
 
             try {
                 const url = `${config.lookupUrl}?q=${encodeURIComponent(q)}&session_id=${this.selectedSessionId || ''}`;
                 const res = await fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } });
                 const data = await res.json();
 
-                if (data.found && data.member) {
-                    this.memberFound = data.member;
-                    this.memberNotFound = false;
-                    if (!this.customerName.trim()) {
-                        this.customerName = data.member.display_name;
+                if (data.found) {
+                    const list = data.members && data.members.length > 0 ? data.members : (data.member ? [data.member] : []);
+                    if (list.length === 1) {
+                        this.addMember(list[0]);
+                    } else if (list.length > 1) {
+                        this.memberSearchResults = list;
+                    } else {
+                        this.memberNotFound = true;
                     }
                 } else {
-                    this.memberFound = null;
                     this.memberNotFound = true;
+                    this.memberSearchResults = [];
                 }
             } catch (err) {
                 this.memberNotFound = true;
+                this.memberSearchResults = [];
             } finally {
                 this.memberSearching = false;
             }
         },
 
-        clearMember() {
-            this.memberFound = null;
-            this.memberNotFound = false;
+        addMember(member) {
+            if (this.selectedMembers.some(m => m.id === member.id || m.code === member.code)) {
+                if (window.showToast) {
+                    window.showToast({ type: 'warning', message: `Member ${member.display_name} sudah dipilih.` });
+                }
+                this.memberQuery = '';
+                this.memberSearchResults = [];
+                return;
+            }
+
+            if (this.isMemberQuotaFull) {
+                if (window.showToast) {
+                    window.showToast({ type: 'warning', message: `Maksimal ${this.maxMembersAllowed} member sesuai jumlah orang.` });
+                }
+                return;
+            }
+
+            this.selectedMembers.push(member);
             this.memberQuery = '';
+            this.memberSearchResults = [];
+            this.memberNotFound = false;
+            this.syncCustomerName();
+
+            if (window.showToast) {
+                window.showToast({ type: 'success', message: `${member.display_name} ditambahkan (${this.selectedMembers.length}/${this.maxMembersAllowed})` });
+            }
+        },
+
+        removeMember(index) {
+            if (index >= 0 && index < this.selectedMembers.length) {
+                this.selectedMembers.splice(index, 1);
+                this.syncCustomerName();
+            }
+        },
+
+        syncCustomerName() {
+            if (this.customerNameManuallyEdited && this.customerName.trim() !== '') {
+                return;
+            }
+            if (this.selectedMembers.length === 0) {
+                this.customerName = '';
+            } else {
+                this.customerName = this.selectedMembers.map(m => m.nickname ? `${m.name} (${m.nickname})` : m.name).join(', ');
+            }
         },
 
         get canSubmit() {

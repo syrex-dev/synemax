@@ -769,28 +769,64 @@ class BookingService
                 default => $this->settings->ticketPriceForDayType($dayType) * $pax,
             };
 
-            // Member lookup
-            $member = null;
-            $memberQuery = trim((string) ($data['member_code'] ?? ''));
-            if ($memberQuery !== '') {
-                $normCode = MemberCodeGenerator::normalize($memberQuery);
-                $member = Member::query()->where('code', $normCode)->orWhere('member_code', $normCode)->first();
-                if (! $member && is_numeric($memberQuery)) {
-                    $member = Member::query()->find((int) $memberQuery);
-                }
-            } elseif (! empty($data['member_id'])) {
-                $member = Member::query()->find((int) $data['member_id']);
+            // Member lookup (multiple members support up to pax/peopleCount)
+            $members = collect();
+            $rawMemberCodes = [];
+            if (! empty($data['member_codes']) && is_array($data['member_codes'])) {
+                $rawMemberCodes = array_filter(array_map('trim', $data['member_codes']));
             }
+            if (! empty($data['member_code'])) {
+                $rawMemberCodes[] = trim((string) $data['member_code']);
+            }
+            $rawMemberCodes = array_values(array_unique($rawMemberCodes));
+
+            foreach ($rawMemberCodes as $code) {
+                if ($code === '') {
+                    continue;
+                }
+                $normCode = MemberCodeGenerator::normalize($code);
+                $m = Member::query()->where('code', $normCode)->orWhere('member_code', $normCode)->first();
+                if (! $m && is_numeric($code)) {
+                    $m = Member::query()->find((int) $code);
+                }
+                if ($m && ! $members->contains('id', $m->id)) {
+                    $members->push($m);
+                }
+            }
+
+            if ($members->isEmpty() && ! empty($data['member_id'])) {
+                $m = Member::query()->find((int) $data['member_id']);
+                if ($m) {
+                    $members->push($m);
+                }
+            }
+
+            // Cap members to pax/peopleCount
+            $maxAllowedMembers = max(1, $peopleCount);
+            $members = $members->slice(0, $maxAllowedMembers)->values();
+            $member = $members->first();
 
             // Evaluate member reward discount if applicable
             $loyaltyRules = app(LoyaltyRules::class);
             $applyMemberReward = filter_var($data['apply_member_reward'] ?? false, FILTER_VALIDATE_BOOLEAN);
-            if ($member !== null && $applyMemberReward) {
-                $eval = $loyaltyRules->evaluateCheckIn($member, $session);
-                if ($eval['potential_reward'] !== LoyaltyRules::REWARD_NONE && $eval['reward_amount'] > 0) {
-                    $discount = min($eval['reward_amount'], $ticketPrice);
-                    $ticketPrice = max(0, $ticketPrice - $discount);
+            if ($members->isNotEmpty() && $applyMemberReward) {
+                $unitTicketPrice = match (true) {
+                    $isPrivate => (int) round($ticketPrice / max(1, $pax)),
+                    $isCouple => (int) round($ticketPrice / 2),
+                    default => $this->settings->ticketPriceForDayType($dayType),
+                };
+
+                $totalDiscount = 0;
+                foreach ($members as $m) {
+                    $eval = $loyaltyRules->evaluateCheckIn($m, $session);
+                    if ($eval['potential_reward'] !== LoyaltyRules::REWARD_NONE && $eval['reward_amount'] > 0) {
+                        $discount = min($eval['reward_amount'], $unitTicketPrice);
+                        $totalDiscount += $discount;
+                    }
                 }
+
+                $totalDiscount = min($totalDiscount, $ticketPrice);
+                $ticketPrice = max(0, $ticketPrice - $totalDiscount);
             }
 
             // Customer Name & WhatsApp fallback for kids
@@ -805,8 +841,15 @@ class BookingService
 
             $customerName = trim((string) ($data['customer_name'] ?? ''));
             if ($customerName === '') {
-                if ($member !== null) {
-                    $customerName = $member->nickname ? "{$member->name} ({$member->nickname})" : $member->name;
+                if ($members->isNotEmpty()) {
+                    $names = $members->map(fn (Member $m): string => $m->nickname ? "{$m->name} ({$m->nickname})" : $m->name);
+                    if ($names->count() === 1) {
+                        $customerName = $names->first();
+                    } elseif ($names->count() <= 3) {
+                        $customerName = $names->implode(', ');
+                    } else {
+                        $customerName = $names->first().' + '.($names->count() - 1).' member';
+                    }
                 } else {
                     $customerName = 'Anak (Walk-in)';
                 }
@@ -824,8 +867,8 @@ class BookingService
             $status = $markAttended ? 'hadir' : 'terkonfirmasi';
 
             $notes = ! empty($data['notes']) ? trim((string) $data['notes']) : '';
-            if ($member !== null) {
-                $memberNote = "Member: {$member->name} ({$member->code})";
+            if ($members->isNotEmpty()) {
+                $memberNote = 'Member: '.$members->map(fn (Member $m): string => "{$m->name} ({$m->code})")->implode(', ');
                 $notes = $notes !== '' ? "{$memberNote} · {$notes}" : $memberNote;
             }
 
@@ -888,12 +931,12 @@ class BookingService
                 ]);
             }
 
-            // Record loyalty visit
-            $loyaltyResult = null;
-            if ($member !== null) {
+            // Record loyalty visits for all selected members
+            $loyaltyResults = [];
+            foreach ($members as $m) {
                 try {
-                    $loyaltyResult = $loyaltyRules->recordVisit(
-                        $member,
+                    $loyaltyResults[$m->id] = $loyaltyRules->recordVisit(
+                        $m,
                         $session,
                         $booking,
                         $creator?->id,
@@ -905,6 +948,8 @@ class BookingService
                 }
             }
 
+            $primaryLoyaltyResult = $member !== null ? ($loyaltyResults[$member->id] ?? null) : null;
+
             $cashReceived = (int) ($data['cash_received'] ?? 0);
             $changeAmount = $cashReceived > 0 ? max(0, $cashReceived - (int) $booking->total_price) : 0;
 
@@ -913,7 +958,9 @@ class BookingService
                 'cash_received' => $cashReceived,
                 'change_amount' => $changeAmount,
                 'member' => $member,
-                'loyalty_result' => $loyaltyResult,
+                'members' => $members->all(),
+                'loyalty_result' => $primaryLoyaltyResult,
+                'loyalty_results' => $loyaltyResults,
             ];
         }, attempts: 3);
     }
