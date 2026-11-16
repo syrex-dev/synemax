@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Booking;
 use App\Models\Film;
 use App\Models\Member;
+use App\Models\MemberReward;
 use App\Models\MemberVisit;
 use App\Models\Session;
 use App\Models\Setting;
@@ -688,5 +689,79 @@ class MemberProgramFlowTest extends TestCase
         $this->assertNotNull($event);
         $this->assertSame(0, $event->meta['before']['total_visits']);
         $this->assertSame(5, $event->meta['after']['total_visits']);
+    }
+
+    /**
+     * Test pending member rewards filter and direct navigation from dashboard.
+     */
+    public function test_pending_rewards_filter_in_member_index_and_dashboard_routing(): void
+    {
+        $this->actingAs($this->admin);
+
+        $memberA = Member::create([
+            'code' => 'MBR-REWARD-001',
+            'member_code' => 'MBR-REWARD-001',
+            'name' => 'Aditia Pratama',
+            'status' => 'aktif',
+            'is_active' => true,
+        ]);
+
+        $memberB = Member::create([
+            'code' => 'MBR-REWARD-002',
+            'member_code' => 'MBR-REWARD-002',
+            'name' => 'Bambang Sudirman',
+            'status' => 'aktif',
+            'is_active' => true,
+        ]);
+
+        // Create pending reward for Member A only
+        $rewardA = MemberReward::create([
+            'member_id' => $memberA->id,
+            'type' => 'discount',
+            'reward_type' => 'discount',
+            'amount' => 5000,
+            'settlement' => 'counter_discount',
+            'status' => 'pending',
+            'cycle_number' => 1,
+            'granted_at' => now(),
+        ]);
+
+        // 1. Dashboard with 1 member pending reward links directly to member show on rewards tab
+        $dashRes = $this->get(route('admin.dashboard'));
+        $dashRes->assertOk();
+        $dashRes->assertSee('1 reward member belum diselesaikan (Aditia Pratama)');
+        $dashRes->assertSee(route('admin.members.show', [$memberA, 'tab' => 'rewards']));
+
+        // 2. Add pending reward for Member B -> now multiple members have pending rewards
+        $rewardB = MemberReward::create([
+            'member_id' => $memberB->id,
+            'type' => 'free',
+            'reward_type' => 'free',
+            'amount' => 10000,
+            'settlement' => 'counter_discount',
+            'status' => 'pending',
+            'cycle_number' => 1,
+            'granted_at' => now(),
+        ]);
+
+        // Dashboard now links to filtered members index
+        $dashRes2 = $this->get(route('admin.dashboard'));
+        $dashRes2->assertOk();
+        $dashRes2->assertSee('2 reward member belum diselesaikan');
+        $dashRes2->assertSee(route('admin.members.index', ['reward_status' => 'pending']));
+
+        // 3. Member index with reward_status=pending filters correctly
+        $indexRes = $this->get(route('admin.members.index', ['reward_status' => 'pending']));
+        $indexRes->assertOk();
+        $indexRes->assertSee('Aditia Pratama');
+        $indexRes->assertSee('Bambang Sudirman');
+        $indexRes->assertSee('Reward Pending');
+        $indexRes->assertSee('Selesaikan Reward');
+
+        // 4. Member show page with tab=rewards renders reward table with settle buttons
+        $showRes = $this->get(route('admin.members.show', [$memberA, 'tab' => 'rewards']));
+        $showRes->assertOk();
+        $showRes->assertSee('Sudah Diberikan');
+        $showRes->assertSee('Lewati');
     }
 }

@@ -12,7 +12,7 @@
 @endphp
 
 <div class="space-y-6" x-data="{
-    activeTab: 'visits',
+    activeTab: (new URLSearchParams(window.location.search).get('tab') || (window.location.hash ? window.location.hash.substring(1) : 'visits')),
     copySuccess: false,
     copyUrlSuccess: false,
     newLinkModalOpen: false,
@@ -282,9 +282,14 @@
                 type="button"
                 @click="activeTab = 'rewards'"
                 :class="activeTab === 'rewards' ? 'border-amber-500 text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10' : 'border-transparent text-text-muted hover:text-text'"
-                class="whitespace-nowrap border-b-2 px-4 py-3 text-xs font-semibold rounded-t-xl transition-colors"
+                class="whitespace-nowrap border-b-2 px-4 py-3 text-xs font-semibold rounded-t-xl transition-colors inline-flex items-center gap-1.5"
             >
-                Reward & Diskon ({{ $rewards->count() }})
+                <span>Reward & Diskon ({{ $rewards->count() }})</span>
+                @if ($rewards->where('status', 'pending')->count() > 0)
+                    <span class="inline-flex items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-black text-black">
+                        {{ $rewards->where('status', 'pending')->count() }}
+                    </span>
+                @endif
             </button>
             <button
                 type="button"
@@ -390,6 +395,19 @@
 
     {{-- TAB 2: REWARD --}}
     <div x-show="activeTab === 'rewards'" class="space-y-4" style="display: none;">
+        @php
+            $pendingRewards = $rewards->where('status', 'pending');
+        @endphp
+        @if ($pendingRewards->isNotEmpty())
+            <div class="flex items-center justify-between gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs text-amber-700 dark:text-amber-300">
+                <div class="flex items-center gap-2">
+                    <svg class="size-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <span>Terdapat <strong>{{ $pendingRewards->count() }} reward pending</strong> untuk member ini. Klik tombol <strong>Sudah Diberikan</strong> setelah memberikan reward ke member.</span>
+                </div>
+            </div>
+        @endif
         <div class="rounded-2xl border border-border bg-surface overflow-hidden shadow-sm">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">

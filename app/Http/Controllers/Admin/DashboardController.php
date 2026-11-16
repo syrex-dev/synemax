@@ -115,25 +115,65 @@ class DashboardController extends Controller
 
         $actionItems = collect();
 
-        $pendingRefundCashCount = MemberReward::where('status', 'pending')->where('settlement', 'refund_cash')->count();
-        if ($pendingRefundCashCount > 0) {
+        $pendingRefundCashRewards = MemberReward::where('status', 'pending')
+            ->where('settlement', 'refund_cash')
+            ->with('member')
+            ->get();
+        if ($pendingRefundCashRewards->isNotEmpty()) {
+            $pendingRefundMembers = $pendingRefundCashRewards->pluck('member')->filter()->unique('id');
+            $refundCount = $pendingRefundCashRewards->count();
+
+            if ($pendingRefundMembers->count() === 1) {
+                $singleRefundMember = $pendingRefundMembers->first();
+                $refundUrl = route('admin.members.show', [$singleRefundMember, 'tab' => 'rewards']);
+                $refundTitle = $refundCount === 1
+                    ? "Pengembalian tunai reward belum selesai ({$singleRefundMember->name})"
+                    : "{$refundCount} pengembalian tunai reward belum selesai ({$singleRefundMember->name})";
+            } else {
+                $refundUrl = route('admin.members.index', ['reward_status' => 'refund_cash']);
+                $names = $pendingRefundMembers->pluck('name')->take(2)->implode(', ');
+                $suffix = $pendingRefundMembers->count() <= 2 ? " ({$names})" : " ({$pendingRefundMembers->count()} member)";
+                $refundTitle = "{$refundCount} pengembalian tunai reward member belum selesai{$suffix}";
+            }
+
             $actionItems->push([
                 'type' => 'member_refund',
                 'level' => 'critical',
                 'urgency_score' => 0.5,
-                'title' => $pendingRefundCashCount.' pengembalian tunai reward member belum selesai',
-                'url' => route('admin.members.index'),
+                'title' => $refundTitle,
+                'url' => $refundUrl,
             ]);
         }
 
-        $pendingMemberRewardsCount = MemberReward::where('status', 'pending')->count();
-        if ($pendingMemberRewardsCount > 0) {
+        $pendingRewardsQuery = MemberReward::where('status', 'pending');
+        if ($pendingRefundCashRewards->isNotEmpty()) {
+            $pendingRewardsQuery->where('settlement', '!=', 'refund_cash');
+        }
+        $pendingMemberRewards = $pendingRewardsQuery->with('member')->get();
+
+        if ($pendingMemberRewards->isNotEmpty()) {
+            $pendingMembers = $pendingMemberRewards->pluck('member')->filter()->unique('id');
+            $rewardsCount = $pendingMemberRewards->count();
+
+            if ($pendingMembers->count() === 1) {
+                $singleMember = $pendingMembers->first();
+                $targetUrl = route('admin.members.show', [$singleMember, 'tab' => 'rewards']);
+                $title = $rewardsCount === 1
+                    ? "1 reward member belum diselesaikan ({$singleMember->name})"
+                    : "{$rewardsCount} reward member belum diselesaikan ({$singleMember->name})";
+            } else {
+                $targetUrl = route('admin.members.index', ['reward_status' => 'pending']);
+                $names = $pendingMembers->pluck('name')->take(2)->implode(', ');
+                $suffix = $pendingMembers->count() <= 2 ? " ({$names})" : " ({$pendingMembers->count()} member)";
+                $title = "{$rewardsCount} reward member belum diselesaikan{$suffix}";
+            }
+
             $actionItems->push([
                 'type' => 'member_reward',
                 'level' => 'warning',
                 'urgency_score' => 1.5,
-                'title' => $pendingMemberRewardsCount.' reward member belum diselesaikan',
-                'url' => route('admin.members.index'),
+                'title' => $title,
+                'url' => $targetUrl,
             ]);
         }
 

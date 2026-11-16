@@ -26,7 +26,10 @@ class MemberController extends Controller
 {
     public function index(Request $request, CinemaSettings $settings): View
     {
-        $query = Member::query()->withCount(['validVisits']);
+        $query = Member::query()->withCount([
+            'validVisits',
+            'rewards as pending_rewards_count' => fn ($q) => $q->where('status', 'pending'),
+        ])->with(['rewards' => fn ($q) => $q->where('status', 'pending')]);
 
         $search = trim((string) $request->query('q', ''));
         if ($search !== '') {
@@ -53,6 +56,15 @@ class MemberController extends Controller
             $cardStatus = null;
         }
 
+        $rewardStatus = $request->query('reward_status');
+        if ($rewardStatus === 'pending') {
+            $query->whereHas('rewards', fn ($rq) => $rq->where('status', 'pending'));
+        } elseif ($rewardStatus === 'refund_cash') {
+            $query->whereHas('rewards', fn ($rq) => $rq->where('status', 'pending')->where('settlement', 'refund_cash'));
+        } else {
+            $rewardStatus = null;
+        }
+
         $members = $query->latest('id')->paginate(24)->withQueryString();
 
         $stats = [
@@ -61,6 +73,7 @@ class MemberController extends Controller
             'nonaktif' => Member::where('status', 'nonaktif')->count(),
             'diblokir' => Member::where('status', 'diblokir')->count(),
             'pending_rewards' => MemberReward::where('status', 'pending')->count(),
+            'pending_rewards_members' => Member::whereHas('rewards', fn ($q) => $q->where('status', 'pending'))->count(),
             'card_issued' => Member::where('has_physical_card', true)->count(),
             'card_missing' => Member::where('has_physical_card', false)->count(),
         ];
@@ -71,6 +84,7 @@ class MemberController extends Controller
             'search' => $search,
             'selectedStatus' => $status,
             'selectedCardStatus' => $cardStatus,
+            'selectedRewardStatus' => $rewardStatus,
             'settings' => $settings,
         ]);
     }

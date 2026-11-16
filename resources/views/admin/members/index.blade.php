@@ -12,6 +12,7 @@
     searchQuery: {{ Js::from($search) }},
     selectedStatus: {{ Js::from($selectedStatus ?? '') }},
     selectedCardStatus: {{ Js::from($selectedCardStatus ?? '') }},
+    selectedRewardStatus: {{ Js::from($selectedRewardStatus ?? '') }},
     cardIssuedCount: {{ (int) ($stats['card_issued'] ?? 0) }},
     cardMissingCount: {{ (int) ($stats['card_missing'] ?? 0) }},
     bulkUpdatingCard: false,
@@ -37,6 +38,14 @@
             this.selectedCardStatus = '';
         } else {
             this.selectedCardStatus = val;
+        }
+        this.performSearch();
+    },
+    setRewardFilter(val, toggle = false) {
+        if (toggle && this.selectedRewardStatus === val) {
+            this.selectedRewardStatus = '';
+        } else {
+            this.selectedRewardStatus = val;
         }
         this.performSearch();
     },
@@ -100,6 +109,9 @@
         }
         if (this.selectedCardStatus) {
             url.searchParams.set('card_status', this.selectedCardStatus);
+        }
+        if (this.selectedRewardStatus) {
+            url.searchParams.set('reward_status', this.selectedRewardStatus);
         }
         url.searchParams.delete('page');
 
@@ -230,10 +242,19 @@
             <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Nonaktif / Diblokir</p>
             <p class="text-xl font-extrabold text-text-muted mt-1">{{ number_format($stats['nonaktif'] + $stats['diblokir'], 0, ',', '.') }}</p>
         </div>
-        <div class="rounded-2xl border border-border bg-surface p-4">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Reward Pending</p>
+        <button
+            type="button"
+            @click="setRewardFilter('pending', true)"
+            class="text-left rounded-2xl border p-4 transition"
+            :class="selectedRewardStatus === 'pending' ? 'border-amber-500 bg-amber-500/10 ring-1 ring-amber-500/30' : 'border-border bg-surface hover:bg-surface-2/70'"
+            title="Klik untuk memfilter member yang memiliki reward pending"
+        >
+            <div class="flex items-center justify-between">
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Reward Pending</p>
+                <span class="size-2 rounded-full" :class="selectedRewardStatus === 'pending' ? 'bg-amber-500 animate-pulse' : 'bg-transparent'"></span>
+            </div>
             <p class="text-xl font-extrabold text-amber-500 mt-1">{{ number_format($stats['pending_rewards'], 0, ',', '.') }}</p>
-        </div>
+        </button>
     </div>
 
     {{-- Filter & Pencarian Live Auto-Search --}}
@@ -294,6 +315,7 @@
             </div>
 
             <input type="hidden" name="card_status" :value="selectedCardStatus">
+            <input type="hidden" name="reward_status" :value="selectedRewardStatus">
 
             <button
                 type="submit"
@@ -304,7 +326,7 @@
 
             <a
                 href="{{ route('admin.members.index') }}"
-                x-show="(searchQuery && searchQuery.length > 0) || (selectedStatus && selectedStatus.length > 0) || (selectedCardStatus && selectedCardStatus.length > 0)"
+                x-show="(searchQuery && searchQuery.length > 0) || (selectedStatus && selectedStatus.length > 0) || (selectedCardStatus && selectedCardStatus.length > 0) || (selectedRewardStatus && selectedRewardStatus.length > 0)"
                 x-cloak
                 class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-semibold text-text hover:bg-surface-2 transition"
             >
@@ -312,7 +334,7 @@
             </a>
         </form>
 
-        {{-- Filter Cepat Status Kartu Fisik --}}
+        {{-- Filter Cepat Status Kartu Fisik & Reward --}}
         <div class="flex flex-wrap items-center justify-between gap-3 pt-1 border-t border-border/60">
             <div class="flex flex-wrap items-center gap-2">
                 <span class="text-[11px] font-semibold text-text-muted mr-1">Filter Kartu Fisik:</span>
@@ -344,8 +366,22 @@
                     <span>Sudah Punya Kartu</span>
                     <span class="font-bold" x-text="'(' + cardIssuedCount + ')'">({{ $stats['card_issued'] ?? 0 }})</span>
                 </button>
+
+                <span class="text-border mx-1 hidden sm:inline">|</span>
+
+                <span class="text-[11px] font-semibold text-text-muted mr-1">Reward:</span>
+                <button
+                    type="button"
+                    @click="setRewardFilter('pending', true)"
+                    class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold border transition"
+                    :class="selectedRewardStatus === 'pending' ? 'border-amber-500 bg-amber-500 text-black font-bold shadow-xs' : 'border-border bg-surface-2 text-text-muted hover:text-text'"
+                >
+                    <span class="size-2 rounded-full" :class="selectedRewardStatus === 'pending' ? 'bg-black' : 'bg-amber-500'"></span>
+                    <span>Reward Pending</span>
+                    <span class="font-bold">({{ $stats['pending_rewards'] ?? 0 }})</span>
+                </button>
             </div>
-            <p class="text-[11px] text-text-muted">Klik lencana pada kolom <strong>Kartu Fisik</strong> untuk mengubah status dengan cepat.</p>
+            <p class="text-[11px] text-text-muted">Klik tombol <strong>Reward Pending</strong> atau <strong>Kartu Fisik</strong> untuk memfilter cepat.</p>
         </div>
     </div>
 
@@ -390,6 +426,27 @@
                 <span>Cetak Kartu Terpilih</span>
             </button>
         </div>
+    </div>
+
+    {{-- Banner Filter Reward Aktif --}}
+    <div
+        x-show="selectedRewardStatus && selectedRewardStatus.length > 0"
+        x-cloak
+        class="flex items-center justify-between gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs text-amber-700 dark:text-amber-300"
+    >
+        <div class="flex items-center gap-2">
+            <svg class="size-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <span>Menampilkan member yang memiliki <strong>reward pending</strong> belum diselesaikan.</span>
+        </div>
+        <button
+            type="button"
+            @click="setRewardFilter('')"
+            class="rounded-lg bg-amber-500/20 px-2.5 py-1 text-[11px] font-bold text-amber-800 dark:text-amber-200 hover:bg-amber-500/30 transition"
+        >
+            Hapus Filter
+        </button>
     </div>
 
     {{-- Tabel Member --}}
@@ -457,6 +514,18 @@
                                         </a>
                                         @if ($member->nickname)
                                             <p class="text-[11px] text-text-muted">({{ $member->nickname }})</p>
+                                        @endif
+                                        @if (($member->pending_rewards_count ?? 0) > 0)
+                                            <div class="mt-1">
+                                                <a
+                                                    href="{{ route('admin.members.show', [$member, 'tab' => 'rewards']) }}"
+                                                    class="inline-flex items-center gap-1 rounded-md bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/25 transition"
+                                                    title="Ada reward pending belum diselesaikan. Klik untuk buka tab reward."
+                                                >
+                                                    <svg class="size-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                                                    <span>{{ $member->pending_rewards_count }} Reward Pending</span>
+                                                </a>
+                                            </div>
                                         @endif
                                     </div>
                                 </div>
@@ -564,6 +633,15 @@
                             </td>
                             <td class="px-4 py-3 text-right">
                                 <div class="flex items-center justify-end gap-1.5">
+                                    @if (($member->pending_rewards_count ?? 0) > 0)
+                                        <a
+                                            href="{{ route('admin.members.show', [$member, 'tab' => 'rewards']) }}"
+                                            class="inline-flex min-h-[32px] items-center rounded-lg bg-amber-500 px-2.5 py-1 text-[11px] font-bold text-black hover:bg-amber-400 shadow-2xs transition"
+                                            title="Selesaikan reward member ini"
+                                        >
+                                            Selesaikan Reward
+                                        </a>
+                                    @endif
                                     <a
                                         href="{{ route('admin.members.show', $member) }}"
                                         class="inline-flex min-h-[32px] items-center rounded-lg border border-border bg-surface px-2.5 py-1 text-[11px] font-semibold text-text hover:bg-surface-2 transition"
