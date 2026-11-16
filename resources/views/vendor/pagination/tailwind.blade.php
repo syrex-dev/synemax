@@ -59,26 +59,33 @@
                 </a>
             @endif
 
-            {{-- Elemen Angka Halaman --}}
-            @foreach ($elements as $element)
-                {{-- "Three Dots" Separator --}}
-                @if (is_string($element))
-                    <span class="inline-flex size-9 items-center justify-center text-xs font-bold text-text-muted">{{ $element }}</span>
-                @endif
+            {{-- Elemen Angka Halaman (Smart Clean Window) --}}
+            @php
+                $current = $paginator->currentPage();
+                $last = $paginator->lastPage();
 
-                {{-- Array Of Links --}}
-                @if (is_array($element))
-                    @foreach ($element as $page => $url)
-                        @if ($page == $paginator->currentPage())
-                            <span aria-current="page" class="inline-flex size-9 items-center justify-center rounded-xl bg-amber-500 text-slate-950 text-xs font-black shadow-sm select-none">
-                                {{ $page }}
-                            </span>
-                        @else
-                            <a href="{{ $url }}" class="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface-2 text-text hover:border-amber-500 hover:text-amber-500 text-xs font-bold transition shadow-xs" aria-label="Ke halaman {{ $page }}">
-                                {{ $page }}
-                            </a>
-                        @endif
-                    @endforeach
+                if ($last <= 8) {
+                    $pageList = range(1, $last);
+                } elseif ($current <= 4) {
+                    $pageList = [1, 2, 3, 4, 5, '...', $last];
+                } elseif ($current >= $last - 3) {
+                    $pageList = [1, '...', $last - 4, $last - 3, $last - 2, $last - 1, $last];
+                } else {
+                    $pageList = [1, '...', $current - 1, $current, $current + 1, '...', $last];
+                }
+            @endphp
+
+            @foreach ($pageList as $pageItem)
+                @if ($pageItem === '...')
+                    <span class="inline-flex size-9 items-center justify-center text-xs font-bold text-text-muted select-none">…</span>
+                @elseif ($pageItem == $current)
+                    <span aria-current="page" class="inline-flex size-9 items-center justify-center rounded-xl bg-amber-500 text-slate-950 text-xs font-black shadow-sm select-none">
+                        {{ $pageItem }}
+                    </span>
+                @else
+                    <a href="{{ $paginator->url($pageItem) }}" class="inline-flex size-9 items-center justify-center rounded-xl border border-border bg-surface-2 text-text hover:border-amber-500 hover:text-amber-500 text-xs font-bold transition shadow-xs" aria-label="Ke halaman {{ $pageItem }}">
+                        {{ $pageItem }}
+                    </a>
                 @endif
             @endforeach
 

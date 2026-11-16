@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Film;
 use App\Models\Genre;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Tests\TestCase;
 
 class FilmCatalogPaginationTest extends TestCase
@@ -71,5 +72,29 @@ class FilmCatalogPaginationTest extends TestCase
                 && str_contains($nextUrl, 'tahun=2024')
                 && str_contains($nextUrl, 'page=2');
         });
+    }
+
+    public function test_pagination_renders_smart_clean_window_without_awkward_ellipses(): void
+    {
+        $paginator = new LengthAwarePaginator(
+            items: range(1, 336),
+            total: 336,
+            perPage: 24,
+            currentPage: 1
+        );
+
+        $html = $paginator->render()->toHtml();
+
+        // Should render clean 1 to 5 and 14
+        $this->assertStringContainsString('aria-current="page"', $html);
+        $this->assertStringContainsString('Ke halaman 2', $html);
+        $this->assertStringContainsString('Ke halaman 5', $html);
+        $this->assertStringContainsString('…', $html);
+        $this->assertStringContainsString('Ke halaman 14', $html);
+
+        // Should NOT render awkward 10 consecutive buttons like page 10 or 13 on page 1
+        $this->assertStringNotContainsString('Ke halaman 6', $html);
+        $this->assertStringNotContainsString('Ke halaman 10', $html);
+        $this->assertStringNotContainsString('Ke halaman 13', $html);
     }
 }
