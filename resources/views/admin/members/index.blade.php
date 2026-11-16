@@ -484,6 +484,7 @@
                             $cycleMax = $settings->memberFreeVisit();
                             $nextPos = $member->nextVisitPosition($cycleMax);
                             $inCycle = $nextPos - 1;
+                            $cyclePercent = min(100, max(0, round(($inCycle / max(1, $cycleMax)) * 100)));
                             $lastVisit = $member->lastValidVisit();
                             $codeParts = explode('-', $member->formattedCode());
                             $codePrefix = count($codeParts) >= 4 ? implode('-', array_slice($codeParts, 0, -1)) . '-' : '';
@@ -602,7 +603,8 @@
                                     <div class="relative h-1.5 w-full rounded-full bg-border overflow-hidden">
                                         <div
                                             class="h-full rounded-full bg-amber-500 transition-all duration-300"
-                                            style="width: {{ ($inCycle / $cycleMax) * 100 }}%"
+                                            :style="'width: {{ $cyclePercent }}%'"
+                                            <?php echo 'style="width: ' . $cyclePercent . '%"'; ?>
                                         ></div>
                                     </div>
                                 </div>
