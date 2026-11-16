@@ -759,9 +759,37 @@ class MemberProgramFlowTest extends TestCase
         $indexRes->assertSee('Selesaikan Reward');
 
         // 4. Member show page with tab=rewards renders reward table with settle buttons
+        // Also verify visit with attached booking loads without LazyLoadingViolationException
+        $booking = Booking::create([
+            'session_id' => $this->session->id,
+            'film_id' => $this->film->id,
+            'code' => 'BOOK-REWARD-123',
+            'customer_name' => 'Aditia',
+            'whatsapp' => '081234567890',
+            'pax' => 1,
+            'seats_reserved' => 1,
+            'ticket_price' => 5000,
+            'total_price' => 5000,
+            'status' => 'hadir',
+            'booking_type' => 'per_orang',
+            'payment_status' => 'paid',
+            'payment_method' => 'di_tempat',
+        ]);
+
+        MemberVisit::create([
+            'member_id' => $memberA->id,
+            'session_id' => $this->session->id,
+            'booking_id' => $booking->id,
+            'position' => 1,
+            'cycle_number' => 1,
+            'active' => 1,
+            'method' => 'scan_admin',
+        ]);
+
         $showRes = $this->get(route('admin.members.show', [$memberA, 'tab' => 'rewards']));
         $showRes->assertOk();
         $showRes->assertSee('Sudah Diberikan');
         $showRes->assertSee('Lewati');
+        $showRes->assertSee('BOOK-REWARD-123');
     }
 }

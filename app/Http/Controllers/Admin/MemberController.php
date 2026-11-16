@@ -251,17 +251,20 @@ class MemberController extends Controller
             'validVisits.session.film',
             'validVisits.recordedByUser',
             'validVisits.reward',
+            'validVisits.booking',
             'rewards.visit.session',
+            'rewards.booking',
+            'rewards.givenByUser',
             'events.user',
         ]);
 
         $visits = $member->visits()
-            ->with(['session.film', 'recordedByUser', 'reward'])
+            ->with(['session.film', 'recordedByUser', 'reward', 'booking'])
             ->latest('id')
             ->get();
 
         $rewards = $member->rewards()
-            ->with(['visit.session', 'booking', 'givenByUser'])
+            ->with(['visit.session.film', 'visit.booking', 'booking', 'givenByUser'])
             ->latest('id')
             ->get();
 
