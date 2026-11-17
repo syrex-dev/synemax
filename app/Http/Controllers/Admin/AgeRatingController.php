@@ -11,19 +11,28 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class AgeRatingController extends Controller
 {
     /**
      * Display a listing of age ratings.
      */
-    public function index(): View
+    public function index(Request $request): View|InertiaResponse
     {
         if (! Schema::hasTable('age_ratings')) {
-            return view('admin.age-ratings.index', [
+            $emptyData = [
                 'ageRatings' => collect(),
                 'activeCount' => 0,
-            ])->with('error', 'Tabel klasifikasi usia belum dimigrasi di database ini. Jalankan php artisan migrate untuk mengaktifkan.');
+            ];
+
+            if (! $request->header('X-Inertia')) {
+                return view('admin.age-ratings.index', $emptyData)
+                    ->with('error', 'Tabel klasifikasi usia belum dimigrasi di database ini. Jalankan php artisan migrate untuk mengaktifkan.');
+            }
+
+            return Inertia::render('Admin/AgeRatings/Index', $emptyData);
         }
 
         $ageRatings = AgeRating::query()
@@ -32,10 +41,16 @@ class AgeRatingController extends Controller
             ->orderBy('min_age')
             ->get();
 
-        return view('admin.age-ratings.index', [
+        $data = [
             'ageRatings' => $ageRatings,
             'activeCount' => $ageRatings->where('is_active', true)->count(),
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.age-ratings.index', $data);
+        }
+
+        return Inertia::render('Admin/AgeRatings/Index', $data);
     }
 
     /**

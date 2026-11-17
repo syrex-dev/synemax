@@ -7,6 +7,7 @@ use App\Models\Session;
 use App\Services\CinemaSettings;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class FilmCatalogAndFilterTest extends TestCase
@@ -195,6 +196,7 @@ class FilmCatalogAndFilterTest extends TestCase
         ]);
 
         $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
+        Carbon::setTestNow($today->setTime(10, 0));
 
         $session = Session::query()->create([
             'session_date' => $today->toDateString(),

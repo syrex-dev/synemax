@@ -487,6 +487,18 @@ class PublicCinemaController extends Controller
             ] : null,
         ];
 
+        if (! request()->header('X-Inertia')) {
+            return view('public.schedule', array_merge($data, [
+                'date' => $targetDate,
+                'targetDate' => $targetDate,
+                'today' => $today->toDateString(),
+                'dates' => $dates,
+                'holidayDates' => $holidayDates,
+                'sessions' => $sessions,
+                'selectedFilm' => $selectedFilm,
+            ]));
+        }
+
         return Inertia::render('Public/Schedule', $data)
             ->withViewData($data);
     }

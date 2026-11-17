@@ -8,10 +8,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class PromoController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|InertiaResponse
     {
         $status = $request->query('status');
         $showTrash = $request->boolean('trash') || $status === 'trash';
@@ -33,23 +35,35 @@ class PromoController extends Controller
         $promos = $query->paginate(15)->withQueryString();
         $trashedCount = Promo::onlyTrashed()->where('deleted_at', '>=', now()->subDays(30))->count();
 
-        return view('admin.promos.index', [
+        $data = [
             'promos' => $promos,
             'currentStatus' => $status,
             'showTrash' => $showTrash,
             'trashedCount' => $trashedCount,
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.promos.index', $data);
+        }
+
+        return Inertia::render('Admin/Promos/Index', $data);
     }
 
-    public function create(): View
+    public function create(Request $request): View|InertiaResponse
     {
-        return view('admin.promos.form', [
+        $data = [
             'promo' => new Promo([
                 'is_active' => true,
                 'sort_order' => Promo::max('sort_order') + 1,
             ]),
             'isEdit' => false,
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.promos.form', $data);
+        }
+
+        return Inertia::render('Admin/Promos/Form', $data);
     }
 
     public function store(Request $request): RedirectResponse
@@ -86,12 +100,18 @@ class PromoController extends Controller
         return redirect()->route('admin.promos.index')->with('status', 'Promo baru berhasil ditambahkan.');
     }
 
-    public function edit(Promo $promo): View
+    public function edit(Request $request, Promo $promo): View|InertiaResponse
     {
-        return view('admin.promos.form', [
+        $data = [
             'promo' => $promo,
             'isEdit' => true,
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.promos.form', $data);
+        }
+
+        return Inertia::render('Admin/Promos/Form', $data);
     }
 
     public function update(Request $request, Promo $promo): RedirectResponse

@@ -11,10 +11,12 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class NobarController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|InertiaResponse
     {
         $status = $request->query('status');
 
@@ -35,15 +37,21 @@ class NobarController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('admin.nobar.index', [
+        $data = [
             'events' => $events,
             'currentFilter' => $status,
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.nobar.index', $data);
+        }
+
+        return Inertia::render('Admin/Nobar/Index', $data);
     }
 
-    public function create(): View
+    public function create(Request $request): View|InertiaResponse
     {
-        return view('admin.nobar.form', [
+        $data = [
             'event' => new NobarEvent([
                 'durasi_menit' => 150,
                 'is_free' => true,
@@ -54,7 +62,13 @@ class NobarController extends Controller
                 'maps_url' => 'https://maps.google.com/?q=SynemaX',
             ]),
             'isEdit' => false,
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.nobar.form', $data);
+        }
+
+        return Inertia::render('Admin/Nobar/Form', $data);
     }
 
     public function store(Request $request, MediaUploadService $media): RedirectResponse
@@ -76,12 +90,18 @@ class NobarController extends Controller
             ->with('status', 'Acara nobar "'.$event->judul.'" berhasil ditambahkan.');
     }
 
-    public function edit(NobarEvent $nobar): View
+    public function edit(Request $request, NobarEvent $nobar): View|InertiaResponse
     {
-        return view('admin.nobar.form', [
+        $data = [
             'event' => $nobar,
             'isEdit' => true,
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.nobar.form', $data);
+        }
+
+        return Inertia::render('Admin/Nobar/Form', $data);
     }
 
     public function update(Request $request, NobarEvent $nobar, MediaUploadService $media): RedirectResponse

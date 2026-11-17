@@ -11,12 +11,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class SnackPreparationController extends Controller
 {
     private const STATUSES = ['baru', 'disiapkan', 'siap', 'selesai'];
 
-    public function index(): View
+    public function index(Request $request): View|InertiaResponse
     {
         $sessions = Session::query()
             ->with('film')
@@ -32,10 +34,16 @@ class SnackPreparationController extends Controller
             ->orderBy('start_time')
             ->paginate(20);
 
-        return view('admin.snacks.preparation-index', compact('sessions'));
+        $data = ['sessions' => $sessions];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.snacks.preparation-index', $data);
+        }
+
+        return Inertia::render('Admin/Snacks/PreparationIndex', $data);
     }
 
-    public function show(Session $session): View
+    public function show(Request $request, Session $session): View|InertiaResponse
     {
         $session->load([
             'film',
@@ -51,7 +59,16 @@ class SnackPreparationController extends Controller
             ])
             ->sortKeys();
 
-        return view('admin.snacks.preparation', compact('session', 'aggregates'));
+        $data = [
+            'session' => $session,
+            'aggregates' => $aggregates,
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.snacks.preparation', $data);
+        }
+
+        return Inertia::render('Admin/Snacks/Preparation', $data);
     }
 
     public function updateItemStatus(Request $request, BookingItem $bookingItem): RedirectResponse

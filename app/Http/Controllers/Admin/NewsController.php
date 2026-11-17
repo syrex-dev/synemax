@@ -9,10 +9,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class NewsController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|InertiaResponse
     {
         $kategori = $request->query('kategori');
         $status = $request->query('status');
@@ -40,25 +42,37 @@ class NewsController extends Controller
         $articles = $query->paginate(15)->withQueryString();
         $trashedCount = NewsArticle::onlyTrashed()->where('deleted_at', '>=', now()->subDays(30))->count();
 
-        return view('admin.articles.index', [
+        $data = [
             'articles' => $articles,
             'currentCategory' => $kategori,
             'currentStatus' => $status,
             'showTrash' => $showTrash,
             'trashedCount' => $trashedCount,
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.articles.index', $data);
+        }
+
+        return Inertia::render('Admin/Articles/Index', $data);
     }
 
-    public function create(): View
+    public function create(Request $request): View|InertiaResponse
     {
-        return view('admin.articles.form', [
+        $data = [
             'article' => new NewsArticle([
                 'kategori' => 'Berita',
                 'status_publikasi' => 'terbit',
                 'tanggal_terbit' => now(),
             ]),
             'isEdit' => false,
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.articles.form', $data);
+        }
+
+        return Inertia::render('Admin/Articles/Form', $data);
     }
 
     public function store(Request $request, MediaUploadService $media): RedirectResponse
@@ -75,12 +89,18 @@ class NewsController extends Controller
             ->with('status', 'Artikel "'.$article->judul.'" berhasil disimpan.');
     }
 
-    public function edit(NewsArticle $article): View
+    public function edit(Request $request, NewsArticle $article): View|InertiaResponse
     {
-        return view('admin.articles.form', [
+        $data = [
             'article' => $article,
             'isEdit' => true,
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.articles.form', $data);
+        }
+
+        return Inertia::render('Admin/Articles/Form', $data);
     }
 
     public function update(Request $request, NewsArticle $article, MediaUploadService $media): RedirectResponse

@@ -11,10 +11,12 @@ use App\Services\MediaUploadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class BannerController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|InertiaResponse
     {
         $showTrash = $request->boolean('trash');
         $query = Banner::query()->ofType('hero');
@@ -28,16 +30,22 @@ class BannerController extends Controller
         $banners = $query->paginate(20)->withQueryString();
         $trashedCount = Banner::onlyTrashed()->ofType('hero')->where('deleted_at', '>=', now()->subDays(30))->count();
 
-        return view('admin.banners.index', [
+        $data = [
             'banners' => $banners,
             'showTrash' => $showTrash,
             'trashedCount' => $trashedCount,
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.banners.index', $data);
+        }
+
+        return Inertia::render('Admin/Banners/Index', $data);
     }
 
-    public function create(): View
+    public function create(Request $request): View|InertiaResponse
     {
-        return view('admin.banners.form', [
+        $data = [
             'banner' => new Banner([
                 'type' => 'hero',
                 'is_active' => true,
@@ -48,7 +56,13 @@ class BannerController extends Controller
             'films' => Film::query()->where('is_active', true)->orderBy('title')->get(['id', 'title', 'slug']),
             'promos' => Promo::query()->where('is_active', true)->orderBy('title')->get(['id', 'title', 'slug']),
             'nobars' => NobarEvent::query()->where('status_publikasi', 'terbit')->orderBy('judul')->get(['id', 'judul', 'slug']),
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.banners.form', $data);
+        }
+
+        return Inertia::render('Admin/Banners/Form', $data);
     }
 
     public function store(Request $request, MediaUploadService $media): RedirectResponse
@@ -89,15 +103,21 @@ class BannerController extends Controller
         return redirect()->route('admin.banners.index')->with('status', 'Banner hero berhasil ditambahkan.');
     }
 
-    public function edit(Banner $banner): View
+    public function edit(Request $request, Banner $banner): View|InertiaResponse
     {
-        return view('admin.banners.form', [
+        $data = [
             'banner' => $banner,
             'isEdit' => true,
             'films' => Film::query()->where('is_active', true)->orderBy('title')->get(['id', 'title', 'slug']),
             'promos' => Promo::query()->where('is_active', true)->orderBy('title')->get(['id', 'title', 'slug']),
             'nobars' => NobarEvent::query()->where('status_publikasi', 'terbit')->orderBy('judul')->get(['id', 'judul', 'slug']),
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.banners.form', $data);
+        }
+
+        return Inertia::render('Admin/Banners/Form', $data);
     }
 
     public function update(Request $request, Banner $banner): RedirectResponse

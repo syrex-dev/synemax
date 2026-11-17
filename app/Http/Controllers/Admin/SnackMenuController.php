@@ -12,24 +12,35 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class SnackMenuController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View|InertiaResponse
     {
-        return view('admin.snacks.index', [
-            'categories' => MenuCategory::query()->orderBy('sort_order')->orderBy('name')->get(),
-            'items' => MenuItem::query()
-                ->with('category')
-                ->orderBy('sort_order')
-                ->orderBy('name')
-                ->paginate(30),
-        ]);
+        $categories = MenuCategory::query()->orderBy('sort_order')->orderBy('name')->get();
+        $items = MenuItem::query()
+            ->with('category')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->paginate(30);
+
+        $data = [
+            'categories' => $categories,
+            'items' => $items,
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.snacks.index', $data);
+        }
+
+        return Inertia::render('Admin/Snacks/Index', $data);
     }
 
-    public function create(): View
+    public function create(Request $request): View|InertiaResponse
     {
-        return $this->form(new MenuItem);
+        return $this->form($request, new MenuItem);
     }
 
     public function store(Request $request, WebpImageProcessor $images): RedirectResponse
@@ -47,9 +58,9 @@ class SnackMenuController extends Controller
         return redirect()->route('admin.snacks.index')->with('status', 'Menu jajan berhasil ditambahkan.');
     }
 
-    public function edit(MenuItem $menuItem): View
+    public function edit(Request $request, MenuItem $menuItem): View|InertiaResponse
     {
-        return $this->form($menuItem);
+        return $this->form($request, $menuItem);
     }
 
     public function update(Request $request, MenuItem $menuItem, WebpImageProcessor $images): RedirectResponse
@@ -191,12 +202,18 @@ class SnackMenuController extends Controller
         return back()->with('status', 'Kategori berhasil dihapus.');
     }
 
-    private function form(MenuItem $menuItem): View
+    private function form(Request $request, MenuItem $menuItem): View|InertiaResponse
     {
-        return view('admin.snacks.form', [
+        $data = [
             'menuItem' => $menuItem,
             'categories' => MenuCategory::query()->orderBy('sort_order')->orderBy('name')->get(),
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.snacks.form', $data);
+        }
+
+        return Inertia::render('Admin/Snacks/Form', $data);
     }
 
     private function validatedItem(Request $request): array

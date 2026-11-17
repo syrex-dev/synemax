@@ -8,19 +8,29 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class GenreController extends Controller
 {
     /**
      * Display a listing of genres.
      */
-    public function index(): View
+    public function index(Request $request): View|InertiaResponse
     {
         if (! Schema::hasTable('genres')) {
-            return view('admin.genres.index', [
+            $emptyData = [
                 'genres' => collect(),
                 'activeCount' => 0,
-            ])->with('error', 'Tabel genre belum dimigrasi di database ini. Jalankan php artisan migrate untuk mengaktifkan.');
+                'parentCandidates' => collect(),
+            ];
+
+            if (! $request->header('X-Inertia')) {
+                return view('admin.genres.index', $emptyData)
+                    ->with('error', 'Tabel genre belum dimigrasi di database ini. Jalankan php artisan migrate untuk mengaktifkan.');
+            }
+
+            return Inertia::render('Admin/Genres/Index', $emptyData);
         }
 
         $genres = Genre::query()
@@ -40,11 +50,17 @@ class GenreController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.genres.index', [
+        $data = [
             'genres' => $genresWithCount,
             'parentCandidates' => $parentCandidates,
             'activeCount' => $genres->where('is_active', true)->count(),
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.genres.index', $data);
+        }
+
+        return Inertia::render('Admin/Genres/Index', $data);
     }
 
     /**
