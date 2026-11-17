@@ -130,8 +130,12 @@ class MemberController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View|InertiaResponse
     {
+        if ($request->wantsJson() || $request->header('X-Inertia')) {
+            return Inertia::render('Admin/Members/Create');
+        }
+
         return view('admin.members.create');
     }
 
@@ -293,8 +297,26 @@ class MemberController extends Controller
             ->withViewData($data);
     }
 
-    public function edit(Member $member): View
+    public function edit(Request $request, Member $member): View|InertiaResponse
     {
+        $data = [
+            'member' => [
+                'id' => $member->id,
+                'code' => $member->formattedCode(),
+                'name' => $member->name,
+                'nickname' => $member->nickname,
+                'photo_url' => $member->photoUrl(),
+                'total_visits' => $member->totalVisits(),
+                'status' => $member->status,
+                'has_physical_card' => $member->hasPhysicalCard(),
+                'notes' => $member->notes,
+            ],
+        ];
+
+        if ($request->wantsJson() || $request->header('X-Inertia')) {
+            return Inertia::render('Admin/Members/Edit', $data);
+        }
+
         return view('admin.members.edit', [
             'member' => $member,
         ]);

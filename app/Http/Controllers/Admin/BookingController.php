@@ -149,7 +149,7 @@ class BookingController extends Controller
         ]);
     }
 
-    public function create(Request $request, CinemaSettings $settings, ScheduleResolver $scheduleResolver): View
+    public function create(Request $request, CinemaSettings $settings, ScheduleResolver $scheduleResolver): View|InertiaResponse
     {
         $today = now(config('app.timezone'))->toDateString();
 
@@ -174,7 +174,7 @@ class BookingController extends Controller
         $selectedSessionId = (int) $request->input('session_id', 0);
         $selectedSession = $sessions->firstWhere('id', $selectedSessionId) ?? $sessions->first();
 
-        return view('admin.bookings.create', [
+        $data = [
             'sessions' => $sessions,
             'selectedSession' => $selectedSession,
             'films' => $films,
@@ -183,7 +183,13 @@ class BookingController extends Controller
             'today' => $today,
             'snackMaxQty' => $settings->integer('snack_max_qty_per_item', 10),
             'lastBooking' => session('walk_in_success'),
-        ]);
+        ];
+
+        if ($request->wantsJson() || $request->header('X-Inertia')) {
+            return Inertia::render('Admin/Bookings/Create', $data);
+        }
+
+        return view('admin.bookings.create', $data);
     }
 
     public function memberLookup(Request $request, LoyaltyRules $loyaltyRules): JsonResponse

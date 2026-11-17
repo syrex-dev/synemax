@@ -178,13 +178,13 @@ export default function Index({
                             <Tag className="size-3.5" />
                             <span>Genre</span>
                         </Link>
-                        <Link
+                        <a
                             href="/admin/films/posters"
                             className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition shadow-xs"
                         >
                             <FilmIcon className="size-3.5" />
                             <span>Poster Massal</span>
-                        </Link>
+                        </a>
                         <Link
                             href="/admin/films/import"
                             className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition shadow-xs"

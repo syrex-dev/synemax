@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FilmImportController extends Controller
@@ -20,16 +22,22 @@ class FilmImportController extends Controller
     /**
      * Show import upload form and recent import history.
      */
-    public function create(): View
+    public function create(Request $request): View|InertiaResponse
     {
         $recentBatches = ImportBatch::with('user')
             ->latest()
             ->take(10)
             ->get();
 
-        return view('admin.films.import', [
+        $data = [
             'recentBatches' => $recentBatches,
-        ]);
+        ];
+
+        if ($request->wantsJson() || $request->header('X-Inertia')) {
+            return Inertia::render('Admin/Films/Import', $data);
+        }
+
+        return view('admin.films.import', $data);
     }
 
     /**
