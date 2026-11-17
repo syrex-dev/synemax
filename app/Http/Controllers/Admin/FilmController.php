@@ -16,10 +16,12 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class FilmController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|InertiaResponse
     {
         $showTrash = $request->boolean('trash');
         $filter = $request->query('filter', '');
@@ -66,7 +68,7 @@ class FilmController extends Controller
 
         $undoActivatedIds = (array) session('undo_activated_ids', []);
 
-        return view('admin.films.index', [
+        $viewData = [
             'films' => $query->paginate(15)->withQueryString(),
             'showTrash' => $showTrash,
             'filter' => $filter,
@@ -82,12 +84,24 @@ class FilmController extends Controller
             'undoBatchCount' => $undoBatchCount,
             'undoActivatedIds' => $undoActivatedIds,
             'canonicalGenres' => Genre::allActiveNames(),
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.films.index', $viewData);
+        }
+
+        return Inertia::render('Admin/Films/Index', $viewData);
     }
 
-    public function create(): View
+    public function create(Request $request): View|InertiaResponse
     {
-        return view('admin.films.form', ['film' => new Film]);
+        $viewData = ['film' => new Film];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.films.form', $viewData);
+        }
+
+        return Inertia::render('Admin/Films/Form', $viewData);
     }
 
     public function store(Request $request, PosterProcessor $posterProcessor): RedirectResponse
@@ -111,9 +125,15 @@ class FilmController extends Controller
             ->with('status_link_label', 'Lihat');
     }
 
-    public function edit(Film $film): View
+    public function edit(Request $request, Film $film): View|InertiaResponse
     {
-        return view('admin.films.form', compact('film'));
+        $viewData = compact('film');
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.films.form', $viewData);
+        }
+
+        return Inertia::render('Admin/Films/Form', $viewData);
     }
 
     public function update(Request $request, Film $film, PosterProcessor $posterProcessor): RedirectResponse
