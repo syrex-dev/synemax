@@ -16,18 +16,12 @@
 
     {{-- Interactive Film Filter & Search Section --}}
     <script>
-    function filmsCatalogManager() {
-        const config = {{ Js::from([
-            'genre' => $selectedGenre ?? '',
-            'tahun' => (string) ($selectedYear ?? ''),
-            'search' => $searchQuery ?? '',
-            'resetUrl' => route('films.index'),
-        ]) }};
-
+    function filmsCatalogManager(config = {}) {
         return {
-            genre: config.genre,
-            tahun: config.tahun,
-            search: config.search,
+            genre: config.genre || '',
+            tahun: config.tahun || '',
+            search: config.search || '',
+            resetUrl: config.resetUrl || window.location.pathname,
             isSearching: false,
             setFilter(g, y) {
                 const url = new URL(window.location.origin + window.location.pathname);
@@ -82,7 +76,7 @@
                 this.liveSearch();
             },
             resetFilters() {
-                window.location.href = config.resetUrl;
+                window.location.href = this.resetUrl;
             },
             resetFilter() {
                 this.resetFilters();
@@ -92,7 +86,12 @@
     </script>
 
     <section
-        x-data="filmsCatalogManager()"
+        x-data="filmsCatalogManager({{ Js::from([
+            'genre' => $selectedGenre ?? '',
+            'tahun' => (string) ($selectedYear ?? ''),
+            'search' => $searchQuery ?? '',
+            'resetUrl' => route('films.index'),
+        ]) }})"
         class="space-y-6"
     >
         {{-- Search Input Form Live Search --}}
