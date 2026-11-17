@@ -1,7 +1,7 @@
 import { Link, Head } from '@inertiajs/react';
 import PublicLayout from '../../../Layouts/PublicLayout';
 import Pagination from '../../../Components/Pagination';
-import { Calendar, MapPin, Clock, Share2, Film, Radio } from 'lucide-react';
+import { MapPin, Film, Radio } from 'lucide-react';
 
 export default function Index({ events, currentFilter = 'semua' }) {
     const eventItems = events?.data || (Array.isArray(events) ? events : []);
@@ -12,7 +12,19 @@ export default function Index({ events, currentFilter = 'semua' }) {
         { key: 'selesai', label: 'Selesai', href: '/nobar?status=selesai' },
     ];
 
-    const formatDateTime = (dateStr) => {
+    const formatTime = (dateStr) => {
+        if (!dateStr) return '';
+        try {
+            const d = new Date(dateStr);
+            const hours = String(d.getHours()).padStart(2, '0');
+            const mins = String(d.getMinutes()).padStart(2, '0');
+            return `${hours}.${mins} WIB`;
+        } catch (e) {
+            return '';
+        }
+    };
+
+    const formatDate = (dateStr) => {
         if (!dateStr) return '';
         try {
             const d = new Date(dateStr);
@@ -21,9 +33,7 @@ export default function Index({ events, currentFilter = 'semua' }) {
                 day: 'numeric',
                 month: 'short',
                 year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-            }) + ' WIB';
+            });
         } catch (e) {
             return dateStr;
         }
@@ -113,19 +123,22 @@ export default function Index({ events, currentFilter = 'semua' }) {
                             return (
                                 <article
                                     key={item.id}
-                                    className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-4 sm:p-5 transition-all duration-300 hover:border-amber-400/50 hover:shadow-xl group"
+                                    className="flex flex-col justify-between rounded-xl border border-border bg-surface p-4 sm:p-5 transition-all duration-200 hover:border-amber-400/50 group"
                                 >
                                     <div>
                                         {posterSrc ? (
-                                            <div className="relative mb-4 aspect-[4/5] rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center">
-                                                <img
-                                                    src={posterSrc}
-                                                    alt={item.poster_alt || item.judul}
-                                                    loading="lazy"
-                                                    className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                                />
+                                            <div className="relative mb-4">
+                                                <div className="relative overflow-hidden bg-slate-100 dark:bg-black/60 border border-border dark:border-white/5 aspect-[4/5] rounded-2xl flex items-center justify-center p-2 shadow-inner">
+                                                    <img
+                                                        src={posterSrc}
+                                                        alt={item.poster_alt || item.judul}
+                                                        loading="lazy"
+                                                        className="max-h-full max-w-full object-contain mx-auto rounded-xl transition duration-500 group-hover:scale-105"
+                                                    />
+                                                </div>
+
                                                 <div className="absolute left-3 top-3 flex flex-wrap gap-1.5 pointer-events-none">
-                                                    <span className="rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider border border-white/20 bg-black/80 text-white backdrop-blur-md shadow-md">
+                                                    <span className="rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider border border-border dark:border-white/20 bg-surface/90 dark:bg-black/80 text-text dark:text-white backdrop-blur-md shadow-md">
                                                         {item.display_status || 'Akan datang'}
                                                     </span>
                                                     {item.is_pinned && (
@@ -134,6 +147,12 @@ export default function Index({ events, currentFilter = 'semua' }) {
                                                         </span>
                                                     )}
                                                 </div>
+
+                                                {item.is_free && (
+                                                    <div className="absolute bottom-3 right-3 rounded-lg bg-emerald-500/90 backdrop-blur-md border border-emerald-400/50 px-2.5 py-1 text-[10px] font-black uppercase text-white shadow-md pointer-events-none">
+                                                        Gratis
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : (
                                             <div className="mb-4 rounded-xl border border-border/80 bg-surface-2 p-4 text-center">
@@ -146,41 +165,54 @@ export default function Index({ events, currentFilter = 'semua' }) {
                                             </div>
                                         )}
 
-                                        <div className="space-y-2">
+                                        <div>
                                             {item.kompetisi && (
-                                                <span className="text-[11px] font-bold text-amber-500 uppercase tracking-wider">
-                                                    {item.kompetisi}
-                                                </span>
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="size-1.5 rounded-full bg-cyan-500 dark:bg-cyan-400" />
+                                                    <p className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">{item.kompetisi}</p>
+                                                </div>
                                             )}
-                                            <h2 className="text-base font-black text-text line-clamp-2 group-hover:text-amber-500 transition-colors">
+
+                                            <h2 className="mt-1.5 text-base font-black text-text leading-snug group-hover:text-amber-500 dark:group-hover:text-amber-400 transition">
                                                 <Link href={`/nobar/${item.slug || item.id}`}>
                                                     {item.judul}
                                                 </Link>
                                             </h2>
-                                            <div className="pt-2 space-y-1.5 text-xs text-text-muted">
-                                                <div className="flex items-center gap-2">
-                                                    <Clock className="size-3.5 text-amber-500 shrink-0" />
-                                                    <span>{formatDateTime(item.kickoff_at)}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <MapPin className="size-3.5 text-amber-500 shrink-0" />
-                                                    <span className="truncate">{item.lokasi_nama}</span>
-                                                </div>
+
+                                            {/* Panel Pertandingan: Fixture Box Team A vs Team B */}
+                                            <div className="mt-3 flex items-center justify-between rounded-xl border border-border dark:border-white/10 bg-surface-2 dark:bg-black/40 p-3 text-xs shadow-inner">
+                                                <span className="font-black text-text truncate max-w-[42%]">{item.tim_a}</span>
+                                                <span className="px-2 py-0.5 rounded bg-amber-500/15 text-[10px] font-black uppercase text-amber-500 dark:text-amber-400 border border-amber-400/30">lawan</span>
+                                                <span className="font-black text-text truncate max-w-[42%] text-right">{item.tim_b || 'TBA'}</span>
                                             </div>
+
+                                            <div className="mt-3 flex items-baseline justify-between border-t border-border dark:border-white/10 pt-2.5">
+                                                <span className="font-mono text-sm font-black text-amber-600 dark:text-amber-400">
+                                                    {formatTime(item.kickoff_at)}
+                                                </span>
+                                                <span className="text-[11px] font-medium text-text-muted">
+                                                    {formatDate(item.kickoff_at)}
+                                                </span>
+                                            </div>
+                                            <p className="mt-1.5 text-xs text-text-muted flex items-center gap-1.5 truncate">
+                                                <MapPin className="size-3.5 text-amber-500 shrink-0" />
+                                                <span>Lokasi: {item.lokasi_nama}</span>
+                                            </p>
+
+                                            {item.status_acara && item.status_acara !== 'aktif' && item.alasan_status && (
+                                                <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 p-2.5 text-xs text-rose-300">
+                                                    <p className="font-bold">Info: {item.alasan_status}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
-                                    <div className="mt-5 pt-4 border-t border-border flex items-center justify-between gap-2">
-                                        <span className={`inline-flex rounded-lg px-2.5 py-1 text-[11px] font-black ${
-                                            item.is_free ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'
-                                        }`}>
-                                            {item.is_free ? 'Gratis' : (item.harga_info || 'Berbayar')}
-                                        </span>
+                                    <div className="mt-5 border-t border-border dark:border-white/10 pt-3">
                                         <Link
                                             href={`/nobar/${item.slug || item.id}`}
-                                            className="btn-gold-cinema inline-flex items-center rounded-xl px-4 py-2 text-xs font-bold"
+                                            className="btn-gold-cinema inline-flex min-h-11 w-full items-center justify-center rounded-xl px-4 text-xs font-black shadow-md"
                                         >
-                                            Detail Acara
+                                            Lihat detail acara
                                         </Link>
                                     </div>
                                 </article>
@@ -197,3 +229,4 @@ export default function Index({ events, currentFilter = 'semua' }) {
         </PublicLayout>
     );
 }
+

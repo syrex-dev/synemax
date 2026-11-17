@@ -78,6 +78,7 @@ export default function Home({
         if (nextGenre) url.searchParams.set('genre', nextGenre);
         if (nextYear) url.searchParams.set('tahun', nextYear);
         url.searchParams.set('limit', String(filmsLimit));
+        url.searchParams.set('format', 'json');
 
         // Update URL query string without page reload
         const currentUrl = new URL(window.location.href);
@@ -566,7 +567,7 @@ export default function Home({
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                                 {upcomingNobar.map((nobar) => {
-                                    const poster = nobar.poster_path ? `/media/nobar/${nobar.poster_path}` : null;
+                                    const poster = nobar.poster_url || (nobar.poster_path ? (nobar.poster_path.startsWith('http') ? nobar.poster_path : `/storage/${nobar.poster_path}`) : null);
                                     const kickoffDate = new Date(nobar.kickoff_at).toLocaleDateString('id-ID', {
                                         weekday: 'short',
                                         day: 'numeric',
@@ -609,7 +610,7 @@ export default function Home({
                                                         {nobar.judul}
                                                     </h3>
                                                     <p className="text-xs text-text-muted mt-0.5">
-                                                        <span className="font-semibold text-text">{nobar.kompetisi}</span>
+                                                        {nobar.vs_title ? `${nobar.vs_title} · ` : ''}<span className="font-semibold text-text">{nobar.kompetisi}</span>
                                                     </p>
                                                 </div>
 
@@ -631,3 +632,4 @@ export default function Home({
         </PublicLayout>
     );
 }
+

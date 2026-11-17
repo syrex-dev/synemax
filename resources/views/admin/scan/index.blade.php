@@ -901,15 +901,10 @@
 
                         <div>
                             <span class="font-bold text-text block mb-1">Hubungkan ke Booking Sesi (Opsional):</span>
-                            <select
-                                x-model="selectedMemberBookingId"
-                                class="w-full min-h-[38px] rounded-xl border border-border bg-surface px-2.5 py-1 text-xs text-text focus:border-amber-500"
-                            >
-                                <option value="">Tanpa booking (datang langsung di kasir)</option>
-                                <template x-for="bk in memberData.session_bookings" :key="bk.id">
-                                    <option :value="bk.id" x-text="bk.customer_name + ' (' + bk.code + ' - ' + (bk.is_paid ? 'Lunas Online' : 'Bayar di Tempat') + ')'"></option>
-                                </template>
-                            </select>
+                            <x-ui.select
+                                name="selected_member_booking_id"
+                                placeholder="Tanpa booking (datang langsung di kasir)"
+                            />
                         </div>
                     </div>
                 </div>

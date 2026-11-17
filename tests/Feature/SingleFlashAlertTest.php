@@ -47,7 +47,7 @@ class SingleFlashAlertTest extends TestCase
         ]);
         $session = Session::create([
             'film_id' => $film->id,
-            'session_date' => now()->toDateString(),
+            'session_date' => now()->addDay()->toDateString(),
             'start_time' => '14:00',
             'end_time' => '15:30',
             'price' => 25000,

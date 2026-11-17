@@ -1066,14 +1066,11 @@
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
                             <label class="block text-xs font-bold text-text mb-1.5">Status Awal</label>
-                            <select
+                            <x-ui.select
                                 name="status"
-                                x-model="addStatus"
-                                class="min-h-11 w-full rounded-xl border border-border bg-bg px-3 text-xs font-semibold text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
-                            >
-                                <option value="tersedia">Tersedia (Buka Reservasi)</option>
-                                <option value="ditutup">Ditutup Sementara</option>
-                            </select>
+                                :options="['tersedia' => 'Tersedia (Buka Reservasi)', 'ditutup' => 'Ditutup Sementara']"
+                                @synemax-select-changed="addStatus = $event.detail.value"
+                            />
                         </div>
 
                         <div class="flex items-center pt-6">
@@ -1243,14 +1240,11 @@
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
                             <label class="block text-xs font-bold text-text mb-1.5">Status Sesi</label>
-                            <select
+                            <x-ui.select
                                 name="status"
-                                x-model="editStatus"
-                                class="min-h-11 w-full rounded-xl border border-border bg-bg px-3 text-xs font-semibold text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
-                            >
-                                <option value="tersedia">Tersedia (Buka Reservasi)</option>
-                                <option value="ditutup">Ditutup Sementara</option>
-                            </select>
+                                :options="['tersedia' => 'Tersedia (Buka Reservasi)', 'ditutup' => 'Ditutup Sementara']"
+                                @synemax-select-changed="editStatus = $event.detail.value"
+                            />
                         </div>
 
                         <div class="flex items-center pt-6">

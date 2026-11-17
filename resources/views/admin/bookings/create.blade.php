@@ -430,8 +430,11 @@
                                         x-show="memberQuery.trim()"
                                         @click="memberQuery = ''; memberSearchResults = []; memberNotFound = false;"
                                         class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text text-xs p-1 cursor-pointer"
+                                        aria-label="Hapus pencarian"
                                     >
-                                        ✕
+                                        <svg class="size-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
                                     </button>
                                 </div>
                                 <button

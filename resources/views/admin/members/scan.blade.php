@@ -113,11 +113,12 @@
                     Sesi Penayangan yang Dihadiri
                 </label>
                 <div class="flex items-center gap-2">
-                    <select
+                    <x-ui.select
+                        name="member_session_select"
                         id="member_session_select"
-                        x-model="selectedSessionId"
-                        @change="onSessionChanged()"
-                        class="flex-1 min-h-[44px] rounded-xl border border-border bg-surface-2 px-3 text-xs font-bold text-text focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 transition"
+                        :value="$selectedSession?->id"
+                        @synemax-select-changed="selectedSessionId = $event.detail.value; onSessionChanged()"
+                        class="flex-1"
                     >
                         @forelse ($todaySessions as $session)
                             <option value="{{ $session->id }}" {{ $selectedSession?->id === $session->id ? 'selected' : '' }}>
@@ -126,7 +127,7 @@
                         @empty
                             <option value="none">Tidak ada sesi penayangan hari ini</option>
                         @endforelse
-                    </select>
+                    </x-ui.select>
                 </div>
             </div>
 
@@ -317,15 +318,10 @@
                             <label class="block text-xs font-semibold text-text-muted">
                                 Booking Terkait Sesi Ini (Opsional):
                             </label>
-                            <select
-                                x-model="selectedBookingId"
-                                class="w-full min-h-[38px] rounded-lg border border-border bg-surface px-2.5 text-xs font-semibold text-text"
-                            >
-                                <option value="">Tanpa Booking (Datang Langsung / Diskon Kasir)</option>
-                                <template x-for="b in activeSessionBookings" :key="b.id">
-                                    <option :value="b.id" x-text="b.code + ' · ' + b.customer_name + ' (' + (b.is_paid ? 'Lunas Online' : 'Bayar Ditempat') + ')'"></option>
-                                </template>
-                            </select>
+                            <x-ui.select
+                                name="selected_booking_id"
+                                placeholder="Tanpa Booking (Datang Langsung / Diskon Kasir)"
+                            />
                         </div>
                     </template>
 

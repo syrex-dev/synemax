@@ -33,7 +33,7 @@
             {{-- Kolom 2: Navigasi Cepat (4 kolom) --}}
             <div class="col-span-12 sm:col-span-6 lg:col-span-4 space-y-3">
                 <h4 class="text-xs font-black uppercase tracking-wider text-text">Jelajahi</h4>
-                <nav class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs font-medium text-text-muted" aria-label="Navigasi footer">
+                <nav class="grid grid-cols-2 gap-x-6 gap-y-2 text-xs font-medium text-text-muted" aria-label="Navigasi footer">
                     <a href="{{ route('schedule.index') }}" class="hover:text-amber-500 transition-colors">Jadwal Tayang</a>
                     <a href="{{ route('films.index') }}" class="hover:text-amber-500 transition-colors">Katalog Film</a>
                     <a href="{{ route('nobar.index') }}" class="hover:text-amber-500 transition-colors">Nonton Bareng</a>

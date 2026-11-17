@@ -99,14 +99,14 @@ export default function Show({ event, otherEvents = [], isPreview = false }) {
                                 <button
                                     type="button"
                                     onClick={() => setIsPosterModalOpen(true)}
-                                    className="group relative w-full aspect-[4/5] rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center cursor-zoom-in"
+                                    className="group relative flex w-full items-center justify-center overflow-hidden rounded-2xl bg-slate-100 dark:bg-black/60 p-2 border border-border dark:border-white/5 shadow-inner cursor-zoom-in"
                                 >
                                     <img
                                         src={posterSrc}
                                         alt={event.poster_alt || event.judul}
-                                        className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        className="max-h-[500px] w-auto max-w-full object-contain mx-auto rounded-xl transition duration-500 group-hover:scale-105"
                                     />
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold rounded-2xl">
                                         Klik untuk memperbesar
                                     </div>
                                 </button>
@@ -277,3 +277,4 @@ export default function Show({ event, otherEvents = [], isPreview = false }) {
         </PublicLayout>
     );
 }
+

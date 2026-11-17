@@ -129,3 +129,4 @@ export default function Index({ activePromos = [], expiredPromos = [] }) {
         </PublicLayout>
     );
 }
+

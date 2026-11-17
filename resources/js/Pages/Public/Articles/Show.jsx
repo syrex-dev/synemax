@@ -140,3 +140,4 @@ export default function Show({ article, relatedArticles = [], isPreview = false 
         </PublicLayout>
     );
 }
+

@@ -573,3 +573,4 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
         </AdminLayout>
     );
 }
+

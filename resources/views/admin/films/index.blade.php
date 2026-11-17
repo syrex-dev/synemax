@@ -453,7 +453,7 @@
                                                     Pulihkan
                                                 </button>
                                             </form>
-                                            <form method="POST" action="{{ route('admin.films.force_destroy', $film->id) }}" class="inline" onsubmit="return confirm('Hapus permanen film \'{{ addslashes($film->title) }}\' beserta berkas posternya dari penyimpanan STB? Tindakan ini tidak dapat dibatalkan.');">
+                                            <form method="POST" action="{{ route('admin.films.force_destroy', $film->id) }}" class="inline">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-danger/40 bg-danger/10 px-2.5 py-1 text-xs font-bold text-danger hover:bg-danger hover:text-white transition-colors" title="Hapus permanen dari penyimpanan">
@@ -547,7 +547,7 @@
                                             Pulihkan
                                         </button>
                                     </form>
-                                    <form method="POST" action="{{ route('admin.films.force_destroy', $film->id) }}" class="inline" onsubmit="return confirm('Hapus permanen film \'{{ addslashes($film->title) }}\' beserta berkas posternya dari STB? Tindakan ini tidak dapat dibatalkan.');">
+                                    <form method="POST" action="{{ route('admin.films.force_destroy', $film->id) }}" class="inline">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-danger/40 bg-danger/10 px-2.5 py-1 text-xs font-bold text-danger hover:bg-danger hover:text-white transition-colors">
@@ -608,7 +608,7 @@
                         </button>
                     </form>
 
-                    <form method="POST" action="{{ route('admin.films.bulk_action') }}" class="inline" onsubmit="return confirm('Hapus permanen film terpilih beserta seluruh berkas posternya dari penyimpanan STB? Tindakan ini tidak dapat dibatalkan.');">
+                    <form method="POST" action="{{ route('admin.films.bulk_action') }}" class="inline">
                         @csrf
                         <input type="hidden" name="action" value="force_delete">
                         <input type="hidden" name="trash" value="1">

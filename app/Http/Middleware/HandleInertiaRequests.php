@@ -36,26 +36,10 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        /** @var CinemaSettings $cinemaSettings */
-        $cinemaSettings = app(CinemaSettings::class);
-
-        return [
-            ...parent::share($request),
-            'auth' => [
-                'user' => $request->user() ? [
-                    'id' => $request->user()->id,
-                    'name' => $request->user()->name,
-                    'email' => $request->user()->email,
-                    'is_admin' => (bool) ($request->user()->is_admin ?? false),
-                ] : null,
-            ],
-            'flash' => [
-                'success' => fn () => $request->session()->get('success'),
-                'error' => fn () => $request->session()->get('error'),
-                'warning' => fn () => $request->session()->get('warning'),
-                'info' => fn () => $request->session()->get('info'),
-            ],
-            'cinemaSettings' => [
+        try {
+            /** @var CinemaSettings $cinemaSettings */
+            $cinemaSettings = app(CinemaSettings::class);
+            $settingsData = [
                 'siteName' => $cinemaSettings->siteName(),
                 'siteTagline' => $cinemaSettings->siteTagline(),
                 'siteLogo' => $cinemaSettings->siteLogo(),
@@ -81,7 +65,58 @@ class HandleInertiaRequests extends Middleware
                 'formattedFooterText' => $cinemaSettings->formattedFooterText(),
                 'showFloatingWhatsapp' => $cinemaSettings->showFloatingWhatsapp(),
                 'isMemberProgramEnabled' => $cinemaSettings->isMemberProgramEnabled(),
+            ];
+        } catch (\Throwable $e) {
+            $settingsData = [
+                'siteName' => 'SynemaX',
+                'siteTagline' => 'Studio Bioskop Mini Privat',
+                'siteLogo' => null,
+                'siteLogoDark' => null,
+                'navbarBrandDisplay' => 'logo_text',
+                'siteFaviconUrl' => null,
+                'siteFaviconMime' => null,
+                'navbarMenu' => [],
+                'defaultTheme' => 'system',
+                'showThemeToggle' => true,
+                'capacityPerSession' => 6,
+                'startingPrice' => 5000,
+                'startingPriceDescription' => 'Mulai Rp 5.000',
+                'capacityDescription' => '6 kursi privat per sesi',
+                'contactWhatsapp' => '',
+                'contactPhone' => '',
+                'contactEmail' => '',
+                'contactAddress' => '',
+                'contactMapsUrl' => '',
+                'mapsUrl' => '',
+                'mapsLabel' => 'Lihat di Google Maps',
+                'socialSettings' => [
+                    'instagram' => ['url' => '', 'label' => ''],
+                    'tiktok' => ['url' => '', 'label' => ''],
+                    'youtube' => ['url' => '', 'label' => ''],
+                ],
+                'formattedFooterText' => '(c) '.date('Y').' SynemaX Cinema. Hak cipta dilindungi.',
+                'showFloatingWhatsapp' => true,
+                'isMemberProgramEnabled' => true,
+            ];
+        }
+
+        return [
+            ...parent::share($request),
+            'auth' => [
+                'user' => $request->user() ? [
+                    'id' => $request->user()->id,
+                    'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'is_admin' => (bool) ($request->user()->is_admin ?? false),
+                ] : null,
             ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+                'warning' => fn () => $request->session()->get('warning'),
+                'info' => fn () => $request->session()->get('info'),
+            ],
+            'cinemaSettings' => $settingsData,
         ];
     }
 }

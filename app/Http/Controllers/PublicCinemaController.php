@@ -140,7 +140,10 @@ class PublicCinemaController extends Controller
         $genre = $request->query('genre');
         $tahun = $request->query('tahun');
         $search = $request->query('cari') ?: $request->query('q');
-        $isJsonRequest = $request->wantsJson() || $request->ajax();
+        $isJsonRequest = ! $request->header('X-Inertia') && (
+            $request->query('format') === 'json' ||
+            ($request->wantsJson() && ! $request->acceptsHtml())
+        );
         $perPage = $isJsonRequest && $request->filled('limit')
             ? max(1, min(30, $request->integer('limit', 30)))
             : 30;

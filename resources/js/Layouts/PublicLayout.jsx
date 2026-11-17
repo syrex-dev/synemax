@@ -343,7 +343,11 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                     {/* Bottom row */}
                     <div className="mt-8 pt-6 border-t border-border/60 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-text-muted">
                         <div>
-                            {cinemaSettings?.formattedFooterText || `© ${new Date().getFullYear()} SynemaX Cinema. Hak cipta dilindungi.`}
+                            {cinemaSettings?.formattedFooterText || (
+                                <>
+                                    &copy; {new Date().getFullYear()} SynemaX Cinema. Hak cipta dilindungi.
+                                </>
+                            )}
                         </div>
                         <div className="flex items-center gap-4">
                             <Link href="/kabar?tab=harga-faq" className="hover:text-text transition">

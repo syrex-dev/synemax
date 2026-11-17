@@ -641,7 +641,7 @@ class MemberController extends Controller
             ? "Kartu fisik {$member->name} ditandai sudah dibuat."
             : "Kartu fisik {$member->name} ditandai belum dibuatkan.";
 
-        if ($request->expectsJson() || $request->ajax()) {
+        if (($request->expectsJson() || $request->ajax()) && ! $request->header('X-Inertia')) {
             return response()->json([
                 'status' => 'ok',
                 'has_physical_card' => $issued,
@@ -701,7 +701,7 @@ class MemberController extends Controller
             ? "{$updatedCount} member ditandai sudah punya kartu fisik."
             : "{$updatedCount} member ditandai belum dibuatkan kartu fisik.";
 
-        if ($request->expectsJson() || $request->ajax()) {
+        if (($request->expectsJson() || $request->ajax()) && ! $request->header('X-Inertia')) {
             return response()->json([
                 'status' => 'ok',
                 'updated_count' => $updatedCount,

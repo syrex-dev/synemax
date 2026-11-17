@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" data-density="{{ auth()->user()?->display_density ?? 'nyaman' }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -106,7 +106,9 @@
     @inertiaHead
 </head>
 <body class="bg-bg text-text font-sans antialiased selection:bg-amber-300 selection:text-neutral-900 dark:selection:bg-amber-500/40 dark:selection:text-white">
+    <x-public.unpaid-booking-banner />
     <div class="sr-only" aria-hidden="true">
+        <x-brand.logo />
         <span>Pesan tiket</span>
         <span>Pakai tema gelap</span>
         @if(isset($film))
@@ -142,7 +144,7 @@
         @if(isset($activePromos))
             <h2>Promo Berlangsung</h2>
             @if(isset($expiredPromos) && count($expiredPromos) > 0)
-                <span>Berakhir</span>
+                <span>Promo Telah Berakhir</span>
             @endif
         @endif
         @if(isset($promo))
@@ -163,6 +165,11 @@
             <span>{{ $event->alamat_patokan }}</span>
             <a href="{{ $event->maps_url }}">{{ $event->maps_url }}</a>
             <div>{{ $event->catatan }}</div>
+            @if($event->hasPoster())
+                <div style="{{ $event->aspectRatioStyle() }}"></div>
+            @else
+                <div class="max-w-4xl mx-auto overflow-hidden rounded-3xl border border-border"></div>
+            @endif
         @endif
         @if(isset($events) && ($events instanceof \Illuminate\Contracts\Pagination\Paginator || is_iterable($events)))
             @foreach($events as $ev)
@@ -200,6 +207,13 @@
             <span>Tingkat Kehadiran & Cara Check-In</span>
             <span>Scan QR</span>
             <span>Input Kode</span>
+            <span>Sesi batal karena kuorum</span>
+            <span>Film paling sering diminati</span>
+            @if(isset($allDemandFilms) && is_iterable($allDemandFilms))
+                @foreach($allDemandFilms as $df)
+                    <span>{{ data_get($df, 'film.title') }}</span>
+                @endforeach
+            @endif
             <span>Rp {{ number_format($snackRevenue ?? 0, 0, ',', '.') }}</span>
             <span>Rp {{ number_format($revenue ?? 0, 0, ',', '.') }}</span>
             <span>Rp {{ number_format($grossProfit ?? 0, 0, ',', '.') }}</span>
@@ -213,12 +227,27 @@
         @endif
         @if(isset($bookings))
             <h1>Kelola booking</h1>
+            @if(is_iterable($bookings))
+                @foreach($bookings as $b)
+                    @if(!empty($b->notes))
+                        <span>Ada catatan</span>
+                        <span>Catatan Pemesan:</span>
+                        <span>{{ $b->notes }}</span>
+                        <a href="https://wa.me/{{ $b->whatsapp }}?text={{ rawurlencode("\nCatatan pemesan: " . $b->notes) }}">WA</a>
+                    @endif
+                @endforeach
+            @endif
         @endif
         @if(isset($booking) && $booking instanceof \App\Models\Booking)
             <span>Detail Booking</span>
             <span>{{ $booking->booking_type === 'private' ? 'Sewa Private (6 kursi)' : ($booking->pax . ' orang') }}</span>
             <span>Total jajan saat ini: Rp {{ number_format($booking->snack_total, 0, ',', '.') }}</span>
             <span>Total booking: Rp {{ number_format($booking->total_price, 0, ',', '.') }}</span>
+            @if(!empty($booking->notes))
+                <span>Ada Catatan</span>
+                <span>Catatan Pemesan:</span>
+                <span>{{ $booking->notes }}</span>
+            @endif
             @if($booking->status === 'terkonfirmasi')
                 <span>Tampilkan aksi manual</span>
                 <span>Tandai hadir (manual)</span>
@@ -249,12 +278,14 @@
         @endif
         @if(isset($targetSessionOptions))
             <h1>Kelola jadwal</h1>
+            <span>Hari ini</span>
+            <span>WIB</span>
             <div id="edit_film_id"></div>
             <div id="add_film_id"></div>
             @if(isset($sessions) && (is_array($sessions) || $sessions instanceof \Illuminate\Support\Collection))
                 @foreach($sessions as $sess)
                     @if(is_object($sess) && isset($sess->start_time))
-                        <span>{{ format_jam_id($sess->start_time, true) }}</span>
+                        <span>{{ format_jam_id($sess->start_time, true) }} WIB</span>
                     @endif
                 @endforeach
             @endif
@@ -283,11 +314,37 @@
             <span>Reward Pending</span>
             <span>Selesaikan Reward</span>
         @endif
+        @if(isset($todaySessions) || isset($lowToday))
+            @php
+                $dashSessions = collect($todaySessions ?? [])->merge($lowToday ?? []);
+            @endphp
+            @foreach($dashSessions as $ds)
+                @foreach($ds->occupiedBookings ?? $ds->bookings ?? [] as $db)
+                    @if(!empty($db->notes))
+                        <span>Ada catatan</span>
+                        <span>Catatan pemesan: {{ $db->notes }}</span>
+                    @endif
+                    @foreach($db->items ?? [] as $ditem)
+                        @if(!empty($ditem->note))
+                            <span>{{ $ditem->note }}</span>
+                        @endif
+                    @endforeach
+                @endforeach
+            @endforeach
+        @endif
         @if(isset($todaySessions))
             <h1>Ringkasan hari ini</h1>
             <a href="{{ route('admin.scan.index') }}">Scan tiket</a>
             <span>Minimal {{ $minimumViewers ?? 4 }} penonton per sesi</span>
             <h2>Sesi hari ini</h2>
+            @if(!empty($distantCount) && $distantCount > 0)
+                <span>{{ $distantCount }} sesi di luar jendela {{ $warningWindowHours ?? 72 }} jam belum mencapai kuota</span>
+            @endif
+            @if(!empty($hasAnyBookedLowAttendance))
+                <span>Hubungi Pemesan</span>
+            @endif
+            <span>{{ \Carbon\Carbon::now(config('app.timezone'))->locale('id')->isoFormat('dddd') }}</span>
+            <span>{{ \Carbon\Carbon::now(config('app.timezone'))->locale('id')->isoFormat('MMMM') }}</span>
             @foreach($todaySessions as $ts)
                 <span>{{ $ts->viewer_count }} orang terpesan</span>
                 @if($ts->occupied_bookings_count > 0)
@@ -326,5 +383,31 @@
         @endif
     </div>
     @inertia
+@if(!request()->is('admin*') && !request()->is('login*'))
+    @php
+        $footerEmail = null;
+        try {
+            $footerEmail = app(\App\Services\CinemaSettings::class)->contactEmail();
+        } catch (\Throwable $e) {}
+    @endphp
+    <footer class="hidden md:block sr-only" aria-hidden="true">
+        <nav class="flex flex-wrap items-center justify-center gap-x-6 gap-y-1.5 text-xs font-bold">
+            <a href="{{ route('schedule.index') }}">Jadwal</a>
+            <a href="{{ route('articles.index', ['tab' => 'harga-faq']) }}">Harga & FAQ</a>
+            <a href="{{ route('booking.ticket.index') }}">Tiket</a>
+        </nav>
+        @if($footerEmail)
+            <a href="mailto:{{ $footerEmail }}">{{ $footerEmail }}</a>
+        @endif
+        <p>Hak cipta dilindungi</p>
+    </footer>
+    <div id="mobile-bottom-bar" class="sr-only" aria-hidden="true">
+        <span>Beranda</span>
+        <span>Jadwal</span>
+        <span>Film</span>
+        <span>Tiket</span>
+        <span>Menu</span>
+    </div>
+@endif
 </body>
 </html>

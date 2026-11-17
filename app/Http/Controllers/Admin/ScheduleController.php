@@ -350,7 +350,7 @@ class ScheduleController extends Controller
                     'wa_link' => 'https://wa.me/'.$b->whatsapp.'?text='.urlencode("Halo {$b->customer_name}, pemberitahuan dari SynemaX: Jam tayang sesi tanggal {$sessionDateFormatted} bergeser dari {$currentStartTime} menjadi {$newStartTime} WIB. Tiket Anda dengan kode {$b->code} tetap berlaku."),
                 ]);
 
-                if ($request->wantsJson()) {
+                if ($request->wantsJson() && ! $request->header('X-Inertia')) {
                     return response()->json([
                         'requires_confirmation' => true,
                         'reason' => 'reschedule_with_active_bookings',
@@ -416,7 +416,7 @@ class ScheduleController extends Controller
 
         $session->refresh()->loadMissing('film');
 
-        if ($request->wantsJson()) {
+        if ($request->wantsJson() && ! $request->header('X-Inertia')) {
             $durationMinutes = (int) (Carbon::parse($session->start_time)->diffInMinutes(Carbon::parse($session->end_time)) ?: 120);
 
             return response()->json([
@@ -484,7 +484,7 @@ class ScheduleController extends Controller
                 ? "Sesi berhasil ditutup dan {$bookingCount} booking aktif dibatalkan."
                 : 'Sesi berhasil ditutup.';
 
-            if ($request->wantsJson()) {
+            if ($request->wantsJson() && ! $request->header('X-Inertia')) {
                 return response()->json([
                     'status' => 'ok',
                     'session_status' => 'ditutup',
@@ -502,7 +502,7 @@ class ScheduleController extends Controller
             || app(ScheduleResolver::class)->isSlotBlocked($date, substr((string) $session->start_time, 0, 5))
         ) {
             $err = 'Tanggal atau jam sesi ini sedang ditutup/diblokir.';
-            if ($request->wantsJson()) {
+            if ($request->wantsJson() && ! $request->header('X-Inertia')) {
                 return response()->json(['status' => 'error', 'message' => $err], 422);
             }
 
@@ -512,7 +512,7 @@ class ScheduleController extends Controller
         $session->update(['status' => 'tersedia']);
         $msg = 'Sesi berhasil dibuka kembali.';
 
-        if ($request->wantsJson()) {
+        if ($request->wantsJson() && ! $request->header('X-Inertia')) {
             return response()->json([
                 'status' => 'ok',
                 'session_status' => 'tersedia',
@@ -573,7 +573,7 @@ class ScheduleController extends Controller
             });
 
             $msg = "Seluruh sesi pada tanggal {$dateStr} berhasil ditutup.";
-            if ($request->wantsJson()) {
+            if ($request->wantsJson() && ! $request->header('X-Inertia')) {
                 return response()->json(['status' => 'ok', 'message' => $msg]);
             }
 
@@ -588,7 +588,7 @@ class ScheduleController extends Controller
         });
 
         $msg = "Seluruh sesi pada tanggal {$dateStr} berhasil dibuka kembali.";
-        if ($request->wantsJson()) {
+        if ($request->wantsJson() && ! $request->header('X-Inertia')) {
             return response()->json(['status' => 'ok', 'message' => $msg]);
         }
 
@@ -624,7 +624,7 @@ class ScheduleController extends Controller
 
             $msg = 'Sesi berhasil dikonfirmasi tayang tetap dengan film pilihan admin.';
 
-            if ($request->wantsJson()) {
+            if ($request->wantsJson() && ! $request->header('X-Inertia')) {
                 return response()->json(['status' => 'ok', 'message' => $msg]);
             }
 
@@ -653,7 +653,7 @@ class ScheduleController extends Controller
 
             $msg = count($activeBookings).' booking berhasil dipindahkan ke sesi tujuan.';
 
-            if ($request->wantsJson()) {
+            if ($request->wantsJson() && ! $request->header('X-Inertia')) {
                 return response()->json(['status' => 'ok', 'message' => $msg]);
             }
 
@@ -694,7 +694,7 @@ class ScheduleController extends Controller
 
             $msg = 'Sesi berhasil dibatalkan dan seluruh booking aktif telah diproses pembatalan.';
 
-            if ($request->wantsJson()) {
+            if ($request->wantsJson() && ! $request->header('X-Inertia')) {
                 return response()->json(['status' => 'ok', 'message' => $msg]);
             }
 

@@ -440,9 +440,13 @@ class SettingController extends Controller
 
         $existingQris = $settings->string('qris_image_path');
         if (in_array('qris', $paymentMethods, true) && ! $hasNewQris && ($deleteQris || empty($existingQris) || ! Storage::disk('local')->exists($existingQris))) {
-            throw ValidationException::withMessages([
-                'payment_methods' => 'Metode QRIS hanya dapat diaktifkan jika gambar kode QRIS valid sudah diunggah.',
-            ]);
+            if ($request->input('_tab') === 'operasional' || $request->input('tab') === 'operasional' || $request->input('active_tab') === 'operasional') {
+                $warnings[] = 'QRIS diaktifkan namun belum memiliki gambar QRIS yang valid.';
+            } else {
+                throw ValidationException::withMessages([
+                    'payment_methods' => 'Metode QRIS hanya dapat diaktifkan jika gambar kode QRIS valid sudah diunggah.',
+                ]);
+            }
         }
 
         $settings->set('transfer_accounts', $cleanTransferAccounts, 'operasional');
