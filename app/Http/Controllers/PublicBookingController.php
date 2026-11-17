@@ -23,6 +23,8 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class PublicBookingController extends Controller
@@ -583,13 +585,96 @@ class PublicBookingController extends Controller
             ->with('status', 'Booking berhasil dibatalkan dan tempat telah dilepaskan.');
     }
 
-    public function ticketIndex(Request $request): View
+    public function ticketIndex(Request $request): View|InertiaResponse
     {
         $categorizedBookings = DeviceBookingTracker::getCategorizedBookings($request);
 
-        return view('public.tickets-index', [
-            'categorizedBookings' => $categorizedBookings,
-        ]);
+        if (! $request->header('X-Inertia')) {
+            return view('public.tickets-index', [
+                'categorizedBookings' => $categorizedBookings,
+            ]);
+        }
+
+        $serializeBooking = function (Booking $b): array {
+            $film = $b->film ?: $b->session?->film;
+            $session = $b->session;
+
+            $statusType = match ($b->status) {
+                'terkonfirmasi', 'hadir' => 'success',
+                'menunggu_pembayaran' => 'warning',
+                'menunggu_konfirmasi' => 'info',
+                'dibatalkan', 'tidak_hadir' => 'danger',
+                default => 'neutral',
+            };
+
+            $statusLabel = match ($b->status) {
+                'terkonfirmasi' => 'Terkonfirmasi',
+                'menunggu_pembayaran' => 'Menunggu Pembayaran',
+                'menunggu_konfirmasi' => 'Menunggu Konfirmasi Admin',
+                'hadir' => 'Hadir',
+                'dibatalkan' => 'Dibatalkan',
+                'kedaluwarsa' => 'Kedaluwarsa',
+                'tidak_hadir' => 'Tidak Hadir',
+                default => 'Selesai',
+            };
+
+            return [
+                'id' => $b->id,
+                'code' => $b->code,
+                'status' => $b->status,
+                'status_type' => $statusType,
+                'status_label' => $statusLabel,
+                'total_price' => (int) $b->total_price,
+                'formatted_price' => 'Rp '.number_format($b->total_price, 0, ',', '.'),
+                'people_count' => (int) ($b->people_count ?? $b->seats_reserved ?? $b->pax ?? 1),
+                'payment_expires_at' => $b->payment_expires_at?->toIso8601String(),
+                'film_title' => $film?->title ?? 'Film Sesi',
+                'film_poster' => $film?->posterUrl(),
+                'session_date' => $session?->session_date?->toDateString(),
+                'formatted_date' => $session?->session_date ? format_tanggal_id($session->session_date) : '-',
+                'session_time' => $session?->start_time,
+                'formatted_time' => $session?->start_time ? format_jam_id($session->start_time) : '-',
+                'payment_url' => route('booking.payment', ['code' => $b->code]),
+                'ticket_url' => route('booking.ticket', ['code' => $b->code]),
+            ];
+        };
+
+        $serialized = [
+            'belum_bayar' => $categorizedBookings['belum_bayar']->map($serializeBooking)->values()->all(),
+            'diproses' => $categorizedBookings['diproses']->map($serializeBooking)->values()->all(),
+            'aktif' => $categorizedBookings['aktif']->map($serializeBooking)->values()->all(),
+            'riwayat' => $categorizedBookings['riwayat']->map($serializeBooking)->values()->all(),
+        ];
+
+        $counts = [
+            'belum_bayar' => count($serialized['belum_bayar']),
+            'diproses' => count($serialized['diproses']),
+            'aktif' => count($serialized['aktif']),
+            'riwayat' => count($serialized['riwayat']),
+        ];
+
+        $initialTab = $request->query('tab');
+        if (! in_array($initialTab, ['belum_bayar', 'diproses', 'aktif', 'riwayat'], true)) {
+            $initialTab = $counts['belum_bayar'] > 0
+                ? 'belum_bayar'
+                : ($counts['diproses'] > 0
+                    ? 'diproses'
+                    : ($counts['aktif'] > 0
+                        ? 'aktif'
+                        : ($counts['riwayat'] > 0 ? 'riwayat' : 'aktif')));
+        }
+
+        $data = [
+            'categorizedBookings' => $serialized,
+            'counts' => $counts,
+            'initialTab' => $initialTab,
+            'oldInput' => [
+                'code' => $request->old('code', $request->query('code', '')),
+                'whatsapp' => $request->old('whatsapp', ''),
+            ],
+        ];
+
+        return Inertia::render('Public/Tickets/Index', $data);
     }
 
     public function lookupAndAdd(

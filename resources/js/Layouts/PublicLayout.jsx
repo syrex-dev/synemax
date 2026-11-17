@@ -110,7 +110,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
 
                             if (isTicket) {
                                 return (
-                                    <a
+                                    <Link
                                         key={item.key || item.url}
                                         href={item.url || '/tiket'}
                                         className={`btn-gold-cinema inline-flex min-h-10 shrink-0 items-center rounded-xl px-3.5 py-1.5 text-xs font-black shadow-xs ml-1 ${
@@ -119,7 +119,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                     >
                                         <Ticket className="size-3.5 mr-1.5" />
                                         <span>Tiket</span>
-                                    </a>
+                                    </Link>
                                 );
                             }
 
@@ -143,8 +143,12 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                     <div className="flex items-center gap-2 shrink-0">
                         {cinemaSettings?.showThemeToggle && (
                             <>
-                                <ThemeToggle variant="desktop" className="hidden md:inline-flex" />
-                                <ThemeToggle variant="mobile" className="md:hidden" />
+                                <div className="hidden md:inline-flex">
+                                    <ThemeToggle variant="desktop" />
+                                </div>
+                                <div className="md:hidden inline-flex">
+                                    <ThemeToggle variant="mobile" />
+                                </div>
                             </>
                         )}
                     </div>
@@ -171,7 +175,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
 
                             if (isTicket) {
                                 return (
-                                    <a
+                                    <Link
                                         key={bItem.key || bItem.url}
                                         href={bItem.url || '/tiket'}
                                         className={`flex-1 min-h-[60px] flex flex-col items-center justify-center relative py-1 px-1 transition-colors ${
@@ -185,7 +189,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                         )}
                                         {getIconForNav(bItem.key)}
                                         <span className="text-[11px] leading-tight mt-1">{label}</span>
-                                    </a>
+                                    </Link>
                                 );
                             }
 
