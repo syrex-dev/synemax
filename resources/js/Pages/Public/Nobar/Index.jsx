@@ -1,6 +1,7 @@
 import { Link, Head } from '@inertiajs/react';
 import PublicLayout from '../../../Layouts/PublicLayout';
 import Pagination from '../../../Components/Pagination';
+import CinemaImage from '../../../Components/CinemaImage';
 import { MapPin, Film, Radio } from 'lucide-react';
 
 export default function Index({ events, currentFilter = 'semua' }) {
@@ -128,14 +129,15 @@ export default function Index({ events, currentFilter = 'semua' }) {
                                     <div>
                                         {posterSrc ? (
                                             <div className="relative mb-4">
-                                                <div className="relative overflow-hidden bg-slate-100 dark:bg-black/60 border border-border dark:border-white/5 aspect-[4/5] rounded-2xl flex items-center justify-center p-2 shadow-inner">
-                                                    <img
-                                                        src={posterSrc}
-                                                        alt={item.poster_alt || item.judul}
-                                                        loading="lazy"
-                                                        className="max-h-full max-w-full object-contain mx-auto rounded-xl transition duration-500 group-hover:scale-105"
-                                                    />
-                                                </div>
+                                                <CinemaImage
+                                                    src={posterSrc}
+                                                    alt={item.poster_alt || item.judul}
+                                                    title={item.judul}
+                                                    badge={item.display_status}
+                                                    aspect="aspect-[4/5]"
+                                                    imgClass="max-h-full max-w-full object-contain mx-auto rounded-xl transition duration-500 group-hover:scale-105"
+                                                    className="flex items-center justify-center p-2 shadow-inner"
+                                                />
 
                                                 <div className="absolute left-3 top-3 flex flex-wrap gap-1.5 pointer-events-none">
                                                     <span className="rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider border border-border dark:border-white/20 bg-surface/90 dark:bg-black/80 text-text dark:text-white backdrop-blur-md shadow-md">

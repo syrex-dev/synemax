@@ -142,14 +142,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                     {/* Action Area: Theme toggle */}
                     <div className="flex items-center gap-2 shrink-0">
                         {cinemaSettings?.showThemeToggle && (
-                            <>
-                                <div className="hidden md:inline-flex">
-                                    <ThemeToggle variant="desktop" />
-                                </div>
-                                <div className="md:hidden inline-flex">
-                                    <ThemeToggle variant="mobile" />
-                                </div>
-                            </>
+                            <ThemeToggle variant="responsive" />
                         )}
                     </div>
                 </div>

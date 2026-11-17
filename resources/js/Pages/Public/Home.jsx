@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, Head } from '@inertiajs/react';
+import { Link, Head, router } from '@inertiajs/react';
 import PublicLayout from '../../Layouts/PublicLayout';
 import { FilmCardSkeleton } from '../../Components/Skeleton';
 import {
@@ -52,7 +52,14 @@ export default function Home({
     const [isLoading, setIsLoading] = useState(false);
     const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
     const yearDropdownRef = useRef(null);
-    const abortRef = useRef(null);
+
+    // Synchronize film list when Inertia partial reload updates props
+    useEffect(() => {
+        setFilmList(filmsData.length > 0 ? filmsData : films);
+        setTotalMatches(totalFilteredCount);
+        setGenre(initGenre);
+        setYear(initYear);
+    }, [filmsData, films, totalFilteredCount, initGenre, initYear]);
 
     // Close year dropdown on outside click
     useEffect(() => {
@@ -65,70 +72,39 @@ export default function Home({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // Filter films function
-    const fetchFilteredFilms = async (nextGenre, nextYear) => {
-        if (abortRef.current) {
-            abortRef.current.abort();
-        }
-        const controller = new AbortController();
-        abortRef.current = controller;
-
+    const triggerFilter = (nextGenre, nextYear) => {
         setIsLoading(true);
+        const params = {};
+        if (nextGenre) params.genre = nextGenre;
+        if (nextYear) params.tahun = nextYear;
 
-        const url = new URL(window.location.origin + '/film');
-        if (nextGenre) url.searchParams.set('genre', nextGenre);
-        if (nextYear) url.searchParams.set('tahun', nextYear);
-        url.searchParams.set('limit', String(filmsLimit));
-        url.searchParams.set('format', 'json');
-
-        // Update URL query string without page reload
-        const currentUrl = new URL(window.location.href);
-        if (nextGenre) currentUrl.searchParams.set('genre', nextGenre);
-        else currentUrl.searchParams.delete('genre');
-        if (nextYear) currentUrl.searchParams.set('tahun', nextYear);
-        else currentUrl.searchParams.delete('tahun');
-        window.history.replaceState({}, '', currentUrl.toString());
-
-        try {
-            const res = await fetch(url.toString(), {
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                signal: controller.signal,
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setFilmList(Array.isArray(data.films) ? data.films : []);
-                setTotalMatches(typeof data.count === 'number' ? data.count : (data.films?.length || 0));
-            }
-        } catch (err) {
-            if (err.name !== 'AbortError') {
-                console.error('Failed to load films', err);
-            }
-        } finally {
-            setIsLoading(false);
-        }
+        router.get('/', params, {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            only: ['filmsData', 'totalFilteredCount', 'selectedGenre', 'selectedYear'],
+            onFinish: () => setIsLoading(false),
+        });
     };
 
     const handleSelectGenre = (g) => {
         const next = genre === g ? '' : g;
         setGenre(next);
-        fetchFilteredFilms(next, year);
+        triggerFilter(next, year);
     };
 
     const handleSelectYear = (y) => {
         const next = year === String(y) ? '' : String(y);
         setYear(next);
         setYearDropdownOpen(false);
-        fetchFilteredFilms(genre, next);
+        triggerFilter(genre, next);
     };
 
     const handleResetFilter = () => {
         setGenre('');
         setYear('');
         setYearDropdownOpen(false);
-        fetchFilteredFilms('', '');
+        triggerFilter('', '');
     };
 
     const hasActiveFilter = Boolean(genre || year);

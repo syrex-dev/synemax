@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Sun, Moon } from 'lucide-react';
 
-export default function ThemeToggle({ variant = 'desktop', className = '' }) {
+export default function ThemeToggle({ variant = 'responsive', className = '' }) {
     const [theme, setTheme] = useState('dark');
 
     useEffect(() => {
@@ -31,27 +31,29 @@ export default function ThemeToggle({ variant = 'desktop', className = '' }) {
         setMode(next);
     };
 
-    if (variant === 'mobile') {
-        return (
-            <button
-                type="button"
-                onClick={toggle}
-                className={`inline-flex size-11 items-center justify-center rounded-xl border border-slate-300/80 dark:border-white/15 bg-surface/70 dark:bg-white/5 backdrop-blur-sm text-text hover:bg-surface-2 transition focus-visible:outline-2 focus-visible:outline-amber-500 shadow-xs ${className}`}
-                aria-label="Ganti mode tampilan terang atau gelap"
-                title={theme === 'dark' ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'}
-            >
-                {theme === 'light' ? (
-                    <Moon className="size-5 text-slate-700" />
-                ) : (
-                    <Sun className="size-5 text-amber-400" />
-                )}
-            </button>
-        );
-    }
+    const mobileBtn = (
+        <button
+            type="button"
+            onClick={toggle}
+            className={`size-11 items-center justify-center rounded-xl border border-slate-300/80 dark:border-white/15 bg-surface/70 dark:bg-white/5 backdrop-blur-sm text-text hover:bg-surface-2 transition focus-visible:outline-2 focus-visible:outline-amber-500 shadow-xs ${
+                variant === 'responsive' ? 'inline-flex md:hidden' : 'inline-flex'
+            } ${className}`}
+            aria-label="Ganti mode tampilan terang atau gelap"
+            title={theme === 'dark' ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'}
+        >
+            {theme === 'light' ? (
+                <Moon className="size-5 text-slate-700" />
+            ) : (
+                <Sun className="size-5 text-amber-400" />
+            )}
+        </button>
+    );
 
-    return (
+    const desktopPill = (
         <div
-            className={`inline-flex items-center rounded-full border border-slate-300 dark:border-white/15 bg-slate-200/80 dark:bg-black/50 p-1 backdrop-blur-md shadow-inner transition-colors duration-200 ${className}`}
+            className={`items-center rounded-full border border-slate-300 dark:border-white/15 bg-slate-200/80 dark:bg-black/50 p-1 backdrop-blur-md shadow-inner transition-colors duration-200 ${
+                variant === 'responsive' ? 'hidden md:inline-flex' : 'inline-flex'
+            } ${className}`}
             role="group"
             aria-label="Pilih mode tampilan"
         >
@@ -84,5 +86,19 @@ export default function ThemeToggle({ variant = 'desktop', className = '' }) {
             </button>
         </div>
     );
-}
 
+    if (variant === 'mobile') {
+        return mobileBtn;
+    }
+
+    if (variant === 'desktop') {
+        return desktopPill;
+    }
+
+    return (
+        <div className="flex items-center">
+            {desktopPill}
+            {mobileBtn}
+        </div>
+    );
+}

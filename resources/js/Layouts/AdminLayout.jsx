@@ -181,12 +181,7 @@ export default function AdminLayout({ children, title }) {
 
                     <div className="flex items-center gap-3">
                         {/* Theme Switcher */}
-                        <div className="hidden sm:inline-flex">
-                            <ThemeToggle variant="desktop" />
-                        </div>
-                        <div className="sm:hidden inline-flex">
-                            <ThemeToggle variant="mobile" />
-                        </div>
+                        <ThemeToggle variant="responsive" />
 
                         {/* User Menu Dropdown */}
                         <div className="relative">

@@ -34,7 +34,7 @@ class PublicBookingController extends Controller
         Session $session,
         CinemaSettings $settings,
         SnackOrderService $snackOrders,
-    ): View|RedirectResponse {
+    ): View|RedirectResponse|InertiaResponse {
         app(SessionQuorumService::class)->resolveAll();
         $session->refresh();
 
@@ -90,7 +90,7 @@ class PublicBookingController extends Controller
             ? 'Sesi ini sudah disewa private.'
             : ($session->remainingSeats() === 0 ? 'Kursi pada sesi ini sudah penuh.' : null);
 
-        return view('public.booking-form', [
+        $viewData = [
             'session' => $session,
             'films' => $session->isConfirmed()
                 ? collect([$session->film])->filter()
@@ -116,7 +116,13 @@ class PublicBookingController extends Controller
             'snacksEnabled' => $snackOrders->enabled(),
             'snackMaxQty' => $settings->integer('snack_max_qty_per_item', 10),
             'existingUnpaidBooking' => DeviceBookingTracker::getUnpaidBookings($request)->first(),
-        ]);
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('public.booking-form', $viewData);
+        }
+
+        return Inertia::render('Public/Booking/Create', $viewData);
     }
 
     public function availabilityJson(
@@ -257,7 +263,7 @@ class PublicBookingController extends Controller
         string $code,
         CinemaSettings $settings,
         BookingService $bookingService,
-    ): Response|RedirectResponse {
+    ): Response|RedirectResponse|InertiaResponse {
         $booking = Booking::query()
             ->where('code', strtoupper(trim($code)))
             ->with(['session', 'film', 'items' => fn ($query) => $query->where('status', '!=', 'dibatalkan')])
@@ -273,19 +279,26 @@ class PublicBookingController extends Controller
             return redirect()->route('booking.ticket', ['code' => $booking->code]);
         }
 
-        return response()
-            ->view('public.payment', [
-                'booking' => $booking,
-                'whatsAppUrl' => $this->paymentWhatsAppUrl($booking, $settings),
-                'hasQrisImage' => $settings->hasValidQrisImage(),
-                'qrisMerchantName' => $settings->qrisMerchantName(),
-                'qrisPaymentNotes' => $settings->qrisPaymentNotes(),
-                'qrisVersion' => $settings->qrisImageVersion(),
-                'transferAccounts' => $settings->transferAccounts(),
-                'transferPaymentNotes' => $settings->transferPaymentNotes(),
-                'maxPaymentProofKb' => $settings->maxPaymentProofKb(),
-            ])
-            ->header('Referrer-Policy', 'strict-origin-when-cross-origin');
+        $viewData = [
+            'booking' => $booking,
+            'whatsAppUrl' => $this->paymentWhatsAppUrl($booking, $settings),
+            'hasQrisImage' => $settings->hasValidQrisImage(),
+            'qrisMerchantName' => $settings->qrisMerchantName(),
+            'qrisPaymentNotes' => $settings->qrisPaymentNotes(),
+            'qrisVersion' => $settings->qrisImageVersion(),
+            'transferAccounts' => $settings->transferAccounts(),
+            'transferPaymentNotes' => $settings->transferPaymentNotes(),
+            'maxPaymentProofKb' => $settings->maxPaymentProofKb(),
+            'paymentTimeLimitMinutes' => $settings->paymentTimeLimitMinutes(),
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return response()
+                ->view('public.payment', $viewData)
+                ->header('Referrer-Policy', 'strict-origin-when-cross-origin');
+        }
+
+        return Inertia::render('Public/Booking/Payment', $viewData);
     }
 
     public function ticketView(
@@ -293,7 +306,7 @@ class PublicBookingController extends Controller
         string $code,
         CinemaSettings $settings,
         BookingService $bookingService,
-    ): Response|RedirectResponse {
+    ): Response|RedirectResponse|InertiaResponse {
         app(SessionQuorumService::class)->resolveAll();
 
         $booking = Booking::query()
@@ -352,28 +365,34 @@ class PublicBookingController extends Controller
             ->take(10)
             ->get();
 
-        return response()
-            ->view('public.ticket', [
-                'booking' => $booking,
-                'session' => $session,
-                'sessionStatus' => $session->statusWaktu(),
-                'candidateTallies' => $candidateTallies,
-                'allFilms' => $allFilms,
-                'alternativeSessions' => $alternativeSessions,
-                'couplePrice' => $couplePrice,
-                'privatePrice' => $privatePrice,
-                'coupleUpgradeDiff' => max(0, $couplePrice - $booking->ticket_total),
-                'privateUpgradeDiff' => max(0, $privatePrice - $booking->ticket_total),
-                'canUpgradeCouple' => ! $session->isConfirmed() && $booking->seats_reserved <= 2 && $session->canAcceptCoupleBooking($booking->film_id, $booking->id)['allowed'],
-                'canUpgradePrivate' => ! $session->isConfirmed() && ($session->occupiedBookings()->where('id', '!=', $booking->id)->count() === 0),
-                'ajakTemanUrl' => $this->ajakTemanWhatsAppUrl($booking),
-                'whatsAppUrl' => $this->ticketWhatsAppUrl($booking, $settings),
-                'snackWhatsAppUrl' => $this->snackWhatsAppUrl($booking, $settings),
-                'snackLocked' => $snackLocked,
-                'canCancel' => $canCancel,
-                'cancellationCutoffHours' => $cancellationCutoff,
-            ])
-            ->header('Referrer-Policy', 'strict-origin-when-cross-origin');
+        $viewData = [
+            'booking' => $booking,
+            'session' => $session,
+            'sessionStatus' => $session->statusWaktu(),
+            'candidateTallies' => $candidateTallies,
+            'allFilms' => $allFilms,
+            'alternativeSessions' => $alternativeSessions,
+            'couplePrice' => $couplePrice,
+            'privatePrice' => $privatePrice,
+            'coupleUpgradeDiff' => max(0, $couplePrice - $booking->ticket_total),
+            'privateUpgradeDiff' => max(0, $privatePrice - $booking->ticket_total),
+            'canUpgradeCouple' => ! $session->isConfirmed() && $booking->seats_reserved <= 2 && $session->canAcceptCoupleBooking($booking->film_id, $booking->id)['allowed'],
+            'canUpgradePrivate' => ! $session->isConfirmed() && ($session->occupiedBookings()->where('id', '!=', $booking->id)->count() === 0),
+            'ajakTemanUrl' => $this->ajakTemanWhatsAppUrl($booking),
+            'whatsAppUrl' => $this->ticketWhatsAppUrl($booking, $settings),
+            'snackWhatsAppUrl' => $this->snackWhatsAppUrl($booking, $settings),
+            'snackLocked' => $snackLocked,
+            'canCancel' => $canCancel,
+            'cancellationCutoffHours' => $cancellationCutoff,
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return response()
+                ->view('public.ticket', $viewData)
+                ->header('Referrer-Policy', 'strict-origin-when-cross-origin');
+        }
+
+        return Inertia::render('Public/Booking/Ticket', $viewData);
     }
 
     public function changeFilm(
