@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, Head } from '@inertiajs/react';
 import PublicLayout from '../../Layouts/PublicLayout';
+import { FilmCardSkeleton } from '../../Components/Skeleton';
 import {
     ChevronLeft,
     ChevronRight,
@@ -357,12 +358,11 @@ export default function Home({
                     </div>
 
                     {/* Film Grid */}
-                    <div
-                        className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6 transition-opacity duration-150 ${
-                            isLoading ? 'opacity-50 pointer-events-none' : ''
-                        }`}
-                    >
-                        {filmList.map((film) => {
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-6">
+                        {isLoading ? (
+                            <FilmCardSkeleton count={filmsLimit || 8} />
+                        ) : (
+                            filmList.map((film) => {
                             const poster = film.poster_url || (film.poster_path ? (film.poster_path.startsWith('http') ? film.poster_path : `/storage/${film.poster_path}`) : null);
                             const filmUrl = film.url || `/film/${film.slug || film.id}`;
                             const mainGenre = film.genre ? film.genre.split(',')[0].trim() : '-';
@@ -422,7 +422,7 @@ export default function Home({
                                     </div>
                                 </Link>
                             );
-                        })}
+                        }))}
                     </div>
 
                     {/* Empty State */}

@@ -16,6 +16,9 @@ import {
     Mail,
     ExternalLink,
     ChevronRight,
+    Sun,
+    Moon,
+    Monitor,
 } from 'lucide-react';
 
 export default function PublicLayout({ children, title, isActionPage = false }) {
@@ -47,7 +50,10 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
     };
 
     const visibleItems = allMenuItems.filter((i) => i.is_visible);
-    const bottomBarItems = visibleItems.filter((i) => i.mobile_position === 'bottom_bar' || ['home', 'schedule', 'film', 'lookup'].includes(i.key)).slice(0, 4);
+    const bottomBarItems = visibleItems.filter((i) => i.mobile_position === 'bottom_bar' || ['home', 'schedule', 'film', 'lookup', 'booking_lookup', 'tickets', 'tiket'].includes(i.key)).slice(0, 4);
+    const menuSheetItems = visibleItems.filter(
+        (i) => i.mobile_position === 'menu' || !['home', 'schedule', 'film', 'lookup', 'booking_lookup', 'tickets', 'tiket'].includes(i.key)
+    );
 
     const getIconForNav = (key) => {
         switch (key) {
@@ -69,6 +75,20 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
 
     const waNumber = cinemaSettings?.contactWhatsapp ? cinemaSettings.contactWhatsapp.replace(/\D/g, '') : '';
     const cleanWaNumber = waNumber.startsWith('0') ? '62' + waNumber.slice(1) : waNumber;
+    const mapsLink = cinemaSettings?.mapsUrl || (cinemaSettings?.contactAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cinemaSettings.contactAddress)}` : null);
+
+    const handleSetTheme = (mode) => {
+        if (window.synemaXTheme?.setMode) {
+            window.synemaXTheme.setMode(mode);
+        } else {
+            localStorage.setItem('theme', mode);
+            if (mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+    };
 
     return (
         <div className="min-h-screen flex flex-col bg-bg font-sans text-text antialiased transition-colors duration-200">
@@ -90,7 +110,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
 
                             if (isTicket) {
                                 return (
-                                    <Link
+                                    <a
                                         key={item.key || item.url}
                                         href={item.url || '/tiket'}
                                         className={`btn-gold-cinema inline-flex min-h-10 shrink-0 items-center rounded-xl px-3.5 py-1.5 text-xs font-black shadow-xs ml-1 ${
@@ -99,7 +119,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                     >
                                         <Ticket className="size-3.5 mr-1.5" />
                                         <span>Tiket</span>
-                                    </Link>
+                                    </a>
                                 );
                             }
 
@@ -147,6 +167,28 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                         {bottomBarItems.map((bItem) => {
                             const active = isItemActive(bItem);
                             const label = bItem.short_label || bItem.label;
+                            const isTicket = ['lookup', 'booking_lookup', 'tickets', 'tiket'].includes(bItem.key) || bItem.url?.includes('/tiket');
+
+                            if (isTicket) {
+                                return (
+                                    <a
+                                        key={bItem.key || bItem.url}
+                                        href={bItem.url || '/tiket'}
+                                        className={`flex-1 min-h-[60px] flex flex-col items-center justify-center relative py-1 px-1 transition-colors ${
+                                            active
+                                                ? 'text-slate-950 dark:text-amber-400 font-extrabold'
+                                                : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium'
+                                        }`}
+                                    >
+                                        {active && (
+                                            <span className="absolute top-0 inset-x-0 mx-auto h-[3px] w-7 bg-amber-500 rounded-full" />
+                                        )}
+                                        {getIconForNav(bItem.key)}
+                                        <span className="text-[11px] leading-tight mt-1">{label}</span>
+                                    </a>
+                                );
+                            }
+
                             return (
                                 <Link
                                     key={bItem.key || bItem.url}
@@ -179,7 +221,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                 </nav>
             )}
 
-            {/* Mobile Bottom Sheet Menu */}
+            {/* Mobile Bottom Sheet Menu (Exact Blade Layout: 2-Col Menu, Theme, Contact) */}
             {menuSheetOpen && (
                 <div className="md:hidden fixed inset-0 z-50 overflow-hidden">
                     <div
@@ -190,47 +232,138 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                         {/* Drag Handle */}
                         <div className="mx-auto w-12 h-1.5 bg-slate-300 dark:bg-white/20 rounded-full mb-3 shrink-0" />
 
+                        {/* Header with Brand Logo and Close Button */}
                         <div className="flex items-center justify-between pb-3.5 border-b border-border dark:border-white/10 shrink-0">
                             <BrandLogo size="sm" />
                             <button
                                 type="button"
                                 onClick={() => setMenuSheetOpen(false)}
-                                className="inline-flex size-10 items-center justify-center rounded-xl border border-border bg-surface text-text hover:bg-surface-2 transition"
+                                className="inline-flex size-11 items-center justify-center rounded-xl border border-slate-300 dark:border-white/15 bg-surface text-text hover:bg-surface-2 transition"
+                                aria-label="Tutup menu navigasi"
                             >
                                 <X className="size-5" />
                             </button>
                         </div>
 
-                        <div className="mt-4 space-y-1.5 overflow-y-auto flex-1 custom-scrollbar">
-                            {visibleItems.map((item) => (
-                                <Link
-                                    key={item.key || item.url}
-                                    href={item.url}
-                                    onClick={() => setMenuSheetOpen(false)}
-                                    className="flex items-center justify-between p-3 rounded-xl hover:bg-surface-raised dark:hover:bg-white/5 font-semibold text-text transition"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        {getIconForNav(item.key)}
-                                        <span>{item.label}</span>
-                                    </div>
-                                    <ChevronRight className="size-4 text-text-muted" />
-                                </Link>
-                            ))}
+                        {/* Scrollable Content Area */}
+                        <div className="overflow-y-auto space-y-6 pt-4 pb-2 overscroll-contain text-sm flex-1 custom-scrollbar">
+                            {/* Navigasi Lainnya (2 Column Grid) */}
+                            <div>
+                                <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2.5">Menu Lainnya</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {menuSheetItems.map((sheetItem) => {
+                                        const isExternal = sheetItem.url?.startsWith('http');
+                                        const isTiket = ['lookup', 'booking_lookup', 'tickets', 'tiket'].includes(sheetItem.key) || sheetItem.url?.includes('/tiket');
+                                        
+                                        if (isExternal || isTiket) {
+                                            return (
+                                                <a
+                                                    key={sheetItem.key || sheetItem.url}
+                                                    href={sheetItem.url}
+                                                    onClick={() => setMenuSheetOpen(false)}
+                                                    className="flex min-h-[44px] items-center justify-between rounded-xl border border-border bg-surface-2 px-3.5 py-2 font-bold text-text hover:border-amber-500 transition-colors shadow-xs"
+                                                >
+                                                    <span>{sheetItem.label}</span>
+                                                    <ChevronRight className="size-4 text-text-muted shrink-0" />
+                                                </a>
+                                            );
+                                        }
 
-                            {/* Contact shortcut in menu */}
-                            {cleanWaNumber && (
-                                <a
-                                    href={`https://wa.me/${cleanWaNumber}?text=Halo%20Admin%20SynemaX`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold transition mt-3"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <MessageCircle className="size-5" />
-                                        <span>Chat WhatsApp Admin</span>
+                                        return (
+                                            <Link
+                                                key={sheetItem.key || sheetItem.url}
+                                                href={sheetItem.url}
+                                                onClick={() => setMenuSheetOpen(false)}
+                                                className="flex min-h-[44px] items-center justify-between rounded-xl border border-border bg-surface-2 px-3.5 py-2 font-bold text-text hover:border-amber-500 transition-colors shadow-xs"
+                                            >
+                                                <span>{sheetItem.label}</span>
+                                                <ChevronRight className="size-4 text-text-muted shrink-0" />
+                                            </Link>
+                                        );
+                                    })}
+                                    <Link
+                                        href="/kabar?tab=harga-faq"
+                                        onClick={() => setMenuSheetOpen(false)}
+                                        className="flex min-h-[44px] items-center justify-between rounded-xl border border-border bg-surface-2 px-3.5 py-2 font-bold text-text hover:border-amber-500 transition-colors shadow-xs"
+                                    >
+                                        <span>Harga & FAQ</span>
+                                        <ChevronRight className="size-4 text-text-muted shrink-0" />
+                                    </Link>
+                                </div>
+                            </div>
+
+                            {/* Pilihan Tampilan (Tema) */}
+                            {cinemaSettings?.showThemeToggle && (
+                                <div>
+                                    <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-2.5">Pilihan Tampilan</p>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSetTheme('light')}
+                                            className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-border bg-surface-2 text-text px-3 py-2 text-xs font-semibold hover:border-amber-500 transition shadow-xs"
+                                        >
+                                            <Sun className="size-4" />
+                                            <span>Terang</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSetTheme('dark')}
+                                            className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-border bg-surface-2 text-text px-3 py-2 text-xs font-semibold hover:border-amber-500 transition shadow-xs"
+                                        >
+                                            <Moon className="size-4" />
+                                            <span>Gelap</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleSetTheme('system')}
+                                            className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border border-border bg-surface-2 text-text px-3 py-2 text-xs font-semibold hover:border-amber-500 transition shadow-xs"
+                                        >
+                                            <Monitor className="size-4" />
+                                            <span>Perangkat</span>
+                                        </button>
                                     </div>
-                                    <ExternalLink className="size-4" />
-                                </a>
+                                </div>
+                            )}
+
+                            {/* Kontak & Lokasi */}
+                            {(cinemaSettings?.contactAddress || cleanWaNumber) && (
+                                <div className="space-y-3 pt-3 border-t border-border dark:border-white/10">
+                                    <p className="text-[11px] font-bold uppercase tracking-wider text-text-muted">Kontak & Lokasi</p>
+                                    {cinemaSettings?.contactAddress && (
+                                        <div className="text-xs text-text-muted space-y-1">
+                                            <p className="font-bold text-text">{cinemaSettings?.siteName || 'SynemaX'}</p>
+                                            <p className="leading-relaxed">{cinemaSettings.contactAddress}</p>
+                                            {mapsLink && (
+                                                <a
+                                                    href={mapsLink}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-bold hover:underline pt-1 text-xs"
+                                                >
+                                                    <span>{cinemaSettings?.mapsLabel || 'Lihat di Google Maps'}</span>
+                                                    <ExternalLink className="size-3.5" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {cleanWaNumber && (
+                                        <a
+                                            href={`https://wa.me/${cleanWaNumber}?text=${encodeURIComponent('Halo admin SynemaX, saya mau bertanya.')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex min-h-[44px] w-full items-center justify-between rounded-xl border border-emerald-500/30 bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 px-3.5 py-2.5 text-xs font-bold hover:bg-emerald-500/20 transition-colors shadow-xs"
+                                        >
+                                            <div className="flex items-center gap-2.5">
+                                                <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-500 text-white shrink-0 shadow-xs">
+                                                    <MessageCircle className="size-4" />
+                                                </span>
+                                                <span>Chat WhatsApp Admin</span>
+                                            </div>
+                                            <ExternalLink className="size-4" />
+                                        </a>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </div>

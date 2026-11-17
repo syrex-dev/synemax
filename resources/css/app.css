@@ -10,6 +10,14 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Hide NProgress spinner globally (mobile & desktop) */
+#nprogress .spinner {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
 /* Font Utama: Hanya subset latin murni (76,88 KB) dari berkas lokal resources/fonts */
 @font-face {
     font-family: 'Bricolage Grotesque Variable';

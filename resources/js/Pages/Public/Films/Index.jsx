@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, Head, router } from '@inertiajs/react';
 import PublicLayout from '../../../Layouts/PublicLayout';
 import Pagination from '../../../Components/Pagination';
+import { FilmCardSkeleton } from '../../../Components/Skeleton';
 import {
     Search,
     X,
@@ -24,6 +25,7 @@ export default function Index({
     const [genre, setGenre] = useState(selectedGenre || '');
     const [year, setYear] = useState(selectedYear || '');
     const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
+    const [isFiltering, setIsFiltering] = useState(false);
     const yearDropdownRef = useRef(null);
 
     // Close year dropdown on outside click
@@ -49,10 +51,12 @@ export default function Index({
             Object.entries(params).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
         );
 
+        setIsFiltering(true);
         router.get('/film', cleanParams, {
             preserveState: true,
             preserveScroll: true,
             replace: true,
+            onFinish: () => setIsFiltering(false),
         });
     };
 
@@ -233,7 +237,10 @@ export default function Index({
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
-                        {filmItems.map((film) => {
+                        {isFiltering ? (
+                            <FilmCardSkeleton count={10} />
+                        ) : (
+                            filmItems.map((film) => {
                             const poster = film.poster_url || (film.poster_path ? (film.poster_path.startsWith('http') ? film.poster_path : `/storage/${film.poster_path}`) : null);
                             const filmUrl = `/film/${film.slug || film.id}`;
 
@@ -297,7 +304,7 @@ export default function Index({
                                     </div>
                                 </Link>
                             );
-                        })}
+                        }))}
                     </div>
 
                     {/* Empty State */}
