@@ -326,7 +326,7 @@ class FilmBulkImportTest extends TestCase
         $duration = microtime(true) - $startTime;
 
         $response->assertOk();
-        $response->assertViewIs('public.films.index');
+        $response->assertViewIs('app');
         $response->assertSee('Katalog Film');
         $response->assertSee('Menampilkan');
         $response->assertSee('500');

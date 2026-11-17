@@ -51,6 +51,28 @@ class NobarEvent extends Model
         'is_sample' => 'boolean',
     ];
 
+    protected $appends = [
+        'display_status',
+        'poster_url',
+        'vs_title',
+        'catatan_html',
+    ];
+
+    public function getPosterUrlAttribute(): ?string
+    {
+        return $this->posterUrl();
+    }
+
+    public function getVsTitleAttribute(): string
+    {
+        return $this->vsTitle();
+    }
+
+    public function getCatatanHtmlAttribute(): string
+    {
+        return (string) $this->catatanHtml();
+    }
+
     public function endsAt(): Carbon
     {
         return $this->kickoff_at->copy()->addMinutes($this->durasi_menit);

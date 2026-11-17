@@ -316,7 +316,7 @@
                     <div class="flex-1 min-w-0">
                         <h2 class="text-sm font-bold text-amber-600 dark:text-amber-400">Bukti pembayaran diterima, menunggu konfirmasi admin</h2>
                         <p class="mt-1 text-text-muted leading-relaxed">
-                            Admin bioskop sedang memverifikasi bukti transfer Anda. Tiket aktif akan diterbitkan segera setelah pembayaran diverifikasi.
+                            Admin akan memeriksa dan mengonfirmasi tiketmu. Tiket aktif akan diterbitkan segera setelah pembayaran diverifikasi.
                         </p>
                     </div>
                 </div>

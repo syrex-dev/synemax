@@ -20,11 +20,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MemberController extends Controller
 {
-    public function index(Request $request, CinemaSettings $settings): View
+    public function index(Request $request, CinemaSettings $settings): View|InertiaResponse
     {
         $query = Member::query()->withCount([
             'validVisits',
@@ -78,7 +80,7 @@ class MemberController extends Controller
             'card_missing' => Member::where('has_physical_card', false)->count(),
         ];
 
-        return view('admin.members.index', [
+        $data = [
             'members' => $members,
             'stats' => $stats,
             'search' => $search,
@@ -86,7 +88,10 @@ class MemberController extends Controller
             'selectedCardStatus' => $cardStatus,
             'selectedRewardStatus' => $rewardStatus,
             'settings' => $settings,
-        ]);
+        ];
+
+        return Inertia::render('Admin/Members/Index', $data)
+            ->withViewData($data);
     }
 
     public function scan(Request $request, CinemaSettings $settings): View
@@ -245,7 +250,7 @@ class MemberController extends Controller
             ->with('member_wa_text', $waText);
     }
 
-    public function show(Member $member, CinemaSettings $settings): View
+    public function show(Member $member, CinemaSettings $settings): View|InertiaResponse
     {
         $member->load([
             'validVisits.session.film',
@@ -275,14 +280,17 @@ class MemberController extends Controller
 
         $lastValidVisit = $member->lastValidVisit();
 
-        return view('admin.members.show', [
+        $data = [
             'member' => $member,
             'visits' => $visits,
             'rewards' => $rewards,
             'events' => $events,
             'lastValidVisit' => $lastValidVisit,
             'settings' => $settings,
-        ]);
+        ];
+
+        return Inertia::render('Admin/Members/Show', $data)
+            ->withViewData($data);
     }
 
     public function edit(Member $member): View
