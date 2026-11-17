@@ -13,11 +13,13 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
-    public function index(Request $request, CinemaSettings $settings): View
+    public function index(Request $request, CinemaSettings $settings): View|InertiaResponse
     {
         $filters = $request->validate([
             'period' => ['nullable', 'in:harian,mingguan,bulanan'],
@@ -180,11 +182,11 @@ class ReportController extends Controller
             'top_members' => $topMembers,
         ];
 
-        return view('admin.reports.index', [
+        $data = [
             'period' => $period,
-            'referenceDate' => $referenceDate,
-            'startDate' => $startDate,
-            'endDate' => $endDate,
+            'referenceDate' => $referenceDate->toDateString(),
+            'startDate' => $startDate->toDateString(),
+            'endDate' => $endDate->toDateString(),
             'revenue' => $revenue,
             'ticketRevenue' => $ticketRevenue,
             'snackRevenue' => $snackRevenue,
@@ -194,6 +196,7 @@ class ReportController extends Controller
             'snackBookingPercent' => $bookingCount > 0 ? (int) round(($snackBookingCount / $bookingCount) * 100) : 0,
             'viewers' => $viewers,
             'bookingCount' => $bookingCount,
+            'paidSessionCount' => $paidSessionCount,
             'sessionCount' => $sessions->count(),
             'electricityCost' => $electricityCost,
             'grossProfit' => $grossProfit,
@@ -214,10 +217,15 @@ class ReportController extends Controller
                 }),
             'filmPopularity' => $filmPopularity,
             'filmDemandPopularity' => $filmDemandPopularity,
+            'confirmedFilms' => $filmPopularity,
+            'allDemandFilms' => $filmDemandPopularity,
             'cancelledByQuorumCount' => $cancelledByQuorumCount,
             'snackPopularity' => $snackPopularity,
             'dailySummary' => $dailySummary,
-        ]);
+        ];
+
+        return Inertia::render('Admin/Reports/Index', $data)
+            ->withViewData($data);
     }
 
     public function export(Request $request): StreamedResponse

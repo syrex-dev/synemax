@@ -16,10 +16,12 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class DashboardController extends Controller
 {
-    public function __invoke(CinemaSettings $settings): View
+    public function __invoke(CinemaSettings $settings): View|InertiaResponse
     {
         $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
         $tomorrow = $today->addDay();
@@ -27,7 +29,7 @@ class DashboardController extends Controller
 
         $todaySessions = Session::query()
             ->where('session_date', $today->toDateString())
-            ->with(['film', 'bookings.film', 'occupiedBookings.film'])
+            ->with(['film', 'bookings' => $activeBookings, 'occupiedBookings.film'])
             ->with([
                 'occupiedBookings.items' => fn ($query) => $query
                     ->where('status', '!=', 'dibatalkan')
@@ -52,7 +54,7 @@ class DashboardController extends Controller
             ->whereBetween('session_date', [$today->toDateString(), $today->addDays(13)->toDateString()])
             ->where('status', 'tersedia')
             ->where('is_private', false)
-            ->with(['film', 'bookings.film', 'occupiedBookings.film'])
+            ->with(['film', 'bookings' => $activeBookings, 'occupiedBookings.film'])
             ->withSum(['occupiedBookings as viewer_count' => $activeBookings], 'seats_reserved')
             ->orderBy('session_date')
             ->orderBy('start_time')
@@ -248,7 +250,7 @@ class DashboardController extends Controller
         $todayCapacity = (int) $todaySessions->sum(fn ($s) => $s->seatCapacity());
         $todayOccupancyPercent = $todayCapacity > 0 ? (int) round(($todayViewers / $todayCapacity) * 100) : 0;
 
-        return view('admin.dashboard', [
+        $data = [
             'todaySessions' => $todaySessions,
             'todayViewers' => $todayViewers,
             'todayCapacity' => $todayCapacity,
@@ -266,7 +268,10 @@ class DashboardController extends Controller
             'distantCount' => $distantCount,
             'hasAnyBookedLowAttendance' => $hasAnyBookedLowAttendance,
             'settings' => $settings,
-        ]);
+        ];
+
+        return Inertia::render('Admin/Dashboard', $data)
+            ->withViewData($data);
     }
 
     public function updateDensity(Request $request): JsonResponse

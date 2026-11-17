@@ -1,6 +1,7 @@
 @import 'tailwindcss';
 
 @source '../../app';
+@source '../../resources/js';
 @source '../../resources/views';
 @source '../../storage/framework/views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views';

@@ -27,6 +27,11 @@
         "@laravel/multiplex": "^0.4.1"
     },
     "dependencies": {
-        "@fontsource-variable/bricolage-grotesque": "^5.3.0"
+        "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+        "@inertiajs/react": "^3.11.0",
+        "@vitejs/plugin-react": "^6.3.0",
+        "lucide-react": "^1.74.0",
+        "react": "^19.3.1",
+        "react-dom": "^19.3.1"
     }
 }

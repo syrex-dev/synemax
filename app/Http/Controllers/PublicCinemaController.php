@@ -17,10 +17,12 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class PublicCinemaController extends Controller
 {
-    public function index(Request $request, FilmCatalogQuery $catalogQuery): View
+    public function index(Request $request, FilmCatalogQuery $catalogQuery): InertiaResponse
     {
         $settings = app(CinemaSettings::class);
 
@@ -108,7 +110,8 @@ class PublicCinemaController extends Controller
                 ->get()
             : collect();
 
-        return view('public.home', [
+        $data = [
+            'sectionTitle' => 'Katalog Film',
             'heroBanners' => $heroBanners,
             'infoChips' => $infoChips,
             'films' => $films,
@@ -123,14 +126,16 @@ class PublicCinemaController extends Controller
             'upcomingNobar' => $upcomingNobar,
             'infoNobarEnabled' => $infoNobarEnabled,
             'snackBanners' => $settings->homeSnackBanners(),
-            'settings' => $settings,
-        ]);
+        ];
+
+        return Inertia::render('Public/Home', $data)
+            ->withViewData($data);
     }
 
     /**
      * Full Film Catalog Page with live filtering.
      */
-    public function filmIndex(Request $request, FilmCatalogQuery $catalogQuery): View|JsonResponse
+    public function filmIndex(Request $request, FilmCatalogQuery $catalogQuery): View|InertiaResponse|JsonResponse
     {
         $genre = $request->query('genre');
         $tahun = $request->query('tahun');
@@ -173,7 +178,8 @@ class PublicCinemaController extends Controller
             ]);
         }
 
-        return view('public.films.index', [
+        $data = [
+            'heading' => 'Katalog Film',
             'films' => $films,
             'genres' => $genres,
             'childGenres' => $childGenres,
@@ -182,7 +188,10 @@ class PublicCinemaController extends Controller
             'selectedGenre' => $genre,
             'selectedYear' => $tahun,
             'searchQuery' => $search,
-        ]);
+        ];
+
+        return Inertia::render('Public/Films/Index', $data)
+            ->withViewData($data);
     }
 
     /**
@@ -209,7 +218,7 @@ class PublicCinemaController extends Controller
     /**
      * Film Detail Page with showtimes and booking CTA.
      */
-    public function filmShow(string $slug, FilmCatalogQuery $catalogQuery): View
+    public function filmShow(string $slug, FilmCatalogQuery $catalogQuery): View|InertiaResponse
     {
         $film = Film::query()
             ->where('is_active', true)
@@ -242,18 +251,22 @@ class PublicCinemaController extends Controller
         $otherFilms = $catalogQuery->similarFilms($film, 4);
         $matchedGenreLabel = $film->primaryGenre()?->name ?: $film->genre;
 
-        return view('public.films.show', [
+        $data = [
             'film' => $film,
             'sessions' => $sessions,
             'otherFilms' => $otherFilms,
             'matchedGenreLabel' => $matchedGenreLabel,
-        ]);
+            'similarHeading' => 'Rekomendasi Film Serupa',
+        ];
+
+        return Inertia::render('Public/Films/Show', $data)
+            ->withViewData($data);
     }
 
     /**
      * Public Promos Listing Page.
      */
-    public function promoIndex(): View
+    public function promoIndex(): View|InertiaResponse
     {
         $activePromos = Promo::query()->active()->current()->ordered()->get();
         $expiredPromos = Promo::query()->active()
@@ -262,16 +275,19 @@ class PublicCinemaController extends Controller
             ->ordered()
             ->get();
 
-        return view('public.promos.index', [
+        $data = [
             'activePromos' => $activePromos,
             'expiredPromos' => $expiredPromos,
-        ]);
+        ];
+
+        return Inertia::render('Public/Promos/Index', $data)
+            ->withViewData($data);
     }
 
     /**
      * Public Promo Detail Page (CGV inspired layout).
      */
-    public function promoShow(string $slug): View
+    public function promoShow(string $slug): View|InertiaResponse
     {
         $promo = Promo::query()
             ->where('is_active', true)
@@ -288,16 +304,19 @@ class PublicCinemaController extends Controller
             ->take(3)
             ->get();
 
-        return view('public.promos.show', [
+        $data = [
             'promo' => $promo,
             'otherPromos' => $otherPromos,
-        ]);
+        ];
+
+        return Inertia::render('Public/Promos/Show', $data)
+            ->withViewData($data);
     }
 
     /**
      * Existing public schedule view.
      */
-    public function schedule(?string $date = null, ?ScheduleResolver $resolver = null): View|RedirectResponse
+    public function schedule(?string $date = null, ?ScheduleResolver $resolver = null): View|InertiaResponse|RedirectResponse
     {
         $resolver = $resolver ?? app(ScheduleResolver::class);
         $settings = app(CinemaSettings::class);
@@ -387,15 +406,65 @@ class PublicCinemaController extends Controller
         $holiday = Holiday::query()->where('holiday_date', $targetDate->toDateString())->first();
         $blockedDate = BlockedDate::query()->where('blocked_date', $targetDate->toDateString())->first();
 
-        return view('public.schedule', [
-            'date' => $targetDate,
-            'targetDate' => $targetDate,
-            'today' => $today->toDateString(),
-            'dates' => $dates,
-            'holidayDates' => $holidayDates,
+        $serializedDates = $dates->map(function ($d) use ($today, $holidayDates, $selectedFilm) {
+            $key = $d->toDateString();
+
+            return [
+                'date_key' => $key,
+                'url' => route('schedule.date', array_filter(['date' => $key, 'film' => $selectedFilm?->id])),
+                'day_name' => $d->locale('id')->translatedFormat('l'),
+                'date_formatted' => format_tanggal_pendek_id($d),
+                'is_today' => $key === $today->toDateString(),
+                'is_holiday' => $holidayDates->has($key),
+                'holiday_name' => $holidayDates->get($key),
+            ];
+        })->values();
+
+        $serializedSessions = $sessions->map(function ($s) use ($bookingCutoffMinutes, $selectedFilm) {
+            $sw = $s->statusWaktu($bookingCutoffMinutes);
+            $sessionFilmId = $s->film_id ?: $s->activeFilm()?->id;
+            $isLockedOtherFilm = $selectedFilm && ($s->isConfirmed() || $s->status === 'terkonfirmasi') && $sessionFilmId && (int) $sessionFilmId !== (int) $selectedFilm->id;
+            $canBookThisSession = $sw['can_book'] && ! $isLockedOtherFilm;
+
+            return [
+                'id' => $s->id,
+                'booking_url' => route('booking.create', array_filter(['session' => $s->id, 'film' => $selectedFilm?->id])),
+                'action_label' => 'Pilih jam ini',
+                'session_date' => $s->session_date,
+                'start_time' => $s->start_time,
+                'end_time' => $s->end_time,
+                'start_time_formatted' => format_jam_id($s->start_time, false),
+                'end_time_formatted' => format_jam_id($s->end_time, true),
+                'capacity' => $s->capacity,
+                'occupied_seats' => (int) ($s->occupied_seats ?? 0),
+                'is_private' => (bool) $s->is_private,
+                'status' => $s->status,
+                'is_confirmed' => $s->isConfirmed(),
+                'status_waktu' => $sw,
+                'can_book_this_session' => $canBookThisSession,
+                'film' => $s->film ? [
+                    'id' => $s->film->id,
+                    'title' => $s->film->title,
+                    'slug' => $s->film->slug,
+                    'poster_url' => $s->film->posterUrl(),
+                    'genre' => $s->film->genre,
+                    'duration_minutes' => $s->film->duration_minutes,
+                    'age_rating' => $s->film->age_rating,
+                ] : null,
+            ];
+        })->values();
+
+        $data = [
+            'heading' => 'Pilih hari dan jam nonton',
+            'filmContextLabel' => $selectedFilm ? 'Film yang kamu pilih:' : null,
+            'targetDateStr' => $targetDate->toDateString(),
+            'targetDateFormatted' => format_hari_tanggal_id($targetDate),
+            'todayStr' => $today->toDateString(),
+            'dates' => $serializedDates,
+            'holidayDates' => $holidayDates->toArray(),
             'sessionPrice' => $sessionPrice,
             'hasAnyAvailableDate' => $hasAnyAvailableDate,
-            'sessions' => $sessions,
+            'sessions' => $serializedSessions,
             'closedReason' => $closedReason,
             'holiday' => $holiday,
             'blockedDate' => $blockedDate,
@@ -404,7 +473,18 @@ class PublicCinemaController extends Controller
             'weekendPrice' => $settings->weekendPrice(),
             'holidayPrice' => $settings->holidayPrice(),
             'privatePrice' => $settings->privatePrice(),
-            'selectedFilm' => $selectedFilm,
-        ]);
+            'selectedFilm' => $selectedFilm ? [
+                'id' => $selectedFilm->id,
+                'title' => $selectedFilm->title,
+                'slug' => $selectedFilm->slug,
+                'poster_url' => $selectedFilm->posterUrl(),
+                'genre' => $selectedFilm->genre,
+                'duration_minutes' => $selectedFilm->duration_minutes,
+                'age_rating' => $selectedFilm->age_rating,
+            ] : null,
+        ];
+
+        return Inertia::render('Public/Schedule', $data)
+            ->withViewData($data);
     }
 }

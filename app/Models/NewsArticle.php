@@ -32,6 +32,21 @@ class NewsArticle extends Model
         'is_sample' => 'boolean',
     ];
 
+    protected $appends = [
+        'cover_url',
+        'konten_html',
+    ];
+
+    public function getCoverUrlAttribute(): ?string
+    {
+        return $this->coverUrl();
+    }
+
+    public function getKontenHtmlAttribute(): string
+    {
+        return (string) $this->kontenHtml();
+    }
+
     public function coverUrl(): ?string
     {
         if (blank($this->cover_path)) {

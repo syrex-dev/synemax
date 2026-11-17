@@ -9,6 +9,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class PublicInfoController extends Controller
 {
@@ -19,7 +21,7 @@ class PublicInfoController extends Controller
         }
     }
 
-    public function nobarIndex(Request $request): View
+    public function nobarIndex(Request $request): View|InertiaResponse
     {
         $this->ensureFeatureEnabled();
 
@@ -39,13 +41,16 @@ class PublicInfoController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        return view('public.nobar.index', [
+        $data = [
             'events' => $events,
             'currentFilter' => $filter,
-        ]);
+        ];
+
+        return Inertia::render('Public/Nobar/Index', $data)
+            ->withViewData($data);
     }
 
-    public function nobarShow(Request $request, string $slug): View
+    public function nobarShow(Request $request, string $slug): View|InertiaResponse
     {
         $this->ensureFeatureEnabled();
 
@@ -64,11 +69,14 @@ class PublicInfoController extends Controller
             ->limit(3)
             ->get();
 
-        return view('public.nobar.show', [
+        $data = [
             'event' => $event,
             'otherEvents' => $otherEvents,
             'isPreview' => $event->status_publikasi !== 'terbit',
-        ]);
+        ];
+
+        return Inertia::render('Public/Nobar/Show', $data)
+            ->withViewData($data);
     }
 
     public function nobarCalendar(string $slug): HttpResponse
@@ -89,7 +97,7 @@ class PublicInfoController extends Controller
         ]);
     }
 
-    public function articleIndex(Request $request): View
+    public function articleIndex(Request $request): View|InertiaResponse
     {
         $this->ensureFeatureEnabled();
 
@@ -114,7 +122,7 @@ class PublicInfoController extends Controller
         $settings = app(CinemaSettings::class);
         $adminWhatsApp = preg_replace('/\D+/', '', $settings->string('admin_whatsapp'));
 
-        return view('public.articles.index', [
+        $data = [
             'articles' => $articles,
             'currentCategory' => $kategori,
             'activeTab' => $activeTab,
@@ -124,10 +132,13 @@ class PublicInfoController extends Controller
             'couplePrice' => $settings->defaultCouplePrice(),
             'privatePrice' => $settings->integer('private_price', 36000),
             'adminWhatsAppUrl' => $adminWhatsApp !== '' ? 'https://wa.me/'.$adminWhatsApp : null,
-        ]);
+        ];
+
+        return Inertia::render('Public/Articles/Index', $data)
+            ->withViewData($data);
     }
 
-    public function articleShow(Request $request, string $slug): View|RedirectResponse
+    public function articleShow(Request $request, string $slug): View|InertiaResponse|RedirectResponse
     {
         $this->ensureFeatureEnabled();
 
@@ -156,10 +167,13 @@ class PublicInfoController extends Controller
             ->limit(3)
             ->get();
 
-        return view('public.articles.show', [
+        $data = [
             'article' => $article,
             'relatedArticles' => $relatedArticles,
             'isPreview' => ! $article->isLive(),
-        ]);
+        ];
+
+        return Inertia::render('Public/Articles/Show', $data)
+            ->withViewData($data);
     }
 }

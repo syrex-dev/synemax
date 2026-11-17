@@ -28,11 +28,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 class BookingController extends Controller
 {
-    public function index(Request $request, BookingService $bookingService): View
+    public function index(Request $request, BookingService $bookingService): View|InertiaResponse
     {
         $bookingService->expireUnpaidBookings();
 
@@ -76,12 +78,14 @@ class BookingController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('admin.bookings.index', [
+        $data = [
             'bookings' => $bookings,
             'selectedStatus' => $filters['status'] ?? '',
             'selectedMethod' => $filters['payment_method'] ?? '',
             'search' => $filters['q'] ?? '',
-        ]);
+        ];
+
+        return Inertia::render('Admin/Bookings/Index', $data)->withViewData($data);
     }
 
     public function liveSearch(Request $request): JsonResponse
@@ -310,7 +314,7 @@ class BookingController extends Controller
             ->with('status', "Semua data booking testing berhasil dibersihkan ({$result['deleted_bookings']} booking, {$result['deleted_items']} jajan dihapus). Laporan keuangan kini bersih (Rp 0).");
     }
 
-    public function show(Booking $booking, CinemaSettings $settings, BookingService $bookingService): View
+    public function show(Booking $booking, CinemaSettings $settings, BookingService $bookingService): View|InertiaResponse
     {
         $booking = $bookingService->expireIfOverdue($booking);
 
@@ -322,7 +326,7 @@ class BookingController extends Controller
             'snackChangeLogs.actor',
         ]);
 
-        return view('admin.bookings.show', [
+        $data = [
             'booking' => $booking,
             'categories' => MenuCategory::query()
                 ->with(['items' => fn ($query) => $query->orderBy('sort_order')->orderBy('name')])
@@ -331,7 +335,9 @@ class BookingController extends Controller
             'snackMaxQty' => $settings->integer('snack_max_qty_per_item', 10),
             'snackChangeLogs' => $booking->snackChangeLogs,
             'snackUpdateWhatsAppUrl' => $this->snackUpdateWhatsAppUrl($booking),
-        ]);
+        ];
+
+        return Inertia::render('Admin/Bookings/Show', $data)->withViewData($data);
     }
 
     public function ticket(Booking $booking): View

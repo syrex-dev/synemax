@@ -24,10 +24,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class ScheduleController extends Controller
 {
-    public function index(): View
+    public function index(): View|InertiaResponse
     {
         $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
 
@@ -61,7 +63,7 @@ class ScheduleController extends Controller
             'label' => $f->title,
         ]))->values()->all();
 
-        return view('admin.schedule.index', [
+        $data = [
             'templates' => ScheduleTemplate::query()->orderBy('day_type')->orderBy('start_time')->get(),
             'holidays' => Holiday::query()->where('holiday_date', '>=', $today->toDateString())->orderBy('holiday_date')->get(),
             'blockedDates' => BlockedDate::query()->where('blocked_date', '>=', $today->toDateString())->with('session')->orderBy('blocked_date')->get(),
@@ -77,7 +79,10 @@ class ScheduleController extends Controller
                 'weekend' => 'Sabtu–Minggu',
                 'libur' => 'Hari libur',
             ],
-        ]);
+        ];
+
+        return Inertia::render('Admin/Schedule/Index', $data)
+            ->withViewData($data);
     }
 
     public function generate(SessionGenerationService $generator): RedirectResponse

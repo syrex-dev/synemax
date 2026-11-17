@@ -433,7 +433,16 @@ class SettingController extends Controller
         unset($data['transfer_accounts']);
 
         if (in_array('transfer', $paymentMethods, true) && count($cleanTransferAccounts) === 0) {
-            $warnings[] = 'Metode Transfer dicentang aktif, namun belum memiliki data rekening yang lengkap.';
+            throw ValidationException::withMessages([
+                'payment_methods' => 'Metode transfer bank membutuhkan minimal satu rekening tujuan yang valid.',
+            ]);
+        }
+
+        $existingQris = $settings->string('qris_image_path');
+        if (in_array('qris', $paymentMethods, true) && ! $hasNewQris && ($deleteQris || empty($existingQris) || ! Storage::disk('local')->exists($existingQris))) {
+            throw ValidationException::withMessages([
+                'payment_methods' => 'Metode QRIS hanya dapat diaktifkan jika gambar kode QRIS valid sudah diunggah.',
+            ]);
         }
 
         $settings->set('transfer_accounts', $cleanTransferAccounts, 'operasional');
