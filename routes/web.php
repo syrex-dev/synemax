@@ -36,7 +36,9 @@ Route::get('/jadwal/{date}', [PublicCinemaController::class, 'schedule'])
     ->name('schedule.date');
 
 // Public Film Catalog & Detail
-Route::get('/film', [PublicCinemaController::class, 'filmIndex'])->name('films.index');
+Route::get('/film', [PublicCinemaController::class, 'filmIndex'])
+    ->middleware('throttle:60,1')
+    ->name('films.index');
 Route::get('/film/{slug}', [PublicCinemaController::class, 'filmShow'])->name('films.show');
 
 // Public Promo Catalog & Detail

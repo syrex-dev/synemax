@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,16 +21,18 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $trustedProxies = env('TRUSTED_PROXIES');
         $proxies = $trustedProxies !== null && trim($trustedProxies) !== ''
-            ? array_map('trim', explode(',', $trustedProxies))
+            ? ($trustedProxies === '*' ? '*' : array_map('trim', explode(',', $trustedProxies)))
             : ['127.0.0.1', '::1'];
 
         $headers = Request::HEADER_X_FORWARDED_FOR
             | Request::HEADER_X_FORWARDED_PROTO
-            | Request::HEADER_X_FORWARDED_PORT;
+            | Request::HEADER_X_FORWARDED_PORT
+            | Request::HEADER_X_FORWARDED_HOST;
 
         $middleware->trustProxies(at: $proxies, headers: $headers);
 
         $middleware->web(append: [
+            SecurityHeaders::class,
             HandleInertiaRequests::class,
         ]);
 
