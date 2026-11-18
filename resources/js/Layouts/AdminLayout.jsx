@@ -209,32 +209,16 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
                                         {section.items.map((item) => {
                                             const active = isLinkActive(item);
                                             const Icon = item.icon;
-                                            const className = `flex min-h-[44px] items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition ${
-                                                active
-                                                    ? 'bg-amber-500/15 text-amber-900 dark:text-amber-400 font-bold border border-amber-500/30'
-                                                    : 'text-text-muted hover:text-text hover:bg-surface-2'
-                                            }`;
-
-                                            if (item.isBlade) {
-                                                return (
-                                                    <a
-                                                        key={item.href}
-                                                        href={item.href}
-                                                        onClick={() => setSidebarOpen(false)}
-                                                        className={className}
-                                                    >
-                                                        <Icon className={`size-4 shrink-0 ${active ? 'text-amber-500' : 'text-text-muted'}`} />
-                                                        <span>{item.name}</span>
-                                                    </a>
-                                                );
-                                            }
-
                                             return (
                                                 <Link
                                                     key={item.href}
                                                     href={item.href}
                                                     onClick={() => setSidebarOpen(false)}
-                                                    className={className}
+                                                    className={`flex min-h-[44px] items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition ${
+                                                        active
+                                                            ? 'bg-amber-500/15 text-amber-900 dark:text-amber-400 font-bold border border-amber-500/30'
+                                                            : 'text-text-muted hover:text-text hover:bg-surface-2'
+                                                    }`}
                                                 >
                                                     <Icon className={`size-4 shrink-0 ${active ? 'text-amber-500' : 'text-text-muted'}`} />
                                                     <span>{item.name}</span>
@@ -292,30 +276,15 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
                                     {section.items.map((item) => {
                                         const active = isLinkActive(item);
                                         const Icon = item.icon;
-                                        const className = `flex min-h-[44px] items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition ${
-                                            active
-                                                ? 'bg-amber-100 text-amber-900 font-bold border-l-4 border-amber-500 rounded-r-xl rounded-l-none pl-2.5 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 dark:rounded-xl dark:pl-3'
-                                                : 'text-text-muted hover:text-text hover:bg-surface-2'
-                                        }`;
-
-                                        if (item.isBlade) {
-                                            return (
-                                                <a
-                                                    key={item.href}
-                                                    href={item.href}
-                                                    className={className}
-                                                >
-                                                    <Icon className={`size-4 shrink-0 ${active ? 'text-amber-500' : 'text-text-muted'}`} />
-                                                    <span>{item.name}</span>
-                                                </a>
-                                            );
-                                        }
-
                                         return (
                                             <Link
                                                 key={item.href}
                                                 href={item.href}
-                                                className={className}
+                                                className={`flex min-h-[44px] items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition ${
+                                                    active
+                                                        ? 'bg-amber-100 text-amber-900 font-bold border-l-4 border-amber-500 rounded-r-xl rounded-l-none pl-2.5 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 dark:rounded-xl dark:pl-3'
+                                                        : 'text-text-muted hover:text-text hover:bg-surface-2'
+                                                }`}
                                             >
                                                 <Icon className={`size-4 shrink-0 ${active ? 'text-amber-500' : 'text-text-muted'}`} />
                                                 <span>{item.name}</span>

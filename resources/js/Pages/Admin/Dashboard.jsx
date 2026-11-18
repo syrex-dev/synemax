@@ -88,13 +88,13 @@ export default function Dashboard({
                             <span>Loket Walk-in</span>
                         </Link>
 
-                        <a
+                        <Link
                             href="/admin/scan"
                             className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-border bg-surface px-4 text-xs sm:text-sm font-bold text-text hover:bg-surface-2 transition shadow-xs"
                         >
                             <QrCode className="size-4 text-amber-500" />
                             <span>Scan Tiket</span>
-                        </a>
+                        </Link>
 
                         <Link
                             href="/admin/jadwal"
