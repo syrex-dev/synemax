@@ -94,16 +94,19 @@ export default function PwaInstallBanner({ forceType = null }) {
     }, [forceType]);
 
     const handleInstall = async () => {
-        const prompt = isAdmin ? window.__synemax_pwa_prompt_admin : window.__synemax_pwa_prompt_public;
+        const prompt = isAdmin
+            ? (window.__synemax_pwa_prompt_admin || window.__synemax_pwa_prompt)
+            : (window.__synemax_pwa_prompt_public || window.__synemax_pwa_prompt);
 
         if (prompt) {
             try {
-                prompt.prompt();
+                await prompt.prompt();
                 const choice = await prompt.userChoice;
                 if (choice.outcome === 'accepted') {
                     setShowBanner(false);
                     setIsInstalled(true);
                     setInstalledSuccess(true);
+                    window.__synemax_pwa_prompt = null;
                     if (isAdmin) {
                         window.__synemax_pwa_prompt_admin = null;
                     } else {
@@ -134,7 +137,7 @@ export default function PwaInstallBanner({ forceType = null }) {
     const appDesc = isAdmin
         ? 'Pasang di layar HP untuk akses cepat satu ketukan ke loket kasir, scan tiket, dan kelola jadwal studio.'
         : 'Pasang di layar HP untuk pesan tiket film lebih cepat, cek jadwal bioskop real-time, dan akses tiket instan!';
-    const appIcon = isAdmin ? '/icon-admin-192.png?v=5' : '/icon-192.png?v=5';
+    const appIcon = isAdmin ? '/icon-admin-192.png?v=7' : '/icon-192.png?v=7';
 
     return (
         <>

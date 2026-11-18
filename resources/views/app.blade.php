@@ -12,12 +12,12 @@
         $faviconUrl = $settingsService->siteFaviconUrl();
         $faviconMime = $settingsService->siteFaviconMime();
         $isAdmin = request()->is('admin*');
-        $manifestUrl = $isAdmin ? asset('admin.webmanifest') . '?v=5' : asset('site.webmanifest') . '?v=5';
-        $appleTouchIcon = $isAdmin ? asset('apple-touch-icon-admin.png') . '?v=5' : asset('apple-touch-icon.png') . '?v=5';
+        $manifestUrl = $isAdmin ? asset('admin.webmanifest') . '?v=7' : asset('site.webmanifest') . '?v=7';
+        $appleTouchIcon = $isAdmin ? asset('apple-touch-icon-admin.png') . '?v=7' : asset('apple-touch-icon.png') . '?v=7';
         $appTitle = $isAdmin ? 'SynemaX Admin' : ($cinemaSettings['siteName'] ?? 'SynemaX');
     @endphp
-    <link rel="icon" type="{{ $faviconMime }}" href="{{ $faviconUrl }}?v=5">
-    <link rel="shortcut icon" href="{{ $faviconUrl }}?v=5">
+    <link rel="icon" type="{{ $faviconMime }}" href="{{ $faviconUrl }}?v=7">
+    <link rel="shortcut icon" href="{{ $faviconUrl }}?v=7">
     <link id="app-apple-touch-icon" rel="apple-touch-icon" href="{{ $appleTouchIcon }}">
     <link id="app-manifest" rel="manifest" href="{{ $manifestUrl }}">
     <meta name="mobile-web-app-capable" content="yes">
@@ -111,9 +111,19 @@
 
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').catch(function() {});
-            });
+            var registerSynemaxSW = function() {
+                navigator.serviceWorker.register('/sw.js?v=7', { scope: '/' })
+                    .then(function(reg) {
+                        if (reg.update) { reg.update(); }
+                    })
+                    .catch(function() {});
+            };
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                registerSynemaxSW();
+            } else {
+                window.addEventListener('DOMContentLoaded', registerSynemaxSW);
+                window.addEventListener('load', registerSynemaxSW);
+            }
         }
     </script>
 

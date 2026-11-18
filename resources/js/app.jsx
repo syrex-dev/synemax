@@ -11,7 +11,7 @@ function syncPwaHead(pathname) {
     const isAdmin = path.startsWith('/admin');
 
     const manifestEl = document.getElementById('app-manifest') || document.querySelector('link[rel="manifest"]');
-    const targetManifest = isAdmin ? '/admin.webmanifest?v=5' : '/site.webmanifest?v=5';
+    const targetManifest = isAdmin ? '/admin.webmanifest?v=7' : '/site.webmanifest?v=7';
     if (manifestEl && manifestEl.getAttribute('href') !== targetManifest) {
         const newManifestEl = document.createElement('link');
         newManifestEl.id = 'app-manifest';
@@ -21,7 +21,7 @@ function syncPwaHead(pathname) {
     }
 
     const appleIconEl = document.getElementById('app-apple-touch-icon') || document.querySelector('link[rel="apple-touch-icon"]');
-    const targetAppleIcon = isAdmin ? '/apple-touch-icon-admin.png?v=5' : '/apple-touch-icon.png?v=5';
+    const targetAppleIcon = isAdmin ? '/apple-touch-icon-admin.png?v=7' : '/apple-touch-icon.png?v=7';
     if (appleIconEl && appleIconEl.getAttribute('href') !== targetAppleIcon) {
         appleIconEl.setAttribute('href', targetAppleIcon);
     }
@@ -51,7 +51,8 @@ if (typeof window !== 'undefined') {
         } else {
             window.__synemax_pwa_prompt_public = e;
         }
-        window.dispatchEvent(new CustomEvent('synemax-pwa-prompt-ready', { detail: { isAdmin } }));
+        window.__synemax_pwa_prompt = e;
+        window.dispatchEvent(new CustomEvent('synemax-pwa-prompt-ready', { detail: { isAdmin, prompt: e } }));
     });
 }
 
