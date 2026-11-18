@@ -381,8 +381,8 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                 </a>
             )}
 
-            {/* Footer */}
-            <footer className="border-t border-border/80 dark:border-white/10 bg-surface/90 dark:bg-[#07090E] transition-colors duration-200">
+            {/* Footer: Hidden on mobile phones */}
+            <footer className="hidden md:block border-t border-border/80 dark:border-white/10 bg-surface/90 dark:bg-[#07090E] transition-colors duration-200">
                 <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                         {/* Col 1: Brand & Bio */}

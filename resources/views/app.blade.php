@@ -11,11 +11,13 @@
         $settingsService = app(\App\Services\CinemaSettings::class);
         $faviconUrl = $settingsService->siteFaviconUrl();
         $faviconMime = $settingsService->siteFaviconMime();
+        $isAdmin = request()->is('admin*');
+        $manifestUrl = $isAdmin ? asset('admin.webmanifest') . '?v=3' : asset('site.webmanifest') . '?v=3';
     @endphp
-    <link rel="icon" type="{{ $faviconMime }}" href="{{ $faviconUrl }}">
-    <link rel="shortcut icon" href="{{ $faviconUrl }}">
-    <link rel="apple-touch-icon" href="{{ $faviconUrl }}">
-    <link rel="manifest" href="{{ asset('site.webmanifest') }}">
+    <link rel="icon" type="{{ $faviconMime }}" href="{{ $faviconUrl }}?v=3">
+    <link rel="shortcut icon" href="{{ $faviconUrl }}?v=3">
+    <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}?v=3">
+    <link rel="manifest" href="{{ $manifestUrl }}">
 
     <script>
         (function () {

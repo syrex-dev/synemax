@@ -100,9 +100,9 @@ export default function PwaInstallBanner() {
             <div className="rounded-2xl border-2 border-amber-500/50 bg-surface/98 dark:bg-[#0E131F]/98 backdrop-blur-md p-3.5 sm:p-4 shadow-2xl flex items-start gap-3">
                 {/* Cinema App Icon */}
                 <img
-                    src="/icon-192.png"
+                    src="/icon-192.png?v=3"
                     alt="SynemaX App Icon"
-                    className="size-12 rounded-xl border border-amber-500/40 shadow-xs shrink-0 object-contain bg-[#0A0D15]"
+                    className="size-12 rounded-xl border border-amber-500/40 shadow-xs shrink-0 object-contain bg-[#0B1220]"
                 />
 
                 <div className="min-w-0 flex-1">
