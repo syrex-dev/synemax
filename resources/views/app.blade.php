@@ -12,11 +12,12 @@
         $faviconUrl = $settingsService->siteFaviconUrl();
         $faviconMime = $settingsService->siteFaviconMime();
         $isAdmin = request()->is('admin*');
-        $manifestUrl = $isAdmin ? asset('admin.webmanifest') . '?v=3' : asset('site.webmanifest') . '?v=3';
+        $manifestUrl = $isAdmin ? asset('admin.webmanifest') . '?v=4' : asset('site.webmanifest') . '?v=3';
+        $appleTouchIcon = $isAdmin ? asset('apple-touch-icon-admin.png') . '?v=4' : asset('apple-touch-icon.png') . '?v=3';
     @endphp
     <link rel="icon" type="{{ $faviconMime }}" href="{{ $faviconUrl }}?v=3">
     <link rel="shortcut icon" href="{{ $faviconUrl }}?v=3">
-    <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}?v=3">
+    <link rel="apple-touch-icon" href="{{ $appleTouchIcon }}">
     <link rel="manifest" href="{{ $manifestUrl }}">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">

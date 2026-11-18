@@ -185,8 +185,8 @@ export default function PwaInstallBanner({ forceType = null }) {
                         {/* Cinema App Icon */}
                         <div className="relative shrink-0">
                             <img
-                                src="/icon-192.png?v=3"
-                                alt="SynemaX App Icon"
+                                src={isAdmin ? '/icon-admin-192.png?v=4' : '/icon-192.png?v=3'}
+                                alt={`${appTitle} Icon`}
                                 className="size-12 rounded-xl border border-amber-500/40 shadow-xs object-contain bg-[#0B1220]"
                             />
                             <span className="absolute -top-1 -right-1 flex size-3.5 items-center justify-center rounded-full bg-amber-500 text-slate-950">
