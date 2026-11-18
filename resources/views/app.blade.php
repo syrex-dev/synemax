@@ -12,17 +12,18 @@
         $faviconUrl = $settingsService->siteFaviconUrl();
         $faviconMime = $settingsService->siteFaviconMime();
         $isAdmin = request()->is('admin*');
-        $manifestUrl = $isAdmin ? asset('admin.webmanifest') . '?v=4' : asset('site.webmanifest') . '?v=3';
-        $appleTouchIcon = $isAdmin ? asset('apple-touch-icon-admin.png') . '?v=4' : asset('apple-touch-icon.png') . '?v=3';
+        $manifestUrl = $isAdmin ? asset('admin.webmanifest') . '?v=5' : asset('site.webmanifest') . '?v=5';
+        $appleTouchIcon = $isAdmin ? asset('apple-touch-icon-admin.png') . '?v=5' : asset('apple-touch-icon.png') . '?v=5';
+        $appTitle = $isAdmin ? 'SynemaX Admin' : ($cinemaSettings['siteName'] ?? 'SynemaX');
     @endphp
-    <link rel="icon" type="{{ $faviconMime }}" href="{{ $faviconUrl }}?v=3">
-    <link rel="shortcut icon" href="{{ $faviconUrl }}?v=3">
-    <link rel="apple-touch-icon" href="{{ $appleTouchIcon }}">
-    <link rel="manifest" href="{{ $manifestUrl }}">
+    <link rel="icon" type="{{ $faviconMime }}" href="{{ $faviconUrl }}?v=5">
+    <link rel="shortcut icon" href="{{ $faviconUrl }}?v=5">
+    <link id="app-apple-touch-icon" rel="apple-touch-icon" href="{{ $appleTouchIcon }}">
+    <link id="app-manifest" rel="manifest" href="{{ $manifestUrl }}">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="{{ $isAdmin ? 'SynemaX Admin' : ($cinemaSettings['siteName'] ?? 'SynemaX') }}">
+    <meta id="app-mobile-title" name="apple-mobile-web-app-title" content="{{ $appTitle }}">
 
     <script>
         (function () {

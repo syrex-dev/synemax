@@ -1,9 +1,59 @@
 import '../css/app.css';
 
-import { createInertiaApp } from '@inertiajs/react';
+import { createInertiaApp, router } from '@inertiajs/react';
 import { createRoot } from 'react-dom/client';
 
 const appName = import.meta.env.VITE_APP_NAME || 'SynemaX';
+
+function syncPwaHead(pathname) {
+    if (typeof document === 'undefined') return;
+    const path = pathname || window.location.pathname;
+    const isAdmin = path.startsWith('/admin');
+
+    const manifestEl = document.getElementById('app-manifest') || document.querySelector('link[rel="manifest"]');
+    const targetManifest = isAdmin ? '/admin.webmanifest?v=5' : '/site.webmanifest?v=5';
+    if (manifestEl && manifestEl.getAttribute('href') !== targetManifest) {
+        const newManifestEl = document.createElement('link');
+        newManifestEl.id = 'app-manifest';
+        newManifestEl.rel = 'manifest';
+        newManifestEl.href = targetManifest;
+        manifestEl.parentNode.replaceChild(newManifestEl, manifestEl);
+    }
+
+    const appleIconEl = document.getElementById('app-apple-touch-icon') || document.querySelector('link[rel="apple-touch-icon"]');
+    const targetAppleIcon = isAdmin ? '/apple-touch-icon-admin.png?v=5' : '/apple-touch-icon.png?v=5';
+    if (appleIconEl && appleIconEl.getAttribute('href') !== targetAppleIcon) {
+        appleIconEl.setAttribute('href', targetAppleIcon);
+    }
+
+    const mobileTitleMeta = document.getElementById('app-mobile-title') || document.querySelector('meta[name="apple-mobile-web-app-title"]');
+    const targetTitle = isAdmin ? 'SynemaX Admin' : (appName || 'SynemaX');
+    if (mobileTitleMeta && mobileTitleMeta.getAttribute('content') !== targetTitle) {
+        mobileTitleMeta.setAttribute('content', targetTitle);
+    }
+}
+
+if (typeof window !== 'undefined') {
+    // Initial sync
+    syncPwaHead(window.location.pathname);
+
+    // Sync on client-side route changes
+    router.on('navigate', () => {
+        syncPwaHead(window.location.pathname);
+    });
+
+    // Capture beforeinstallprompt and store separately by active area
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        const isAdmin = window.location.pathname.startsWith('/admin');
+        if (isAdmin) {
+            window.__synemax_pwa_prompt_admin = e;
+        } else {
+            window.__synemax_pwa_prompt_public = e;
+        }
+        window.dispatchEvent(new CustomEvent('synemax-pwa-prompt-ready', { detail: { isAdmin } }));
+    });
+}
 
 createInertiaApp({
     title: (title) => `${title ? `${title} - ` : ''}${appName}`,
@@ -24,4 +74,3 @@ createInertiaApp({
         showSpinner: false,
     },
 });
-

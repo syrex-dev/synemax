@@ -1,18 +1,18 @@
-const CACHE_NAME = 'synemax-v3';
+const CACHE_NAME = 'synemax-v5';
 const OFFLINE_URL = '/';
 
 const PRECACHE_ASSETS = [
     '/',
-    '/icon-192.png?v=3',
-    '/icon-512.png?v=3',
-    '/icon.svg?v=3',
-    '/apple-touch-icon.png?v=3',
-    '/icon-admin-192.png?v=4',
-    '/icon-admin-512.png?v=4',
-    '/icon-admin.svg?v=4',
-    '/apple-touch-icon-admin.png?v=4',
-    '/site.webmanifest?v=3',
-    '/admin.webmanifest?v=4'
+    '/icon-192.png?v=5',
+    '/icon-512.png?v=5',
+    '/icon.svg?v=5',
+    '/apple-touch-icon.png?v=5',
+    '/icon-admin-192.png?v=5',
+    '/icon-admin-512.png?v=5',
+    '/icon-admin.svg?v=5',
+    '/apple-touch-icon-admin.png?v=5',
+    '/site.webmanifest?v=5',
+    '/admin.webmanifest?v=5'
 ];
 
 self.addEventListener('install', (event) => {

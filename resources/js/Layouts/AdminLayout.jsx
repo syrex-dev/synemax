@@ -246,7 +246,7 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
                                 type="button"
                                 onClick={() => {
                                     setSidebarOpen(false);
-                                    window.dispatchEvent(new CustomEvent('synemax-open-pwa-install'));
+                                    window.dispatchEvent(new CustomEvent('synemax-open-pwa-install', { detail: { type: 'admin' } }));
                                 }}
                                 className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition"
                             >
@@ -384,7 +384,7 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
             </nav>
 
             {/* PWA Mobile Install Banner */}
-            <PwaInstallBanner />
+            <PwaInstallBanner forceType="admin" />
         </div>
     );
 }

@@ -292,7 +292,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                         type="button"
                                         onClick={() => {
                                             setMenuSheetOpen(false);
-                                            window.dispatchEvent(new CustomEvent('synemax-open-pwa-install'));
+                                            window.dispatchEvent(new CustomEvent('synemax-open-pwa-install', { detail: { type: 'public' } }));
                                         }}
                                         className="col-span-2 flex min-h-[44px] items-center justify-between rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-2 font-bold text-amber-500 hover:bg-amber-500/20 transition-colors shadow-xs"
                                     >
@@ -505,7 +505,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
             </footer>
 
             {/* PWA Mobile & Desktop Install Offer Pop-up */}
-            <PwaInstallBanner />
+            <PwaInstallBanner forceType="public" />
         </div>
     );
 }

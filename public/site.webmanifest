@@ -1,8 +1,8 @@
 {
-    "id": "/?source=pwa",
+    "id": "/synemax-public-app",
     "name": "SynemaX Cinema",
     "short_name": "SynemaX",
-    "description": "Nonton dekat, seru bareng di SynemaX.",
+    "description": "Nonton film bioskop seru, pesan tiket mudah & cepat di SynemaX.",
     "lang": "id",
     "start_url": "/?source=pwa",
     "scope": "/",
@@ -13,31 +13,31 @@
     "categories": ["entertainment", "lifestyle"],
     "icons": [
         {
-            "src": "/icon-192.png?v=3",
+            "src": "/icon-192.png?v=5",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/icon-192.png?v=3",
+            "src": "/icon-192.png?v=5",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "maskable"
         },
         {
-            "src": "/icon-512.png?v=3",
+            "src": "/icon-512.png?v=5",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/icon-512.png?v=3",
+            "src": "/icon-512.png?v=5",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
         },
         {
-            "src": "/icon.svg?v=3",
+            "src": "/icon.svg?v=5",
             "sizes": "any",
             "type": "image/svg+xml",
             "purpose": "any maskable"
