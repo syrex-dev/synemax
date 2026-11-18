@@ -129,20 +129,13 @@ class MemberController extends Controller
             'settings' => $settings,
         ];
 
-        if ($request->wantsJson() || $request->header('X-Inertia')) {
-            return Inertia::render('Admin/Members/Scan', $data);
-        }
-
-        return view('admin.members.scan', $data);
+        return Inertia::render('Admin/Members/Scan', $data)
+            ->withViewData($data);
     }
 
     public function create(Request $request): View|InertiaResponse
     {
-        if ($request->wantsJson() || $request->header('X-Inertia')) {
-            return Inertia::render('Admin/Members/Create');
-        }
-
-        return view('admin.members.create');
+        return Inertia::render('Admin/Members/Create');
     }
 
     public function store(Request $request, WebpImageProcessor $images): RedirectResponse
@@ -319,13 +312,7 @@ class MemberController extends Controller
             ],
         ];
 
-        if ($request->wantsJson() || $request->header('X-Inertia')) {
-            return Inertia::render('Admin/Members/Edit', $data);
-        }
-
-        return view('admin.members.edit', [
-            'member' => $member,
-        ]);
+        return Inertia::render('Admin/Members/Edit', $data);
     }
 
     public function update(Request $request, Member $member, WebpImageProcessor $images): RedirectResponse

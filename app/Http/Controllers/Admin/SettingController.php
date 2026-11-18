@@ -102,12 +102,6 @@ class SettingController extends Controller
             'telegramLogs' => $telegramLogs,
         ];
 
-        if (! $request->header('X-Inertia')) {
-            return view('admin.settings.edit', array_merge($data, [
-                'settings' => $settings,
-            ]));
-        }
-
         return Inertia::render('Admin/Settings/Edit', $data);
     }
 

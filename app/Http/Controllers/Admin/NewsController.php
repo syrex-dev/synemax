@@ -50,10 +50,6 @@ class NewsController extends Controller
             'trashedCount' => $trashedCount,
         ];
 
-        if (! $request->header('X-Inertia')) {
-            return view('admin.articles.index', $data);
-        }
-
         return Inertia::render('Admin/Articles/Index', $data);
     }
 
@@ -67,10 +63,6 @@ class NewsController extends Controller
             ]),
             'isEdit' => false,
         ];
-
-        if (! $request->header('X-Inertia')) {
-            return view('admin.articles.form', $data);
-        }
 
         return Inertia::render('Admin/Articles/Form', $data);
     }
@@ -95,10 +87,6 @@ class NewsController extends Controller
             'article' => $article,
             'isEdit' => true,
         ];
-
-        if (! $request->header('X-Inertia')) {
-            return view('admin.articles.form', $data);
-        }
 
         return Inertia::render('Admin/Articles/Form', $data);
     }

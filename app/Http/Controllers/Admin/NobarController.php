@@ -42,10 +42,6 @@ class NobarController extends Controller
             'currentFilter' => $status,
         ];
 
-        if (! $request->header('X-Inertia')) {
-            return view('admin.nobar.index', $data);
-        }
-
         return Inertia::render('Admin/Nobar/Index', $data);
     }
 
@@ -63,10 +59,6 @@ class NobarController extends Controller
             ]),
             'isEdit' => false,
         ];
-
-        if (! $request->header('X-Inertia')) {
-            return view('admin.nobar.form', $data);
-        }
 
         return Inertia::render('Admin/Nobar/Form', $data);
     }
@@ -96,10 +88,6 @@ class NobarController extends Controller
             'event' => $nobar,
             'isEdit' => true,
         ];
-
-        if (! $request->header('X-Inertia')) {
-            return view('admin.nobar.form', $data);
-        }
 
         return Inertia::render('Admin/Nobar/Form', $data);
     }

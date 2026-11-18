@@ -185,11 +185,8 @@ class BookingController extends Controller
             'lastBooking' => session('walk_in_success'),
         ];
 
-        if ($request->wantsJson() || $request->header('X-Inertia')) {
-            return Inertia::render('Admin/Bookings/Create', $data);
-        }
-
-        return view('admin.bookings.create', $data);
+        return Inertia::render('Admin/Bookings/Create', $data)
+            ->withViewData($data);
     }
 
     public function memberLookup(Request $request, LoyaltyRules $loyaltyRules): JsonResponse

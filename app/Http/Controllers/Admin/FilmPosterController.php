@@ -87,11 +87,7 @@ class FilmPosterController extends Controller
             'filmOptions' => $filmOptions,
         ];
 
-        if (request()->wantsJson() || request()->header('X-Inertia')) {
-            return Inertia::render('Admin/Films/Posters', $data);
-        }
-
-        return view('admin.films.posters', $data);
+        return Inertia::render('Admin/Films/Posters', $data);
     }
 
     /**

@@ -305,7 +305,7 @@ export default function Index({
                                     </div>
 
                                     {/* Action Buttons */}
-                                    <div className="flex items-center gap-2 self-end md:self-center">
+                                    <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end md:justify-start pt-3 md:pt-0 border-t md:border-t-0 border-border/50 shrink-0">
                                         <button
                                             type="button"
                                             onClick={() => toggleSessionStatus(session)}

@@ -182,6 +182,9 @@ export default function Schedule({
                                 const occupiedSeats = session.occupied_seats || 0;
                                 const capacity = session.capacity || 6;
                                 const remainingSeats = Math.max(0, capacity - occupiedSeats);
+                                const startTimeRaw = (session.start_time_formatted || session.start_time || '').replace(/\s*WIB/i, '').slice(0, 5);
+                                const endTimeRaw = (session.end_time_formatted || session.end_time || '').replace(/\s*WIB/i, '').slice(0, 5);
+                                const formattedTimeRange = session.time_range_formatted || `${startTimeRaw} - ${endTimeRaw} WIB`;
 
                                 return (
                                     <article
@@ -197,7 +200,7 @@ export default function Schedule({
                                             <div className="space-y-2">
                                                 <div className="flex items-center gap-3">
                                                     <span className="font-tabular font-black text-xl text-text">
-                                                        {session.start_time_formatted} - {session.end_time_formatted} WIB
+                                                        {formattedTimeRange}
                                                     </span>
                                                     {session.is_private ? (
                                                         <span className="px-2 py-0.5 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-700 dark:text-purple-300 text-xs font-bold">
@@ -240,17 +243,17 @@ export default function Schedule({
                                             </div>
 
                                             {/* Booking CTA Button */}
-                                            <div className="flex items-center gap-3 shrink-0">
+                                            <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
                                                 {canBook ? (
                                                     <Link
                                                         href={session.booking_url || bookingUrl}
-                                                        className="btn-gold-cinema inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black shadow-md shadow-amber-500/20"
+                                                        className="btn-gold-cinema inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black shadow-md shadow-amber-500/20"
                                                     >
                                                         <span>{session.action_label || 'Pilih jam ini'}</span>
                                                         <ArrowRight className="size-4" />
                                                     </Link>
                                                 ) : (
-                                                    <span className="inline-flex min-h-11 items-center justify-center px-4 py-2 text-xs font-bold text-text-muted border border-border/40 rounded-xl bg-surface-raised cursor-not-allowed">
+                                                    <span className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center px-4 py-2 text-xs font-bold text-text-muted border border-border/40 rounded-xl bg-surface-raised cursor-not-allowed">
                                                         {sw.label || 'Tidak Tersedia'}
                                                     </span>
                                                 )}

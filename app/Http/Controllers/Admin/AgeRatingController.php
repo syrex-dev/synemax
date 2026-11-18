@@ -27,11 +27,6 @@ class AgeRatingController extends Controller
                 'activeCount' => 0,
             ];
 
-            if (! $request->header('X-Inertia')) {
-                return view('admin.age-ratings.index', $emptyData)
-                    ->with('error', 'Tabel klasifikasi usia belum dimigrasi di database ini. Jalankan php artisan migrate untuk mengaktifkan.');
-            }
-
             return Inertia::render('Admin/AgeRatings/Index', $emptyData);
         }
 
@@ -45,10 +40,6 @@ class AgeRatingController extends Controller
             'ageRatings' => $ageRatings,
             'activeCount' => $ageRatings->where('is_active', true)->count(),
         ];
-
-        if (! $request->header('X-Inertia')) {
-            return view('admin.age-ratings.index', $data);
-        }
 
         return Inertia::render('Admin/AgeRatings/Index', $data);
     }

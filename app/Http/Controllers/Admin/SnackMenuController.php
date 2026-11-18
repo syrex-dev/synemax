@@ -31,10 +31,6 @@ class SnackMenuController extends Controller
             'items' => $items,
         ];
 
-        if (! $request->header('X-Inertia')) {
-            return view('admin.snacks.index', $data);
-        }
-
         return Inertia::render('Admin/Snacks/Index', $data);
     }
 
@@ -208,10 +204,6 @@ class SnackMenuController extends Controller
             'menuItem' => $menuItem,
             'categories' => MenuCategory::query()->orderBy('sort_order')->orderBy('name')->get(),
         ];
-
-        if (! $request->header('X-Inertia')) {
-            return view('admin.snacks.form', $data);
-        }
 
         return Inertia::render('Admin/Snacks/Form', $data);
     }

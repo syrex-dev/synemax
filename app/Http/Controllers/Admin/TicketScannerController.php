@@ -16,7 +16,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\View\View;
 use Inertia\Inertia;
 
 class TicketScannerController extends Controller
@@ -66,18 +65,13 @@ class TicketScannerController extends Controller
             'soundEnabled' => $soundEnabled,
         ];
 
-        if ($request->wantsJson() || $request->header('X-Inertia')) {
-            return response(Inertia::render('Admin/Scan/Index', $data)->toResponse($request))
-                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-                ->header('Pragma', 'no-cache');
-        }
-
-        /** @var View $view */
-        $view = view('admin.scan.index', $data);
-
-        return response($view)
-            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-            ->header('Pragma', 'no-cache');
+        return Inertia::render('Admin/Scan/Index', $data)
+            ->withViewData($data)
+            ->toResponse($request)
+            ->withHeaders([
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma' => 'no-cache',
+            ]);
     }
 
     /**

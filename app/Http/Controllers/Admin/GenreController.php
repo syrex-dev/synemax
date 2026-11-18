@@ -25,11 +25,6 @@ class GenreController extends Controller
                 'parentCandidates' => collect(),
             ];
 
-            if (! $request->header('X-Inertia')) {
-                return view('admin.genres.index', $emptyData)
-                    ->with('error', 'Tabel genre belum dimigrasi di database ini. Jalankan php artisan migrate untuk mengaktifkan.');
-            }
-
             return Inertia::render('Admin/Genres/Index', $emptyData);
         }
 
@@ -55,10 +50,6 @@ class GenreController extends Controller
             'parentCandidates' => $parentCandidates,
             'activeCount' => $genres->where('is_active', true)->count(),
         ];
-
-        if (! $request->header('X-Inertia')) {
-            return view('admin.genres.index', $data);
-        }
 
         return Inertia::render('Admin/Genres/Index', $data);
     }

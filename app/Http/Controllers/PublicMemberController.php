@@ -64,23 +64,7 @@ class PublicMemberController extends Controller
             'discountVisit' => $settings->memberDiscountVisit(),
         ];
 
-        if (! $request->header('X-Inertia')) {
-            $view = view('public.members.card', [
-                'member' => $member,
-                'recentVisits' => $recentVisits,
-                'settings' => $settings,
-            ]);
-
-            return response($view)
-                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-                ->header('Pragma', 'no-cache')
-                ->header('X-Robots-Tag', 'noindex, nofollow');
-        }
-
-        return response(Inertia::render('Public/Members/Card', $data)->toResponse($request))
-            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
-            ->header('Pragma', 'no-cache')
-            ->header('X-Robots-Tag', 'noindex, nofollow');
+        return Inertia::render('Public/Members/Card', $data);
     }
 
     /**

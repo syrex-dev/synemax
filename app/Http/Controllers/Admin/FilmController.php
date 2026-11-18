@@ -86,20 +86,12 @@ class FilmController extends Controller
             'canonicalGenres' => Genre::allActiveNames(),
         ];
 
-        if (! $request->header('X-Inertia')) {
-            return view('admin.films.index', $viewData);
-        }
-
         return Inertia::render('Admin/Films/Index', $viewData);
     }
 
     public function create(Request $request): View|InertiaResponse
     {
         $viewData = ['film' => new Film];
-
-        if (! $request->header('X-Inertia')) {
-            return view('admin.films.form', $viewData);
-        }
 
         return Inertia::render('Admin/Films/Form', $viewData);
     }
@@ -128,10 +120,6 @@ class FilmController extends Controller
     public function edit(Request $request, Film $film): View|InertiaResponse
     {
         $viewData = compact('film');
-
-        if (! $request->header('X-Inertia')) {
-            return view('admin.films.form', $viewData);
-        }
 
         return Inertia::render('Admin/Films/Form', $viewData);
     }

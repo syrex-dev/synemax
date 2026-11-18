@@ -42,10 +42,6 @@ class PromoController extends Controller
             'trashedCount' => $trashedCount,
         ];
 
-        if (! $request->header('X-Inertia')) {
-            return view('admin.promos.index', $data);
-        }
-
         return Inertia::render('Admin/Promos/Index', $data);
     }
 
@@ -58,10 +54,6 @@ class PromoController extends Controller
             ]),
             'isEdit' => false,
         ];
-
-        if (! $request->header('X-Inertia')) {
-            return view('admin.promos.form', $data);
-        }
 
         return Inertia::render('Admin/Promos/Form', $data);
     }
@@ -106,10 +98,6 @@ class PromoController extends Controller
             'promo' => $promo,
             'isEdit' => true,
         ];
-
-        if (! $request->header('X-Inertia')) {
-            return view('admin.promos.form', $data);
-        }
 
         return Inertia::render('Admin/Promos/Form', $data);
     }

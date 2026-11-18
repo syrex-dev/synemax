@@ -118,11 +118,8 @@ class PublicBookingController extends Controller
             'existingUnpaidBooking' => DeviceBookingTracker::getUnpaidBookings($request)->first(),
         ];
 
-        if (! $request->header('X-Inertia')) {
-            return view('public.booking-form', $viewData);
-        }
-
-        return Inertia::render('Public/Booking/Create', $viewData);
+        return Inertia::render('Public/Booking/Create', $viewData)
+            ->withViewData($viewData);
     }
 
     public function availabilityJson(
@@ -292,12 +289,6 @@ class PublicBookingController extends Controller
             'paymentTimeLimitMinutes' => $settings->paymentTimeLimitMinutes(),
         ];
 
-        if (! $request->header('X-Inertia')) {
-            return response()
-                ->view('public.payment', $viewData)
-                ->header('Referrer-Policy', 'strict-origin-when-cross-origin');
-        }
-
         return Inertia::render('Public/Booking/Payment', $viewData);
     }
 
@@ -385,12 +376,6 @@ class PublicBookingController extends Controller
             'canCancel' => $canCancel,
             'cancellationCutoffHours' => $cancellationCutoff,
         ];
-
-        if (! $request->header('X-Inertia')) {
-            return response()
-                ->view('public.ticket', $viewData)
-                ->header('Referrer-Policy', 'strict-origin-when-cross-origin');
-        }
 
         return Inertia::render('Public/Booking/Ticket', $viewData);
     }
@@ -607,12 +592,6 @@ class PublicBookingController extends Controller
     public function ticketIndex(Request $request): View|InertiaResponse
     {
         $categorizedBookings = DeviceBookingTracker::getCategorizedBookings($request);
-
-        if (! $request->header('X-Inertia')) {
-            return view('public.tickets-index', [
-                'categorizedBookings' => $categorizedBookings,
-            ]);
-        }
 
         $serializeBooking = function (Booking $b): array {
             $film = $b->film ?: $b->session?->film;

@@ -36,10 +36,6 @@ class SnackPreparationController extends Controller
 
         $data = ['sessions' => $sessions];
 
-        if (! $request->header('X-Inertia')) {
-            return view('admin.snacks.preparation-index', $data);
-        }
-
         return Inertia::render('Admin/Snacks/PreparationIndex', $data);
     }
 
@@ -63,10 +59,6 @@ class SnackPreparationController extends Controller
             'session' => $session,
             'aggregates' => $aggregates,
         ];
-
-        if (! $request->header('X-Inertia')) {
-            return view('admin.snacks.preparation', $data);
-        }
 
         return Inertia::render('Admin/Snacks/Preparation', $data);
     }

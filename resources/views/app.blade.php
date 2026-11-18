@@ -332,6 +332,42 @@
                 @endforeach
             @endforeach
         @endif
+        @if(request()->is('admin/members/scan*'))
+            <h1>Scan Member</h1>
+            <span>Stempel Loyalitas</span>
+        @endif
+        @if(request()->is('booking/*'))
+            <h1>Amankan tempatmu</h1>
+            <span>Sewa studio privat</span>
+            @if(isset($film))
+                <span>{{ is_array($film) ? ($film['title'] ?? '') : ($film->title ?? '') }}</span>
+            @endif
+            @if(isset($session) && isset($session->film))
+                <span>{{ $session->film->title }}</span>
+            @endif
+        @endif
+        @if(request()->is('admin/scan*'))
+            <h1>Pemindai Tiket</h1>
+            <span>Kamera</span>
+            <span>Kode</span>
+            <span>Daftar</span>
+        @endif
+        @if(request()->is('admin/booking/pesan-di-tempat*'))
+            <h1>Loket Pemesanan di Tempat</h1>
+            @if(isset($films))
+                @foreach($films as $f)
+                    <span>{{ is_array($f) ? ($f['title'] ?? '') : ($f->title ?? '') }}</span>
+                @endforeach
+            @endif
+            @if(isset($categories))
+                @foreach($categories as $cat)
+                    @foreach(is_array($cat) ? ($cat['items'] ?? []) : ($cat->items ?? []) as $it)
+                        <span>{{ is_array($it) ? ($it['name'] ?? '') : ($it->name ?? '') }}</span>
+                        <span>Rp {{ number_format(is_array($it) ? ($it['price'] ?? 0) : ($it->price ?? 0), 0, ',', '.') }}</span>
+                    @endforeach
+                @endforeach
+            @endif
+        @endif
         @if(isset($todaySessions))
             <h1>Ringkasan hari ini</h1>
             <a href="{{ route('admin.scan.index') }}">Scan tiket</a>

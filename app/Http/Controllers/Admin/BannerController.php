@@ -36,10 +36,6 @@ class BannerController extends Controller
             'trashedCount' => $trashedCount,
         ];
 
-        if (! $request->header('X-Inertia')) {
-            return view('admin.banners.index', $data);
-        }
-
         return Inertia::render('Admin/Banners/Index', $data);
     }
 
@@ -57,10 +53,6 @@ class BannerController extends Controller
             'promos' => Promo::query()->where('is_active', true)->orderBy('title')->get(['id', 'title', 'slug']),
             'nobars' => NobarEvent::query()->where('status_publikasi', 'terbit')->orderBy('judul')->get(['id', 'judul', 'slug']),
         ];
-
-        if (! $request->header('X-Inertia')) {
-            return view('admin.banners.form', $data);
-        }
 
         return Inertia::render('Admin/Banners/Form', $data);
     }
@@ -112,10 +104,6 @@ class BannerController extends Controller
             'promos' => Promo::query()->where('is_active', true)->orderBy('title')->get(['id', 'title', 'slug']),
             'nobars' => NobarEvent::query()->where('status_publikasi', 'terbit')->orderBy('judul')->get(['id', 'judul', 'slug']),
         ];
-
-        if (! $request->header('X-Inertia')) {
-            return view('admin.banners.form', $data);
-        }
 
         return Inertia::render('Admin/Banners/Form', $data);
     }

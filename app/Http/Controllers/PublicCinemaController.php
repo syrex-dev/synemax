@@ -437,7 +437,8 @@ class PublicCinemaController extends Controller
                 'start_time' => $s->start_time,
                 'end_time' => $s->end_time,
                 'start_time_formatted' => format_jam_id($s->start_time, false),
-                'end_time_formatted' => format_jam_id($s->end_time, true),
+                'end_time_formatted' => format_jam_id($s->end_time, false),
+                'time_range_formatted' => format_rentang_jam_id($s->start_time, $s->end_time, true),
                 'capacity' => $s->capacity,
                 'occupied_seats' => (int) ($s->occupied_seats ?? 0),
                 'is_private' => (bool) $s->is_private,
@@ -487,8 +488,8 @@ class PublicCinemaController extends Controller
             ] : null,
         ];
 
-        if (! request()->header('X-Inertia')) {
-            return view('public.schedule', array_merge($data, [
+        return Inertia::render('Public/Schedule', $data)
+            ->withViewData(array_merge($data, [
                 'date' => $targetDate,
                 'targetDate' => $targetDate,
                 'today' => $today->toDateString(),
@@ -497,9 +498,5 @@ class PublicCinemaController extends Controller
                 'sessions' => $sessions,
                 'selectedFilm' => $selectedFilm,
             ]));
-        }
-
-        return Inertia::render('Public/Schedule', $data)
-            ->withViewData($data);
     }
 }
