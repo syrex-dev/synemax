@@ -386,29 +386,34 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                 </div>
             )}
 
-            {/* Floating WhatsApp Action Button */}
+            {/* Floating WhatsApp Action Button with Mascot on Top */}
             {cinemaSettings?.showFloatingWhatsapp && cleanWaNumber && (
                 <a
                     href={`https://wa.me/${cleanWaNumber}?text=Halo%20Admin%20SynemaX,%20saya%20ingin%20bertanya`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group fixed bottom-24 md:bottom-8 right-4 sm:right-6 z-40 flex items-center gap-2 pl-1.5 sm:pl-2 pr-3.5 sm:pr-4 py-1.5 sm:py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xl shadow-emerald-950/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-900/40 border border-emerald-400/30"
-                    aria-label="Hubungi kami melalui WhatsApp"
+                    className="group fixed bottom-24 md:bottom-8 right-4 sm:right-6 z-40 flex flex-col items-center transition-all duration-300 hover:scale-105 select-none"
+                    aria-label="Hubungi Admin kami melalui WhatsApp"
                 >
-                    <div className="relative shrink-0 flex items-center justify-center">
+                    {/* Mascot Character on Top */}
+                    <div className="relative -mb-2 z-10 transition-transform duration-300 group-hover:-translate-y-1.5 pointer-events-none">
                         <img
                             src="/images/tanya-bioskop-mascot.png"
-                            alt="Maskot Tanya Bioskop"
-                            className="size-8 sm:size-9 object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-300 -my-1"
+                            alt="Maskot Customer Service SynemaX"
+                            className="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-xl"
                         />
-                        <span className="absolute -bottom-0.5 -right-0.5 flex size-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full size-2.5 bg-emerald-200 border border-emerald-700"></span>
+                        {/* Live active status indicator */}
+                        <span className="absolute bottom-2 right-1 flex size-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full size-3 bg-emerald-500 border-2 border-white dark:border-[#07090E]"></span>
                         </span>
                     </div>
-                    <span className="text-xs sm:text-sm font-black tracking-wide whitespace-nowrap">
-                        Tanya Bioskop
-                    </span>
+
+                    {/* Green Pill / Bubble with "Tanya Admin" text */}
+                    <div className="flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-emerald-600 group-hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-950/40 border border-emerald-400/40 transition-colors">
+                        <MessageCircle className="size-3.5 sm:size-4 fill-white/20 shrink-0" />
+                        <span className="whitespace-nowrap tracking-wide">Tanya Admin</span>
+                    </div>
                 </a>
             )}
 
