@@ -11,6 +11,7 @@ import {
     RotateCcw,
     Film as FilmIcon,
     Clock,
+    Loader2,
 } from 'lucide-react';
 
 export default function Index({
@@ -27,6 +28,21 @@ export default function Index({
     const [yearDropdownOpen, setYearDropdownOpen] = useState(false);
     const [isFiltering, setIsFiltering] = useState(false);
     const yearDropdownRef = useRef(null);
+    const debounceTimer = useRef(null);
+
+    // Sync search state if searchQuery prop updates from outside (e.g. browser back/forward)
+    useEffect(() => {
+        setSearch(searchQuery || '');
+    }, [searchQuery]);
+
+    // Clean up debounce timer on component unmount
+    useEffect(() => {
+        return () => {
+            if (debounceTimer.current) {
+                clearTimeout(debounceTimer.current);
+            }
+        };
+    }, []);
 
     // Close year dropdown on outside click
     useEffect(() => {
@@ -56,16 +72,35 @@ export default function Index({
             preserveState: true,
             preserveScroll: true,
             replace: true,
+            only: ['films', 'searchQuery', 'selectedGenre', 'selectedYear'],
             onFinish: () => setIsFiltering(false),
         });
     };
 
+    const handleSearchChange = (value) => {
+        setSearch(value);
+
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
+
+        debounceTimer.current = setTimeout(() => {
+            triggerFilter({ search: value });
+        }, 300);
+    };
+
     const handleSearchSubmit = (e) => {
         e.preventDefault();
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
         triggerFilter({ search });
     };
 
     const handleClearSearch = () => {
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
         setSearch('');
         triggerFilter({ search: '' });
     };
@@ -84,11 +119,21 @@ export default function Index({
     };
 
     const handleResetAll = () => {
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
         setSearch('');
         setGenre('');
         setYear('');
         setYearDropdownOpen(false);
-        router.get('/film', {}, { replace: true });
+        setIsFiltering(true);
+        router.get('/film', {}, {
+            replace: true,
+            preserveState: true,
+            preserveScroll: true,
+            only: ['films', 'searchQuery', 'selectedGenre', 'selectedYear'],
+            onFinish: () => setIsFiltering(false),
+        });
     };
 
     const hasActiveFilter = Boolean(genre || year || search);
@@ -116,11 +161,15 @@ export default function Index({
                 <div className="space-y-4">
                     {/* Search Bar */}
                     <form onSubmit={handleSearchSubmit} className="relative w-full">
-                        <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-text-muted" />
+                        {isFiltering ? (
+                            <Loader2 className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-amber-500 animate-spin" />
+                        ) : (
+                            <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-text-muted" />
+                        )}
                         <input
                             type="text"
                             value={search}
-                            onChange={(e) => setSearch(e.target.value)}
+                            onChange={(e) => handleSearchChange(e.target.value)}
                             placeholder="Cari judul film favoritmu..."
                             className="w-full rounded-2xl border border-border bg-surface pl-10 pr-10 py-2.5 text-xs sm:text-sm font-medium text-text placeholder:text-text-muted focus:border-amber-500 focus:ring-1 focus:ring-amber-500 shadow-xs transition"
                         />
@@ -128,8 +177,9 @@ export default function Index({
                             <button
                                 type="button"
                                 onClick={handleClearSearch}
-                                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text p-1"
+                                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text p-1 transition hover:scale-110"
                                 title="Hapus pencarian"
+                                aria-label="Hapus kata kunci pencarian"
                             >
                                 <X className="size-4" />
                             </button>
@@ -236,10 +286,8 @@ export default function Index({
                         )}
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
-                        {isFiltering ? (
-                            <FilmCardSkeleton count={10} />
-                        ) : (
+                    <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 transition-opacity duration-200 ${isFiltering ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                        {filmItems.length > 0 ? (
                             filmItems.map((film) => {
                             const poster = film.poster_url || (film.poster_path ? (film.poster_path.startsWith('http') ? film.poster_path : `/storage/${film.poster_path}`) : null);
                             const filmUrl = `/film/${film.slug || film.id}`;
@@ -304,11 +352,14 @@ export default function Index({
                                     </div>
                                 </Link>
                             );
-                        }))}
+                        })
+                        ) : isFiltering ? (
+                            <FilmCardSkeleton count={10} />
+                        ) : null}
                     </div>
 
                     {/* Empty State */}
-                    {filmItems.length === 0 && (
+                    {filmItems.length === 0 && !isFiltering && (
                         <div className="rounded-2xl border border-dashed border-border bg-surface p-12 text-center">
                             <FilmIcon className="mx-auto size-12 text-text-muted" />
                             <h3 className="mt-3 text-base font-bold text-text">Belum ada film untuk filter ini</h3>
