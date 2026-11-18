@@ -27,6 +27,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
     const { url } = usePage();
     const { cinemaSettings } = usePage().props;
     const [menuSheetOpen, setMenuSheetOpen] = useState(false);
+    const [isWaBubbleDismissed, setIsWaBubbleDismissed] = useState(false);
 
     const siteName = cinemaSettings?.siteName || 'SynemaX';
     const pageTitle = title || 'Beranda';
@@ -35,6 +36,23 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
     useEffect(() => {
         document.title = fullTitle;
     }, [fullTitle]);
+
+    useEffect(() => {
+        try {
+            if (sessionStorage.getItem('synemax_wa_bubble_dismissed') === '1') {
+                setIsWaBubbleDismissed(true);
+            }
+        } catch (e) {}
+    }, []);
+
+    const handleDismissWaBubble = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsWaBubbleDismissed(true);
+        try {
+            sessionStorage.setItem('synemax_wa_bubble_dismissed', '1');
+        } catch (err) {}
+    };
 
     const allMenuItems = cinemaSettings?.navbarMenu || [
         { key: 'home', label: 'Beranda', short_label: 'Beranda', url: '/', is_visible: true },
@@ -118,9 +136,8 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                     <Link
                                         key={item.key || item.url}
                                         href={item.url || '/tiket'}
-                                        className={`btn-gold-cinema inline-flex min-h-10 shrink-0 items-center rounded-xl px-3.5 py-1.5 text-xs font-black shadow-xs ml-1 ${
-                                            active ? 'ring-2 ring-amber-500 ring-offset-2' : ''
-                                        }`}
+                                        className={`btn-gold-cinema inline-flex min-h-10 shrink-0 items-center rounded-xl px-3.5 py-1.5 text-xs font-black shadow-xs ml-1 ${active ? 'ring-2 ring-amber-500 ring-offset-2' : ''
+                                            }`}
                                     >
                                         <Ticket className="size-3.5 mr-1.5" />
                                         <span>Tiket</span>
@@ -132,11 +149,10 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                 <Link
                                     key={item.key || item.url}
                                     href={item.url}
-                                    className={`relative inline-flex min-h-10 shrink-0 items-center px-3 py-1.5 font-bold transition rounded-lg ${
-                                        active
-                                            ? 'text-[#0F172A] font-extrabold after:content-[\'\'] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-[3px] after:bg-[#F59E0B] after:rounded-full dark:after:hidden dark:bg-amber-500/15 dark:text-amber-400 dark:border dark:border-amber-400/40'
-                                            : 'text-slate-600 hover:bg-[#F1F5F9] hover:text-[#0F172A] dark:text-text-muted dark:hover:bg-surface-2 dark:hover:text-amber-400'
-                                    }`}
+                                    className={`relative inline-flex min-h-10 shrink-0 items-center px-3 py-1.5 font-bold transition rounded-lg ${active
+                                        ? 'text-[#0F172A] font-extrabold after:content-[\'\'] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-[3px] after:bg-[#F59E0B] after:rounded-full dark:after:hidden dark:bg-amber-500/15 dark:text-amber-400 dark:border dark:border-amber-400/40'
+                                        : 'text-slate-600 hover:bg-[#F1F5F9] hover:text-[#0F172A] dark:text-text-muted dark:hover:bg-surface-2 dark:hover:text-amber-400'
+                                        }`}
                                 >
                                     {item.label}
                                 </Link>
@@ -176,11 +192,10 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                     <Link
                                         key={bItem.key || bItem.url}
                                         href={bItem.url || '/tiket'}
-                                        className={`flex-1 min-h-[60px] flex flex-col items-center justify-center relative py-1 px-1 transition-colors ${
-                                            active
-                                                ? 'text-slate-950 dark:text-amber-400 font-extrabold'
-                                                : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium'
-                                        }`}
+                                        className={`flex-1 min-h-[60px] flex flex-col items-center justify-center relative py-1 px-1 transition-colors ${active
+                                            ? 'text-slate-950 dark:text-amber-400 font-extrabold'
+                                            : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium'
+                                            }`}
                                     >
                                         {active && (
                                             <span className="absolute top-0 inset-x-0 mx-auto h-[3px] w-7 bg-amber-500 rounded-full" />
@@ -195,11 +210,10 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                 <Link
                                     key={bItem.key || bItem.url}
                                     href={bItem.url}
-                                    className={`flex-1 min-h-[60px] flex flex-col items-center justify-center relative py-1 px-1 transition-colors ${
-                                        active
-                                            ? 'text-slate-950 dark:text-amber-400 font-extrabold'
-                                            : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium'
-                                    }`}
+                                    className={`flex-1 min-h-[60px] flex flex-col items-center justify-center relative py-1 px-1 transition-colors ${active
+                                        ? 'text-slate-950 dark:text-amber-400 font-extrabold'
+                                        : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium'
+                                        }`}
                                 >
                                     {active && (
                                         <span className="absolute top-0 inset-x-0 mx-auto h-[3px] w-7 bg-amber-500 rounded-full" />
@@ -256,7 +270,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                     {menuSheetItems.map((sheetItem) => {
                                         const isExternal = sheetItem.url?.startsWith('http');
                                         const isTiket = ['lookup', 'booking_lookup', 'tickets', 'tiket'].includes(sheetItem.key) || sheetItem.url?.includes('/tiket');
-                                        
+
                                         if (isExternal || isTiket) {
                                             return (
                                                 <a
@@ -386,35 +400,48 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                 </div>
             )}
 
-            {/* Floating WhatsApp Action Button with Mascot on Top */}
-            {cinemaSettings?.showFloatingWhatsapp && cleanWaNumber && (
-                <a
-                    href={`https://wa.me/${cleanWaNumber}?text=Halo%20Admin%20SynemaX,%20saya%20ingin%20bertanya`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group fixed bottom-24 md:bottom-8 right-4 sm:right-6 z-40 flex flex-col items-center transition-all duration-300 hover:scale-105 select-none"
-                    aria-label="Hubungi Admin kami melalui WhatsApp"
-                >
-                    {/* Mascot Character on Top */}
-                    <div className="relative -mb-2 z-10 transition-transform duration-300 group-hover:-translate-y-1.5 pointer-events-none">
-                        <img
-                            src="/images/tanya-bioskop-mascot.png"
-                            alt="Maskot Customer Service SynemaX"
-                            className="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-xl"
-                        />
-                        {/* Live active status indicator */}
-                        <span className="absolute bottom-2 right-1 flex size-3">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full size-3 bg-emerald-500 border-2 border-white dark:border-[#07090E]"></span>
-                        </span>
-                    </div>
+            {/* Floating WhatsApp Action Button with Mascot on Top & Close Button */}
+            {cinemaSettings?.showFloatingWhatsapp && cleanWaNumber && !isWaBubbleDismissed && (
+                <div className="fixed bottom-24 md:bottom-8 right-4 sm:right-6 z-40 flex flex-col items-center select-none animate-in fade-in zoom-in-95 duration-200">
+                    {/* Close / Dismiss Button ("X") */}
+                    <button
+                        type="button"
+                        onClick={handleDismissWaBubble}
+                        className="absolute -top-1.5 -right-1 z-20 flex size-5 items-center justify-center rounded-full bg-slate-900/80 hover:bg-slate-950 text-white/80 hover:text-white border border-white/20 shadow-md backdrop-blur-xs transition hover:scale-110"
+                        title="Tutup chat Tanya Admin"
+                        aria-label="Tutup bubble Tanya Admin"
+                    >
+                        <X className="size-3 stroke-[2.5]" />
+                    </button>
 
-                    {/* Green Pill / Bubble with "Tanya Admin" text */}
-                    <div className="flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-emerald-600 group-hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-950/40 border border-emerald-400/40 transition-colors">
-                        <MessageCircle className="size-3.5 sm:size-4 fill-white/20 shrink-0" />
-                        <span className="whitespace-nowrap tracking-wide">Tanya Admin</span>
-                    </div>
-                </a>
+                    <a
+                        href={`https://wa.me/${cleanWaNumber}?text=Halo%20Admin%20SynemaX,%20saya%20ingin%20bertanya`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex flex-col items-center transition-all duration-300 hover:scale-105"
+                        aria-label="Hubungi Admin kami melalui WhatsApp"
+                    >
+                        {/* Mascot Character on Top */}
+                        <div className="relative -mb-2 z-10 transition-transform duration-300 group-hover:-translate-y-1.5 pointer-events-none">
+                            <img
+                                src="/images/tanya-bioskop-mascot.png"
+                                alt="Maskot Customer Service SynemaX"
+                                className="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-xl"
+                            />
+                            {/* Live active status indicator */}
+                            <span className="absolute bottom-2 right-1 flex size-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full size-3 bg-emerald-500 border-2 border-white dark:border-[#07090E]"></span>
+                            </span>
+                        </div>
+
+                        {/* Green Pill / Bubble with "Tanya Admin" text */}
+                        <div className="flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-emerald-600 group-hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-950/40 border border-emerald-400/40 transition-colors">
+                            <MessageCircle className="size-3.5 sm:size-4 fill-white/20 shrink-0" />
+                            <span className="whitespace-nowrap tracking-wide">Tanya Admin</span>
+                        </div>
+                    </a>
+                </div>
             )}
 
             {/* Footer: Hidden on mobile phones */}
@@ -485,7 +512,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                         className="size-9 rounded-xl border border-border flex items-center justify-center text-text-muted hover:text-amber-500 hover:border-amber-500 transition"
                                     >
                                         <svg className="size-4" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                                         </svg>
                                     </a>
                                 )}
@@ -498,7 +525,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                         className="size-9 rounded-xl border border-border flex items-center justify-center text-text-muted hover:text-amber-500 hover:border-amber-500 transition"
                                     >
                                         <svg className="size-4" viewBox="0 0 24 24" fill="currentColor">
-                                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                                         </svg>
                                     </a>
                                 )}
