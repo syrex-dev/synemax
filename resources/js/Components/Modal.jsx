@@ -3,18 +3,21 @@ import { X } from 'lucide-react';
 
 export default function Modal({
     show = false,
+    isOpen = false,
     onClose,
     title = '',
     children,
     maxWidth = '2xl',
 }) {
+    const isVisible = Boolean(show || isOpen);
+
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (e.key === 'Escape' && show) {
+            if (e.key === 'Escape' && isVisible) {
                 onClose?.();
             }
         };
-        if (show) {
+        if (isVisible) {
             document.body.style.overflow = 'hidden';
             window.addEventListener('keydown', handleKeyDown);
         } else {
@@ -24,9 +27,9 @@ export default function Modal({
             document.body.style.overflow = 'unset';
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [show, onClose]);
+    }, [isVisible, onClose]);
 
-    if (!show) return null;
+    if (!isVisible) return null;
 
     const maxWidthClass = {
         sm: 'max-w-sm',
@@ -36,6 +39,13 @@ export default function Modal({
         '2xl': 'max-w-2xl',
         '3xl': 'max-w-3xl',
         '4xl': 'max-w-4xl',
+        'max-w-sm': 'max-w-sm',
+        'max-w-md': 'max-w-md',
+        'max-w-lg': 'max-w-lg',
+        'max-w-xl': 'max-w-xl',
+        'max-w-2xl': 'max-w-2xl',
+        'max-w-3xl': 'max-w-3xl',
+        'max-w-4xl': 'max-w-4xl',
     }[maxWidth] || 'max-w-2xl';
 
     return (

@@ -219,15 +219,15 @@ export default function Index({
                 </div>
 
                 {/* Filter & Search Bar */}
-                <form onSubmit={handleSearch} className="rounded-2xl border border-border bg-surface p-4 shadow-xs flex flex-wrap items-center gap-3">
-                    <div className="relative flex-1 min-w-[200px]">
+                <form onSubmit={handleSearch} className="rounded-2xl border border-border bg-surface p-3.5 sm:p-4 shadow-xs grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-center gap-2.5 sm:gap-3">
+                    <div className="relative w-full sm:col-span-2 lg:flex-1 min-w-[200px]">
                         <Search className="size-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
                         <input
                             type="search"
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             placeholder="Cari nama, panggilan, atau ID member..."
-                            className="input-cinema w-full pl-10 pr-4 py-2 text-xs rounded-xl"
+                            className="input-cinema w-full pl-10 pr-4 py-2.5 text-xs rounded-xl min-h-[42px]"
                         />
                     </div>
 
@@ -238,7 +238,7 @@ export default function Index({
                             router.get('/admin/members', { status: e.target.value || undefined, q: query }, { preserveState: true });
                         }}
                         aria-label="Filter status member"
-                        className="input-cinema py-2 px-3 text-xs rounded-xl"
+                        className="input-cinema py-2.5 px-3 text-xs rounded-xl min-h-[42px] w-full lg:w-auto"
                     >
                         <option value="">Semua Status</option>
                         <option value="aktif">Aktif</option>
@@ -253,56 +253,58 @@ export default function Index({
                             router.get('/admin/members', { card_status: e.target.value || undefined, q: query }, { preserveState: true });
                         }}
                         aria-label="Filter status kartu fisik"
-                        className="input-cinema py-2 px-3 text-xs rounded-xl"
+                        className="input-cinema py-2.5 px-3 text-xs rounded-xl min-h-[42px] w-full lg:w-auto"
                     >
                         <option value="">Status Kartu Fisik</option>
                         <option value="sudah">Sudah Ada Kartu</option>
                         <option value="belum">Belum Dibuatkan</option>
                     </select>
 
-                    <button
-                        type="submit"
-                        className="btn-gold-cinema px-4 py-2 text-xs font-bold rounded-xl"
-                    >
-                        Cari
-                    </button>
-
-                    {(query || statusFilter || cardFilter || rewardFilter) && (
+                    <div className="flex items-center gap-2 sm:col-span-2 lg:col-span-1">
                         <button
-                            type="button"
-                            onClick={() => {
-                                setQuery('');
-                                setStatusFilter('');
-                                setCardFilter('');
-                                setRewardFilter('');
-                                router.get('/admin/members');
-                            }}
-                            className="btn-secondary-cinema px-3 py-2 text-xs font-bold rounded-xl"
+                            type="submit"
+                            className="btn-gold-cinema flex-1 sm:flex-initial px-5 py-2.5 text-xs font-bold rounded-xl min-h-[42px]"
                         >
-                            Reset
+                            Cari
                         </button>
-                    )}
+
+                        {(query || statusFilter || cardFilter || rewardFilter) && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setQuery('');
+                                    setStatusFilter('');
+                                    setCardFilter('');
+                                    setRewardFilter('');
+                                    router.get('/admin/members');
+                                }}
+                                className="btn-secondary-cinema flex-1 sm:flex-initial px-4 py-2.5 text-xs font-bold rounded-xl min-h-[42px]"
+                            >
+                                Reset
+                            </button>
+                        )}
+                    </div>
                 </form>
 
                 {/* Bulk Card Actions Bar */}
                 {selectedIds.length > 0 && (
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs shadow-xs">
                         <span className="font-bold text-text">
                             {selectedIds.length} member terpilih
                         </span>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <button
                                 type="button"
                                 onClick={() => handleBulkCard(true)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition"
+                                className="inline-flex min-h-[36px] items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition shadow-xs"
                             >
                                 <Check className="size-3.5" />
-                                <span>Tandai Sudah Kartu Fisik</span>
+                                <span>Tandai Sudah Kartu</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => handleBulkCard(false)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-border hover:bg-surface-2 text-text font-bold transition"
+                                className="inline-flex min-h-[36px] items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface border border-border hover:bg-surface-2 text-text font-bold transition shadow-xs"
                             >
                                 <X className="size-3.5" />
                                 <span>Tandai Belum</span>
@@ -311,10 +313,174 @@ export default function Index({
                     </div>
                 )}
 
-                {/* Members Table */}
-                <div className="rounded-2xl border border-border bg-surface overflow-hidden shadow-xs">
+                {/* Mobile View: Select All Bar */}
+                <div className="flex md:hidden items-center justify-between p-3 rounded-2xl border border-border bg-surface text-xs font-bold text-text shadow-xs">
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={memberItems.length > 0 && selectedIds.length === memberItems.length}
+                            onChange={toggleSelectAll}
+                            aria-label="Pilih semua member"
+                            className="rounded border-border size-4 text-amber-500"
+                        />
+                        <span>Pilih Semua ({memberItems.length})</span>
+                    </label>
+                    {selectedIds.length > 0 && (
+                        <span className="text-amber-500 font-bold">{selectedIds.length} terpilih</span>
+                    )}
+                </div>
+
+                {/* Mobile View: Cards (No cramped/squished tables on phone) */}
+                <div className="space-y-3.5 block md:hidden">
+                    {memberItems.length === 0 ? (
+                        <div className="rounded-2xl border border-border bg-surface p-8 text-center text-xs text-text-muted">
+                            Tidak ada data member yang sesuai filter.
+                        </div>
+                    ) : (
+                        memberItems.map((member) => {
+                            const isSelected = selectedIds.includes(member.id);
+                            const visitsInCycle = (member.valid_visits_count || 0) % 10;
+                            const cycleNum = Math.floor((member.valid_visits_count || 0) / 10) + 1;
+
+                            return (
+                                <article
+                                    key={member.id}
+                                    className={`rounded-2xl border p-4 shadow-xs transition-all space-y-3 bg-surface ${
+                                        isSelected ? 'border-amber-500 bg-amber-500/5' : 'border-border'
+                                    }`}
+                                >
+                                    {/* Top Row: Checkbox, Avatar, Name & Status */}
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => toggleSelect(member.id)}
+                                                aria-label={`Pilih member ${member.name}`}
+                                                className="rounded border-border size-4 text-amber-500 shrink-0"
+                                            />
+                                            <div className="size-10 rounded-full bg-surface-2 border border-border flex items-center justify-center font-black text-amber-500 shrink-0 overflow-hidden">
+                                                {member.photo_path ? (
+                                                    <img
+                                                        src={`/storage/${member.photo_path}`}
+                                                        alt={member.name}
+                                                        className="size-full object-cover rounded-full"
+                                                    />
+                                                ) : (
+                                                    member.name?.charAt(0).toUpperCase()
+                                                )}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <Link
+                                                    href={`/admin/members/${member.id}`}
+                                                    className="font-black text-sm text-text hover:text-amber-500 transition truncate block"
+                                                >
+                                                    {member.name}
+                                                </Link>
+                                                {member.nickname && (
+                                                    <span className="text-[11px] text-text-muted block truncate">
+                                                        "{member.nickname}"
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <span
+                                            className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold capitalize shrink-0 ${
+                                                member.status === 'aktif'
+                                                    ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                                                    : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                                            }`}
+                                        >
+                                            {member.status}
+                                        </span>
+                                    </div>
+
+                                    {/* Middle Row: ID & Physical Card Status Badge */}
+                                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                                        <span className="font-mono font-bold text-xs text-text bg-surface-2 px-2.5 py-1 rounded-lg border border-border tracking-wider whitespace-nowrap">
+                                            {member.code || member.member_code}
+                                        </span>
+
+                                        {member.has_physical_card ? (
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 whitespace-nowrap">
+                                                <Check className="size-3" />
+                                                <span>Sudah Ada Kartu Fisik</span>
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/30 whitespace-nowrap">
+                                                <AlertCircle className="size-3" />
+                                                <span>Belum Dibuatkan</span>
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Cycle Progress Bar */}
+                                    <div className="rounded-xl border border-border/70 bg-surface-2/40 p-2.5 space-y-1.5">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="font-bold text-text">
+                                                {visitsInCycle}/10 Kunjungan
+                                            </span>
+                                            <span className="text-amber-500 font-bold">
+                                                Siklus {cycleNum}
+                                            </span>
+                                        </div>
+                                        <div className="h-2 w-full rounded-full bg-surface-2 overflow-hidden">
+                                            <div
+                                                className="h-full bg-amber-500 rounded-full transition-all duration-300"
+                                                style={{ width: `${(visitsInCycle / 10) * 100}%` }}
+                                            />
+                                        </div>
+                                        <div className="text-[11px] text-text-muted flex items-center justify-between pt-0.5">
+                                            <span>Total Riwayat Kunjungan:</span>
+                                            <span className="font-mono font-bold text-text">{member.valid_visits_count || 0} kali</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Bottom Row: Actions */}
+                                    <div className="flex items-center gap-2 pt-1 border-t border-border/60">
+                                        <Link
+                                            href={`/admin/members/${member.id}`}
+                                            className="flex-1 inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-3 text-xs font-bold text-text hover:bg-surface-2 transition shadow-xs"
+                                        >
+                                            <Eye className="size-3.5 text-text-muted" />
+                                            <span>Detail</span>
+                                        </Link>
+                                        <a
+                                            href={`/admin/members/${member.id}/kartu`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition shadow-xs"
+                                        >
+                                            <Printer className="size-3.5" />
+                                            <span>Cetak</span>
+                                        </a>
+                                        <Link
+                                            href={`/admin/members/${member.id}/edit`}
+                                            className="inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl border border-border bg-surface px-3 text-xs font-bold text-text hover:bg-surface-2 transition shadow-xs"
+                                        >
+                                            <Edit3 className="size-3.5 text-text-muted" />
+                                            <span>Ubah</span>
+                                        </Link>
+                                        <button
+                                            type="button"
+                                            onClick={() => confirmDelete(member)}
+                                            aria-label="Hapus member"
+                                            className="inline-flex min-h-[36px] w-[36px] items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition shadow-xs shrink-0"
+                                        >
+                                            <Trash2 className="size-3.5" />
+                                        </button>
+                                    </div>
+                                </article>
+                            );
+                        })
+                    )}
+                </div>
+
+                {/* Desktop View: Members Table (Spacious with fixed min-width to avoid squishing) */}
+                <div className="rounded-2xl border border-border bg-surface overflow-hidden shadow-xs hidden md:block">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs border-collapse">
+                        <table className="w-full text-left text-xs border-collapse min-w-[760px]">
                             <thead>
                                 <tr className="border-b border-border bg-surface-2/60 text-text-muted font-bold uppercase tracking-wider">
                                     <th className="p-3 w-10 text-center">
@@ -323,16 +489,16 @@ export default function Index({
                                             checked={memberItems.length > 0 && selectedIds.length === memberItems.length}
                                             onChange={toggleSelectAll}
                                             aria-label="Pilih semua member"
-                                            className="rounded border-border"
+                                            className="rounded border-border size-4 text-amber-500"
                                         />
                                     </th>
                                     <th className="p-3">Member</th>
-                                    <th className="p-3">ID Member</th>
-                                    <th className="p-3">Kartu Fisik</th>
-                                    <th className="p-3">Progres Siklus</th>
-                                    <th className="p-3">Total Kunjungan</th>
+                                    <th className="p-3 whitespace-nowrap">ID Member</th>
+                                    <th className="p-3 whitespace-nowrap">Kartu Fisik</th>
+                                    <th className="p-3 whitespace-nowrap">Progres Siklus</th>
+                                    <th className="p-3 whitespace-nowrap">Total Kunjungan</th>
                                     <th className="p-3">Status</th>
-                                    <th className="p-3 text-right">Aksi</th>
+                                    <th className="p-3 text-right whitespace-nowrap">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">
@@ -361,14 +527,14 @@ export default function Index({
                                                         checked={isSelected}
                                                         onChange={() => toggleSelect(member.id)}
                                                         aria-label={`Pilih member ${member.name}`}
-                                                        className="rounded border-border"
+                                                        className="rounded border-border size-4 text-amber-500"
                                                     />
                                                 </td>
 
                                                 {/* Member Details */}
                                                 <td className="p-3">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="size-9 rounded-full bg-surface-2 border border-border flex items-center justify-center font-black text-amber-500 shrink-0">
+                                                        <div className="size-9 rounded-full bg-surface-2 border border-border flex items-center justify-center font-black text-amber-500 shrink-0 overflow-hidden">
                                                             {member.photo_path ? (
                                                                 <img
                                                                     src={`/storage/${member.photo_path}`}
@@ -396,21 +562,21 @@ export default function Index({
                                                 </td>
 
                                                 {/* Member Code */}
-                                                <td className="p-3">
-                                                    <span className="font-mono font-bold text-text bg-surface-2 px-2 py-0.5 rounded-md border border-border text-[11px]">
+                                                <td className="p-3 whitespace-nowrap">
+                                                    <span className="font-mono font-bold text-text bg-surface-2 px-2.5 py-1 rounded-md border border-border text-[11px] tracking-wider">
                                                         {member.code || member.member_code}
                                                     </span>
                                                 </td>
 
-                                                {/* Physical Card Status Badge (Resolves User Request 2!) */}
-                                                <td className="p-3">
+                                                {/* Physical Card Status Badge */}
+                                                <td className="p-3 whitespace-nowrap">
                                                     {member.has_physical_card ? (
-                                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 whitespace-nowrap">
                                                             <Check className="size-3" />
                                                             <span>Sudah Ada</span>
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/30">
+                                                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/30 whitespace-nowrap">
                                                             <AlertCircle className="size-3" />
                                                             <span>Belum Dibuatkan</span>
                                                         </span>
@@ -418,7 +584,7 @@ export default function Index({
                                                 </td>
 
                                                 {/* Cycle Progress */}
-                                                <td className="p-3">
+                                                <td className="p-3 whitespace-nowrap">
                                                     <div className="space-y-1">
                                                         <div className="flex items-center justify-between text-[10px] text-text-muted">
                                                             <span>{visitsInCycle}/10</span>
@@ -434,12 +600,12 @@ export default function Index({
                                                 </td>
 
                                                 {/* Total Visits */}
-                                                <td className="p-3 font-mono font-bold text-text">
+                                                <td className="p-3 font-mono font-bold text-text whitespace-nowrap">
                                                     {member.valid_visits_count || 0}
                                                 </td>
 
                                                 {/* Membership Status */}
-                                                <td className="p-3">
+                                                <td className="p-3 whitespace-nowrap">
                                                     <span
                                                         className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${
                                                             member.status === 'aktif'
@@ -452,7 +618,7 @@ export default function Index({
                                                 </td>
 
                                                 {/* Action Buttons */}
-                                                <td className="p-3 text-right">
+                                                <td className="p-3 text-right whitespace-nowrap">
                                                     <div className="flex items-center justify-end gap-1">
                                                         <Link
                                                             href={`/admin/members/${member.id}`}

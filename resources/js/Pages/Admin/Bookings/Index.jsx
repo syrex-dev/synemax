@@ -92,6 +92,41 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
         return 'Rp ' + Number(val || 0).toLocaleString('id-ID');
     };
 
+    const formatDateTimePretty = (session) => {
+        if (!session) return '-';
+        let datePart = session.session_date;
+        try {
+            const d = new Date(session.session_date + 'T00:00:00');
+            datePart = d.toLocaleDateString('id-ID', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+        } catch {
+            datePart = session.session_date;
+        }
+
+        let timePart = session.start_time || '';
+        if (timePart) {
+            const parts = timePart.split(':');
+            timePart = `${parts[0]}:${parts[1]} WIB`;
+        }
+        return `${datePart} · ${timePart}`;
+    };
+
+    const formatPhonePretty = (phone) => {
+        if (!phone) return '-';
+        let digits = String(phone).replace(/\D+/g, '');
+        if (digits.startsWith('62')) {
+            digits = '0' + digits.slice(2);
+        }
+        if (digits.length >= 10) {
+            return digits.replace(/(\d{4})(\d{4})(\d+)/, '$1-$2-$3');
+        }
+        return phone;
+    };
+
     const statusBadge = (st) => {
         const map = {
             menunggu_pembayaran: { label: 'Menunggu pembayaran', bg: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30' },
@@ -298,15 +333,15 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
                                     </div>
 
                                     {/* Info Grid */}
-                                    <div className="mt-4 grid gap-2 border-t border-border pt-3 text-xs sm:text-sm text-text sm:grid-cols-2">
+                                    <div className="mt-4 grid gap-2 border-t border-border/80 pt-3 text-xs sm:text-sm text-text sm:grid-cols-2">
                                         <div className="flex items-center gap-1.5">
                                             <span className="text-text-muted">WhatsApp:</span>
-                                            <span className="font-semibold">{booking.whatsapp || '-'}</span>
+                                            <span className="font-semibold font-mono">{formatPhonePretty(booking.whatsapp)}</span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
                                             <span className="text-text-muted">Jadwal:</span>
                                             <span className="font-semibold">
-                                                {booking.session ? `${booking.session.session_date} · ${booking.session.start_time}` : '-'}
+                                                {formatDateTimePretty(booking.session)}
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-1.5">
@@ -334,149 +369,154 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
                                     </div>
 
                                     {/* Actions */}
-                                    <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3">
-                                        <Link
-                                            href={`/admin/booking/${booking.id}`}
-                                            className="inline-flex min-h-10 items-center justify-center rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-slate-950 active:scale-95 transition shadow-xs"
-                                        >
-                                            Detail & jajan
-                                        </Link>
-
-                                        {waUrl && (
-                                            <a
-                                                href={waUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 active:scale-95 transition"
+                                    <div className="mt-4 pt-3 border-t border-border/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                        {/* Main & Workflow Actions */}
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <Link
+                                                href={`/admin/booking/${booking.id}`}
+                                                className="inline-flex min-h-[38px] items-center justify-center rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-slate-950 active:scale-95 transition shadow-xs"
                                             >
-                                                <MessageSquare className="size-3.5" />
-                                                <span>WhatsApp pemesan</span>
-                                            </a>
-                                        )}
+                                                Detail & jajan
+                                            </Link>
 
-                                        {booking.payment_proof_path && (
-                                            <a
-                                                href={`/admin/booking/${booking.id}/bukti`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-border px-3.5 text-xs font-semibold hover:bg-surface-2 active:scale-95 transition"
-                                            >
-                                                <span>Lihat bukti bayar</span>
-                                                <ExternalLink className="size-3.5" />
-                                            </a>
-                                        )}
-
-                                        {booking.customer_profile && (
-                                            <button
-                                                type="button"
-                                                onClick={() => handleToggleBlock(booking.customer_profile.id, booking.customer_profile.is_blocked)}
-                                                className={`min-h-10 rounded-xl border px-3.5 text-xs font-semibold active:scale-95 transition ${
-                                                    booking.customer_profile.is_blocked
-                                                        ? 'border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10'
-                                                        : 'border-rose-500/40 text-rose-600 hover:bg-rose-500/10'
-                                                }`}
-                                            >
-                                                {booking.customer_profile.is_blocked ? 'Buka blokir' : 'Blokir nomor'}
-                                            </button>
-                                        )}
-
-                                        {/* Status Context Actions */}
-                                        {booking.status === 'menunggu_pembayaran' && (
-                                            <>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleStatusAction(booking.id, 'tandai_dibayar', 'Tandai booking ini sudah dibayar?')}
-                                                    className="min-h-10 rounded-xl bg-accent px-4 text-xs font-bold text-accent-contrast hover:opacity-90 active:scale-95 transition shadow-xs"
+                                            {waUrl && (
+                                                <a
+                                                    href={waUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 active:scale-95 transition"
                                                 >
-                                                    Tandai sudah dibayar
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleStatusAction(booking.id, 'batal', 'Batalkan booking ini?')}
-                                                    className="min-h-10 rounded-xl border border-rose-500/60 px-4 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 active:scale-95 transition"
-                                                >
-                                                    Batalkan
-                                                </button>
-                                            </>
-                                        )}
+                                                    <MessageSquare className="size-3.5" />
+                                                    <span>WhatsApp</span>
+                                                </a>
+                                            )}
 
-                                        {booking.status === 'menunggu_konfirmasi' && (
-                                            <>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleStatusAction(booking.id, 'konfirmasi')}
-                                                    className="min-h-10 rounded-xl bg-accent px-4 text-xs font-bold text-accent-contrast hover:opacity-90 active:scale-95 transition shadow-xs"
+                                            {booking.payment_proof_path && (
+                                                <a
+                                                    href={`/admin/booking/${booking.id}/bukti`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-border px-3 text-xs font-semibold hover:bg-surface-2 active:scale-95 transition"
                                                 >
-                                                    Konfirmasi booking
-                                                </button>
-                                                {booking.payment_proof_path && (
+                                                    <span>Bukti bayar</span>
+                                                    <ExternalLink className="size-3.5" />
+                                                </a>
+                                            )}
+
+                                            {/* Status Context Actions */}
+                                            {booking.status === 'menunggu_pembayaran' && (
+                                                <>
                                                     <button
                                                         type="button"
-                                                        onClick={() => {
-                                                            setRejectModalData(booking);
-                                                            setRejectionNote('');
-                                                        }}
-                                                        className="min-h-10 rounded-xl border border-amber-500/60 px-4 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 active:scale-95 transition"
+                                                        onClick={() => handleStatusAction(booking.id, 'tandai_dibayar', 'Tandai booking ini sudah dibayar?')}
+                                                        className="min-h-[38px] rounded-xl bg-accent px-3.5 text-xs font-bold text-accent-contrast hover:opacity-90 active:scale-95 transition shadow-xs"
                                                     >
-                                                        Tolak bukti
+                                                        Tandai sudah dibayar
                                                     </button>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleStatusAction(booking.id, 'batal', 'Batalkan booking ini?')}
-                                                    className="min-h-10 rounded-xl border border-rose-500/60 px-4 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 active:scale-95 transition"
-                                                >
-                                                    Batalkan
-                                                </button>
-                                            </>
-                                        )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleStatusAction(booking.id, 'batal', 'Batalkan booking ini?')}
+                                                        className="min-h-[38px] rounded-xl border border-rose-500/60 px-3 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 active:scale-95 transition"
+                                                    >
+                                                        Batalkan
+                                                    </button>
+                                                </>
+                                            )}
 
-                                        {booking.status === 'terkonfirmasi' && (
-                                            <>
-                                                <Link
-                                                    href={`/admin/scan?sesi=${booking.session_id}`}
-                                                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 active:scale-95 transition"
-                                                >
-                                                    <QrCode className="size-4" />
-                                                    <span>Scan tiket</span>
-                                                </Link>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleStatusAction(booking.id, 'tidak_hadir', 'Tandai pemesan tidak hadir? Ini akan menambah catatan tidak datang pada profil pelanggan.')}
-                                                    className="min-h-10 rounded-xl border border-amber-500/60 px-4 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 active:scale-95 transition"
-                                                >
-                                                    Tandai tidak datang
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleStatusAction(booking.id, 'batal', 'Batalkan booking ini?')}
-                                                    className="min-h-10 rounded-xl border border-rose-500/60 px-4 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 active:scale-95 transition"
-                                                >
-                                                    Batalkan
-                                                </button>
-                                            </>
-                                        )}
+                                            {booking.status === 'menunggu_konfirmasi' && (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleStatusAction(booking.id, 'konfirmasi')}
+                                                        className="min-h-[38px] rounded-xl bg-accent px-3.5 text-xs font-bold text-accent-contrast hover:opacity-90 active:scale-95 transition shadow-xs"
+                                                    >
+                                                        Konfirmasi booking
+                                                    </button>
+                                                    {booking.payment_proof_path && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setRejectModalData(booking);
+                                                                setRejectionNote('');
+                                                            }}
+                                                            className="min-h-[38px] rounded-xl border border-amber-500/60 px-3 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 active:scale-95 transition"
+                                                        >
+                                                            Tolak bukti
+                                                        </button>
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleStatusAction(booking.id, 'batal', 'Batalkan booking ini?')}
+                                                        className="min-h-[38px] rounded-xl border border-rose-500/60 px-3 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 active:scale-95 transition"
+                                                    >
+                                                        Batalkan
+                                                    </button>
+                                                </>
+                                            )}
 
-                                        {booking.status === 'kedaluwarsa' && (
+                                            {booking.status === 'terkonfirmasi' && (
+                                                <>
+                                                    <Link
+                                                        href={`/admin/scan?sesi=${booking.session_id}`}
+                                                        className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 active:scale-95 transition"
+                                                    >
+                                                        <QrCode className="size-4" />
+                                                        <span>Scan tiket</span>
+                                                    </Link>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleStatusAction(booking.id, 'tidak_hadir', 'Tandai pemesan tidak hadir? Ini akan menambah catatan tidak datang pada profil pelanggan.')}
+                                                        className="min-h-[38px] rounded-xl border border-amber-500/60 px-3 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 active:scale-95 transition"
+                                                    >
+                                                        Tandai tidak hadir
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleStatusAction(booking.id, 'batal', 'Batalkan booking ini?')}
+                                                        className="min-h-[38px] rounded-xl border border-rose-500/60 px-3 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 active:scale-95 transition"
+                                                    >
+                                                        Batalkan
+                                                    </button>
+                                                </>
+                                            )}
+
+                                            {booking.status === 'kedaluwarsa' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleStatusAction(booking.id, 'pulihkan', 'Pulihkan booking kedaluwarsa ini? Kursi akan kembali ditahan jika kapasitas masih ada.')}
+                                                    className="min-h-[38px] rounded-xl border border-accent bg-accent/10 px-3.5 text-xs font-bold text-accent hover:bg-accent/20 active:scale-95 transition"
+                                                >
+                                                    Pulihkan booking
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {/* Danger & Profile Actions */}
+                                        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 pt-1 sm:pt-0">
+                                            {booking.customer_profile && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleToggleBlock(booking.customer_profile.id, booking.customer_profile.is_blocked)}
+                                                    className={`min-h-[38px] rounded-xl border px-3 text-xs font-semibold active:scale-95 transition ${
+                                                        booking.customer_profile.is_blocked
+                                                            ? 'border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10'
+                                                            : 'border-border text-text-muted hover:text-rose-500 hover:border-rose-500/40'
+                                                    }`}
+                                                >
+                                                    {booking.customer_profile.is_blocked ? 'Buka blokir' : 'Blokir nomor'}
+                                                </button>
+                                            )}
+
                                             <button
                                                 type="button"
-                                                onClick={() => handleStatusAction(booking.id, 'pulihkan', 'Pulihkan booking kedaluwarsa ini? Kursi akan kembali ditahan jika kapasitas masih ada.')}
-                                                className="min-h-10 rounded-xl border border-accent bg-accent/10 px-4 text-xs font-bold text-accent hover:bg-accent/20 active:scale-95 transition"
+                                                onClick={() => setDeleteModalData(booking)}
+                                                className="inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white active:scale-95 transition shadow-xs"
+                                                title="Hapus data booking ini secara permanen"
                                             >
-                                                Pulihkan booking
+                                                <Trash2 className="size-3.5" />
+                                                <span>Hapus</span>
                                             </button>
-                                        )}
-
-                                        {/* Hapus Booking Permanen */}
-                                        <button
-                                            type="button"
-                                            onClick={() => setDeleteModalData(booking)}
-                                            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white active:scale-95 transition shadow-xs sm:ml-auto"
-                                            title="Hapus data booking ini secara permanen"
-                                        >
-                                            <Trash2 className="size-3.5" />
-                                            <span>Hapus</span>
-                                        </button>
+                                        </div>
                                     </div>
                                 </article>
                             );

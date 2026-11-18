@@ -155,50 +155,53 @@ export default function Index({
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={() => setExportModalOpen(true)}
-                            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition shadow-xs"
-                        >
-                            <Download className="size-3.5" />
-                            <span>Ekspor CSV</span>
-                        </button>
-                        <Link
-                            href="/admin/age-ratings"
-                            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition shadow-xs"
-                        >
-                            <Shield className="size-3.5" />
-                            <span>Klasifikasi Usia</span>
-                        </Link>
-                        <Link
-                            href="/admin/genres"
-                            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition shadow-xs"
-                        >
-                            <Tag className="size-3.5" />
-                            <span>Genre</span>
-                        </Link>
-                        <Link
-                            href="/admin/films/posters"
-                            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition shadow-xs"
-                        >
-                            <FilmIcon className="size-3.5" />
-                            <span>Poster Massal</span>
-                        </Link>
-                        <Link
-                            href="/admin/films/import"
-                            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3.5 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition shadow-xs"
-                        >
-                            <Upload className="size-3.5" />
-                            <span>Impor CSV</span>
-                        </Link>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
                         <Link
                             href="/admin/films/create"
-                            className="btn-gold-cinema inline-flex min-h-[40px] items-center gap-1.5 rounded-xl px-4 text-xs font-bold shadow-md"
+                            className="btn-gold-cinema inline-flex min-h-[40px] items-center justify-center gap-2 rounded-xl px-4 text-xs font-bold shadow-md w-full sm:w-auto"
                         >
                             <Plus className="size-4" />
                             <span>Tambah Film Baru</span>
                         </Link>
+
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => setExportModalOpen(true)}
+                                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition shadow-xs"
+                            >
+                                <Download className="size-3.5" />
+                                <span>Ekspor CSV</span>
+                            </button>
+                            <Link
+                                href="/admin/films/import"
+                                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition shadow-xs"
+                            >
+                                <Upload className="size-3.5" />
+                                <span>Impor CSV</span>
+                            </Link>
+                            <Link
+                                href="/admin/films/posters"
+                                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition shadow-xs"
+                            >
+                                <FilmIcon className="size-3.5" />
+                                <span>Poster</span>
+                            </Link>
+                            <Link
+                                href="/admin/genres"
+                                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition shadow-xs"
+                            >
+                                <Tag className="size-3.5" />
+                                <span>Genre</span>
+                            </Link>
+                            <Link
+                                href="/admin/age-ratings"
+                                className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 transition shadow-xs"
+                            >
+                                <Shield className="size-3.5" />
+                                <span>Klasifikasi</span>
+                            </Link>
+                        </div>
                     </div>
                 </div>
 
@@ -382,7 +385,7 @@ export default function Index({
                 {/* Films Table */}
                 <div className="rounded-2xl border border-border bg-surface overflow-hidden shadow-xs">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs">
+                        <table className="w-full text-left text-xs min-w-[720px]">
                             <thead className="border-b border-border bg-surface-2 text-text-muted uppercase text-[10px] font-bold tracking-wider">
                                 <tr>
                                     <th className="p-3.5 w-10 text-center">
@@ -399,12 +402,12 @@ export default function Index({
                                             )}
                                         </button>
                                     </th>
-                                    <th className="p-3.5 w-16">Poster</th>
+                                    <th className="p-3.5 w-16 whitespace-nowrap">Poster</th>
                                     <th className="p-3.5">Judul & Genre</th>
-                                    <th className="p-3.5">Durasi & Tahun</th>
-                                    <th className="p-3.5">Batas Usia</th>
-                                    <th className="p-3.5 text-center">Status</th>
-                                    <th className="p-3.5 text-right">Aksi</th>
+                                    <th className="p-3.5 whitespace-nowrap">Durasi & Tahun</th>
+                                    <th className="p-3.5 whitespace-nowrap">Batas Usia</th>
+                                    <th className="p-3.5 text-center whitespace-nowrap">Status</th>
+                                    <th className="p-3.5 text-right whitespace-nowrap">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">

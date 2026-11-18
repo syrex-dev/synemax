@@ -75,15 +75,15 @@ export default function Index({
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         {/* Period Pill Selector */}
-                        <div className="inline-flex rounded-xl bg-surface border border-border p-1 shadow-xs">
+                        <div className="inline-flex flex-1 sm:flex-initial rounded-xl bg-surface border border-border p-1 shadow-xs justify-center">
                             {['harian', 'mingguan', 'bulanan'].map((p) => (
                                 <button
                                     key={p}
                                     type="button"
                                     onClick={() => handlePeriodChange(p)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition ${
+                                    className={`flex-1 sm:flex-initial px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition ${
                                         selectedPeriod === p
                                             ? 'bg-amber-500 text-slate-950 shadow-xs'
                                             : 'text-text-muted hover:text-text'
@@ -100,73 +100,81 @@ export default function Index({
                             value={currentDate}
                             onChange={(e) => handleDateChange(e.target.value)}
                             aria-label="Pilih tanggal laporan"
-                            className="input-cinema text-xs py-2 px-3 rounded-xl shadow-xs"
+                            className="input-cinema text-xs py-2 px-3 rounded-xl shadow-xs flex-1 sm:flex-initial min-h-[38px]"
                         />
 
                         {/* Export Button */}
                         <a
                             href={`/admin/laporan/export?period=${selectedPeriod}&date=${currentDate}`}
-                            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:bg-surface-2 transition shadow-xs"
+                            className="inline-flex min-h-[38px] items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3.5 text-xs font-bold text-text hover:bg-surface-2 transition shadow-xs w-full sm:w-auto"
                         >
-                            <Download className="size-4 text-text-muted" />
+                            <Download className="size-3.5 text-text-muted" />
                             <span>Ekspor CSV</span>
                         </a>
                     </div>
                 </div>
 
-                {/* Top Financial KPI Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="rounded-2xl border border-border bg-surface p-5 shadow-xs">
-                        <div className="flex items-center justify-between text-text-muted">
-                            <span className="text-xs font-bold uppercase tracking-wider">Total Pendapatan</span>
-                            <DollarSign className="size-4 text-emerald-500" />
+                {/* Top Financial KPI Cards: 2x2 grid on mobile so metrics fit comfortably */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+                    <div className="rounded-2xl border border-border bg-surface p-3.5 sm:p-5 shadow-xs flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center justify-between text-text-muted">
+                                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">Total Pendapatan</span>
+                                <DollarSign className="size-3.5 sm:size-4 text-emerald-500 shrink-0" />
+                            </div>
+                            <div className="mt-1.5 sm:mt-2 text-base sm:text-2xl font-black text-text font-mono truncate">
+                                {formatRupiah(revenue)}
+                            </div>
                         </div>
-                        <div className="mt-2 text-2xl font-black text-text font-mono">
-                            {formatRupiah(revenue)}
-                        </div>
-                        <div className="mt-2 flex items-center justify-between text-xs text-text-muted border-t border-border pt-2">
-                            <span>Tiket: {formatRupiah(ticketRevenue)}</span>
-                            <span>Jajan: {formatRupiah(snackRevenue)}</span>
-                        </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-border bg-surface p-5 shadow-xs">
-                        <div className="flex items-center justify-between text-text-muted">
-                            <span className="text-xs font-bold uppercase tracking-wider">Estimasi Laba Kotor</span>
-                            <TrendingUp className="size-4 text-amber-500" />
-                        </div>
-                        <div className="mt-2 text-2xl font-black text-amber-500 font-mono">
-                            {formatRupiah(grossProfit)}
-                        </div>
-                        <div className="mt-2 flex items-center justify-between text-xs text-text-muted border-t border-border pt-2">
-                            <span>Margin Jajan: {formatRupiah(snackProfit)}</span>
-                            <span>Listrik: -{formatRupiah(electricityCost)}</span>
+                        <div className="mt-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 text-[10px] sm:text-xs text-text-muted border-t border-border/60 pt-2">
+                            <span className="truncate">Tiket: {formatRupiah(ticketRevenue)}</span>
+                            <span className="truncate">Jajan: {formatRupiah(snackRevenue)}</span>
                         </div>
                     </div>
 
-                    <div className="rounded-2xl border border-border bg-surface p-5 shadow-xs">
-                        <div className="flex items-center justify-between text-text-muted">
-                            <span className="text-xs font-bold uppercase tracking-wider">Total Penonton</span>
-                            <Users className="size-4 text-amber-500" />
+                    <div className="rounded-2xl border border-border bg-surface p-3.5 sm:p-5 shadow-xs flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center justify-between text-text-muted">
+                                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">Estimasi Laba Kotor</span>
+                                <TrendingUp className="size-3.5 sm:size-4 text-amber-500 shrink-0" />
+                            </div>
+                            <div className="mt-1.5 sm:mt-2 text-base sm:text-2xl font-black text-amber-500 font-mono truncate">
+                                {formatRupiah(grossProfit)}
+                            </div>
                         </div>
-                        <div className="mt-2 text-2xl font-black text-text font-mono">
-                            {viewers} <span className="text-sm font-normal text-text-muted">orang</span>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between text-xs text-text-muted border-t border-border pt-2">
-                            <span>{bookingCount} transaksi booking</span>
+                        <div className="mt-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0.5 text-[10px] sm:text-xs text-text-muted border-t border-border/60 pt-2">
+                            <span className="truncate">Margin: {formatRupiah(snackProfit)}</span>
+                            <span className="truncate">Listrik: -{formatRupiah(electricityCost)}</span>
                         </div>
                     </div>
 
-                    <div className="rounded-2xl border border-border bg-surface p-5 shadow-xs">
-                        <div className="flex items-center justify-between text-text-muted">
-                            <span className="text-xs font-bold uppercase tracking-wider">Sesi Terbayar</span>
-                            <Film className="size-4 text-amber-500" />
+                    <div className="rounded-2xl border border-border bg-surface p-3.5 sm:p-5 shadow-xs flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center justify-between text-text-muted">
+                                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">Total Penonton</span>
+                                <Users className="size-3.5 sm:size-4 text-amber-500 shrink-0" />
+                            </div>
+                            <div className="mt-1.5 sm:mt-2 text-base sm:text-2xl font-black text-text font-mono truncate">
+                                {viewers} <span className="text-xs sm:text-sm font-normal text-text-muted">orang</span>
+                            </div>
                         </div>
-                        <div className="mt-2 text-2xl font-black text-text font-mono">
-                            {paidSessionCount} <span className="text-sm font-normal text-text-muted">sesi</span>
+                        <div className="mt-2.5 flex items-center justify-between text-[10px] sm:text-xs text-text-muted border-t border-border/60 pt-2">
+                            <span className="truncate">{bookingCount} transaksi booking</span>
                         </div>
-                        <div className="mt-2 flex items-center justify-between text-xs text-text-muted border-t border-border pt-2">
-                            <span>Sesi berjalan terkonfirmasi</span>
+                    </div>
+
+                    <div className="rounded-2xl border border-border bg-surface p-3.5 sm:p-5 shadow-xs flex flex-col justify-between">
+                        <div>
+                            <div className="flex items-center justify-between text-text-muted">
+                                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider truncate">Sesi Terbayar</span>
+                                <Film className="size-3.5 sm:size-4 text-amber-500 shrink-0" />
+                            </div>
+                            <div className="mt-1.5 sm:mt-2 text-base sm:text-2xl font-black text-text font-mono truncate">
+                                {paidSessionCount} <span className="text-xs sm:text-sm font-normal text-text-muted">sesi</span>
+                            </div>
+                        </div>
+                        <div className="mt-2.5 flex items-center justify-between text-[10px] sm:text-xs text-text-muted border-t border-border/60 pt-2">
+                            <span className="truncate">Sesi terkonfirmasi</span>
                         </div>
                     </div>
                 </div>
