@@ -32,8 +32,91 @@ export default function Home({
     cinemaSettings,
 }) {
     // --- Hero Carousel State ---
+    const validHeroBanners = (heroBanners || []).filter((b) => !!b.image_path);
+    const heroCount = validHeroBanners.length;
     const [heroIndex, setHeroIndex] = useState(0);
-    const heroCount = heroBanners.length;
+
+    // Touch & Swipe gestures for Hero Carousel
+    const touchStartX = useRef(0);
+    const touchStartY = useRef(0);
+    const touchEndX = useRef(0);
+    const touchEndY = useRef(0);
+    const isSwiping = useRef(false);
+    const wasSwiped = useRef(false);
+
+    const handleTouchStart = (e) => {
+        if (!e.touches || e.touches.length === 0) return;
+        touchStartX.current = e.touches[0].clientX;
+        touchStartY.current = e.touches[0].clientY;
+        touchEndX.current = e.touches[0].clientX;
+        touchEndY.current = e.touches[0].clientY;
+        isSwiping.current = true;
+        wasSwiped.current = false;
+    };
+
+    const handleTouchMove = (e) => {
+        if (!isSwiping.current || !e.touches || e.touches.length === 0) return;
+        touchEndX.current = e.touches[0].clientX;
+        touchEndY.current = e.touches[0].clientY;
+        if (Math.abs(touchEndX.current - touchStartX.current) > 10) {
+            wasSwiped.current = true;
+        }
+    };
+
+    const handleTouchEnd = () => {
+        if (!isSwiping.current) return;
+        isSwiping.current = false;
+        if (heroCount <= 1) return;
+
+        const diffX = touchEndX.current - touchStartX.current;
+        const diffY = touchEndY.current - touchStartY.current;
+
+        // Dominant horizontal swipe with minimum threshold of 35px
+        if (Math.abs(diffX) > 35 && Math.abs(diffX) > Math.abs(diffY)) {
+            if (diffX < 0) {
+                // Swiped left -> Next slide
+                setHeroIndex((prev) => (prev + 1) % heroCount);
+            } else {
+                // Swiped right -> Previous slide
+                setHeroIndex((prev) => (prev - 1 + heroCount) % heroCount);
+            }
+        }
+    };
+
+    // Desktop mouse drag gestures
+    const mouseStartX = useRef(0);
+    const mouseEndX = useRef(0);
+    const isMouseDown = useRef(false);
+
+    const handleMouseDown = (e) => {
+        mouseStartX.current = e.clientX;
+        mouseEndX.current = e.clientX;
+        isMouseDown.current = true;
+        wasSwiped.current = false;
+    };
+
+    const handleMouseMove = (e) => {
+        if (!isMouseDown.current) return;
+        mouseEndX.current = e.clientX;
+        if (Math.abs(mouseEndX.current - mouseStartX.current) > 10) {
+            wasSwiped.current = true;
+        }
+    };
+
+    const handleMouseUp = () => {
+        if (!isMouseDown.current) return;
+        isMouseDown.current = false;
+        if (heroCount <= 1) return;
+
+        const diffX = mouseEndX.current - mouseStartX.current;
+        if (Math.abs(diffX) > 40) {
+            if (diffX < 0) {
+                setHeroIndex((prev) => (prev + 1) % heroCount);
+            } else {
+                setHeroIndex((prev) => (prev - 1 + heroCount) % heroCount);
+            }
+        }
+    };
 
     useEffect(() => {
         if (heroCount <= 1) return;
@@ -120,11 +203,21 @@ export default function Home({
 
             <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6 sm:py-6 space-y-7 sm:space-y-12">
                 {/* 1. HERO CAROUSEL BANNER */}
-                {heroBanners.length > 0 && (
+                {heroCount > 0 && (
                     <section aria-label="Sorotan Utama Bioskop" className="-mx-4 sm:mx-0">
                         <div className="relative overflow-hidden sm:rounded-3xl border-y sm:border border-border/80 dark:border-white/10 bg-slate-900 shadow-xl">
-                            <div className="relative w-full aspect-[4/3] sm:aspect-[2.35/1] max-h-[300px] sm:max-h-[460px]">
-                                {heroBanners.map((banner, idx) => {
+                            <div
+                                className="relative w-full aspect-[4/3] sm:aspect-[2.35/1] max-h-[300px] sm:max-h-[460px] touch-pan-y select-none cursor-grab active:cursor-grabbing"
+                                onTouchStart={handleTouchStart}
+                                onTouchMove={handleTouchMove}
+                                onTouchEnd={handleTouchEnd}
+                                onTouchCancel={() => { isSwiping.current = false; }}
+                                onMouseDown={handleMouseDown}
+                                onMouseMove={handleMouseMove}
+                                onMouseUp={handleMouseUp}
+                                onMouseLeave={handleMouseUp}
+                            >
+                                {validHeroBanners.map((banner, idx) => {
                                     const active = idx === heroIndex;
                                     const imgUrl = banner.image_path
                                         ? (banner.image_path.startsWith('http') ? banner.image_path : `/storage/${banner.image_path}`)
@@ -133,6 +226,23 @@ export default function Home({
                                         ? (banner.mobile_image_path.startsWith('http') ? banner.mobile_image_path : `/storage/${banner.mobile_image_path}`)
                                         : null;
 
+                                    if (!imgUrl) return null;
+
+                                    const bannerContent = (
+                                        <picture className="size-full">
+                                            {mobileImgUrl && (
+                                                <source media="(max-width: 640px)" srcSet={mobileImgUrl} />
+                                            )}
+                                            <img
+                                                src={imgUrl}
+                                                alt={banner.title || 'Sorotan Bioskop'}
+                                                className="size-full object-cover object-center select-none pointer-events-none"
+                                                loading={idx === 0 ? 'eager' : 'lazy'}
+                                                draggable="false"
+                                            />
+                                        </picture>
+                                    );
+
                                     return (
                                         <div
                                             key={banner.id || idx}
@@ -140,24 +250,22 @@ export default function Home({
                                                 active ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
                                             }`}
                                         >
-                                            {imgUrl ? (
-                                                <picture className="size-full">
-                                                    {mobileImgUrl && (
-                                                        <source media="(max-width: 640px)" srcSet={mobileImgUrl} />
-                                                    )}
-                                                    <img
-                                                        src={imgUrl}
-                                                        alt={banner.title || 'Sorotan Bioskop'}
-                                                        className="size-full object-cover object-center select-none"
-                                                        loading={idx === 0 ? 'eager' : 'lazy'}
-                                                    />
-                                                </picture>
+                                            {banner.cta_url ? (
+                                                <a
+                                                    href={banner.cta_url}
+                                                    onClick={(e) => {
+                                                        if (wasSwiped.current) {
+                                                            e.preventDefault();
+                                                        }
+                                                    }}
+                                                    className="block size-full"
+                                                    tabIndex={active ? 0 : -1}
+                                                    aria-label={banner.title || 'Lihat detail banner'}
+                                                >
+                                                    {bannerContent}
+                                                </a>
                                             ) : (
-                                                <div className="flex size-full flex-col items-center justify-center p-6 text-center bg-surface-2 text-text">
-                                                    <h2 className="text-xl sm:text-2xl font-black text-amber-500">
-                                                        {banner.title || 'Selamat Datang di SynemaX'}
-                                                    </h2>
-                                                </div>
+                                                bannerContent
                                             )}
                                         </div>
                                     );
@@ -185,7 +293,7 @@ export default function Home({
 
                                         {/* Indicators */}
                                         <div className="absolute bottom-3 inset-x-0 z-20 flex items-center justify-center gap-1.5">
-                                            {heroBanners.map((_, dotIdx) => (
+                                            {validHeroBanners.map((_, dotIdx) => (
                                                 <button
                                                     key={dotIdx}
                                                     type="button"

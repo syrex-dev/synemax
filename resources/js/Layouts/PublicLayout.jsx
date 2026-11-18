@@ -408,8 +408,8 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                         type="button"
                         onClick={handleDismissWaBubble}
                         className="absolute -top-1.5 -right-1 z-20 flex size-5 items-center justify-center rounded-full bg-slate-900/80 hover:bg-slate-950 text-white/80 hover:text-white border border-white/20 shadow-md backdrop-blur-xs transition hover:scale-110"
-                        title="Tutup chat Tanya Admin"
-                        aria-label="Tutup bubble Tanya Admin"
+                        title="Tutup chat Tanya Bioskop"
+                        aria-label="Tutup bubble Tanya Bioskop"
                     >
                         <X className="size-3 stroke-[2.5]" />
                     </button>
@@ -419,7 +419,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                         target="_blank"
                         rel="noopener noreferrer"
                         className="group flex flex-col items-center transition-all duration-300 hover:scale-105"
-                        aria-label="Hubungi Admin kami melalui WhatsApp"
+                        aria-label="Hubungi kami melalui WhatsApp: Tanya Bioskop"
                     >
                         {/* Mascot Character on Top */}
                         <div className="relative -mb-2 z-10 transition-transform duration-300 group-hover:-translate-y-1.5 pointer-events-none">
@@ -435,10 +435,10 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                             </span>
                         </div>
 
-                        {/* Green Pill / Bubble with "Tanya Admin" text */}
+                        {/* Green Pill / Bubble with "Tanya Bioskop" text */}
                         <div className="flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-emerald-600 group-hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-950/40 border border-emerald-400/40 transition-colors">
                             <MessageCircle className="size-3.5 sm:size-4 fill-white/20 shrink-0" />
-                            <span className="whitespace-nowrap tracking-wide">Tanya Admin</span>
+                            <span className="whitespace-nowrap tracking-wide">Tanya Bioskop</span>
                         </div>
                     </a>
                 </div>

@@ -26,25 +26,15 @@ class PublicCinemaController extends Controller
     {
         $settings = app(CinemaSettings::class);
 
-        // 1. Hero Carousel (Image only, admin managed)
+        // 1. Hero Carousel (Image only, admin managed, no placeholder fallbacks)
         $heroBanners = Banner::query()
             ->active()
             ->ofType('hero')
+            ->where('is_sample', false)
+            ->whereNotNull('image_path')
+            ->where('image_path', '!=', '')
             ->orderBy('sort_order')
             ->get();
-
-        if ($heroBanners->isEmpty()) {
-            $heroBanners = collect([
-                new Banner([
-                    'type' => 'hero',
-                    'title' => 'Selamat Datang di SynemaX Home Cinema',
-                    'image_path' => null,
-                    'target_type' => 'none',
-                    'sort_order' => 1,
-                    'is_active' => true,
-                ]),
-            ]);
-        }
 
         // 2. Info Chips from Settings
         $infoChips = $settings->homeInfoChips();
