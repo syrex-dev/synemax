@@ -8,13 +8,14 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class PublicMemberController extends Controller
 {
     /**
      * Tampilkan kartu digital member bertanda tangan (HMAC APP_KEY).
      */
-    public function show(Request $request, string $code, CinemaSettings $settings): Response
+    public function show(Request $request, string $code, CinemaSettings $settings): Response|InertiaResponse
     {
         // 1. Validasi URL bertanda tangan (HMAC)
         if (! $request->hasValidSignature()) {
@@ -64,7 +65,14 @@ class PublicMemberController extends Controller
             'discountVisit' => $settings->memberDiscountVisit(),
         ];
 
-        return Inertia::render('Public/Members/Card', $data);
+        return Inertia::render('Public/Members/Card', $data)
+            ->withViewData($data)
+            ->toResponse($request)
+            ->withHeaders([
+                'X-Robots-Tag' => 'noindex, nofollow',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma' => 'no-cache',
+            ]);
     }
 
     /**

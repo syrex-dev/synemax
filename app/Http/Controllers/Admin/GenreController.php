@@ -51,7 +51,8 @@ class GenreController extends Controller
             'activeCount' => $genres->where('is_active', true)->count(),
         ];
 
-        return Inertia::render('Admin/Genres/Index', $data);
+        return Inertia::render('Admin/Genres/Index', $data)
+            ->withViewData($data);
     }
 
     /**

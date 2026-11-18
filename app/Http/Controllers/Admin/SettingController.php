@@ -102,7 +102,8 @@ class SettingController extends Controller
             'telegramLogs' => $telegramLogs,
         ];
 
-        return Inertia::render('Admin/Settings/Edit', $data);
+        return Inertia::render('Admin/Settings/Edit', $data)
+            ->withViewData($data);
     }
 
     private function serializeSettings(CinemaSettings $settings): array

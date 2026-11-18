@@ -86,7 +86,8 @@ class FilmController extends Controller
             'canonicalGenres' => Genre::allActiveNames(),
         ];
 
-        return Inertia::render('Admin/Films/Index', $viewData);
+        return Inertia::render('Admin/Films/Index', $viewData)
+            ->withViewData($viewData);
     }
 
     public function create(Request $request): View|InertiaResponse

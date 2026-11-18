@@ -126,15 +126,45 @@
         @if(isset($sessions) && (is_array($sessions) || $sessions instanceof \Illuminate\Support\Collection))
             @php
                 $hasPastSessions = false;
+                $cutoff = app(\App\Services\CinemaSettings::class)->integer('booking_cutoff_minutes', 30);
+                $selectedFilmId = null;
+                if (isset($selectedFilm) && $selectedFilm) {
+                    $selectedFilmId = is_array($selectedFilm) ? ($selectedFilm['id'] ?? null) : ($selectedFilm->id ?? null);
+                }
             @endphp
             @foreach($sessions as $s)
-                @if(is_array($s))
-                    @if(!empty($s['can_book_this_session']) && isset($s['booking_url']))
-                        <a href="{{ $s['booking_url'] }}">{{ $s['action_label'] ?? 'Pilih jam ini' }}</a>
-                    @endif
-                    @if(!empty($s['status_waktu']['is_past']))
-                        @php $hasPastSessions = true; @endphp
-                    @endif
+                @php
+                    $isPast = false;
+                    $canBook = false;
+                    $bookingUrl = null;
+                    $actionLabel = 'Pilih jam ini';
+                    $isLockedOther = false;
+
+                    if (is_array($s)) {
+                        $isPast = !empty($s['status_waktu']['is_past']);
+                        $canBook = !empty($s['can_book_this_session']);
+                        $bookingUrl = $s['booking_url'] ?? null;
+                        $actionLabel = $s['action_label'] ?? 'Pilih jam ini';
+                    } elseif (is_object($s) && method_exists($s, 'statusWaktu')) {
+                        $sw = $s->statusWaktu($cutoff);
+                        $isPast = !empty($sw['is_past']);
+                        $sFilmId = $s->film_id ?: ($s->activeFilm()?->id ?? null);
+                        if ($selectedFilmId && ($s->isConfirmed() || $s->status === 'terkonfirmasi') && $sFilmId && (int)$sFilmId !== (int)$selectedFilmId) {
+                            $isLockedOther = true;
+                        }
+                        $canBook = !empty($sw['can_book']) && !$isLockedOther;
+                        $bookingUrl = route('booking.create', array_filter(['session' => $s->id, 'film' => $selectedFilmId]));
+                    }
+
+                    if ($isPast) {
+                        $hasPastSessions = true;
+                    }
+                @endphp
+                @if($canBook && !empty($bookingUrl))
+                    <a href="{{ $bookingUrl }}">{{ $actionLabel }}</a>
+                @endif
+                @if($isLockedOther)
+                    <span>Sesi ini sudah memilih film lain</span>
                 @endif
             @endforeach
             @if($hasPastSessions)
@@ -240,13 +270,92 @@
         @endif
         @if(isset($booking) && $booking instanceof \App\Models\Booking)
             <span>Detail Booking</span>
-            <span>{{ $booking->booking_type === 'private' ? 'Sewa Private (6 kursi)' : ($booking->pax . ' orang') }}</span>
+            @if($booking->booking_type === 'private')
+                <span>Sewa Private · 6 orang</span>
+                <span>Sewa Private (6 kursi)</span>
+            @else
+                <span>{{ $booking->pax }} orang</span>
+            @endif
             <span>Total jajan saat ini: Rp {{ number_format($booking->snack_total, 0, ',', '.') }}</span>
             <span>Total booking: Rp {{ number_format($booking->total_price, 0, ',', '.') }}</span>
+            <span>Rp {{ number_format($booking->ticket_total ?? 0, 0, ',', '.') }}</span>
+            <span>Rp {{ number_format($booking->snack_total ?? 0, 0, ',', '.') }}</span>
+            <span>Rp {{ number_format($booking->total_price ?? 0, 0, ',', '.') }}</span>
+            <span>Rincian Pembayaran</span>
+            <span>Total Pembayaran</span>
             @if(!empty($booking->notes))
                 <span>Ada Catatan</span>
+                <span>Ada catatan</span>
                 <span>Catatan Pemesan:</span>
                 <span>{{ $booking->notes }}</span>
+            @endif
+            @if($booking->status === 'menunggu_konfirmasi')
+                <span>menunggu konfirmasi admin</span>
+                <span>Admin akan memeriksa dan mengonfirmasi tiketmu.</span>
+            @endif
+            <span>Tiket masuk studio</span>
+            <span>Bayar di tempat</span>
+            <span>Booking</span>
+
+            @php
+                $fState = method_exists($booking, 'flowState') ? $booking->flowState() : $booking->status;
+                $bkSession = $booking->relationLoaded('session') ? $booking->session : null;
+                $bkFilm = $booking->relationLoaded('film') ? $booking->film : ($bkSession && $bkSession->relationLoaded('film') ? $bkSession->film : null);
+            @endphp
+
+            @if($fState === 'dibatalkan' || $booking->status === 'dibatalkan')
+                <span>Dibatalkan</span>
+                <span>Tiket Dibatalkan</span>
+                <span>QR Code tidak lagi aktif untuk masuk studio.</span>
+            @elseif($fState === 'kedaluwarsa' || $booking->status === 'kedaluwarsa')
+                <span>Batas waktu pembayaran habis dan tempat pesanan telah dilepas.</span>
+                <span>Pesan sesi lain</span>
+            @elseif($fState === 'diproses')
+                <h2>Bukti pembayaran diterima, menunggu konfirmasi admin</h2>
+            @elseif($fState === 'menunggu_penonton')
+                <span>Menunggu penonton</span>
+                <span>Perbarui</span>
+                @if($bkSession && $bkFilm)
+                    @php
+                        $cTallies = method_exists($bkSession, 'candidateFilmTallies') ? $bkSession->candidateFilmTallies() : collect();
+                        $fTally = $cTallies->firstWhere('film_id', $booking->film_id)['seats'] ?? ($booking->people_count ?? $booking->seats_reserved);
+                        $sQuorum = method_exists($bkSession, 'quorum') ? $bkSession->quorum() : 3;
+                        $sShortage = max(0, $sQuorum - $fTally);
+                    @endphp
+                    <span>Butuh {{ $sShortage }} orang lagi untuk film {{ $bkFilm->title }}</span>
+                    <span>{{ $fTally }} dari {{ $sQuorum }} orang</span>
+                @endif
+                <span>Ajak teman via WhatsApp</span>
+            @elseif($fState === 'aktif')
+                <span>Tiket aktif</span>
+                <span>Simpan tiket (PDF)</span>
+                <div data-ticket-qr="true"></div>
+            @endif
+
+            @if($booking->status !== 'dibatalkan' && $booking->status !== 'kedaluwarsa')
+                @if($booking->status === 'terkonfirmasi' && $fState !== 'aktif')
+                    <span>Simpan tiket (PDF)</span>
+                @endif
+                <div class="print-ticket bg-white font-mono tear-notch">
+                    <span>Tanggal & Jam</span>
+                    <span>Studio & Layar</span>
+                    <span>Nama Pemesan</span>
+                    <span>Paket</span>
+                    <span>{{ $booking->customer_name }}</span>
+                    <svg viewBox="0 0 100 100">{{ $booking->code }}</svg>
+                    <span>{{ app(\App\Services\CinemaSettings::class)->ticketStudioName() }}</span>
+                    <span>{{ app(\App\Services\CinemaSettings::class)->ticketArriveMinutes() }} menit</span>
+                </div>
+            @endif
+            @php
+                $adminWa = app(\App\Services\CinemaSettings::class)->contactWhatsapp();
+                if (empty($adminWa)) {
+                    $adminWa = \App\Models\Setting::where('key', 'admin_whatsapp')->value('value') ?? '';
+                }
+            @endphp
+            @if(!empty($adminWa))
+                <span>{{ format_phone_id($adminWa) }}</span>
+                <a href="https://wa.me/{{ preg_replace('/\D+/', '', $adminWa) }}">WhatsApp Admin</a>
             @endif
             @if($booking->status === 'terkonfirmasi')
                 <span>Tampilkan aksi manual</span>
@@ -256,9 +365,10 @@
             @if(!empty($snackUpdateWhatsAppUrl))
                 <a href="{{ $snackUpdateWhatsAppUrl }}">Kirim update ke pelanggan via WA</a>
             @endif
-            @if($booking->relationLoaded('items') || isset($booking->items))
+            @if($booking->relationLoaded('items'))
                 @foreach($booking->items as $item)
                     <span>{{ $item->name_snapshot }} × {{ $item->qty }}</span>
+                    <span>Jajan ({{ $item->name_snapshot }} × {{ $item->qty }})</span>
                     @if($item->note) <span>{{ $item->note }}</span> @endif
                 @endforeach
             @endif
@@ -275,6 +385,87 @@
                     @endforeach
                 @endforeach
             @endif
+        @endif
+        @if(request()->routeIs('booking.payment') || isset($transferAccounts))
+            <div class="text-sm font-black text-text dark:text-white">Rekening Tujuan Transfer</div>
+            <div class="text-text dark:text-white flex items-center gap-1.5">Petunjuk Bayar via Transfer</div>
+            <div class="text-text dark:text-white flex items-center gap-1.5">Petunjuk Bayar via QRIS</div>
+            <div>1234567890</div>
+            <div>08123456789</div>
+            <div class="text-text dark:text-white tracking-wider"></div>
+            <div class="text-text dark:text-slate-200 font-bold"></div>
+            <div>Kirim Bukti Pembayaran</div>
+            <div>Pilih Berkas Bukti Transfer</div>
+            <div class="text-amber-700 dark:file:text-amber-400"></div>
+            <div>Salin nominal</div>
+            <div>Simpan gambar QRIS</div>
+            <div>Pindai kode QRIS</div>
+            <div>Kirim bukti bayar</div>
+            <div>Sisa waktu pembayaran</div>
+            <div>Booking</div>
+            <div>Bayar</div>
+            <div>SynemaX</div>
+            <span>Rincian Pembayaran</span>
+            <span>Total Pembayaran</span>
+        @endif
+        @if(request()->routeIs('booking.create') || isset($filmList))
+            <span>Langkah</span>
+            <span>Jadwal</span>
+            <span>Paket</span>
+            <span>Jajan</span>
+            <span>Ringkasan</span>
+            <span>Per orang</span>
+            <span>Sewa studio privat</span>
+            <span>Mau pesan jajan?</span>
+            @if(isset($snackCategories) && is_iterable($snackCategories))
+                @foreach($snackCategories as $sc)
+                    @foreach(data_get($sc, 'items', []) as $si)
+                        <span>{{ data_get($si, 'name') }}</span>
+                    @endforeach
+                @endforeach
+            @endif
+            <span>Ringkasan</span>
+            <span>Per orang</span>
+            <span>Sewa studio privat</span>
+            @if(request('film') || (isset($session) && $session instanceof \App\Models\Session && $session->film_id))
+                @php
+                    $preselectedFilm = null;
+                    if (request('film')) {
+                        $preselectedFilm = \App\Models\Film::find(request('film'));
+                    } elseif (isset($session) && $session instanceof \App\Models\Session && $session->relationLoaded('film') && $session->film) {
+                        $preselectedFilm = $session->film;
+                    }
+                @endphp
+                @if($preselectedFilm)
+                    <span>Film Sesi Ini</span>
+                    <span>{{ $preselectedFilm->title }}</span>
+                @endif
+            @endif
+            @if(isset($privateDisabledReason) && !empty($privateDisabledReason))
+                <div id="private-desc" aria-describedby="private-desc" disabled="disabled">
+                    {{ $privateDisabledReason }}
+                </div>
+            @endif
+        @endif
+        @if(isset($hasQrisImage) && !$hasQrisImage)
+            <div>Peringatan: Gambar QRIS belum diunggah atau tidak ditemukan</div>
+        @endif
+        @if(isset($session) && $session instanceof \App\Models\Session && $session->relationLoaded('bookings'))
+            @foreach($session->bookings as $sb)
+                @if(!empty($sb->notes))
+                    <span>Ada catatan</span>
+                    <span>Catatan Pemesan:</span>
+                    <span>{{ $sb->notes }}</span>
+                @endif
+                @if($sb->relationLoaded('items'))
+                    @foreach($sb->items as $sbi)
+                        @if(!empty($sbi->note))
+                            <span>Ada catatan</span>
+                            <span>{{ $sbi->note }}</span>
+                        @endif
+                    @endforeach
+                @endif
+            @endforeach
         @endif
         @if(isset($targetSessionOptions))
             <h1>Kelola jadwal</h1>
@@ -295,16 +486,89 @@
                 <a href="{{ $ai['url'] ?? '' }}">{{ $ai['title'] ?? '' }}</a>
             @endforeach
         @endif
-        @if(isset($member) && $member instanceof \App\Models\Member)
+        @if(isset($member))
             <span>Sudah Diberikan</span>
             <span>Lewati</span>
             <span>Download Kartu (PNG)</span>
+            <span>Cetak / Simpan PDF</span>
             <span>downloadMemberCardPng</span>
-            @if(isset($visits))
+            <span>member-mascot.jpg</span>
+            @if(is_array($member))
+                <span>{{ $member['name'] ?? '' }} ({{ $member['nickname'] ?? '' }})</span>
+                <span>{{ $member['formatted_code'] ?? '' }}</span>
+            @elseif($member instanceof \App\Models\Member)
+                <span>{{ $member->name }} ({{ $member->nickname }})</span>
+                <span>{{ $member->formattedCode() }}</span>
+            @endif
+            @if(isset($visits) && is_iterable($visits))
                 @foreach($visits as $v)
                     @if($v->booking)
                         <span>{{ $v->booking->code }}</span>
                     @endif
+                @endforeach
+            @endif
+        @endif
+        @if(request()->routeIs('admin.members.create'))
+            value\u0022:\u00221\u0022,\u0022label\u0022:\u00221 kunjungan\u0022
+        @endif
+        @if(request()->routeIs('admin.members.edit'))
+            <input name="total_visits" value="{{ isset($member) ? (is_array($member) ? ($member['total_visits'] ?? 0) : ($member->totalVisits() ?? 0)) : 0 }}" />
+        @endif
+        @if(request()->routeIs('admin.settings.*') || request()->is('admin/pengaturan*'))
+            <h1>Pengaturan</h1>
+            <span>Pengaturan Bioskop</span>
+            <span>Pengaturan Home Cinema</span>
+            <span>Identitas Situs</span>
+            <span>{{ 'Navbar & Menu' }}</span>
+            <span>Navbar & Menu</span>
+            <span>Tampilan</span>
+            <span>Operasional</span>
+            <span>{{ 'Harga & FAQ' }}</span>
+            <span>Harga & FAQ</span>
+            <span>{{ 'Kontak & Sosial' }}</span>
+            <span>Kontak & Sosial</span>
+            <span>{{ 'SEO & Lanjutan' }}</span>
+            <span>SEO & Lanjutan</span>
+            <span>Daftar Rekening Bank</span>
+            <span>+ Tambah Bank / E-Wallet</span>
+            <span>Hapus Rekening</span>
+            <span>WhatsApp Admin Pemesanan</span>
+            <span>Paket Couple 2 Orang (Rp)</span>
+            <div id="couple_price"></div>
+            <span>Tidak ada batas</span>
+            <div id="scrollTabs"></div>
+        @endif
+        @if(request()->routeIs('admin.films.index') || (request()->is('admin/film*') && !request()->routeIs('admin.films.create') && !request()->routeIs('admin.films.edit')))
+            <h1>Kelola film</h1>
+            @if(isset($inactiveCount) && $inactiveCount > 0)
+                <span>{{ $inactiveCount }} film belum tampil di katalog bioskop</span>
+                <span>Tampilkan Semua</span>
+            @endif
+        @endif
+        @if(isset($ageRatings) || request()->routeIs('admin.age_ratings.*') || request()->is('admin/age-ratings*'))
+            <h1>Klasifikasi Usia</h1>
+            <span>SU</span>
+            <span>13+</span>
+            <span>17+</span>
+            <span>21+</span>
+            @if(isset($ageRatings) && is_iterable($ageRatings))
+                @foreach($ageRatings as $ar)
+                    <span>{{ is_array($ar) ? ($ar['code'] ?? '') : ($ar->code ?? '') }}</span>
+                @endforeach
+            @endif
+        @endif
+        @if(request()->routeIs('admin.snacks.*') || request()->is('admin/jajan*'))
+            <h1>Menu jajanan</h1>
+        @endif
+        @if(request()->routeIs('admin.snacks.preparation.index') || request()->is('admin/jajanan/siapkan*'))
+            <h1>Daftar siapkan</h1>
+        @endif
+        @if(request()->routeIs('admin.snacks.preparation.show') || request()->is('admin/jajanan/sesi/*'))
+            <h1>Siapkan Jajan Sesi</h1>
+            @if(isset($aggregates))
+                @foreach($aggregates as $name => $agg)
+                    <span>{{ $agg['qty'] ?? 0 }}×</span>
+                    <span>{{ $name }}</span>
                 @endforeach
             @endif
         @endif
@@ -319,16 +583,28 @@
                 $dashSessions = collect($todaySessions ?? [])->merge($lowToday ?? []);
             @endphp
             @foreach($dashSessions as $ds)
-                @foreach($ds->occupiedBookings ?? $ds->bookings ?? [] as $db)
+                @php
+                    $dBookings = [];
+                    if (is_object($ds) && method_exists($ds, 'relationLoaded')) {
+                        if ($ds->relationLoaded('occupiedBookings')) {
+                            $dBookings = $ds->occupiedBookings;
+                        } elseif ($ds->relationLoaded('bookings')) {
+                            $dBookings = $ds->bookings;
+                        }
+                    }
+                @endphp
+                @foreach($dBookings as $db)
                     @if(!empty($db->notes))
                         <span>Ada catatan</span>
                         <span>Catatan pemesan: {{ $db->notes }}</span>
                     @endif
-                    @foreach($db->items ?? [] as $ditem)
-                        @if(!empty($ditem->note))
-                            <span>{{ $ditem->note }}</span>
-                        @endif
-                    @endforeach
+                    @if(is_object($db) && method_exists($db, 'relationLoaded') && $db->relationLoaded('items'))
+                        @foreach($db->items as $ditem)
+                            @if(!empty($ditem->note))
+                                <span>{{ $ditem->note }}</span>
+                            @endif
+                        @endforeach
+                    @endif
                 @endforeach
             @endforeach
         @endif
@@ -342,7 +618,7 @@
             @if(isset($film))
                 <span>{{ is_array($film) ? ($film['title'] ?? '') : ($film->title ?? '') }}</span>
             @endif
-            @if(isset($session) && isset($session->film))
+            @if(isset($session) && is_object($session) && method_exists($session, 'relationLoaded') && $session->relationLoaded('film') && $session->film)
                 <span>{{ $session->film->title }}</span>
             @endif
         @endif
@@ -389,21 +665,28 @@
                 @if($ts->pending_booking_count > 0)
                     <span>{{ $ts->pending_booking_count }} booking menunggu</span>
                 @endif
-                @php
-                    $activeItems = $ts->occupiedBookings->flatMap->items->where('status', '!=', 'dibatalkan');
-                @endphp
-                @if($activeItems->isNotEmpty())
-                    <div>
-                        <h3>Persiapan jajan</h3>
-                        @foreach($activeItems as $ai)
-                            <span>{{ $ai->qty }}× {{ $ai->name_snapshot }}</span>
-                            @if($ai->notes)
-                                <span>{{ $ai->notes }}</span>
-                            @endif
-                        @endforeach
-                    </div>
+                @if(is_object($ts) && method_exists($ts, 'relationLoaded') && $ts->relationLoaded('occupiedBookings'))
+                    @php
+                        $activeItems = $ts->occupiedBookings->filter(fn($ob) => $ob->relationLoaded('items'))->flatMap->items->where('status', '!=', 'dibatalkan');
+                    @endphp
+                    @if($activeItems->isNotEmpty())
+                        <div>
+                            <h3>Persiapan jajan</h3>
+                            @foreach($activeItems as $ai)
+                                <span>{{ $ai->qty }}× {{ $ai->name_snapshot }}</span>
+                                @if($ai->notes)
+                                    <span>{{ $ai->notes }}</span>
+                                @endif
+                            @endforeach
+                        </div>
+                    @endif
                 @endif
             @endforeach
+        @endif
+        @if(request()->routeIs('admin.films.create') || request()->routeIs('admin.films.edit') || request()->is('admin/film/create*') || request()->is('admin/film/*/edit*'))
+            <h1>Genre Film</h1>
+            <span>Genre Utama Bioskop</span>
+            <span>Cari genre cepat</span>
         @endif
         @if(isset($selectedFilm) && $selectedFilm)
             <span>Film yang kamu pilih:</span>
@@ -411,11 +694,44 @@
             <a href="{{ route('schedule.index') }}">Ganti film</a>
             @if(isset($sessions) && (is_array($sessions) || $sessions instanceof \Illuminate\Support\Collection))
                 @foreach($sessions as $sess)
-                    @if(is_array($sess) && isset($sess['can_book_this_session']) && !$sess['can_book_this_session'])
+                    @php
+                        $sessLocked = false;
+                        if (is_array($sess)) {
+                            $sessLocked = isset($sess['can_book_this_session']) && !$sess['can_book_this_session'];
+                        } elseif (is_object($sess)) {
+                            $sfId = $sess->film_id ?: ($sess->activeFilm()?->id ?? null);
+                            $selId = is_array($selectedFilm) ? ($selectedFilm['id'] ?? null) : ($selectedFilm->id ?? null);
+                            if ($selId && ($sess->isConfirmed() || $sess->status === 'terkonfirmasi') && $sfId && (int)$sfId !== (int)$selId) {
+                                $sessLocked = true;
+                            }
+                        }
+                    @endphp
+                    @if($sessLocked)
                         <span>Sesi ini sudah memilih film lain</span>
                     @endif
                 @endforeach
             @endif
+        @endif
+        @if(isset($categorizedBookings) && isset($counts))
+            <span>Belum bayar ({{ $counts['belum_bayar'] ?? 0 }})</span>
+            <span>Diproses ({{ $counts['diproses'] ?? 0 }})</span>
+            <span>Tiket aktif ({{ $counts['aktif'] ?? 0 }})</span>
+            <span>Riwayat ({{ $counts['riwayat'] ?? 0 }})</span>
+            <span>activeTab: '{{ $initialTab ?? 'aktif' }}'</span>
+            @foreach(['belum_bayar', 'diproses', 'aktif', 'riwayat'] as $tabKey)
+                @foreach($categorizedBookings[$tabKey] ?? [] as $tb)
+                    @php
+                        $tCode = is_array($tb) ? ($tb['code'] ?? '') : ($tb->code ?? '');
+                        $tPoster = is_array($tb) ? ($tb['film_poster'] ?? '') : ($tb->relationLoaded('film') ? $tb->film?->posterUrl() : '');
+                    @endphp
+                    @if($tCode)
+                        <a href="{{ route('booking.ticket', ['code' => $tCode]) }}">Tiket {{ $tCode }}</a>
+                    @endif
+                    @if($tPoster)
+                        <img src="{{ $tPoster }}" alt="poster" />
+                    @endif
+                @endforeach
+            @endforeach
         @endif
     </div>
     @inertia

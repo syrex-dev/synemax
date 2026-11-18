@@ -41,7 +41,8 @@ class AgeRatingController extends Controller
             'activeCount' => $ageRatings->where('is_active', true)->count(),
         ];
 
-        return Inertia::render('Admin/AgeRatings/Index', $data);
+        return Inertia::render('Admin/AgeRatings/Index', $data)
+            ->withViewData($data);
     }
 
     /**

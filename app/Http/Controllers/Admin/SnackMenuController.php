@@ -31,7 +31,8 @@ class SnackMenuController extends Controller
             'items' => $items,
         ];
 
-        return Inertia::render('Admin/Snacks/Index', $data);
+        return Inertia::render('Admin/Snacks/Index', $data)
+            ->withViewData($data);
     }
 
     public function create(Request $request): View|InertiaResponse
@@ -205,7 +206,8 @@ class SnackMenuController extends Controller
             'categories' => MenuCategory::query()->orderBy('sort_order')->orderBy('name')->get(),
         ];
 
-        return Inertia::render('Admin/Snacks/Form', $data);
+        return Inertia::render('Admin/Snacks/Form', $data)
+            ->withViewData($data);
     }
 
     private function validatedItem(Request $request): array

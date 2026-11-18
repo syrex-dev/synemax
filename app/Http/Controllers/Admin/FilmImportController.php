@@ -33,7 +33,8 @@ class FilmImportController extends Controller
             'recentBatches' => $recentBatches,
         ];
 
-        return Inertia::render('Admin/Films/Import', $data);
+        return Inertia::render('Admin/Films/Import', $data)
+            ->withViewData($data);
     }
 
     /**
@@ -212,7 +213,8 @@ class FilmImportController extends Controller
             'publishOnImport' => $publishOnImport,
         ];
 
-        return Inertia::render('Admin/Films/ImportPreview', $data);
+        return Inertia::render('Admin/Films/ImportPreview', $data)
+            ->withViewData($data);
     }
 
     /**
@@ -281,7 +283,8 @@ class FilmImportController extends Controller
             'publishOnImport' => $staged['publish_on_import'] ?? true,
         ];
 
-        return Inertia::render('Admin/Films/ImportPreview', $data);
+        return Inertia::render('Admin/Films/ImportPreview', $data)
+            ->withViewData($data);
     }
 
     /**

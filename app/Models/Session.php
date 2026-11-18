@@ -257,6 +257,23 @@ class Session extends Model
      *
      * @return Collection<int, array{film_id: int, film: ?Film, title: string, seats: int, count: int, is_quorum_reached: bool, needed_seats: int}>
      */
+    public function tallyForFilm(?int $filmId): int
+    {
+        if (! $filmId) {
+            return 0;
+        }
+
+        if ($this->relationLoaded('occupiedBookings')) {
+            return (int) $this->occupiedBookings
+                ->where('film_id', $filmId)
+                ->sum('seats_reserved');
+        }
+
+        return (int) $this->occupiedBookings()
+            ->where('film_id', $filmId)
+            ->sum('seats_reserved');
+    }
+
     public function candidateFilmTallies(): Collection
     {
         if ($this->_talliesCache !== null) {
@@ -677,13 +694,13 @@ class Session extends Model
             ];
         }
 
-        // 10. Menunggu Kuorum (ada peminat tapi belum kuorum)
+        // 10. Menunggu Penonton / Kuorum (ada peminat tapi belum kuorum)
         $leading = $this->leadingFilmTally();
         if ($leading) {
             $quorum = $this->quorum();
 
             return [
-                'key' => 'menunggu_kuorum',
+                'key' => 'menunggu_penonton',
                 'label' => "Film {$leading['title']} {$leading['seats']}/{$quorum} · butuh {$leading['needed_seats']} lagi",
                 'can_book' => true,
                 'is_past' => false,
@@ -732,7 +749,7 @@ class Session extends Model
         }
 
         if ($this->occupiedBookings()->exists()) {
-            return 'menunggu_kuorum';
+            return 'menunggu_penonton';
         }
 
         return 'tersedia';

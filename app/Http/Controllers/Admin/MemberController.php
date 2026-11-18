@@ -312,7 +312,8 @@ class MemberController extends Controller
             ],
         ];
 
-        return Inertia::render('Admin/Members/Edit', $data);
+        return Inertia::render('Admin/Members/Edit', $data)
+            ->withViewData($data);
     }
 
     public function update(Request $request, Member $member, WebpImageProcessor $images): RedirectResponse

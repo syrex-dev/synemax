@@ -36,7 +36,8 @@ class SnackPreparationController extends Controller
 
         $data = ['sessions' => $sessions];
 
-        return Inertia::render('Admin/Snacks/PreparationIndex', $data);
+        return Inertia::render('Admin/Snacks/PreparationIndex', $data)
+            ->withViewData($data);
     }
 
     public function show(Request $request, Session $session): View|InertiaResponse
@@ -60,7 +61,8 @@ class SnackPreparationController extends Controller
             'aggregates' => $aggregates,
         ];
 
-        return Inertia::render('Admin/Snacks/Preparation', $data);
+        return Inertia::render('Admin/Snacks/Preparation', $data)
+            ->withViewData($data);
     }
 
     public function updateItemStatus(Request $request, BookingItem $bookingItem): RedirectResponse

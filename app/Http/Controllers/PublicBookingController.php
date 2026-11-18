@@ -289,7 +289,10 @@ class PublicBookingController extends Controller
             'paymentTimeLimitMinutes' => $settings->paymentTimeLimitMinutes(),
         ];
 
-        return Inertia::render('Public/Booking/Payment', $viewData);
+        return Inertia::render('Public/Booking/Payment', $viewData)
+            ->withViewData($viewData)
+            ->toResponse($request)
+            ->withHeaders(['Referrer-Policy' => 'strict-origin-when-cross-origin']);
     }
 
     public function ticketView(
@@ -377,7 +380,10 @@ class PublicBookingController extends Controller
             'cancellationCutoffHours' => $cancellationCutoff,
         ];
 
-        return Inertia::render('Public/Booking/Ticket', $viewData);
+        return Inertia::render('Public/Booking/Ticket', $viewData)
+            ->withViewData($viewData)
+            ->toResponse($request)
+            ->withHeaders(['Referrer-Policy' => 'strict-origin-when-cross-origin']);
     }
 
     public function changeFilm(
@@ -628,7 +634,7 @@ class PublicBookingController extends Controller
                 'payment_expires_at' => $b->payment_expires_at?->toIso8601String(),
                 'film_title' => $film?->title ?? 'Film Sesi',
                 'film_poster' => $film?->posterUrl(),
-                'session_date' => $session?->session_date?->toDateString(),
+                'session_date' => $session?->session_date ? (is_string($session->session_date) ? $session->session_date : $session->session_date->toDateString()) : null,
                 'formatted_date' => $session?->session_date ? format_tanggal_id($session->session_date) : '-',
                 'session_time' => $session?->start_time,
                 'formatted_time' => $session?->start_time ? format_jam_id($session->start_time) : '-',
@@ -672,7 +678,8 @@ class PublicBookingController extends Controller
             ],
         ];
 
-        return Inertia::render('Public/Tickets/Index', $data);
+        return Inertia::render('Public/Tickets/Index', $data)
+            ->withViewData($data);
     }
 
     public function lookupAndAdd(
@@ -717,9 +724,9 @@ class PublicBookingController extends Controller
         return redirect()->route('booking.ticket', ['code' => $booking->code]);
     }
 
-    public function lookupForm(): View
+    public function lookupForm(): RedirectResponse
     {
-        return view('public.booking-status');
+        return redirect()->route('booking.ticket.index');
     }
 
     public function uploadProof(
