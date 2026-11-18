@@ -29,7 +29,7 @@ export default function Show({ article, relatedArticles = [], isPreview = false 
 
     return (
         <PublicLayout title={article.judul}>
-            <Head>
+            <Head title={article.judul}>
                 <meta property="og:type" content="article" />
                 <meta property="og:title" content={article.judul} />
                 {article.ringkasan && (

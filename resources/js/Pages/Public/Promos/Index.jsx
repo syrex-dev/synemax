@@ -5,7 +5,7 @@ import { Sparkles, Calendar, ArrowRight } from 'lucide-react';
 export default function Index({ activePromos = [], expiredPromos = [] }) {
     return (
         <PublicLayout title="Promo & Penawaran">
-            <Head>
+            <Head title="Promo & Penawaran">
                 <meta
                     name="description"
                     content="Temukan berbagai promo menarik, paket hemat nonton privat, dan penawaran spesial di studio mini SynemaX."

@@ -96,7 +96,7 @@ export default function Index({
 
     return (
         <PublicLayout title="Katalog Film">
-            <Head>
+            <Head title="Katalog Film">
                 <meta
                     name="description"
                     content="Jelajahi koleksi film SynemaX. Pilih film favoritmu berdasarkan genre dan tahun rilis untuk diputar privat di studio mini."

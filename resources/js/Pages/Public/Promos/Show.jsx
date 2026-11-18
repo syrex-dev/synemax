@@ -7,7 +7,7 @@ export default function Show({ promo }) {
 
     return (
         <PublicLayout title={promo?.title}>
-            <Head>
+            <Head title={promo?.title}>
                 <meta
                     name="description"
                     content={promo?.description ? promo.description.slice(0, 150) : `Lihat promo ${promo?.title} di SynemaX.`}

@@ -231,7 +231,7 @@ export default function Payment({
 
     return (
         <PublicLayout title={`Pembayaran Booking ${booking.code}`}>
-            <Head>
+            <Head title={`Pembayaran Booking ${booking.code}`}>
                 <meta name="description" content={`Selesaikan pembayaran untuk booking ${booking.code} di SynemaX.`} />
                 {booking.payment_method === 'qris' && hasQrisImage && (
                     <link rel="preload" as="image" href={`/payment/qris?v=${qrisVersion}`} fetchpriority="high" />

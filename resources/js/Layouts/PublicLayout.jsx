@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, Head } from '@inertiajs/react';
 import BrandLogo from '../Components/BrandLogo';
 import ThemeToggle from '../Components/ThemeToggle';
 import FlashMessage from '../Components/FlashMessage';
@@ -28,11 +28,13 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
     const { cinemaSettings } = usePage().props;
     const [menuSheetOpen, setMenuSheetOpen] = useState(false);
 
+    const siteName = cinemaSettings?.siteName || 'SynemaX';
+    const pageTitle = title || 'Beranda';
+    const fullTitle = pageTitle.startsWith(siteName) ? pageTitle : `${siteName} | ${pageTitle}`;
+
     useEffect(() => {
-        if (title) {
-            document.title = `${title} - ${cinemaSettings?.siteName || 'SynemaX'}`;
-        }
-    }, [title, cinemaSettings]);
+        document.title = fullTitle;
+    }, [fullTitle]);
 
     const allMenuItems = cinemaSettings?.navbarMenu || [
         { key: 'home', label: 'Beranda', short_label: 'Beranda', url: '/', is_visible: true },
@@ -94,6 +96,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
 
     return (
         <div className="min-h-screen flex flex-col bg-bg font-sans text-text antialiased transition-colors duration-200">
+            <Head title={pageTitle} />
             <FlashMessage />
 
             {/* Header Sticky Navbar */}

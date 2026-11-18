@@ -42,7 +42,7 @@ export default function Index({ events, currentFilter = 'semua' }) {
 
     return (
         <PublicLayout title="Jadwal Nobar Sepak Bola">
-            <Head>
+            <Head title="Jadwal Nobar Sepak Bola">
                 <meta
                     name="description"
                     content="Nonton bareng pertandingan sepak bola seru di SynemaX. Layar lebar proyektor, tata suara jernih, suasana hangat komunitas warga."

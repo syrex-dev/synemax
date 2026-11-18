@@ -34,7 +34,7 @@ export default function Show({
 
     return (
         <PublicLayout title={film?.title}>
-            <Head>
+            <Head title={film?.title}>
                 <meta
                     name="description"
                     content={film?.synopsis ? film.synopsis.slice(0, 150) : `Tonton film ${film?.title} di studio privat SynemaX.`}

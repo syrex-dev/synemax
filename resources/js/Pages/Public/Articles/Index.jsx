@@ -62,7 +62,7 @@ export default function Index({
 
     return (
         <PublicLayout title={activeTab === 'harga-faq' ? 'Harga Tiket & FAQ' : 'Kabar & Pengumuman'}>
-            <Head>
+            <Head title={activeTab === 'harga-faq' ? 'Harga Tiket & FAQ' : 'Kabar & Pengumuman'}>
                 <meta
                     name="description"
                     content="Informasi lengkap harga tiket studio mini, FAQ pemesanan, dan pengumuman terkini dari SynemaX."

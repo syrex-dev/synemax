@@ -32,7 +32,7 @@ export default function Schedule({
 
     return (
         <PublicLayout title={`Jadwal ${targetDateFormatted}`}>
-            <Head>
+            <Head title={`Jadwal ${targetDateFormatted}`}>
                 <meta
                     name="description"
                     content="Pilih jadwal nonton di studio mini SynemaX. Kapasitas tiap sesi maksimal enam tempat."

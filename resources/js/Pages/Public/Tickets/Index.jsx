@@ -59,7 +59,7 @@ export default function Index({
 
     return (
         <PublicLayout title="Tiket Saya">
-            <Head>
+            <Head title="Tiket Saya">
                 <meta
                     name="description"
                     content="Akses tiket bioskop digital, cek status pemesanan, dan selesaikan pembayaran booking di SynemaX."

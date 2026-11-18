@@ -192,7 +192,7 @@ export default function Create({
 
     return (
         <PublicLayout title="Pesan Tiket Studio">
-            <Head>
+            <Head title="Pesan Tiket Studio">
                 <meta
                     name="description"
                     content="Pilih paket, film calon/terkunci, suasana studio, dan jajan untuk sesi studio mini SynemaX dengan standar bioskop modern."

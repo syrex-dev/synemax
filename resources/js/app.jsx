@@ -57,7 +57,16 @@ if (typeof window !== 'undefined') {
 }
 
 createInertiaApp({
-    title: (title) => `${title ? `${title} - ` : ''}${appName}`,
+    title: (title) => {
+        const site = appName || 'SynemaX';
+        if (!title || title.trim() === '' || title === site) {
+            return `${site} | Beranda`;
+        }
+        if (title.startsWith(`${site} |`)) {
+            return title;
+        }
+        return `${site} | ${title}`;
+    },
     resolve: (name) => {
         const pages = import.meta.glob('./Pages/**/*.jsx', { eager: true });
         const page = pages[`./Pages/${name}.jsx`];

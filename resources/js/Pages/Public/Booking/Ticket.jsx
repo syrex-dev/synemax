@@ -173,7 +173,7 @@ export default function Ticket({
 
     return (
         <PublicLayout title={`Tiket ${booking.code}`}>
-            <Head>
+            <Head title={`Tiket ${booking.code}`}>
                 <meta name="description" content={`Tiket digital resmi SynemaX untuk booking ${booking.code}.`} />
             </Head>
 

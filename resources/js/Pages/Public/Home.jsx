@@ -111,7 +111,7 @@ export default function Home({
 
     return (
         <PublicLayout title="Beranda">
-            <Head>
+            <Head title="Beranda">
                 <meta
                     name="description"
                     content="Bioskop mini privat eksklusif dengan kapasitas 6 penonton, AC dingin, dan tata suara Dolby Surround."

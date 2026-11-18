@@ -16,6 +16,7 @@
         $appleTouchIcon = $isAdmin ? asset('apple-touch-icon-admin.png') . '?v=7' : asset('apple-touch-icon.png') . '?v=7';
         $appTitle = $isAdmin ? 'SynemaX Admin' : ($cinemaSettings['siteName'] ?? 'SynemaX');
     @endphp
+    <title inertia>{{ $isAdmin ? 'SynemaX Admin' : ($appTitle . ' | Beranda') }}</title>
     <link rel="icon" type="{{ $faviconMime }}" href="{{ $faviconUrl }}?v=7">
     <link rel="shortcut icon" href="{{ $faviconUrl }}?v=7">
     <link id="app-apple-touch-icon" rel="apple-touch-icon" href="{{ $appleTouchIcon }}">

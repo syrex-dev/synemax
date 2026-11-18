@@ -49,7 +49,7 @@ export default function Show({ event, otherEvents = [], isPreview = false }) {
 
     return (
         <PublicLayout title={`${event.judul} · Nobar`}>
-            <Head>
+            <Head title={`${event.judul} · Nobar`}>
                 <meta property="og:type" content="event" />
                 <meta property="og:title" content={`${event.judul} · Nobar SynemaX`} />
                 <meta
