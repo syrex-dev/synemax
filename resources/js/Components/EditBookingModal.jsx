@@ -241,3 +241,4 @@ export default function EditBookingModal({ booking, isOpen, onClose }) {
         </Modal>
     );
 }
+
