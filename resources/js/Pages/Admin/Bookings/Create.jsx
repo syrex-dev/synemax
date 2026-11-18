@@ -176,12 +176,26 @@ export default function Create({
     };
 
     return (
-        <AdminLayout title="Loket Pemesanan di Tempat (Walk-in)">
+        <AdminLayout title="Loket Pemesanan di Tempat (Walk-in)" isFormPage={true}>
             <Head title="Loket Walk-in · Panel Admin" />
 
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-4 sm:space-y-6 pb-20 lg:pb-0">
+                {/* Header (Responsive: Compact on Mobile, Full on Desktop) */}
+                <div className="flex items-center justify-between sm:hidden pb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <Ticket className="size-5 text-amber-500 shrink-0" />
+                        <h1 className="text-base font-black text-text tracking-tight truncate">Loket Walk-in</h1>
+                    </div>
+                    <Link
+                        href="/admin/booking"
+                        className="text-xs font-bold text-amber-500 hover:underline inline-flex items-center gap-1 shrink-0"
+                    >
+                        <ArrowLeft className="size-3.5" />
+                        <span>Daftar</span>
+                    </Link>
+                </div>
+
+                <div className="hidden sm:flex sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-2 text-xs font-bold text-text-muted">
                             <Link href="/admin/booking" className="hover:text-text">Booking</Link>
@@ -208,24 +222,24 @@ export default function Create({
 
                 {/* Banner Transaksi Sukses Terakhir */}
                 {lastBooking && (
-                    <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3.5">
-                            <div className="size-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
-                                <CheckCircle2 className="size-6" />
+                    <div className="rounded-xl sm:rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-3.5 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                            <div className="size-9 sm:size-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                                <CheckCircle2 className="size-5 sm:size-6" />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-xs font-black uppercase text-emerald-600 dark:text-emerald-400">
+                                    <span className="text-[11px] sm:text-xs font-black uppercase text-emerald-600 dark:text-emerald-400">
                                         Transaksi Berhasil
                                     </span>
-                                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
+                                    <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
                                         {lastBooking.code}
                                     </span>
                                 </div>
-                                <p className="text-sm font-bold text-text mt-0.5">
+                                <p className="text-xs sm:text-sm font-bold text-text mt-0.5 truncate">
                                     Pemesan: {lastBooking.customer_name} · Total: {lastBooking.total_price_formatted}
                                     {lastBooking.change_amount > 0 && (
-                                        <span className="text-emerald-500 ml-2 font-black">
+                                        <span className="text-emerald-500 ml-1.5 font-black">
                                             (Kembalian: {lastBooking.change_amount_formatted})
                                         </span>
                                     )}
@@ -238,7 +252,7 @@ export default function Create({
                                 href={lastBooking.ticket_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="btn-gold-cinema px-4 py-2 text-xs font-bold rounded-xl shadow-xs inline-flex items-center gap-1.5"
+                                className="btn-gold-cinema px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold rounded-xl shadow-xs inline-flex items-center gap-1.5"
                             >
                                 <Printer className="size-3.5" />
                                 <span>Cetak Tiket</span>
@@ -248,22 +262,23 @@ export default function Create({
                 )}
 
                 {/* Main POS 2-Column Grid */}
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                     {/* Left Form: Sections 1 to 5 */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                         {/* 1. Sesi & Jadwal */}
-                        <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-xs space-y-4">
-                            <div className="flex items-center justify-between border-b border-border/80 pb-3">
-                                <h2 className="text-sm font-black uppercase tracking-wider text-amber-500 flex items-center gap-2">
-                                    <Calendar className="size-4.5" />
+                        <section className="rounded-xl sm:rounded-2xl border border-border bg-surface p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
+                            <div className="flex items-center justify-between border-b border-border/80 pb-2.5 sm:pb-3">
+                                <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-500 flex items-center gap-2">
+                                    <Calendar className="size-4 sm:size-4.5" />
                                     <span>1. Pilih Sesi Penayangan</span>
                                 </h2>
-                                <span className="text-xs font-bold text-text-muted">
+                                <span className="text-[11px] sm:text-xs font-bold text-text-muted">
                                     {sessions.length} Sesi Terdaftar
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 max-h-[380px] overflow-y-auto p-1 pr-1.5 scrollbar-thin">
+                            {/* 2 columns on mobile, 3 on md for quick tap without vertical waste */}
+                            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 max-h-[300px] sm:max-h-[380px] overflow-y-auto p-0.5 pr-1 scrollbar-thin">
                                 {sessions.map((s) => {
                                     const isSelected = currentSessionId === s.id;
                                     const remSeats = s.capacity - (s.occupied_bookings?.reduce((acc, b) => acc + (b.seats_reserved || 0), 0) || 0);
@@ -276,7 +291,7 @@ export default function Create({
                                                 setCurrentSessionId(s.id);
                                                 if (s.film_id) setSelectedFilmId(s.film_id);
                                             }}
-                                            className={`p-4 rounded-2xl border-2 text-left transition-all relative group flex flex-col justify-between min-h-[115px] ${
+                                            className={`p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 text-left transition-all relative group flex flex-col justify-between min-h-[82px] sm:min-h-[105px] ${
                                                 isSelected
                                                     ? 'border-amber-500 bg-amber-500/15 shadow-md ring-2 ring-amber-500/20'
                                                     : 'border-border bg-surface-2/70 hover:bg-surface-2 hover:border-amber-500/50'
@@ -284,37 +299,37 @@ export default function Create({
                                         >
                                             <div>
                                                 <div className="flex items-center justify-between gap-1">
-                                                    <span className="text-base sm:text-lg font-black text-text font-mono tracking-tight">
+                                                    <span className="text-xs sm:text-base font-black text-text font-mono tracking-tight">
                                                         {s.start_time?.slice(0, 5)} WIB
                                                     </span>
                                                     {isSelected && (
-                                                        <span className="size-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shrink-0">
-                                                            <Check className="size-3 stroke-[3]" />
+                                                        <span className="size-4 sm:size-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shrink-0">
+                                                            <Check className="size-2.5 sm:size-3 stroke-[3]" />
                                                         </span>
                                                     )}
                                                 </div>
 
-                                                <div className="text-xs font-medium text-text-muted mt-1">
+                                                <div className="text-[10px] sm:text-xs font-medium text-text-muted mt-0.5 sm:mt-1">
                                                     {s.session_date}
                                                 </div>
 
                                                 {s.film?.title && (
-                                                    <div className="text-xs font-bold text-amber-600 dark:text-amber-400 truncate mt-1 flex items-center gap-1">
-                                                        <Film className="size-3 shrink-0" />
+                                                    <div className="text-[10px] sm:text-xs font-bold text-amber-600 dark:text-amber-400 truncate mt-0.5 sm:mt-1 flex items-center gap-1">
+                                                        <Film className="size-2.5 sm:size-3 shrink-0" />
                                                         <span className="truncate">{s.film.title}</span>
                                                     </div>
                                                 )}
                                             </div>
 
-                                            <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between">
-                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                                            <div className="mt-2 pt-1.5 border-t border-border/50 flex items-center justify-between">
+                                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] sm:text-[11px] font-bold ${
                                                     remSeats <= 2
                                                         ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
                                                         : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
                                                 }`}>
                                                     Sisa {remSeats} Kursi
                                                 </span>
-                                                <span className="text-[10px] text-text-muted">
+                                                <span className="text-[9px] sm:text-[10px] text-text-muted hidden sm:inline">
                                                     Kap. {s.capacity}
                                                 </span>
                                             </div>
@@ -325,13 +340,13 @@ export default function Create({
                         </section>
 
                         {/* 2. Paket & Pax */}
-                        <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-xs space-y-4">
-                            <h2 className="text-sm font-black uppercase tracking-wider text-amber-500 flex items-center gap-2 border-b border-border/80 pb-3">
-                                <Users className="size-4.5" />
+                        <section className="rounded-xl sm:rounded-2xl border border-border bg-surface p-3.5 sm:p-5 shadow-xs space-y-3 sm:space-y-4">
+                            <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-amber-500 flex items-center gap-2 border-b border-border/80 pb-2.5 sm:pb-3">
+                                <Users className="size-4 sm:size-4.5" />
                                 <span>2. Tipe Paket & Jumlah Orang</span>
                             </h2>
 
-                            <div className="grid grid-cols-3 gap-3">
+                            <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
                                 {[
                                     { key: 'reguler', label: 'Reguler', desc: 'Per orang' },
                                     { key: 'couple', label: 'Couple', desc: 'Paket 2 Orang' },
@@ -345,28 +360,28 @@ export default function Create({
                                             if (pkg.key === 'couple') setPax(2);
                                             if (pkg.key === 'private') setPax(6);
                                         }}
-                                        className={`p-3.5 sm:p-4 rounded-2xl border-2 text-center transition-all ${
+                                        className={`p-2 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 text-center transition-all ${
                                             bookingType === pkg.key
                                                 ? 'border-amber-500 bg-amber-500/15 text-text font-black shadow-xs ring-2 ring-amber-500/20'
                                                 : 'border-border bg-surface-2/60 text-text-muted hover:bg-surface-2 hover:border-amber-500/40'
                                         }`}
                                     >
-                                        <div className="text-sm font-black">{pkg.label}</div>
-                                        <div className="text-xs text-text-muted mt-1">{pkg.desc}</div>
+                                        <div className="text-xs sm:text-sm font-black">{pkg.label}</div>
+                                        <div className="text-[9px] sm:text-xs text-text-muted mt-0.5">{pkg.desc}</div>
                                     </button>
                                 ))}
                             </div>
 
                             {bookingType === 'reguler' && (
-                                <div className="pt-2">
-                                    <label className="text-xs font-bold text-text block mb-2.5">Jumlah Orang (Anak / Dewasa):</label>
-                                    <div className="flex flex-wrap gap-2.5">
+                                <div className="pt-1 sm:pt-2">
+                                    <label className="text-xs font-bold text-text block mb-1.5 sm:mb-2">Jumlah Orang (Anak / Dewasa):</label>
+                                    <div className="flex flex-wrap gap-1.5 sm:gap-2.5">
                                         {[1, 2, 3, 4, 5, 6].map((num) => (
                                             <button
                                                 key={num}
                                                 type="button"
                                                 onClick={() => setPax(num)}
-                                                className={`size-11 sm:size-12 rounded-xl border-2 font-mono font-black text-sm transition ${
+                                                className={`size-9 sm:size-11 rounded-lg sm:rounded-xl border-2 font-mono font-black text-xs sm:text-sm transition ${
                                                     pax === num
                                                         ? 'border-amber-500 bg-amber-500 text-slate-950 font-black shadow-sm ring-2 ring-amber-500/20'
                                                         : 'border-border bg-surface-2 text-text hover:border-amber-500/50'
@@ -714,6 +729,30 @@ export default function Create({
                         </div>
                     </div>
                 </form>
+
+                {/* Mobile Sticky Floating Checkout Action Bar */}
+                <div
+                    className="fixed inset-x-0 bottom-0 z-40 bg-surface/95 dark:bg-[#07090E]/95 backdrop-blur-md border-t border-border px-4 py-2.5 shadow-2xl lg:hidden flex items-center justify-between gap-3"
+                    style={{ paddingBottom: 'calc(0.625rem + env(safe-area-inset-bottom, 0px))' }}
+                >
+                    <div className="min-w-0">
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
+                            Total ({pax} Org):
+                        </span>
+                        <span className="text-base font-black text-amber-500 font-mono tracking-tight">
+                            Rp {grandTotal.toLocaleString('id-ID')}
+                        </span>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={handleSubmit}
+                        className="btn-gold-cinema px-4 py-2.5 text-xs font-black rounded-xl shadow-md inline-flex items-center gap-1.5 shrink-0"
+                    >
+                        <Check className="size-4 stroke-[3]" />
+                        <span>Simpan Transaksi</span>
+                    </button>
+                </div>
             </div>
         </AdminLayout>
     );

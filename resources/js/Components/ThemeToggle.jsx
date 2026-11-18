@@ -92,9 +92,13 @@ export default function ThemeToggle({ variant = 'responsive', className = '' }) 
     }
 
     return (
-        <div className="flex items-center">
-            {renderPill('hidden md:inline-flex')}
-            {renderButton('inline-flex md:hidden')}
+        <div className={`flex items-center ${className}`}>
+            <div className="hidden md:flex items-center">
+                {renderPill()}
+            </div>
+            <div className="flex md:hidden items-center">
+                {renderButton()}
+            </div>
         </div>
     );
 }
