@@ -29,6 +29,8 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
     const [rejectModalData, setRejectModalData] = useState(null);
     const [rejectionNote, setRejectionNote] = useState('');
     const [copiedCode, setCopiedCode] = useState(null);
+    const [deleteModalData, setDeleteModalData] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handleFilter = (e) => {
         e?.preventDefault();
@@ -464,6 +466,17 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
                                                 Pulihkan booking
                                             </button>
                                         )}
+
+                                        {/* Hapus Booking Permanen */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setDeleteModalData(booking)}
+                                            className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3.5 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white active:scale-95 transition shadow-xs sm:ml-auto"
+                                            title="Hapus data booking ini secara permanen"
+                                        >
+                                            <Trash2 className="size-3.5" />
+                                            <span>Hapus</span>
+                                        </button>
                                     </div>
                                 </article>
                             );
@@ -569,6 +582,51 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
                         </button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* Modal Hapus Booking Permanen */}
+            <Modal show={Boolean(deleteModalData)} onClose={() => setDeleteModalData(null)} maxWidth="md">
+                <div className="p-6 space-y-4">
+                    <div className="flex items-start gap-3.5">
+                        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 text-rose-500">
+                            <Trash2 className="size-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-black text-text">Hapus Booking {deleteModalData?.code}?</h3>
+                            <p className="mt-1 text-xs text-text-muted leading-relaxed">
+                                Apakah Anda yakin ingin menghapus booking atas nama <strong className="text-text">{deleteModalData?.customer_name}</strong> ({deleteModalData?.pax || deleteModalData?.people_count} orang)? Tindakan ini akan menghapus data tiket, relasi pesanan jajan, dan melepaskan kapasitas kursi sesi secara permanen.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border">
+                        <button
+                            type="button"
+                            onClick={() => setDeleteModalData(null)}
+                            disabled={isDeleting}
+                            className="min-h-10 rounded-xl border border-border bg-surface px-4 text-xs font-semibold text-text hover:bg-surface-2 transition"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="button"
+                            disabled={isDeleting}
+                            onClick={() => {
+                                if (!deleteModalData) return;
+                                setIsDeleting(true);
+                                router.delete(`/admin/booking/${deleteModalData.id}`, {
+                                    preserveScroll: true,
+                                    onSuccess: () => setDeleteModalData(null),
+                                    onFinish: () => setIsDeleting(false),
+                                });
+                            }}
+                            className="min-h-10 rounded-xl bg-rose-600 px-4 text-xs font-bold text-white hover:bg-rose-500 active:scale-95 transition disabled:opacity-50 inline-flex items-center gap-1.5"
+                        >
+                            <Trash2 className="size-3.5" />
+                            <span>{isDeleting ? 'Menghapus...' : 'Ya, Hapus Permanen'}</span>
+                        </button>
+                    </div>
+                </div>
             </Modal>
         </AdminLayout>
     );

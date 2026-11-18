@@ -317,6 +317,17 @@ class BookingController extends Controller
             ->with('status', "Semua data booking testing berhasil dibersihkan ({$result['deleted_bookings']} booking, {$result['deleted_items']} jajan dihapus). Laporan keuangan kini bersih (Rp 0).");
     }
 
+    public function destroy(Booking $booking, BookingService $bookingService): RedirectResponse
+    {
+        $code = $booking->code;
+        $customerName = $booking->customer_name;
+        $bookingService->deleteBooking($booking);
+
+        return redirect()
+            ->route('admin.bookings.index')
+            ->with('status', "Booking {$code} ({$customerName}) berhasil dihapus permanen.");
+    }
+
     public function show(Booking $booking, CinemaSettings $settings, BookingService $bookingService): View|InertiaResponse
     {
         $booking = $bookingService->expireIfOverdue($booking);

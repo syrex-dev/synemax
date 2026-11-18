@@ -35,6 +35,38 @@ export default function Create({
     const [currentSessionId, setCurrentSessionId] = useState(selectedSession?.id || sessions[0]?.id || null);
     const activeSession = useMemo(() => sessions.find((s) => s.id === currentSessionId) || sessions[0], [currentSessionId, sessions]);
 
+    // Session date filter for fast POS lookup
+    const sessionDates = useMemo(() => {
+        const set = new Set();
+        sessions.forEach((s) => {
+            if (s.session_date) set.add(s.session_date);
+        });
+        return Array.from(set).sort();
+    }, [sessions]);
+
+    const [selectedDateFilter, setSelectedDateFilter] = useState(
+        sessionDates.includes(today) ? today : (sessionDates[0] || 'all')
+    );
+
+    const filteredSessions = useMemo(() => {
+        if (!selectedDateFilter || selectedDateFilter === 'all') return sessions;
+        return sessions.filter((s) => s.session_date === selectedDateFilter);
+    }, [sessions, selectedDateFilter]);
+
+    const formatDateLabel = (dStr) => {
+        if (!dStr || dStr === 'all') return 'Semua';
+        if (dStr === today) return 'Hari Ini';
+        try {
+            const d = new Date(dStr + 'T00:00:00');
+            return d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+        } catch (e) {
+            return dStr;
+        }
+    };
+
+    // Submitting guard against double clicks
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     // Package & Pax state
     const [bookingType, setBookingType] = useState('reguler');
     const [pax, setPax] = useState(1);
@@ -146,7 +178,10 @@ export default function Create({
     };
 
     const handleSubmit = (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
         const payload = {
             session_id: currentSessionId,
             package: bookingType,
@@ -167,10 +202,25 @@ export default function Create({
         router.post('/admin/booking/pesan-di-tempat', payload, {
             preserveScroll: true,
             onSuccess: () => {
+                // Instantly refresh and clear all values so nothing gets stuck!
+                setCustomerName('');
+                setWhatsapp('');
+                setNotes('');
                 setSnackQuantities({});
                 setSelectedMembers([]);
+                setMemberSearchQuery('');
+                setMemberSearchResults([]);
                 setCashReceived(0);
-                setNotes('');
+                setPax(1);
+                setBookingType('reguler');
+                setFilmSearch('');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            },
+            onFinish: () => {
+                setIsSubmitting(false);
+            },
+            onError: () => {
+                setIsSubmitting(false);
             },
         });
     };
@@ -273,13 +323,44 @@ export default function Create({
                                     <span>1. Pilih Sesi Penayangan</span>
                                 </h2>
                                 <span className="text-[11px] sm:text-xs font-bold text-text-muted">
-                                    {sessions.length} Sesi Terdaftar
+                                    {filteredSessions.length} Sesi {selectedDateFilter !== 'all' ? `(${formatDateLabel(selectedDateFilter)})` : 'Terdaftar'}
                                 </span>
                             </div>
 
+                            {/* Date Filter Tabs for fast date selection */}
+                            {sessionDates.length > 1 && (
+                                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                                    {sessionDates.map((dStr) => (
+                                        <button
+                                            key={dStr}
+                                            type="button"
+                                            onClick={() => setSelectedDateFilter(dStr)}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
+                                                selectedDateFilter === dStr
+                                                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                                                    : 'bg-surface-2 text-text-muted hover:text-text border border-border'
+                                            }`}
+                                        >
+                                            {formatDateLabel(dStr)}
+                                        </button>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedDateFilter('all')}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
+                                            selectedDateFilter === 'all'
+                                                ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                                                : 'bg-surface-2 text-text-muted hover:text-text border border-border'
+                                        }`}
+                                    >
+                                        Semua ({sessions.length})
+                                    </button>
+                                </div>
+                            )}
+
                             {/* 2 columns on mobile, 3 on md for quick tap without vertical waste */}
                             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 max-h-[300px] sm:max-h-[380px] overflow-y-auto p-0.5 pr-1 scrollbar-thin">
-                                {sessions.map((s) => {
+                                {filteredSessions.map((s) => {
                                     const isSelected = currentSessionId === s.id;
                                     const remSeats = s.capacity - (s.occupied_bookings?.reduce((acc, b) => acc + (b.seats_reserved || 0), 0) || 0);
 
@@ -309,8 +390,8 @@ export default function Create({
                                                     )}
                                                 </div>
 
-                                                <div className="text-[10px] sm:text-xs font-medium text-text-muted mt-0.5 sm:mt-1">
-                                                    {s.session_date}
+                                                <div className="text-[10px] sm:text-xs font-semibold text-text-muted mt-0.5 sm:mt-1">
+                                                    {formatDateLabel(s.session_date)}
                                                 </div>
 
                                                 {s.film?.title && (
@@ -713,24 +794,32 @@ export default function Create({
                                         type="checkbox"
                                         checked={markAttended}
                                         onChange={(e) => setMarkAttended(e.target.checked)}
-                                        className="rounded border-border text-amber-500 focus:ring-amber-500"
+                                        className="size-4 rounded text-amber-600 focus:ring-amber-500"
                                     />
                                     <span>Langsung Masuk Studio (Tandai Hadir)</span>
                                 </label>
                             </div>
 
-                            {/* Submit Button */}
+                            {/* Submit Button (Desktop Only: hidden on mobile to avoid duplicate bottom action) */}
                             <button
                                 type="submit"
-                                className="btn-gold-cinema w-full py-3 rounded-xl text-xs sm:text-sm font-black shadow-lg shadow-amber-500/20"
+                                disabled={isSubmitting}
+                                className="btn-gold-cinema w-full py-3 rounded-xl text-xs sm:text-sm font-black shadow-lg shadow-amber-500/20 hidden lg:flex items-center justify-center gap-2 disabled:opacity-50"
                             >
-                                Simpan Transaksi Loket
+                                {isSubmitting ? (
+                                    <span>Menyimpan Transaksi...</span>
+                                ) : (
+                                    <>
+                                        <Check className="size-4 stroke-[3]" />
+                                        <span>Simpan Transaksi Loket</span>
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>
                 </form>
 
-                {/* Mobile Sticky Floating Checkout Action Bar */}
+                {/* Mobile Sticky Floating Checkout Action Bar (Only action on mobile) */}
                 <div
                     className="fixed inset-x-0 bottom-0 z-40 bg-surface/95 dark:bg-[#07090E]/95 backdrop-blur-md border-t border-border px-4 py-2.5 shadow-2xl lg:hidden flex items-center justify-between gap-3"
                     style={{ paddingBottom: 'calc(0.625rem + env(safe-area-inset-bottom, 0px))' }}
@@ -747,10 +836,17 @@ export default function Create({
                     <button
                         type="button"
                         onClick={handleSubmit}
-                        className="btn-gold-cinema px-4 py-2.5 text-xs font-black rounded-xl shadow-md inline-flex items-center gap-1.5 shrink-0"
+                        disabled={isSubmitting}
+                        className="btn-gold-cinema px-4 py-2.5 text-xs font-black rounded-xl shadow-md inline-flex items-center gap-1.5 shrink-0 disabled:opacity-50"
                     >
-                        <Check className="size-4 stroke-[3]" />
-                        <span>Simpan Transaksi</span>
+                        {isSubmitting ? (
+                            <span>Menyimpan...</span>
+                        ) : (
+                            <>
+                                <Check className="size-4 stroke-[3]" />
+                                <span>Simpan Transaksi</span>
+                            </>
+                        )}
                     </button>
                 </div>
             </div>

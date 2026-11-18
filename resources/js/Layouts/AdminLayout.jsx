@@ -83,7 +83,7 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
     };
 
     return (
-        <div className="min-h-screen bg-bg font-sans text-text antialiased transition-colors duration-200">
+        <div className="min-h-screen bg-bg font-admin text-text antialiased transition-colors duration-200" data-admin-panel>
             <FlashMessage />
 
             {/* Sticky Full-Width Header */}

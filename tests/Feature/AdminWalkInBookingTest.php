@@ -387,4 +387,34 @@ class AdminWalkInBookingTest extends TestCase
             'method' => 'loket',
         ]);
     }
+
+    public function test_admin_can_delete_booking_and_release_seats(): void
+    {
+        $booking = Booking::query()->create([
+            'code' => 'HC-261013-DEL001',
+            'session_id' => $this->session->id,
+            'film_id' => $this->film->id,
+            'customer_name' => 'Budi Testing',
+            'whatsapp' => '081234567890',
+            'pax' => 2,
+            'seats_reserved' => 2,
+            'booking_type' => 'reguler',
+            'package' => 'reguler',
+            'people_count' => 2,
+            'total_price' => 10000,
+            'ticket_total' => 10000,
+            'snack_total' => 0,
+            'payment_method' => 'di_tempat',
+            'status' => 'terkonfirmasi',
+        ]);
+
+        $response = $this->delete(route('admin.bookings.destroy', $booking));
+
+        $response->assertRedirect(route('admin.bookings.index'));
+        $response->assertSessionHas('status');
+
+        $this->assertDatabaseMissing('bookings', [
+            'id' => $booking->id,
+        ]);
+    }
 }

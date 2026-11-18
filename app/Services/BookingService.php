@@ -1029,6 +1029,29 @@ class BookingService
         }, attempts: 3);
     }
 
+    public function deleteBooking(Booking $booking): void
+    {
+        DB::transaction(function () use ($booking): void {
+            $session = $booking->relationLoaded('session') ? $booking->session : $booking->session()->first();
+
+            if ($booking->payment_proof_path && Storage::disk('local')->exists($booking->payment_proof_path)) {
+                Storage::disk('local')->delete($booking->payment_proof_path);
+            }
+
+            MemberVisit::query()->where('booking_id', $booking->id)->delete();
+            MemberReward::query()->where('booking_id', $booking->id)->delete();
+
+            $booking->checkins()->delete();
+            $booking->items()->delete();
+            $booking->snackChangeLogs()->delete();
+            $booking->delete();
+
+            if ($session) {
+                $session->syncPrivateStatus();
+            }
+        }, attempts: 3);
+    }
+
     private function newBookingCode(CarbonImmutable $startsAt): string
     {
         do {
