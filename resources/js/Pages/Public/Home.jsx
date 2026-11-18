@@ -7,7 +7,6 @@ import {
     ChevronRight,
     Film as FilmIcon,
     Calendar,
-    Sparkles,
     RotateCcw,
     ChevronDown,
     Search,
@@ -312,26 +311,7 @@ export default function Home({
                     </section>
                 )}
 
-                {/* 2. INFO CHIPS & QUICK ACCESS */}
-                {infoChips && infoChips.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {infoChips.map((chip, i) => (
-                            <div
-                                key={i}
-                                className="flex items-center gap-3 p-3.5 sm:p-4 rounded-2xl border border-border/70 bg-surface shadow-xs"
-                            >
-                                <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0">
-                                    <Sparkles className="size-4" />
-                                </div>
-                                <span className="text-xs sm:text-sm font-bold text-text truncate">
-                                    {chip.text}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* 3. KATALOG FILM SECTION */}
+                {/* 2. KATALOG FILM SECTION */}
                 <section aria-label="Katalog Film" id="katalog-film" className="space-y-4 sm:space-y-6">
                     {/* Header */}
                     <div className="flex items-center justify-between gap-3 border-l-4 border-amber-500 pl-3 sm:pl-4">
