@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link, usePage, Head } from '@inertiajs/react';
+import { useState, useEffect, useRef } from 'react';
+import { Link, usePage, Head, router } from '@inertiajs/react';
 import BrandLogo from '../Components/BrandLogo';
 import ThemeToggle from '../Components/ThemeToggle';
 import FlashMessage from '../Components/FlashMessage';
@@ -11,6 +11,8 @@ import {
     Ticket,
     Menu,
     X,
+    Search,
+    Loader2,
     MessageCircle,
     MapPin,
     Phone,
@@ -28,6 +30,15 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
     const { cinemaSettings } = usePage().props;
     const [menuSheetOpen, setMenuSheetOpen] = useState(false);
     const [isWaBubbleDismissed, setIsWaBubbleDismissed] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
+
+    // CGV-style navbar search states
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [searchTotalCount, setSearchTotalCount] = useState(0);
+    const [isSearching, setIsSearching] = useState(false);
+    const searchInputRef = useRef(null);
 
     const siteName = cinemaSettings?.siteName || 'SynemaX';
     const pageTitle = title || 'Beranda';
@@ -36,6 +47,101 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
     useEffect(() => {
         document.title = fullTitle;
     }, [fullTitle]);
+
+    // Track scroll position for dynamic elegant navbar elevation
+    useEffect(() => {
+        const handleScroll = () => {
+            setIsScrolled(window.scrollY > 8);
+        };
+        handleScroll();
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Auto-focus search input when search opens
+    useEffect(() => {
+        if (isSearchOpen) {
+            setTimeout(() => {
+                searchInputRef.current?.focus();
+            }, 60);
+        }
+    }, [isSearchOpen]);
+
+    // Close search popup on route change
+    useEffect(() => {
+        setIsSearchOpen(false);
+    }, [url]);
+
+    // Close search on Escape key
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && isSearchOpen) {
+                setIsSearchOpen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isSearchOpen]);
+
+    // Debounced search query against backend catalog JSON endpoint
+    useEffect(() => {
+        const trimmed = searchQuery.trim();
+        if (!trimmed) {
+            setSearchResults([]);
+            setSearchTotalCount(0);
+            setIsSearching(false);
+            return;
+        }
+
+        setIsSearching(true);
+        const controller = new AbortController();
+        const timer = setTimeout(async () => {
+            try {
+                const res = await fetch(`/film?format=json&limit=12&cari=${encodeURIComponent(trimmed)}`, {
+                    signal: controller.signal,
+                    headers: { Accept: 'application/json' },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setSearchResults(data.films || []);
+                    setSearchTotalCount(data.count ?? (data.films ? data.films.length : 0));
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    // silently ignore aborts
+                }
+            } finally {
+                setIsSearching(false);
+            }
+        }, 250);
+
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
+    }, [searchQuery]);
+
+    const handleOpenSearch = () => {
+        setIsSearchOpen(true);
+    };
+
+    const handleCloseSearch = () => {
+        setIsSearchOpen(false);
+    };
+
+    const handleSearchSubmit = (e) => {
+        if (e) e.preventDefault();
+        const trimmed = searchQuery.trim();
+        if (!trimmed) return;
+        setIsSearchOpen(false);
+        router.visit(`/film?cari=${encodeURIComponent(trimmed)}`);
+    };
+
+    const handleSearchKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            handleSearchSubmit(e);
+        }
+    };
 
     useEffect(() => {
         try {
@@ -117,57 +223,269 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
             <Head title={pageTitle} />
             <FlashMessage />
 
-            {/* Header Sticky Navbar */}
-            <header className="sticky top-0 z-40 w-full border-b border-border/80 dark:border-white/10 bg-surface/85 dark:bg-[#07090E]/85 backdrop-blur-md transition-colors duration-200">
-                <div className="mx-auto flex h-14 md:h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6">
-                    {/* Brand Logo */}
-                    <Link href="/" className="inline-flex min-h-11 items-center gap-2 group transition-transform hover:scale-102 shrink-0">
-                        <BrandLogo size="default" />
-                    </Link>
+            {/* Header Sticky Navbar with Cinema Gradient */}
+            <header
+                className={`sticky top-0 z-40 w-full transition-all duration-300 ${
+                    isScrolled
+                        ? 'bg-gradient-to-r from-white/95 via-amber-50/50 to-white/95 dark:from-[#06080E]/95 dark:via-[#0D1424]/95 dark:to-[#170E1A]/95 backdrop-blur-md shadow-xs border-b border-border/80 dark:border-white/10'
+                        : 'bg-gradient-to-r from-amber-50/90 via-[#FFFDF9] to-orange-50/70 dark:from-[#06080E] dark:via-[#0D1424] dark:to-[#170E1A] backdrop-blur-md border-b border-amber-200/50 dark:border-white/10'
+                }`}
+            >
+                {/* Micro gold luxury bottom accent glow line */}
+                <div className="absolute bottom-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/50 to-transparent pointer-events-none" />
 
-                    {/* Desktop Navigation */}
-                    <nav className="hidden md:flex items-center gap-1.5 text-sm" aria-label="Navigasi desktop">
-                        {visibleItems.map((item) => {
-                            const active = isItemActive(item);
-                            const isTicket = ['lookup', 'booking_lookup', 'tickets', 'tiket'].includes(item.key);
+                <div className="mx-auto flex h-14 md:h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 relative">
+                    {isSearchOpen ? (
+                        /* Active CGV-style search input bar */
+                        <div className="flex w-full items-center gap-2 sm:gap-3 animate-in fade-in zoom-in-95 duration-200">
+                            <Link
+                                href="/"
+                                onClick={handleCloseSearch}
+                                className="hidden sm:inline-flex shrink-0 items-center gap-2 group transition-transform hover:scale-102"
+                            >
+                                <BrandLogo size="default" />
+                            </Link>
 
-                            if (isTicket) {
-                                return (
-                                    <Link
-                                        key={item.key || item.url}
-                                        href={item.url || '/tiket'}
-                                        className={`btn-gold-cinema inline-flex min-h-10 shrink-0 items-center rounded-xl px-3.5 py-1.5 text-xs font-black shadow-xs ml-1 ${active ? 'ring-2 ring-amber-500 ring-offset-2' : ''
-                                            }`}
+                            <form onSubmit={handleSearchSubmit} className="relative flex-1 flex items-center">
+                                <div className="relative w-full flex items-center rounded-full bg-surface-2/90 dark:bg-white/10 border border-amber-500/30 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20 px-3.5 py-1.5 transition-all shadow-inner">
+                                    <Search className="size-4 text-amber-500 shrink-0 mr-2" />
+                                    <input
+                                        ref={searchInputRef}
+                                        type="search"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onKeyDown={handleSearchKeyDown}
+                                        placeholder="Cari film, genre, tahun rilis..."
+                                        className="w-full bg-transparent border-0 p-0 text-xs sm:text-sm text-text placeholder:text-text-muted/70 focus:outline-none focus:ring-0"
+                                        aria-label="Cari film"
+                                    />
+                                    {searchQuery && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSearchQuery('')}
+                                            className="p-1 text-text-muted hover:text-text shrink-0 rounded-full hover:bg-surface-3 transition mr-1"
+                                            title="Hapus teks"
+                                        >
+                                            <X className="size-3.5" />
+                                        </button>
+                                    )}
+                                    <button
+                                        type="submit"
+                                        className="btn-gold-cinema shrink-0 rounded-full px-3.5 py-1 text-xs font-bold text-slate-950 shadow-xs"
                                     >
-                                        <Ticket className="size-3.5 mr-1.5" />
-                                        <span>Tiket</span>
-                                    </Link>
-                                );
-                            }
+                                        Cari
+                                    </button>
+                                </div>
+                            </form>
 
-                            return (
-                                <Link
-                                    key={item.key || item.url}
-                                    href={item.url}
-                                    className={`relative inline-flex min-h-10 shrink-0 items-center px-3 py-1.5 font-bold transition rounded-lg ${active
-                                        ? 'text-[#0F172A] font-extrabold after:content-[\'\'] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-[3px] after:bg-[#F59E0B] after:rounded-full dark:after:hidden dark:bg-amber-500/15 dark:text-amber-400 dark:border dark:border-amber-400/40'
-                                        : 'text-slate-600 hover:bg-[#F1F5F9] hover:text-[#0F172A] dark:text-text-muted dark:hover:bg-surface-2 dark:hover:text-amber-400'
-                                        }`}
+                            <button
+                                type="button"
+                                onClick={handleCloseSearch}
+                                className="size-8 sm:size-9 flex items-center justify-center rounded-full bg-surface-2 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-text-muted hover:text-text transition-all shrink-0"
+                                aria-label="Tutup pencarian"
+                                title="Tutup (Esc)"
+                            >
+                                <X className="size-4 sm:size-5" />
+                            </button>
+                        </div>
+                    ) : (
+                        /* Normal Navbar State */
+                        <>
+                            {/* Brand Logo */}
+                            <Link href="/" className="inline-flex min-h-11 items-center gap-2 group transition-transform hover:scale-102 shrink-0">
+                                <BrandLogo size="default" />
+                            </Link>
+
+                            {/* Desktop Navigation */}
+                            <nav className="hidden md:flex items-center gap-1.5 text-sm" aria-label="Navigasi desktop">
+                                {visibleItems.map((item) => {
+                                    const active = isItemActive(item);
+                                    const isTicket = ['lookup', 'booking_lookup', 'tickets', 'tiket'].includes(item.key);
+
+                                    if (isTicket) {
+                                        return (
+                                            <Link
+                                                key={item.key || item.url}
+                                                href={item.url || '/tiket'}
+                                                className={`btn-gold-cinema inline-flex min-h-10 shrink-0 items-center rounded-xl px-3.5 py-1.5 text-xs font-black shadow-xs ml-1 ${active ? 'ring-2 ring-amber-500 ring-offset-2' : ''
+                                                    }`}
+                                            >
+                                                <Ticket className="size-3.5 mr-1.5" />
+                                                <span>Tiket</span>
+                                            </Link>
+                                        );
+                                    }
+
+                                    return (
+                                        <Link
+                                            key={item.key || item.url}
+                                            href={item.url}
+                                            className={`relative inline-flex min-h-10 shrink-0 items-center px-3 py-1.5 font-bold transition rounded-lg ${active
+                                                ? 'text-[#0F172A] font-extrabold after:content-[\'\'] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-[3px] after:bg-[#F59E0B] after:rounded-full dark:after:hidden dark:bg-amber-500/15 dark:text-amber-400 dark:border dark:border-amber-400/40'
+                                                : 'text-slate-600 hover:bg-[#F1F5F9] hover:text-[#0F172A] dark:text-text-muted dark:hover:bg-surface-2 dark:hover:text-amber-400'
+                                                }`}
+                                        >
+                                            {item.label}
+                                        </Link>
+                                    );
+                                })}
+                            </nav>
+
+                            {/* Action Area: Search button (CGV style) + Theme toggle */}
+                            <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={handleOpenSearch}
+                                    className="flex size-9 sm:size-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 hover:bg-amber-500 hover:text-white dark:bg-amber-400/15 dark:text-amber-400 dark:hover:bg-amber-500 dark:hover:text-slate-950 transition-all duration-200 shadow-xs ring-1 ring-amber-500/25 hover:scale-105 active:scale-95 shrink-0"
+                                    title="Cari film (CGV style)"
+                                    aria-label="Cari Film"
                                 >
-                                    {item.label}
-                                </Link>
-                            );
-                        })}
-                    </nav>
+                                    <Search className="size-4 sm:size-4.5" />
+                                </button>
 
-                    {/* Action Area: Theme toggle */}
-                    <div className="flex items-center gap-2 shrink-0">
-                        {cinemaSettings?.showThemeToggle && (
-                            <ThemeToggle variant="responsive" />
-                        )}
-                    </div>
+                                {cinemaSettings?.showThemeToggle && (
+                                    <ThemeToggle variant="responsive" />
+                                )}
+                            </div>
+                        </>
+                    )}
                 </div>
             </header>
+
+            {/* CGV-style Search Overlay & Results Dropdown Modal */}
+            {isSearchOpen && (
+                <>
+                    {/* Backdrop click outside to close */}
+                    <div
+                        className="fixed inset-0 top-14 md:top-16 bg-black/60 backdrop-blur-xs z-40 animate-in fade-in duration-200"
+                        onClick={handleCloseSearch}
+                    />
+
+                    {/* Floating Search Results Modal Card */}
+                    <div className="fixed top-14 md:top-16 inset-x-0 z-50 px-3 sm:px-6 pt-3 pointer-events-none">
+                        <div className="pointer-events-auto mx-auto max-w-4xl bg-surface/98 dark:bg-[#0C101A]/98 rounded-2xl border border-border/80 dark:border-white/10 shadow-2xl backdrop-blur-xl overflow-hidden flex flex-col max-h-[calc(85vh-4rem)] animate-in slide-in-from-top-2 duration-200">
+                            {/* Search Header Bar (CGV Screenshot 4 style) */}
+                            <div className="flex items-center justify-between border-b border-border/60 dark:border-white/10 px-4 py-3 sm:px-6 shrink-0 bg-surface-2/30">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <Search className="size-4.5 text-amber-500 shrink-0" />
+                                    <p className="text-xs sm:text-sm text-text truncate">
+                                        Hasil pencarian untuk <span className="font-bold text-amber-600 dark:text-amber-400">"{searchQuery || 'semua'}"</span>
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleCloseSearch}
+                                    className="size-7 flex items-center justify-center rounded-lg hover:bg-surface-2 text-text-muted hover:text-text transition shrink-0 ml-2"
+                                    aria-label="Tutup pencarian"
+                                >
+                                    <X className="size-4" />
+                                </button>
+                            </div>
+
+                            {/* Subheader: Category & Count */}
+                            <div className="px-4 pt-3 pb-1 sm:px-6 flex items-center justify-between shrink-0">
+                                <span className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                                    Film ({isSearching ? '...' : searchTotalCount})
+                                </span>
+                                {searchTotalCount > 0 && (
+                                    <Link
+                                        href={`/film?cari=${encodeURIComponent(searchQuery.trim())}`}
+                                        onClick={handleCloseSearch}
+                                        className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-0.5"
+                                    >
+                                        Lihat di katalog &rarr;
+                                    </Link>
+                                )}
+                            </div>
+
+                            {/* Content: Loading, Empty, or Results Grid */}
+                            <div className="flex-1 overflow-y-auto">
+                                {isSearching ? (
+                                    <div className="py-12 flex flex-col items-center justify-center gap-3 text-text-muted">
+                                        <Loader2 className="size-7 animate-spin text-amber-500" />
+                                        <span className="text-xs font-medium">Mencari film di katalog...</span>
+                                    </div>
+                                ) : searchQuery.trim() === '' ? (
+                                    <div className="py-10 text-center px-4">
+                                        <Film className="size-8 text-amber-500/60 mx-auto mb-2" />
+                                        <p className="text-xs sm:text-sm font-semibold text-text">Ketik judul film, genre, atau kata kunci</p>
+                                        <p className="text-[11px] text-text-muted mt-0.5">Mulai mengetik untuk melihat hasil pencarian langsung</p>
+                                    </div>
+                                ) : searchResults.length === 0 ? (
+                                    <div className="py-10 text-center px-4">
+                                        <Film className="size-8 text-text-muted/40 mx-auto mb-2" />
+                                        <p className="text-xs sm:text-sm font-semibold text-text">Tidak ada film yang cocok dengan "{searchQuery}"</p>
+                                        <p className="text-[11px] text-text-muted mt-1">Coba kata kunci lain atau telusuri seluruh koleksi film.</p>
+                                        <Link
+                                            href="/film"
+                                            onClick={handleCloseSearch}
+                                            className="btn-gold-cinema inline-flex items-center gap-1.5 mt-3 rounded-xl px-3.5 py-1.5 text-xs font-bold shadow-xs"
+                                        >
+                                            Jelajahi Katalog Film &rarr;
+                                        </Link>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 p-4 sm:p-6">
+                                        {searchResults.map((film) => (
+                                            <Link
+                                                key={film.id}
+                                                href={film.url}
+                                                onClick={handleCloseSearch}
+                                                className="group flex flex-col rounded-xl overflow-hidden bg-surface-2/40 hover:bg-surface-2 transition-all duration-200 border border-transparent hover:border-amber-500/30 hover:shadow-md p-2"
+                                            >
+                                                {/* Poster Image */}
+                                                <div className="relative aspect-[2/3] w-full rounded-lg overflow-hidden bg-surface-sunken">
+                                                    {film.poster_url ? (
+                                                        <img
+                                                            src={film.poster_url}
+                                                            alt={film.title}
+                                                            className="size-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                            loading="lazy"
+                                                        />
+                                                    ) : (
+                                                        <div className="size-full flex items-center justify-center text-text-muted">
+                                                            <Film className="size-8 opacity-40" />
+                                                        </div>
+                                                    )}
+                                                    {film.age_rating && (
+                                                        <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-black bg-black/80 text-amber-400 border border-white/20 shadow-xs">
+                                                            {film.age_rating}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Movie Metadata */}
+                                                <div className="mt-2 flex flex-col flex-1">
+                                                    <h5 className="text-xs sm:text-sm font-bold text-text group-hover:text-amber-600 dark:group-hover:text-amber-400 line-clamp-2 leading-tight uppercase transition-colors">
+                                                        {film.title}
+                                                    </h5>
+                                                    <div className="mt-auto pt-1 flex items-center justify-between text-[10px] sm:text-[11px] text-text-muted">
+                                                        <span className="truncate max-w-[90px]">{film.genre || '-'}</span>
+                                                        {film.release_year && <span>{film.release_year}</span>}
+                                                    </div>
+                                                </div>
+                                            </Link>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer link to catalog if many results */}
+                            {searchTotalCount > searchResults.length && (
+                                <div className="border-t border-border/60 dark:border-white/10 px-4 py-2.5 sm:px-6 bg-surface-2/40 text-center shrink-0">
+                                    <Link
+                                        href={`/film?cari=${encodeURIComponent(searchQuery.trim())}`}
+                                        onClick={handleCloseSearch}
+                                        className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline inline-flex items-center gap-1"
+                                    >
+                                        Lihat semua {searchTotalCount} film di katalog &rarr;
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
 
             {/* Main Page Content */}
             <main className={`flex-1 ${!isActionPage ? 'pb-20 md:pb-0' : ''}`}>
