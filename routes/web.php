@@ -199,6 +199,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/booking/member-lookup', [BookingController::class, 'memberLookup'])->name('bookings.member_lookup');
     Route::get('/booking/search', [BookingController::class, 'liveSearch'])->name('bookings.live_search');
     Route::get('/booking/{booking}', [BookingController::class, 'show'])->name('bookings.show');
+    Route::get('/booking/{booking}/edit', [BookingController::class, 'edit'])->name('bookings.edit');
+    Route::match(['put', 'patch'], '/booking/{booking}', [BookingController::class, 'update'])->name('bookings.update');
     Route::delete('/booking/{booking}', [BookingController::class, 'destroy'])->name('bookings.destroy');
     Route::get('/booking/{booking}/tiket', [BookingController::class, 'ticket'])->name('bookings.ticket');
     Route::patch('/booking/{booking}/jajan', [BookingController::class, 'updateSnacks'])->name('bookings.snacks.update');

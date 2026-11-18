@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Modal from '@/Components/Modal';
+import EditBookingModal from '@/Components/EditBookingModal';
 import { 
     ArrowLeft, 
     Copy, 
@@ -34,6 +35,7 @@ export default function Show({
     const [editorOpen, setEditorOpen] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
     const [checkinLogsOpen, setCheckinLogsOpen] = useState(false);
+    const [editModalOpen, setEditModalOpen] = useState(false);
     
     // Concession editor state
     const initialItems = {};
@@ -216,6 +218,17 @@ export default function Show({
                                 <span>Scan tiket</span>
                             </Link>
                         )}
+
+                        {/* Ubah Booking */}
+                        <button
+                            type="button"
+                            onClick={() => setEditModalOpen(true)}
+                            className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 text-xs sm:text-sm font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-slate-950 active:scale-95 transition shadow-xs"
+                            title="Ubah data reservasi pelanggan"
+                        >
+                            <Edit className="size-4" />
+                            <span>Ubah Booking</span>
+                        </button>
 
                         {/* Hapus Booking */}
                         <button
@@ -660,6 +673,13 @@ export default function Show({
                     </div>
                 </div>
             </Modal>
+
+            {/* Edit Booking Modal */}
+            <EditBookingModal
+                booking={booking}
+                isOpen={editModalOpen}
+                onClose={() => setEditModalOpen(false)}
+            />
         </AdminLayout>
     );
 }

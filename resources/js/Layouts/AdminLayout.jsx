@@ -3,6 +3,7 @@ import { Link, usePage, router } from '@inertiajs/react';
 import BrandLogo from '../Components/BrandLogo';
 import ThemeToggle from '../Components/ThemeToggle';
 import FlashMessage from '../Components/FlashMessage';
+import PwaInstallBanner from '../Components/PwaInstallBanner';
 import {
     LayoutDashboard,
     ShoppingBag,
@@ -22,6 +23,7 @@ import {
     ChevronDown,
     CheckSquare,
     ExternalLink,
+    Smartphone,
 } from 'lucide-react';
 
 export default function AdminLayout({ children, title, isFormPage = false }) {
@@ -240,6 +242,25 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
                                     <p className="text-[11px] text-text-muted truncate">{auth?.user?.email || 'admin@synemax.test'}</p>
                                 </div>
                             </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (window.__synemax_pwa_prompt) {
+                                        window.__synemax_pwa_prompt.prompt();
+                                    } else {
+                                        const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
+                                        if (isIos) {
+                                            alert('Untuk memasang di iPhone/iPad: Tekan tombol Bagikan (Share) di Safari lalu pilih "Tambahkan ke Layar Utama" (Add to Home Screen).');
+                                        } else {
+                                            alert('Untuk memasang di HP: Buka menu browser Anda (titik 3 di Chrome) dan pilih "Install Aplikasi" atau "Tambahkan ke Layar Utama".');
+                                        }
+                                    }
+                                }}
+                                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition"
+                            >
+                                <Smartphone className="size-4 text-amber-500" />
+                                <span>Install Aplikasi HP</span>
+                            </button>
                             <a
                                 href="/"
                                 target="_blank"
@@ -299,78 +320,79 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
 
                 {/* Main Content Column */}
                 <div className="min-w-0 flex-1">
-                    <main className={`mx-auto min-w-0 max-w-screen-xl px-4 py-6 sm:px-6 lg:px-8 ${!isFormPage ? 'pb-24 lg:pb-8' : ''}`}>
+                    <main className="mx-auto min-w-0 max-w-screen-xl px-4 py-6 sm:px-6 lg:px-8 pb-24 lg:pb-8">
                         {children}
                     </main>
                 </div>
             </div>
 
-            {/* Mobile Bottom Navigation Bar (< lg, hidden on form pages) */}
-            {!isFormPage && (
-                <nav
-                    aria-label="Navigasi bawah mobile"
-                    className="fixed inset-x-0 bottom-0 z-40 block lg:hidden border-t border-border bg-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)] shadow-xl"
-                >
-                    <div className="grid grid-cols-5 h-16 items-center px-1">
-                        <Link
-                            href="/admin"
-                            className={`flex flex-col items-center justify-center gap-1 text-center py-1.5 min-h-[44px] ${
-                                url === '/admin'
-                                    ? 'text-amber-800 dark:text-amber-400 font-bold border-t-2 border-amber-500 dark:border-amber-400 -mt-[1px]'
-                                    : 'text-text-muted hover:text-text border-t-2 border-transparent'
-                            }`}
-                        >
-                            <LayoutDashboard className="size-5" />
-                            <span className="text-[10px] leading-none">Hari Ini</span>
-                        </Link>
+            {/* Mobile Bottom Navigation Bar (< lg, always visible on mobile) */}
+            <nav
+                aria-label="Navigasi bawah mobile"
+                className="fixed inset-x-0 bottom-0 z-40 block lg:hidden border-t border-border bg-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)] shadow-xl"
+            >
+                <div className="grid grid-cols-5 h-16 items-center px-1">
+                    <Link
+                        href="/admin"
+                        className={`flex flex-col items-center justify-center gap-1 text-center py-1.5 min-h-[44px] ${
+                            url === '/admin'
+                                ? 'text-amber-800 dark:text-amber-400 font-bold border-t-2 border-amber-500 dark:border-amber-400 -mt-[1px]'
+                                : 'text-text-muted hover:text-text border-t-2 border-transparent'
+                        }`}
+                    >
+                        <LayoutDashboard className="size-5" />
+                        <span className="text-[10px] leading-none">Hari Ini</span>
+                    </Link>
 
-                        <Link
-                            href="/admin/booking"
-                            className={`flex flex-col items-center justify-center gap-1 text-center py-1.5 min-h-[44px] ${
-                                url.startsWith('/admin/booking') && !url.includes('/pesan-di-tempat')
-                                    ? 'text-amber-800 dark:text-amber-400 font-bold border-t-2 border-amber-500 dark:border-amber-400 -mt-[1px]'
-                                    : 'text-text-muted hover:text-text border-t-2 border-transparent'
-                            }`}
-                        >
-                            <FileText className="size-5" />
-                            <span className="text-[10px] leading-none">Booking</span>
-                        </Link>
+                    <Link
+                        href="/admin/booking"
+                        className={`flex flex-col items-center justify-center gap-1 text-center py-1.5 min-h-[44px] ${
+                            url.startsWith('/admin/booking') && !url.includes('/pesan-di-tempat')
+                                ? 'text-amber-800 dark:text-amber-400 font-bold border-t-2 border-amber-500 dark:border-amber-400 -mt-[1px]'
+                                : 'text-text-muted hover:text-text border-t-2 border-transparent'
+                        }`}
+                    >
+                        <FileText className="size-5" />
+                        <span className="text-[10px] leading-none">Booking</span>
+                    </Link>
 
-                        <Link
-                            href="/admin/jadwal"
-                            className={`flex flex-col items-center justify-center gap-1 text-center py-1.5 min-h-[44px] ${
-                                url.startsWith('/admin/jadwal')
-                                    ? 'text-amber-800 dark:text-amber-400 font-bold border-t-2 border-amber-500 dark:border-amber-400 -mt-[1px]'
-                                    : 'text-text-muted hover:text-text border-t-2 border-transparent'
-                            }`}
-                        >
-                            <Calendar className="size-5" />
-                            <span className="text-[10px] leading-none">Jadwal</span>
-                        </Link>
+                    <Link
+                        href="/admin/jadwal"
+                        className={`flex flex-col items-center justify-center gap-1 text-center py-1.5 min-h-[44px] ${
+                            url.startsWith('/admin/jadwal')
+                                ? 'text-amber-800 dark:text-amber-400 font-bold border-t-2 border-amber-500 dark:border-amber-400 -mt-[1px]'
+                                : 'text-text-muted hover:text-text border-t-2 border-transparent'
+                        }`}
+                    >
+                        <Calendar className="size-5" />
+                        <span className="text-[10px] leading-none">Jadwal</span>
+                    </Link>
 
-                        <Link
-                            href="/admin/nobar"
-                            className={`flex flex-col items-center justify-center gap-1 text-center py-1.5 min-h-[44px] ${
-                                url.startsWith('/admin/nobar')
-                                    ? 'text-amber-800 dark:text-amber-400 font-bold border-t-2 border-amber-500 dark:border-amber-400 -mt-[1px]'
-                                    : 'text-text-muted hover:text-text border-t-2 border-transparent'
-                            }`}
-                        >
-                            <Sparkles className="size-5" />
-                            <span className="text-[10px] leading-none">Nobar</span>
-                        </Link>
+                    <Link
+                        href="/admin/nobar"
+                        className={`flex flex-col items-center justify-center gap-1 text-center py-1.5 min-h-[44px] ${
+                            url.startsWith('/admin/nobar')
+                                ? 'text-amber-800 dark:text-amber-400 font-bold border-t-2 border-amber-500 dark:border-amber-400 -mt-[1px]'
+                                : 'text-text-muted hover:text-text border-t-2 border-transparent'
+                        }`}
+                    >
+                        <Sparkles className="size-5" />
+                        <span className="text-[10px] leading-none">Nobar</span>
+                    </Link>
 
-                        <button
-                            type="button"
-                            onClick={() => setSidebarOpen(true)}
-                            className="flex flex-col items-center justify-center gap-1 text-center py-1.5 min-h-[44px] text-text-muted hover:text-text border-t-2 border-transparent"
-                        >
-                            <Menu className="size-5" />
-                            <span className="text-[10px] leading-none">Menu</span>
-                        </button>
-                    </div>
-                </nav>
-            )}
+                    <button
+                        type="button"
+                        onClick={() => setSidebarOpen(true)}
+                        className="flex flex-col items-center justify-center gap-1 text-center py-1.5 min-h-[44px] text-text-muted hover:text-text border-t-2 border-transparent"
+                    >
+                        <Menu className="size-5" />
+                        <span className="text-[10px] leading-none">Menu</span>
+                    </button>
+                </div>
+            </nav>
+
+            {/* PWA Mobile Install Banner */}
+            <PwaInstallBanner />
         </div>
     );
 }

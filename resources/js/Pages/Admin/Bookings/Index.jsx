@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import Pagination from '@/Components/Pagination';
 import Modal from '@/Components/Modal';
+import EditBookingModal from '@/Components/EditBookingModal';
 import { 
     Plus, 
     Trash2, 
@@ -17,7 +18,8 @@ import {
     Clock, 
     CreditCard, 
     AlertTriangle,
-    QrCode
+    QrCode,
+    Edit
 } from 'lucide-react';
 
 export default function Index({ bookings, selectedStatus = '', selectedMethod = '', search = '' }) {
@@ -30,6 +32,7 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
     const [rejectionNote, setRejectionNote] = useState('');
     const [copiedCode, setCopiedCode] = useState(null);
     const [deleteModalData, setDeleteModalData] = useState(null);
+    const [editBookingData, setEditBookingData] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
     const handleFilter = (e) => {
@@ -379,6 +382,16 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
                                                 Detail & jajan
                                             </Link>
 
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditBookingData(booking)}
+                                                className="inline-flex min-h-[38px] items-center justify-center gap-1 rounded-xl border border-border bg-surface px-3 text-xs font-bold text-text hover:border-amber-500 hover:text-amber-500 active:scale-95 transition shadow-xs"
+                                                title="Ubah data reservasi"
+                                            >
+                                                <Edit className="size-3.5" />
+                                                <span>Ubah</span>
+                                            </button>
+
                                             {waUrl && (
                                                 <a
                                                     href={waUrl}
@@ -668,6 +681,13 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
                     </div>
                 </div>
             </Modal>
+
+            {/* Edit Booking Modal */}
+            <EditBookingModal
+                booking={editBookingData}
+                isOpen={Boolean(editBookingData)}
+                onClose={() => setEditBookingData(null)}
+            />
         </AdminLayout>
     );
 }

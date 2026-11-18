@@ -226,10 +226,10 @@ export default function Create({
     };
 
     return (
-        <AdminLayout title="Loket Pemesanan di Tempat (Walk-in)" isFormPage={true}>
+        <AdminLayout title="Loket Pemesanan di Tempat (Walk-in)">
             <Head title="Loket Walk-in · Panel Admin" />
 
-            <div className="space-y-4 sm:space-y-6 pb-20 lg:pb-0">
+            <div className="space-y-4 sm:space-y-6 pb-28 lg:pb-0">
                 {/* Header (Responsive: Compact on Mobile, Full on Desktop) */}
                 <div className="flex items-center justify-between sm:hidden pb-1">
                     <div className="flex items-center gap-2 min-w-0">
@@ -454,23 +454,91 @@ export default function Create({
                             </div>
 
                             {bookingType === 'reguler' && (
-                                <div className="pt-1 sm:pt-2">
-                                    <label className="text-xs font-bold text-text block mb-1.5 sm:mb-2">Jumlah Orang (Anak / Dewasa):</label>
-                                    <div className="flex flex-wrap gap-1.5 sm:gap-2.5">
-                                        {[1, 2, 3, 4, 5, 6].map((num) => (
-                                            <button
-                                                key={num}
-                                                type="button"
-                                                onClick={() => setPax(num)}
-                                                className={`size-9 sm:size-11 rounded-lg sm:rounded-xl border-2 font-mono font-black text-xs sm:text-sm transition ${
-                                                    pax === num
-                                                        ? 'border-amber-500 bg-amber-500 text-slate-950 font-black shadow-sm ring-2 ring-amber-500/20'
-                                                        : 'border-border bg-surface-2 text-text hover:border-amber-500/50'
-                                                }`}
-                                            >
-                                                {num} Org
-                                            </button>
-                                        ))}
+                                <div className="rounded-2xl border border-border/80 bg-surface-2/40 p-3.5 sm:p-4 space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <span className="text-xs font-bold text-text uppercase tracking-wider block">
+                                                Jumlah Orang / Kursi
+                                            </span>
+                                            <span className="text-[11px] text-text-muted">
+                                                Pilih jumlah penonton (1 s/d 10 orang)
+                                            </span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-[10px] text-text-muted block">Subtotal Tiket:</span>
+                                            <span className="text-sm sm:text-base font-black text-amber-500 font-mono">
+                                                Rp {ticketTotal.toLocaleString('id-ID')}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Interactive Stepper */}
+                                    <div className="flex items-center justify-between gap-3 bg-surface rounded-2xl border border-border p-2">
+                                        <button
+                                            type="button"
+                                            disabled={pax <= 1}
+                                            onClick={() => setPax((p) => Math.max(1, p - 1))}
+                                            className="size-11 rounded-xl bg-surface-2 border border-border flex items-center justify-center font-bold text-text hover:bg-amber-500 hover:text-slate-950 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-xs"
+                                            aria-label="Kurangi penonton"
+                                        >
+                                            <Minus className="size-5" />
+                                        </button>
+
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="size-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500">
+                                                <Users className="size-5" />
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-xl sm:text-2xl font-black text-text font-mono leading-none">
+                                                    {pax} <span className="text-xs sm:text-sm font-bold text-text-muted">Orang</span>
+                                                </div>
+                                                <div className="text-[10px] text-text-muted mt-0.5 font-mono">
+                                                    {pax} Tiket × Rp {unitPrice.toLocaleString('id-ID')}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            disabled={pax >= 10 || (activeSession?.remaining_seats && pax >= activeSession.remaining_seats)}
+                                            onClick={() => setPax((p) => Math.min(10, p + 1))}
+                                            className="size-11 rounded-xl bg-surface-2 border border-border flex items-center justify-center font-bold text-text hover:bg-amber-500 hover:text-slate-950 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-xs"
+                                            aria-label="Tambah penonton"
+                                        >
+                                            <Plus className="size-5" />
+                                        </button>
+                                    </div>
+
+                                    {/* Quick Preset Buttons (1 to 10) */}
+                                    <div className="pt-1">
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <span className="text-[11px] font-bold text-text-muted">Pilih Cepat Jumlah:</span>
+                                            {activeSession?.remaining_seats && (
+                                                <span className="text-[10px] text-emerald-500 font-bold">
+                                                    Sisa {activeSession.remaining_seats} Kursi
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
+                                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => {
+                                                const isExceeded = activeSession?.remaining_seats && num > activeSession.remaining_seats;
+                                                return (
+                                                    <button
+                                                        key={num}
+                                                        type="button"
+                                                        disabled={isExceeded}
+                                                        onClick={() => setPax(num)}
+                                                        className={`h-10 rounded-xl font-mono font-black text-xs transition-all flex items-center justify-center ${
+                                                            pax === num
+                                                                ? 'bg-amber-500 text-slate-950 font-black shadow-md ring-2 ring-amber-500/30 scale-105'
+                                                                : 'bg-surface border border-border text-text hover:border-amber-500/50 hover:bg-surface-2'
+                                                        } ${isExceeded ? 'opacity-30 cursor-not-allowed' : ''}`}
+                                                    >
+                                                        <span>{num}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -819,10 +887,9 @@ export default function Create({
                     </div>
                 </form>
 
-                {/* Mobile Sticky Floating Checkout Action Bar (Only action on mobile) */}
+                {/* Mobile Sticky Floating Checkout Action Bar (Sits right above the bottom nav bar) */}
                 <div
-                    className="fixed inset-x-0 bottom-0 z-40 bg-surface/95 dark:bg-[#07090E]/95 backdrop-blur-md border-t border-border px-4 py-2.5 shadow-2xl lg:hidden flex items-center justify-between gap-3"
-                    style={{ paddingBottom: 'calc(0.625rem + env(safe-area-inset-bottom, 0px))' }}
+                    className="fixed inset-x-0 bottom-16 z-30 bg-surface/95 dark:bg-[#07090E]/95 backdrop-blur-md border-t border-border px-4 py-2.5 shadow-2xl lg:hidden flex items-center justify-between gap-3"
                 >
                     <div className="min-w-0">
                         <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">

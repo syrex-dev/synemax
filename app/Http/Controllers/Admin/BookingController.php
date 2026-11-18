@@ -328,6 +328,73 @@ class BookingController extends Controller
             ->with('status', "Booking {$code} ({$customerName}) berhasil dihapus permanen.");
     }
 
+    public function edit(Booking $booking, CinemaSettings $settings, BookingService $bookingService): View|InertiaResponse
+    {
+        $booking = $bookingService->expireIfOverdue($booking);
+
+        $booking->load([
+            'session.film',
+            'film',
+            'customerProfile',
+            'items.menuItem',
+        ]);
+
+        $data = [
+            'booking' => $booking,
+            'sessions' => Session::query()
+                ->with('film')
+                ->where('session_date', '>=', now()->toDateString())
+                ->orderBy('session_date')
+                ->orderBy('start_time')
+                ->get(),
+        ];
+
+        return Inertia::render('Admin/Bookings/Edit', $data)->withViewData($data);
+    }
+
+    public function update(Request $request, Booking $booking, CinemaSettings $settings): RedirectResponse
+    {
+        $validated = $request->validate([
+            'customer_name' => ['required', 'string', 'max:255'],
+            'whatsapp' => ['required', 'string', 'max:30'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'pax' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'payment_method' => ['nullable', 'string', 'in:di_tempat,qris,transfer'],
+            'status' => ['nullable', 'string', 'in:menunggu_pembayaran,menunggu_konfirmasi,terkonfirmasi,hadir,tidak_hadir,kedaluwarsa,dibatalkan'],
+        ]);
+
+        DB::transaction(function () use ($booking, $validated, $settings): void {
+            $booking->customer_name = $validated['customer_name'];
+            $booking->whatsapp = preg_replace('/\D+/', '', $validated['whatsapp']);
+            $booking->notes = $validated['notes'] ?? null;
+
+            if (! empty($validated['payment_method'])) {
+                $booking->payment_method = $validated['payment_method'];
+            }
+
+            if (! empty($validated['status'])) {
+                $booking->status = $validated['status'];
+            }
+
+            if (! empty($validated['pax']) && $booking->booking_type !== 'private') {
+                $newPax = (int) $validated['pax'];
+                if ($newPax !== (int) $booking->pax) {
+                    $unitPrice = (int) $settings->integer('starting_price', 5000);
+                    $newTicketTotal = $newPax * $unitPrice;
+                    $booking->pax = $newPax;
+                    $booking->people_count = $newPax;
+                    $booking->seats_reserved = $newPax;
+                    $booking->ticket_total = $newTicketTotal;
+                    $booking->total_price = $newTicketTotal + (int) ($booking->snack_total ?: 0);
+                }
+            }
+
+            $booking->save();
+        });
+
+        return back()->with('status', "Data booking {$booking->code} berhasil diperbarui.");
+    }
+
     public function show(Booking $booking, CinemaSettings $settings, BookingService $bookingService): View|InertiaResponse
     {
         $booking = $bookingService->expireIfOverdue($booking);

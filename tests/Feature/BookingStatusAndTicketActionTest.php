@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Booking;
 use App\Models\Film;
 use App\Models\Session;
+use App\Models\User;
 use App\Services\CinemaSettings;
 use App\Support\BookingStatusPresenter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -261,5 +262,40 @@ class BookingStatusAndTicketActionTest extends TestCase
 
         $rendered = (string) $this->blade('<x-ui.whatsapp-button variant="inline" />');
         $this->assertEmpty(trim($rendered));
+    }
+
+    public function test_admin_can_update_booking_details(): void
+    {
+        $film = $this->createFilm();
+        $session = $this->createSession(['film_id' => $film->id]);
+        $booking = $this->createBooking([
+            'session_id' => $session->id,
+            'film_id' => $film->id,
+            'customer_name' => 'Nama Lama',
+            'whatsapp' => '081234567890',
+            'notes' => 'Catatan lama',
+        ]);
+
+        $admin = User::factory()->create();
+
+        $response = $this->actingAs($admin)->patch("/admin/booking/{$booking->id}", [
+            'customer_name' => 'Nama Baru',
+            'whatsapp' => '089876543210',
+            'notes' => 'Catatan baru diperbarui',
+            'payment_method' => 'qris',
+            'status' => 'terkonfirmasi',
+            'pax' => 4,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'customer_name' => 'Nama Baru',
+            'whatsapp' => '089876543210',
+            'notes' => 'Catatan baru diperbarui',
+            'payment_method' => 'qris',
+            'status' => 'terkonfirmasi',
+            'pax' => 4,
+        ]);
     }
 }
