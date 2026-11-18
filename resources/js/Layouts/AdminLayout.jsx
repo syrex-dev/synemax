@@ -245,21 +245,13 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    if (window.__synemax_pwa_prompt) {
-                                        window.__synemax_pwa_prompt.prompt();
-                                    } else {
-                                        const isIos = /iPhone|iPad|iPod/.test(navigator.userAgent);
-                                        if (isIos) {
-                                            alert('Untuk memasang di iPhone/iPad: Tekan tombol Bagikan (Share) di Safari lalu pilih "Tambahkan ke Layar Utama" (Add to Home Screen).');
-                                        } else {
-                                            alert('Untuk memasang di HP: Buka menu browser Anda (titik 3 di Chrome) dan pilih "Install Aplikasi" atau "Tambahkan ke Layar Utama".');
-                                        }
-                                    }
+                                    setSidebarOpen(false);
+                                    window.dispatchEvent(new CustomEvent('synemax-open-pwa-install'));
                                 }}
                                 className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition"
                             >
                                 <Smartphone className="size-4 text-amber-500" />
-                                <span>Install Aplikasi HP</span>
+                                <span>Install Aplikasi Admin</span>
                             </button>
                             <a
                                 href="/"

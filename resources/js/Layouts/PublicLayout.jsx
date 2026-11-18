@@ -3,6 +3,7 @@ import { Link, usePage } from '@inertiajs/react';
 import BrandLogo from '../Components/BrandLogo';
 import ThemeToggle from '../Components/ThemeToggle';
 import FlashMessage from '../Components/FlashMessage';
+import PwaInstallBanner from '../Components/PwaInstallBanner';
 import {
     Home,
     Calendar,
@@ -19,6 +20,7 @@ import {
     Sun,
     Moon,
     Monitor,
+    Download,
 } from 'lucide-react';
 
 export default function PublicLayout({ children, title, isActionPage = false }) {
@@ -286,6 +288,20 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                         <span>Harga & FAQ</span>
                                         <ChevronRight className="size-4 text-text-muted shrink-0" />
                                     </Link>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setMenuSheetOpen(false);
+                                            window.dispatchEvent(new CustomEvent('synemax-open-pwa-install'));
+                                        }}
+                                        className="col-span-2 flex min-h-[44px] items-center justify-between rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-2 font-bold text-amber-500 hover:bg-amber-500/20 transition-colors shadow-xs"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Download className="size-4 shrink-0" />
+                                            <span>Pasang Aplikasi SynemaX</span>
+                                        </div>
+                                        <ChevronRight className="size-4 shrink-0 text-amber-500/70" />
+                                    </button>
                                 </div>
                             </div>
 
@@ -487,6 +503,9 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                     </div>
                 </div>
             </footer>
+
+            {/* PWA Mobile & Desktop Install Offer Pop-up */}
+            <PwaInstallBanner />
         </div>
     );
 }

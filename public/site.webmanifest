@@ -1,25 +1,40 @@
 {
-    "name": "SynemaX Home Cinema",
+    "id": "/?source=pwa",
+    "name": "SynemaX Cinema",
     "short_name": "SynemaX",
-    "description": "Nonton dekat, seru bareng.",
+    "description": "Nonton dekat, seru bareng di SynemaX.",
     "lang": "id",
-    "start_url": "/",
+    "start_url": "/?source=pwa",
     "scope": "/",
     "display": "standalone",
-    "background_color": "#0B1220",
-    "theme_color": "#0B1220",
+    "orientation": "portrait-primary",
+    "background_color": "#07090E",
+    "theme_color": "#07090E",
+    "categories": ["entertainment", "lifestyle"],
     "icons": [
         {
             "src": "/icon-192.png?v=3",
             "sizes": "192x192",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
+        },
+        {
+            "src": "/icon-192.png?v=3",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
         },
         {
             "src": "/icon-512.png?v=3",
             "sizes": "512x512",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
+        },
+        {
+            "src": "/icon-512.png?v=3",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
         },
         {
             "src": "/icon.svg?v=3",

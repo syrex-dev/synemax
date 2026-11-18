@@ -18,6 +18,10 @@
     <link rel="shortcut icon" href="{{ $faviconUrl }}?v=3">
     <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}?v=3">
     <link rel="manifest" href="{{ $manifestUrl }}">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="{{ $isAdmin ? 'SynemaX Admin' : ($cinemaSettings['siteName'] ?? 'SynemaX') }}">
 
     <script>
         (function () {
@@ -102,6 +106,14 @@
             <meta property="og:image" content="{{ $article->coverUrl() }}">
         @endif
     @endif
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').catch(function() {});
+            });
+        }
+    </script>
 
     @viteReactRefresh
     @vite(['resources/css/app.css', 'resources/js/app.jsx'])
