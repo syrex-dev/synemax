@@ -31,13 +31,11 @@ export default function ThemeToggle({ variant = 'responsive', className = '' }) 
         setMode(next);
     };
 
-    const mobileBtn = (
+    const renderButton = (extraClass = '') => (
         <button
             type="button"
             onClick={toggle}
-            className={`size-11 items-center justify-center rounded-xl border border-slate-300/80 dark:border-white/15 bg-surface/70 dark:bg-white/5 backdrop-blur-sm text-text hover:bg-surface-2 transition focus-visible:outline-2 focus-visible:outline-amber-500 shadow-xs ${
-                variant === 'responsive' ? 'inline-flex md:hidden' : 'inline-flex'
-            } ${className}`}
+            className={`size-11 inline-flex items-center justify-center rounded-xl border border-slate-300/80 dark:border-white/15 bg-surface/70 dark:bg-white/5 backdrop-blur-sm text-text hover:bg-surface-2 transition focus-visible:outline-2 focus-visible:outline-amber-500 shadow-xs ${extraClass} ${className}`}
             aria-label="Ganti mode tampilan terang atau gelap"
             title={theme === 'dark' ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'}
         >
@@ -49,11 +47,9 @@ export default function ThemeToggle({ variant = 'responsive', className = '' }) 
         </button>
     );
 
-    const desktopPill = (
+    const renderPill = (extraClass = '') => (
         <div
-            className={`items-center rounded-full border border-slate-300 dark:border-white/15 bg-slate-200/80 dark:bg-black/50 p-1 backdrop-blur-md shadow-inner transition-colors duration-200 ${
-                variant === 'responsive' ? 'hidden md:inline-flex' : 'inline-flex'
-            } ${className}`}
+            className={`inline-flex items-center rounded-full border border-slate-300 dark:border-white/15 bg-slate-200/80 dark:bg-black/50 p-1 backdrop-blur-md shadow-inner transition-colors duration-200 ${extraClass} ${className}`}
             role="group"
             aria-label="Pilih mode tampilan"
         >
@@ -87,18 +83,18 @@ export default function ThemeToggle({ variant = 'responsive', className = '' }) 
         </div>
     );
 
-    if (variant === 'mobile') {
-        return mobileBtn;
+    if (variant === 'single' || variant === 'icon-only' || variant === 'icon' || variant === 'mobile') {
+        return renderButton();
     }
 
-    if (variant === 'desktop') {
-        return desktopPill;
+    if (variant === 'desktop' || variant === 'pill') {
+        return renderPill();
     }
 
     return (
         <div className="flex items-center">
-            {desktopPill}
-            {mobileBtn}
+            {renderPill('hidden md:inline-flex')}
+            {renderButton('inline-flex md:hidden')}
         </div>
     );
 }

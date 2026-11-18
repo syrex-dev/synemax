@@ -14,16 +14,16 @@ use App\Services\LoyaltyRules;
 use App\Services\MemberCodeGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class TicketScannerController extends Controller
 {
     /**
      * Halaman antarmuka pemindai tiket admin.
      */
-    public function index(Request $request, CinemaSettings $settings): Response
+    public function index(Request $request, CinemaSettings $settings): SymfonyResponse
     {
         $todayDate = now()->toDateString();
         $todaySessions = Session::query()

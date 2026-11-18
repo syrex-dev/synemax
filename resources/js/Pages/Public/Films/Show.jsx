@@ -85,9 +85,9 @@ export default function Show({
                     </div>
 
                     {/* Desktop & Mobile Main Details */}
-                    <div className="flex flex-col md:flex-row items-start gap-6 md:gap-8">
-                        {/* Poster */}
-                        <div className="w-36 sm:w-48 md:w-[190px] aspect-[2/3] shrink-0 rounded-2xl overflow-hidden border border-white/15 bg-black shadow-2xl relative mx-auto md:mx-0">
+                    <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-10">
+                        {/* Selected Film Poster (Large Hero Card) */}
+                        <div className="w-56 sm:w-64 md:w-72 lg:w-80 aspect-[2/3] shrink-0 rounded-2xl md:rounded-3xl overflow-hidden border-2 border-white/15 dark:border-white/10 bg-slate-950 shadow-2xl relative mx-auto md:mx-0 group">
                             {poster ? (
                                 <img
                                     src={poster}
@@ -95,15 +95,15 @@ export default function Show({
                                     className="size-full object-cover"
                                 />
                             ) : (
-                                <div className="flex size-full flex-col items-center justify-center bg-slate-900 p-4 text-center">
-                                    <FilmIcon className="size-8 text-amber-500/60 mb-2" />
-                                    <span className="text-xs font-bold text-amber-200">{film?.title}</span>
+                                <div className="flex size-full flex-col items-center justify-center bg-slate-900 p-6 text-center">
+                                    <FilmIcon className="size-12 text-amber-500/60 mb-3" />
+                                    <span className="text-sm font-bold text-amber-200">{film?.title}</span>
                                 </div>
                             )}
 
                             {film?.custom_badge && (
-                                <div className="absolute bottom-2 inset-x-0 flex justify-center px-2 z-10 pointer-events-none">
-                                    <span className="inline-flex items-center justify-center bg-[#E50914] text-white font-black text-[10px] sm:text-xs px-2.5 py-0.5 rounded shadow-md truncate max-w-full border border-white/20">
+                                <div className="absolute bottom-3 inset-x-0 flex justify-center px-3 z-10 pointer-events-none">
+                                    <span className="inline-flex items-center justify-center bg-[#E50914] text-white font-black text-xs px-3 py-1 rounded-md shadow-lg truncate max-w-full border border-white/20">
                                         {film.custom_badge}
                                     </span>
                                 </div>
@@ -112,7 +112,7 @@ export default function Show({
 
                         {/* Info details */}
                         <div className="flex-1 space-y-4 text-center md:text-left w-full">
-                            <h1 className="text-2xl sm:text-3xl font-black text-text tracking-tight">
+                            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-text tracking-tight">
                                 {film?.title}
                             </h1>
 
@@ -141,18 +141,6 @@ export default function Show({
                                         {film.release_year}
                                     </span>
                                 )}
-
-                                {/* Trailer button */}
-                                {ytId && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setTrailerOpen(true)}
-                                        className="size-9 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center shadow-md transition-transform hover:scale-105 ml-1"
-                                        title="Putar trailer"
-                                    >
-                                        <Play className="size-4 fill-current ml-0.5" />
-                                    </button>
-                                )}
                             </div>
 
                             {/* Meta description */}
@@ -179,15 +167,26 @@ export default function Show({
                                 </dl>
                             )}
 
-                            {/* Booking Action CTA */}
-                            <div className="pt-2">
+                            {/* Actions CTA: Pilih Film Ini & Tonton Trailer */}
+                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 pt-3">
                                 <Link
                                     href={bookingUrl}
-                                    className="btn-gold-cinema inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-7 py-3 text-sm font-black shadow-lg shadow-amber-500/20"
+                                    className="btn-gold-cinema inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-7 py-3 text-sm font-black shadow-lg shadow-amber-500/20 hover:scale-[1.02] transition"
                                 >
                                     <span>Pilih Film Ini</span>
                                     <ArrowRight className="size-4" />
                                 </Link>
+
+                                {ytId && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setTrailerOpen(true)}
+                                        className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 px-5 py-3 text-sm font-bold transition shadow-xs hover:border-amber-500 hover:scale-[1.02]"
+                                    >
+                                        <Play className="size-4 fill-current text-amber-500" />
+                                        <span>Tonton Trailer</span>
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -255,29 +254,35 @@ export default function Show({
                             </Link>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
                             {otherFilms.map((other) => {
                                 const oPoster = other.poster_url || (other.poster_path ? (other.poster_path.startsWith('http') ? other.poster_path : `/storage/${other.poster_path}`) : null);
                                 return (
                                     <Link
                                         key={other.id}
                                         href={`/film/${other.slug || other.id}`}
-                                        className="group flex flex-col rounded-2xl overflow-hidden border border-border bg-surface shadow-xs hover:border-amber-500 transition"
+                                        className="group flex flex-col rounded-xl sm:rounded-2xl overflow-hidden border border-border bg-surface shadow-xs hover:border-amber-500 transition hover:shadow-md"
                                     >
                                         <div className="w-full aspect-[2/3] bg-slate-900 overflow-hidden relative">
                                             {oPoster ? (
                                                 <img
                                                     src={oPoster}
                                                     alt={other.title}
-                                                    className="size-full object-cover group-hover:scale-103 transition duration-200"
+                                                    className="size-full object-cover group-hover:scale-105 transition duration-300"
+                                                    loading="lazy"
                                                 />
                                             ) : (
                                                 <div className="flex size-full items-center justify-center p-2 text-center text-xs font-bold text-amber-200">
                                                     {other.title}
                                                 </div>
                                             )}
+                                            {other.age_rating && (
+                                                <span className="absolute top-2 left-2 rounded-md bg-black/75 backdrop-blur-xs px-1.5 py-0.5 text-[9px] font-black text-amber-400 border border-white/20">
+                                                    {other.age_rating}
+                                                </span>
+                                            )}
                                         </div>
-                                        <div className="p-3">
+                                        <div className="p-2.5">
                                             <h3 className="font-bold text-xs text-text line-clamp-1 group-hover:text-amber-500 transition">
                                                 {other.title}
                                             </h3>

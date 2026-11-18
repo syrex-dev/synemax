@@ -115,7 +115,7 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
 
                     {/* Right: Theme Toggle + Account Dropdown */}
                     <div className="flex items-center gap-2 shrink-0">
-                        <ThemeToggle variant="single" />
+                        <ThemeToggle variant="responsive" />
 
                         <div className="relative">
                             <button

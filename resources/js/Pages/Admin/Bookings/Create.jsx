@@ -252,13 +252,18 @@ export default function Create({
                     {/* Left Form: Sections 1 to 5 */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* 1. Sesi & Jadwal */}
-                        <section className="rounded-2xl border border-border bg-surface p-5 shadow-xs space-y-3">
-                            <h2 className="text-xs font-black uppercase tracking-wider text-amber-500 flex items-center gap-2">
-                                <Calendar className="size-4" />
-                                <span>1. Pilih Sesi Penayangan</span>
-                            </h2>
+                        <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-xs space-y-4">
+                            <div className="flex items-center justify-between border-b border-border/80 pb-3">
+                                <h2 className="text-sm font-black uppercase tracking-wider text-amber-500 flex items-center gap-2">
+                                    <Calendar className="size-4.5" />
+                                    <span>1. Pilih Sesi Penayangan</span>
+                                </h2>
+                                <span className="text-xs font-bold text-text-muted">
+                                    {sessions.length} Sesi Terdaftar
+                                </span>
+                            </div>
 
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-48 overflow-y-auto p-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 max-h-[380px] overflow-y-auto p-1 pr-1.5 scrollbar-thin">
                                 {sessions.map((s) => {
                                     const isSelected = currentSessionId === s.id;
                                     const remSeats = s.capacity - (s.occupied_bookings?.reduce((acc, b) => acc + (b.seats_reserved || 0), 0) || 0);
@@ -271,20 +276,47 @@ export default function Create({
                                                 setCurrentSessionId(s.id);
                                                 if (s.film_id) setSelectedFilmId(s.film_id);
                                             }}
-                                            className={`p-3 rounded-xl border text-left transition-all ${
+                                            className={`p-4 rounded-2xl border-2 text-left transition-all relative group flex flex-col justify-between min-h-[115px] ${
                                                 isSelected
-                                                    ? 'border-amber-500 bg-amber-500/10 font-bold'
-                                                    : 'border-border bg-surface-2/60 hover:bg-surface-2'
+                                                    ? 'border-amber-500 bg-amber-500/15 shadow-md ring-2 ring-amber-500/20'
+                                                    : 'border-border bg-surface-2/70 hover:bg-surface-2 hover:border-amber-500/50'
                                             }`}
                                         >
-                                            <div className="text-xs font-black text-text font-mono">
-                                                {s.start_time?.slice(0, 5)} WIB
+                                            <div>
+                                                <div className="flex items-center justify-between gap-1">
+                                                    <span className="text-base sm:text-lg font-black text-text font-mono tracking-tight">
+                                                        {s.start_time?.slice(0, 5)} WIB
+                                                    </span>
+                                                    {isSelected && (
+                                                        <span className="size-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shrink-0">
+                                                            <Check className="size-3 stroke-[3]" />
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <div className="text-xs font-medium text-text-muted mt-1">
+                                                    {s.session_date}
+                                                </div>
+
+                                                {s.film?.title && (
+                                                    <div className="text-xs font-bold text-amber-600 dark:text-amber-400 truncate mt-1 flex items-center gap-1">
+                                                        <Film className="size-3 shrink-0" />
+                                                        <span className="truncate">{s.film.title}</span>
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="text-[11px] text-text-muted mt-0.5">
-                                                {s.session_date}
-                                            </div>
-                                            <div className="text-[10px] text-amber-500 font-semibold mt-1">
-                                                Sisa {remSeats} kursi
+
+                                            <div className="mt-3 pt-2 border-t border-border/50 flex items-center justify-between">
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold ${
+                                                    remSeats <= 2
+                                                        ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
+                                                        : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                                }`}>
+                                                    Sisa {remSeats} Kursi
+                                                </span>
+                                                <span className="text-[10px] text-text-muted">
+                                                    Kap. {s.capacity}
+                                                </span>
                                             </div>
                                         </button>
                                     );
@@ -293,13 +325,13 @@ export default function Create({
                         </section>
 
                         {/* 2. Paket & Pax */}
-                        <section className="rounded-2xl border border-border bg-surface p-5 shadow-xs space-y-3">
-                            <h2 className="text-xs font-black uppercase tracking-wider text-amber-500 flex items-center gap-2">
-                                <Users className="size-4" />
+                        <section className="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-xs space-y-4">
+                            <h2 className="text-sm font-black uppercase tracking-wider text-amber-500 flex items-center gap-2 border-b border-border/80 pb-3">
+                                <Users className="size-4.5" />
                                 <span>2. Tipe Paket & Jumlah Orang</span>
                             </h2>
 
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-3 gap-3">
                                 {[
                                     { key: 'reguler', label: 'Reguler', desc: 'Per orang' },
                                     { key: 'couple', label: 'Couple', desc: 'Paket 2 Orang' },
@@ -313,30 +345,30 @@ export default function Create({
                                             if (pkg.key === 'couple') setPax(2);
                                             if (pkg.key === 'private') setPax(6);
                                         }}
-                                        className={`p-3 rounded-xl border text-center transition-all ${
+                                        className={`p-3.5 sm:p-4 rounded-2xl border-2 text-center transition-all ${
                                             bookingType === pkg.key
-                                                ? 'border-amber-500 bg-amber-500/15 text-text font-black'
-                                                : 'border-border bg-surface-2/60 text-text-muted hover:bg-surface-2'
+                                                ? 'border-amber-500 bg-amber-500/15 text-text font-black shadow-xs ring-2 ring-amber-500/20'
+                                                : 'border-border bg-surface-2/60 text-text-muted hover:bg-surface-2 hover:border-amber-500/40'
                                         }`}
                                     >
-                                        <div className="text-xs font-bold">{pkg.label}</div>
-                                        <div className="text-[10px] text-text-muted mt-0.5">{pkg.desc}</div>
+                                        <div className="text-sm font-black">{pkg.label}</div>
+                                        <div className="text-xs text-text-muted mt-1">{pkg.desc}</div>
                                     </button>
                                 ))}
                             </div>
 
                             {bookingType === 'reguler' && (
                                 <div className="pt-2">
-                                    <label className="text-xs font-bold text-text block mb-2">Jumlah Orang (Anak / Dewasa):</label>
-                                    <div className="flex flex-wrap gap-2">
+                                    <label className="text-xs font-bold text-text block mb-2.5">Jumlah Orang (Anak / Dewasa):</label>
+                                    <div className="flex flex-wrap gap-2.5">
                                         {[1, 2, 3, 4, 5, 6].map((num) => (
                                             <button
                                                 key={num}
                                                 type="button"
                                                 onClick={() => setPax(num)}
-                                                className={`size-10 rounded-xl border font-mono font-bold text-xs transition ${
+                                                className={`size-11 sm:size-12 rounded-xl border-2 font-mono font-black text-sm transition ${
                                                     pax === num
-                                                        ? 'border-amber-500 bg-amber-500 text-slate-950 font-black shadow-xs'
+                                                        ? 'border-amber-500 bg-amber-500 text-slate-950 font-black shadow-sm ring-2 ring-amber-500/20'
                                                         : 'border-border bg-surface-2 text-text hover:border-amber-500/50'
                                                 }`}
                                             >
