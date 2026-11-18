@@ -476,7 +476,7 @@
             @if(isset($sessions) && (is_array($sessions) || $sessions instanceof \Illuminate\Support\Collection))
                 @foreach($sessions as $sess)
                     @if(is_object($sess) && isset($sess->start_time))
-                        <span>{{ format_jam_id($sess->start_time, true) }} WIB</span>
+                        <span>{{ format_jam_id($sess->start_time, true) }}</span>
                     @endif
                 @endforeach
             @endif
