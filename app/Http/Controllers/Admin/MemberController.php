@@ -94,7 +94,7 @@ class MemberController extends Controller
             ->withViewData($data);
     }
 
-    public function scan(Request $request, CinemaSettings $settings): View
+    public function scan(Request $request, CinemaSettings $settings): View|InertiaResponse
     {
         $todayDate = now()->toDateString();
         $todaySessions = Session::query()
@@ -121,13 +121,19 @@ class MemberController extends Controller
             }
         }
 
-        return view('admin.members.scan', [
+        $data = [
             'todaySessions' => $todaySessions,
             'selectedSession' => $selectedSession,
             'selectedSessionId' => $selectedSession?->id ?? 'all',
             'soundEnabled' => $settings->checkInSoundEnabled(),
             'settings' => $settings,
-        ]);
+        ];
+
+        if ($request->wantsJson() || $request->header('X-Inertia')) {
+            return Inertia::render('Admin/Members/Scan', $data);
+        }
+
+        return view('admin.members.scan', $data);
     }
 
     public function create(Request $request): View|InertiaResponse

@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class FilmPosterController extends Controller
 {
@@ -29,7 +31,7 @@ class FilmPosterController extends Controller
     /**
      * Show dedicated bulk posters management page.
      */
-    public function index(): View
+    public function index(): View|InertiaResponse
     {
         $filmsWithoutPoster = Film::query()
             ->select(['id', 'title', 'slug', 'poster_path'])
@@ -79,11 +81,17 @@ class FilmPosterController extends Controller
             $filmOptions[$film->id] = $label;
         }
 
-        return view('admin.films.posters', [
+        $data = [
             'filmsWithoutPoster' => $filmsWithoutPoster,
             'unmatchedPosters' => $unmatchedPosters,
             'filmOptions' => $filmOptions,
-        ]);
+        ];
+
+        if (request()->wantsJson() || request()->header('X-Inertia')) {
+            return Inertia::render('Admin/Films/Posters', $data);
+        }
+
+        return view('admin.films.posters', $data);
     }
 
     /**

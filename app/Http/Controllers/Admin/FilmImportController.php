@@ -100,7 +100,7 @@ class FilmImportController extends Controller
     /**
      * Handle upload and show preview with inline correction.
      */
-    public function preview(Request $request, FilmBulkImporter $importer): View|RedirectResponse
+    public function preview(Request $request, FilmBulkImporter $importer): View|RedirectResponse|InertiaResponse
     {
         $request->validate([
             'csv_file' => 'required|file|max:5120', // max 5MB per requirement B2
@@ -200,7 +200,7 @@ class FilmImportController extends Controller
             }
         }
 
-        return view('admin.films.import-preview', [
+        $data = [
             'batchId' => $batchId,
             'batchToken' => $batchId,
             'filename' => $csvFile->getClientOriginalName(),
@@ -214,13 +214,19 @@ class FilmImportController extends Controller
             'newGenresList' => array_keys($allNewGenres),
             'extractedPosters' => $extractedPosters,
             'publishOnImport' => $publishOnImport,
-        ]);
+        ];
+
+        if ($request->wantsJson() || $request->header('X-Inertia')) {
+            return Inertia::render('Admin/Films/ImportPreview', $data);
+        }
+
+        return view('admin.films.import-preview', $data);
     }
 
     /**
      * Resume an import batch after browser tab was closed.
      */
-    public function resume(string $batchToken): View|RedirectResponse
+    public function resume(string $batchToken): View|RedirectResponse|InertiaResponse
     {
         $batch = ImportBatch::find($batchToken);
         if (! $batch) {
@@ -262,7 +268,7 @@ class FilmImportController extends Controller
 
         $unmatchedPosters = array_keys($extractedPosters);
 
-        return view('admin.films.import-preview', [
+        $data = [
             'batchId' => $batchToken,
             'batchToken' => $batchToken,
             'filename' => $staged['filename'] ?? ($batch->csv_filename ?: 'import.csv'),
@@ -281,7 +287,13 @@ class FilmImportController extends Controller
             'initialSkipped' => (int) $batch->skipped_count,
             'initialFailed' => (int) $batch->failed_count,
             'publishOnImport' => $staged['publish_on_import'] ?? true,
-        ]);
+        ];
+
+        if (request()->wantsJson() || request()->header('X-Inertia')) {
+            return Inertia::render('Admin/Films/ImportPreview', $data);
+        }
+
+        return view('admin.films.import-preview', $data);
     }
 
     /**

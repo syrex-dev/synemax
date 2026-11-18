@@ -7,6 +7,7 @@ use App\Services\CinemaSettings;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
 
 class PublicMemberController extends Controller
 {
@@ -48,13 +49,35 @@ class PublicMemberController extends Controller
             ->take(5)
             ->get();
 
-        $view = view('public.members.card', [
-            'member' => $member,
+        $data = [
+            'member' => [
+                'id' => $member->id,
+                'name' => $member->name,
+                'nickname' => $member->nickname,
+                'code' => $member->code,
+                'member_code' => $member->member_code,
+                'formatted_code' => $member->formattedCode(),
+                'total_visits' => $member->totalVisits(),
+            ],
             'recentVisits' => $recentVisits,
-            'settings' => $settings,
-        ]);
+            'freeVisit' => $settings->memberFreeVisit(),
+            'discountVisit' => $settings->memberDiscountVisit(),
+        ];
 
-        return response($view)
+        if (! $request->header('X-Inertia')) {
+            $view = view('public.members.card', [
+                'member' => $member,
+                'recentVisits' => $recentVisits,
+                'settings' => $settings,
+            ]);
+
+            return response($view)
+                ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+                ->header('Pragma', 'no-cache')
+                ->header('X-Robots-Tag', 'noindex, nofollow');
+        }
+
+        return response(Inertia::render('Public/Members/Card', $data)->toResponse($request))
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache')
             ->header('X-Robots-Tag', 'noindex, nofollow');

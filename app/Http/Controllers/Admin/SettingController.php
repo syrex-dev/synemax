@@ -25,10 +25,12 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
 
 class SettingController extends Controller
 {
-    public function edit(CinemaSettings $settings, Request $request): View
+    public function edit(CinemaSettings $settings, Request $request): View|InertiaResponse
     {
         $currentTab = $request->query('tab', 'identitas');
 
@@ -62,9 +64,31 @@ class SettingController extends Controller
             ->orderBy('title')
             ->get(['id', 'title', 'release_year', 'genre', 'poster_path']);
 
-        return view('admin.settings.edit', [
+        $telegramSettings = [
+            'enabled' => $settings->boolean('telegram_notifications_enabled', false),
+            'masked_token' => app(TelegramNotificationService::class)->getMaskedToken(),
+            'chat_ids' => $settings->string('telegram_chat_ids'),
+            'notify_booking_created' => $settings->boolean('telegram_notify_booking_created', true),
+            'notify_proof_uploaded' => $settings->boolean('telegram_notify_proof_uploaded', true),
+            'notify_payment_confirmed' => $settings->boolean('telegram_notify_payment_confirmed', false),
+            'notify_booking_cancelled' => $settings->boolean('telegram_notify_booking_cancelled', true),
+            'notify_booking_expired' => $settings->boolean('telegram_notify_booking_expired', false),
+            'notify_session_confirmed' => $settings->boolean('telegram_notify_session_confirmed', true),
+            'notify_session_cancelled' => $settings->boolean('telegram_notify_session_cancelled', true),
+            'hide_customer_whatsapp' => $settings->boolean('telegram_hide_customer_whatsapp', false),
+            'include_customer_notes' => $settings->boolean('telegram_include_customer_notes', true),
+        ];
+
+        $telegramLogs = NotificationOutbox::query()
+            ->where('channel', 'telegram')
+            ->with('booking')
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get();
+
+        $data = [
             'currentTab' => $currentTab,
-            'settings' => $settings,
+            'settings' => $this->serializeSettings($settings),
             'enabledMethods' => $settings->rawPaymentMethods(),
             'hasQrisImage' => $settings->hasValidQrisImage(),
             'hasTransferAccounts' => $settings->hasValidTransferAccounts(),
@@ -74,27 +98,79 @@ class SettingController extends Controller
             'activeFilms' => $activeFilms,
             'featuredFilmIds' => $settings->homeFeaturedFilmIds(),
             'homeFilmsMode' => $settings->homeFilmsMode(),
-            'telegramSettings' => [
-                'enabled' => $settings->boolean('telegram_notifications_enabled', false),
-                'masked_token' => app(TelegramNotificationService::class)->getMaskedToken(),
-                'chat_ids' => $settings->string('telegram_chat_ids'),
-                'notify_booking_created' => $settings->boolean('telegram_notify_booking_created', true),
-                'notify_proof_uploaded' => $settings->boolean('telegram_notify_proof_uploaded', true),
-                'notify_payment_confirmed' => $settings->boolean('telegram_notify_payment_confirmed', false),
-                'notify_booking_cancelled' => $settings->boolean('telegram_notify_booking_cancelled', true),
-                'notify_booking_expired' => $settings->boolean('telegram_notify_booking_expired', false),
-                'notify_session_confirmed' => $settings->boolean('telegram_notify_session_confirmed', true),
-                'notify_session_cancelled' => $settings->boolean('telegram_notify_session_cancelled', true),
-                'hide_customer_whatsapp' => $settings->boolean('telegram_hide_customer_whatsapp', false),
-                'include_customer_notes' => $settings->boolean('telegram_include_customer_notes', true),
-            ],
-            'telegramLogs' => NotificationOutbox::query()
-                ->where('channel', 'telegram')
-                ->with('booking')
-                ->orderByDesc('id')
-                ->limit(50)
-                ->get(),
-        ]);
+            'telegramSettings' => $telegramSettings,
+            'telegramLogs' => $telegramLogs,
+        ];
+
+        if (! $request->header('X-Inertia')) {
+            return view('admin.settings.edit', array_merge($data, [
+                'settings' => $settings,
+            ]));
+        }
+
+        return Inertia::render('Admin/Settings/Edit', $data);
+    }
+
+    private function serializeSettings(CinemaSettings $settings): array
+    {
+        return [
+            'site_name' => $settings->siteName(),
+            'site_tagline' => $settings->siteTagline(),
+            'navbar_brand_display' => $settings->navbarBrandDisplay(),
+            'site_logo' => $settings->siteLogo() ? Storage::url($settings->siteLogo()) : null,
+            'site_logo_dark' => $settings->siteLogoDark() ? Storage::url($settings->siteLogoDark()) : null,
+            'site_favicon' => $settings->siteFavicon() ? Storage::url($settings->siteFavicon()) : null,
+            'site_og_image' => $settings->siteOgImage() ? Storage::url($settings->siteOgImage()) : null,
+            'navbar_menu' => $settings->navbarMenu(),
+            'default_theme' => $settings->defaultTheme(),
+            'show_theme_toggle' => $settings->showThemeToggle(),
+            'films_sort_order' => $settings->filmsSortOrder(),
+            'home_films_count' => $settings->homeFilmsCount(),
+            'home_hero_interval' => $settings->homeHeroInterval(),
+            'home_hero_autoplay' => $settings->homeHeroAutoplay(),
+            'info_nobar_enabled' => $settings->infoNobarEnabled(),
+            'capacity_per_session' => $settings->capacityPerSession(),
+            'max_seats_per_booking' => $settings->maxSeatsPerBooking(),
+            'minimum_public_viewers' => $settings->minimumPublicViewers(),
+            'low_attendance_warning_window' => $settings->lowAttendanceWarningWindowHours(),
+            'booking_cutoff_minutes' => $settings->bookingCutoffMinutes(),
+            'cancellation_cutoff_hours' => $settings->cancellationCutoffHours(),
+            'check_in_open_minutes_before' => $settings->checkInOpenMinutesBefore(),
+            'check_in_close_option' => $settings->checkInCloseOption(),
+            'check_in_sound_enabled' => $settings->checkInSoundEnabled(),
+            'maintenance_mode' => $settings->maintenanceMode(),
+            'maintenance_message' => $settings->maintenanceMessage(),
+            'weekday_price' => $settings->weekdayPrice(),
+            'weekend_price' => $settings->weekendPrice(),
+            'holiday_price' => $settings->holidayPrice(),
+            'couple_price' => $settings->couplePrice(),
+            'private_price' => $settings->privatePrice(),
+            'payment_time_limit_minutes' => $settings->paymentTimeLimitMinutes(),
+            'online_payment_cutoff_minutes' => $settings->onlinePaymentCutoffMinutes(),
+            'max_payment_proof_kb' => $settings->maxPaymentProofKb(),
+            'qris_merchant_name' => $settings->qrisMerchantName(),
+            'qris_payment_notes' => $settings->qrisPaymentNotes(),
+            'qris_image_url' => $settings->hasValidQrisImage() ? route('payment.qris', ['v' => $settings->qrisImageVersion()]) : null,
+            'transfer_accounts' => $settings->transferAccounts(),
+            'transfer_payment_notes' => $settings->transferPaymentNotes(),
+            'contact_whatsapp' => $settings->contactWhatsapp(),
+            'contact_phone' => $settings->contactPhone(),
+            'contact_email' => $settings->contactEmail(),
+            'contact_address' => $settings->contactAddress(),
+            'contact_maps_url' => $settings->contactMapsUrl(),
+            'maps_label' => $settings->mapsLabel(),
+            'show_floating_whatsapp' => $settings->showFloatingWhatsapp(),
+            'social_settings' => $settings->socialSettings(),
+            'seo_title_template' => $settings->seoTitleTemplate(),
+            'seo_meta_description' => $settings->seoDefaultDescription(),
+            'seo_keywords' => $settings->string('seo_keywords', ''),
+            'formatted_footer_text' => $settings->formattedFooterText(),
+            'is_member_program_enabled' => $settings->isMemberProgramEnabled(),
+            'member_discount_visit' => $settings->memberDiscountVisit(),
+            'member_discount_amount' => $settings->memberDiscountAmount(),
+            'member_free_visit' => $settings->memberFreeVisit(),
+            'member_max_visits_per_day' => $settings->memberMaxVisitsPerDay(),
+        ];
     }
 
     public function update(Request $request, CinemaSettings $settings): RedirectResponse

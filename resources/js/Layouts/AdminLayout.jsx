@@ -42,8 +42,8 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
             items: [
                 { name: 'Hari Ini', href: '/admin', icon: LayoutDashboard, exact: true },
                 { name: 'Loket (Pesan di Tempat)', href: '/admin/booking/pesan-di-tempat', icon: ShoppingBag },
-                { name: 'Scan Tiket', href: '/admin/scan', icon: QrCode, isBlade: true },
-                { name: 'Scan Member', href: '/admin/members/scan', icon: Users, isBlade: true },
+                { name: 'Scan Tiket', href: '/admin/scan', icon: QrCode },
+                { name: 'Scan Member', href: '/admin/members/scan', icon: Users },
                 { name: 'Booking', href: '/admin/booking', icon: FileText, exact: true },
                 { name: 'Member', href: '/admin/members', icon: Users },
                 { name: 'Jadwal', href: '/admin/jadwal', icon: Calendar },
@@ -65,7 +65,7 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
             items: [
                 { name: 'Daftar Siapkan', href: '/admin/jajanan/siapkan', icon: CheckSquare },
                 { name: 'Laporan', href: '/admin/laporan', icon: FileText },
-                { name: 'Pengaturan', href: '/admin/pengaturan', icon: Settings, isBlade: true },
+                { name: 'Pengaturan', href: '/admin/pengaturan', icon: Settings },
             ],
         },
     ];
@@ -154,13 +154,13 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
                                             <span>Lihat Situs Publik</span>
                                         </a>
 
-                                        <a
+                                        <Link
                                             href="/admin/pengaturan"
                                             className="flex min-h-[40px] items-center gap-2.5 rounded-xl px-2.5 py-1.5 font-semibold text-text hover:bg-surface-2 transition"
                                         >
                                             <Settings className="size-4 text-text-muted" />
                                             <span>Pengaturan Bioskop</span>
-                                        </a>
+                                        </Link>
 
                                         <form onSubmit={handleLogout} className="pt-1 border-t border-border">
                                             <button

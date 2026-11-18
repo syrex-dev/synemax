@@ -1121,3 +1121,12 @@ input::-ms-clear {
     background-color: rgba(245, 158, 11, 0.65);
 }
 
+@keyframes scanBeam {
+    0%, 100% { top: 8%; opacity: 0.95; }
+    50% { top: 92%; opacity: 0.95; }
+}
+
+.scan-laser-beam {
+    animation: scanBeam 2.2s ease-in-out infinite;
+}
+
