@@ -267,7 +267,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/berita/{id}/pulihkan', [NewsController::class, 'restore'])->name('articles.restore');
 
     Route::get('/pengaturan', [SettingController::class, 'edit'])->name('settings.edit');
-    Route::put('/pengaturan', [SettingController::class, 'update'])->name('settings.update');
+    Route::match(['put', 'post'], '/pengaturan', [SettingController::class, 'update'])->name('settings.update');
     Route::delete('/pengaturan/qris', [SettingController::class, 'destroyQris'])->name('settings.qris.destroy');
     Route::post('/pengaturan/cache-clear', [SettingController::class, 'clearCache'])->name('settings.cache.clear');
     Route::post('/pengaturan/reset', [SettingController::class, 'resetDefaults'])->name('settings.reset');

@@ -157,4 +157,31 @@ class AdminSettingOperasionalTest extends TestCase
         $response->assertSee('Hapus Rekening');
         $response->assertSee('WhatsApp Admin Pemesanan');
     }
+
+    public function test_admin_can_update_settings_via_post_request(): void
+    {
+        $response = $this->actingAs($this->admin)->post(route('admin.settings.update'), [
+            'active_tab' => 'operasional',
+            'capacity_per_session' => 8,
+            'max_seats_per_booking' => 6,
+            'minimum_public_viewers' => 2,
+            'low_attendance_warning_window' => 24,
+            'booking_cutoff_minutes' => 45,
+            'cancellation_cutoff_hours' => 12,
+            'check_in_open_minutes_before' => 30,
+            'check_in_close_after' => 'session_end',
+            'check_in_sound_enabled' => true,
+            'admin_whatsapp' => '6281234567890',
+            'electricity_cost_per_session' => 0,
+            'snacks_enabled' => true,
+            'snack_prep_buffer_minutes' => 15,
+            'snack_max_qty_per_item' => 10,
+            'info_nobar_enabled' => true,
+        ]);
+
+        $response->assertRedirect(route('admin.settings.edit', ['tab' => 'operasional']));
+        $response->assertSessionHas('status');
+        $this->settings->clearCache();
+        $this->assertSame(8, $this->settings->capacityPerSession());
+    }
 }
