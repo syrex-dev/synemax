@@ -12,7 +12,8 @@ const PRECACHE_ASSETS = [
     '/icon-admin.svg?v=7',
     '/apple-touch-icon-admin.png?v=7',
     '/site.webmanifest?v=7',
-    '/admin.webmanifest?v=7'
+    '/admin.webmanifest?v=7',
+    '/images/tanya-bioskop-mascot.png'
 ];
 
 self.addEventListener('install', (event) => {

@@ -389,11 +389,23 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                     href={`https://wa.me/${cleanWaNumber}?text=Halo%20Admin%20SynemaX,%20saya%20ingin%20bertanya`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="fixed bottom-24 md:bottom-8 right-5 z-40 flex items-center gap-2.5 px-4 py-3 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xl shadow-emerald-900/30 transition hover:scale-105"
+                    className="group fixed bottom-24 md:bottom-8 right-4 sm:right-6 z-40 flex items-center gap-2 pl-1.5 sm:pl-2 pr-3.5 sm:pr-4 py-1.5 sm:py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xl shadow-emerald-950/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-emerald-900/40 border border-emerald-400/30"
                     aria-label="Hubungi kami melalui WhatsApp"
                 >
-                    <MessageCircle className="size-5" />
-                    <span className="hidden sm:inline text-sm">Tanya Bioskop</span>
+                    <div className="relative shrink-0 flex items-center justify-center">
+                        <img
+                            src="/images/tanya-bioskop-mascot.png"
+                            alt="Maskot Tanya Bioskop"
+                            className="size-8 sm:size-9 object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-300 -my-1"
+                        />
+                        <span className="absolute -bottom-0.5 -right-0.5 flex size-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full size-2.5 bg-emerald-200 border border-emerald-700"></span>
+                        </span>
+                    </div>
+                    <span className="text-xs sm:text-sm font-black tracking-wide whitespace-nowrap">
+                        Tanya Bioskop
+                    </span>
                 </a>
             )}
 
