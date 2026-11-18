@@ -251,7 +251,7 @@ class PublicCinemaController extends Controller
             ->take(3)
             ->get();
 
-        $otherFilms = $catalogQuery->similarFilms($film, 4);
+        $otherFilms = $catalogQuery->similarFilms($film, 6);
         $matchedGenreLabel = $film->primaryGenre()?->name ?: $film->genre;
 
         $data = [
