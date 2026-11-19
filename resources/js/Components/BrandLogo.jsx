@@ -47,37 +47,6 @@ export default function BrandLogo({
     const hasImage = (urlLight || urlDark) && brandDisplay !== 'text_only';
     const showText = brandDisplay !== 'logo_only';
 
-    if (forcedTheme === 'dark') {
-        return (
-            <span className={`inline-flex items-center gap-2.5 select-none ${className}`}>
-                {hasImage ? (
-                    <img
-                        src={urlDark || urlLight}
-                        alt={brandText}
-                        className={`${imgSizeClasses} w-auto object-contain brightness-0 invert`}
-                    />
-                ) : brandDisplay !== 'text_only' ? (
-                    <span className="flex size-7 sm:size-8 items-center justify-center rounded-lg bg-white text-orange-600 shadow-xs">
-                        <svg className="size-4 sm:size-5" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm0 3v2h2V7H4zm0 4v2h2v-2H4zm0 4v2h2v-2H4zm16-8h-2v2h2V7zm0 4h-2v2h2v-2zm0 4h-2v2h2v-2zm-12-8h8v10H8V7z" />
-                        </svg>
-                    </span>
-                ) : null}
-
-                {showText && (
-                    <span className="flex flex-col">
-                        <span className={`font-black tracking-widest uppercase text-white drop-shadow-xs ${sizeClasses}`}>
-                            {brandText}
-                        </span>
-                        <span className="text-[9px] -mt-1 font-bold tracking-[0.25em] text-white/90 uppercase">
-                            Premiere Cinema
-                        </span>
-                    </span>
-                )}
-            </span>
-        );
-    }
-
     if (forcedTheme === 'light') {
         return (
             <span className={`inline-flex items-center gap-2.5 select-none ${className}`}>

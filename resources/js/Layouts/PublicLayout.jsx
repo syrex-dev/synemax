@@ -233,10 +233,10 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
             <Head title={pageTitle} />
             <FlashMessage />
 
-            {/* Header Sticky Navbar with Solid Cinema Orange */}
+            {/* Header Sticky Navbar adapting to Light and Dark Theme */}
             <header
-                className={`sticky top-0 z-40 w-full transition-all duration-200 bg-[#EA580C] dark:bg-[#C2410C] border-b border-[#C2410C] dark:border-[#9A3412] ${
-                    isScrolled ? 'shadow-lg' : 'shadow-xs'
+                className={`sticky top-0 z-40 w-full transition-colors duration-200 bg-surface dark:bg-[#07090E] border-b border-border/80 dark:border-white/10 ${
+                    isScrolled ? 'shadow-md' : 'shadow-xs'
                 }`}
             >
                 <div className="mx-auto flex h-14 md:h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 relative">
@@ -248,12 +248,12 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                 onClick={handleCloseSearch}
                                 className="hidden md:inline-flex shrink-0 items-center gap-2 group transition-transform hover:scale-102"
                             >
-                                <BrandLogo size="default" forcedTheme="dark" />
+                                <BrandLogo size="default" />
                             </Link>
 
                             <form onSubmit={handleSearchSubmit} className="relative flex-1 flex items-center min-w-0">
-                                <div className="relative w-full h-10 sm:h-11 flex items-center rounded-full bg-white text-slate-900 border border-white/40 focus-within:ring-4 focus-within:ring-white/30 pl-3 sm:pl-3.5 pr-1 sm:pr-1.5 transition-all shadow-md">
-                                    <Search className="size-4 sm:size-4.5 text-[#EA580C] shrink-0 mr-2 sm:mr-2.5 opacity-90" />
+                                <div className="relative w-full h-10 sm:h-11 flex items-center rounded-full bg-white dark:bg-[#0D121F] border border-amber-500/40 dark:border-amber-400/30 focus-within:border-amber-500 focus-within:ring-4 focus-within:ring-amber-500/15 pl-3 sm:pl-3.5 pr-1 sm:pr-1.5 transition-all shadow-[0_2px_12px_rgba(217,119,6,0.1)]">
+                                    <Search className="size-4 sm:size-4.5 text-amber-500 shrink-0 mr-2 sm:mr-2.5 opacity-90" />
                                     <input
                                         ref={searchInputRef}
                                         type="text"
@@ -261,7 +261,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         onKeyDown={handleSearchKeyDown}
                                         placeholder="Cari film, genre, tahun rilis..."
-                                        className="input-borderless flex-1 h-full p-0 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 font-medium leading-none"
+                                        className="input-borderless flex-1 h-full p-0 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium leading-none"
                                         style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
                                         aria-label="Cari film"
                                         autoComplete="off"
@@ -270,7 +270,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                         <button
                                             type="button"
                                             onClick={() => setSearchQuery('')}
-                                            className="size-6 flex items-center justify-center text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition mr-1.5 shrink-0"
+                                            className="size-6 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition mr-1.5 shrink-0"
                                             title="Hapus teks"
                                         >
                                             <X className="size-3.5" />
@@ -278,7 +278,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                     )}
                                     <button
                                         type="submit"
-                                        className="h-7 sm:h-8 px-3.5 sm:px-4 rounded-full bg-[#EA580C] hover:bg-[#C2410C] text-white font-black text-[11px] sm:text-xs uppercase tracking-wider shadow-sm transition-all active:scale-95 shrink-0 flex items-center justify-center cursor-pointer"
+                                        className="h-7 sm:h-8 px-3.5 sm:px-4 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-[11px] sm:text-xs uppercase tracking-wider shadow-sm hover:shadow transition-all active:scale-95 shrink-0 flex items-center justify-center cursor-pointer"
                                     >
                                         Cari
                                     </button>
@@ -288,7 +288,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                             <button
                                 type="button"
                                 onClick={handleCloseSearch}
-                                className="size-9 sm:size-10 flex items-center justify-center rounded-full bg-white/20 hover:bg-white text-white hover:text-[#EA580C] transition-all shrink-0 border border-white/30 shadow-xs cursor-pointer"
+                                className="size-9 sm:size-10 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-600 dark:text-slate-200 hover:text-slate-950 transition-all shrink-0 border border-slate-200/80 dark:border-white/10 shadow-xs cursor-pointer"
                                 aria-label="Tutup pencarian"
                                 title="Tutup (Esc)"
                             >
@@ -300,7 +300,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                         <>
                             {/* Brand Logo */}
                             <Link href="/" className="inline-flex min-h-11 items-center gap-2 group transition-transform hover:scale-102 shrink-0">
-                                <BrandLogo size="default" forcedTheme="dark" />
+                                <BrandLogo size="default" />
                             </Link>
 
                             {/* Desktop Navigation */}
@@ -314,9 +314,10 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                             <Link
                                                 key={item.key || item.url}
                                                 href={item.url || '/tiket'}
-                                                className="inline-flex min-h-9 shrink-0 items-center rounded-xl bg-white text-[#EA580C] hover:bg-orange-50 font-black text-xs px-4 py-1.5 shadow-sm transition-all duration-150 hover:scale-105 active:scale-95 ml-1"
+                                                className={`btn-gold-cinema inline-flex min-h-10 shrink-0 items-center rounded-xl px-3.5 py-1.5 text-xs font-black shadow-xs ml-1 ${active ? 'ring-2 ring-amber-500 ring-offset-2' : ''
+                                                    }`}
                                             >
-                                                <Ticket className="size-3.5 mr-1.5 text-[#EA580C]" />
+                                                <Ticket className="size-3.5 mr-1.5" />
                                                 <span>Tiket</span>
                                             </Link>
                                         );
@@ -326,9 +327,9 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                         <Link
                                             key={item.key || item.url}
                                             href={item.url}
-                                            className={`relative inline-flex min-h-10 shrink-0 items-center px-3.5 py-1.5 font-bold transition rounded-lg ${active
-                                                ? 'text-white font-black bg-black/20 after:content-[\'\'] after:absolute after:bottom-1 after:left-3 after:right-3 after:h-[2.5px] after:bg-white after:rounded-full'
-                                                : 'text-white/90 hover:text-white hover:bg-white/15'
+                                            className={`relative inline-flex min-h-10 shrink-0 items-center px-3 py-1.5 font-bold transition rounded-lg ${active
+                                                ? 'text-[#0F172A] font-extrabold after:content-[\'\'] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-[3px] after:bg-[#F59E0B] after:rounded-full dark:after:hidden dark:bg-amber-500/15 dark:text-amber-400 dark:border dark:border-amber-400/40'
+                                                : 'text-slate-600 hover:bg-[#F1F5F9] hover:text-[#0F172A] dark:text-text-muted dark:hover:bg-surface-2 dark:hover:text-amber-400'
                                                 }`}
                                         >
                                             {item.label}
@@ -342,8 +343,8 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                 <button
                                     type="button"
                                     onClick={handleOpenSearch}
-                                    className="flex size-9 sm:size-10 items-center justify-center rounded-xl bg-white/20 hover:bg-white text-white hover:text-[#EA580C] transition-all duration-200 shadow-xs ring-1 ring-white/30 hover:scale-105 active:scale-95 shrink-0 cursor-pointer"
-                                    title="Cari film"
+                                    className="flex size-9 sm:size-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 hover:bg-amber-500 hover:text-white dark:bg-amber-400/15 dark:text-amber-400 dark:hover:bg-amber-500 dark:hover:text-slate-950 transition-all duration-200 shadow-xs ring-1 ring-amber-500/25 hover:scale-105 active:scale-95 shrink-0 cursor-pointer"
+                                    title="Cari film (CGV style)"
                                     aria-label="Cari Film"
                                 >
                                     <Search className="size-4 sm:size-4.5" />
