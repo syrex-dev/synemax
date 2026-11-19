@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, Head } from '@inertiajs/react';
 import PublicLayout from '../../../Layouts/PublicLayout';
-import Modal from '../../../Components/Modal';
 import {
     ChevronLeft,
     Clock,
@@ -10,6 +9,7 @@ import {
     Users,
     ArrowRight,
     Film as FilmIcon,
+    X,
 } from 'lucide-react';
 
 export default function Show({
@@ -19,6 +19,25 @@ export default function Show({
     matchedGenreLabel = '',
 }) {
     const [trailerOpen, setTrailerOpen] = useState(false);
+
+    // Lock body scroll and close on Escape key when trailer modal is active
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape' && trailerOpen) {
+                setTrailerOpen(false);
+            }
+        };
+        if (trailerOpen) {
+            document.body.style.overflow = 'hidden';
+            window.addEventListener('keydown', handleKeyDown);
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [trailerOpen]);
 
     // Extract youtube ID
     const extractYoutubeId = (url) => {
@@ -43,25 +62,88 @@ export default function Show({
                 />
             </Head>
 
-            {/* Trailer Modal */}
-            <Modal
-                show={trailerOpen}
-                onClose={() => setTrailerOpen(false)}
-                title={`Trailer: ${film?.title}`}
-                maxWidth="3xl"
-            >
-                {ytId && (
-                    <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black">
-                        <iframe
-                            src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1`}
-                            title={`Trailer ${film?.title}`}
-                            className="size-full border-0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                        />
+            {/* Cinematic Cinema Trailer Lightbox */}
+            {trailerOpen && ytId && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 md:p-8 animate-in fade-in duration-200"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={`Trailer ${film?.title}`}
+                >
+                    {/* Deep Backdrop Blur */}
+                    <div
+                        className="fixed inset-0 bg-black/90 backdrop-blur-md transition-opacity"
+                        onClick={() => setTrailerOpen(false)}
+                        aria-hidden="true"
+                    />
+
+                    {/* Floating Cinema Lightbox Card */}
+                    <div className="relative z-10 w-full max-w-4xl lg:max-w-5xl flex flex-col animate-in zoom-in-95 duration-200">
+                        {/* Top Bar: Title, Badge, and Close Button */}
+                        <div className="flex items-center justify-between gap-3 pb-3 px-1 text-white">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] sm:text-xs font-black uppercase tracking-wider shrink-0 shadow-xs">
+                                    <Play className="size-3 fill-amber-400" />
+                                    <span>Trailer Resmi</span>
+                                </span>
+                                <h3 className="text-sm sm:text-base md:text-lg font-black text-white truncate drop-shadow-md">
+                                    {film?.title}
+                                </h3>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setTrailerOpen(false)}
+                                className="size-9 sm:size-10 rounded-full bg-white/10 hover:bg-amber-500 text-white hover:text-slate-950 backdrop-blur-md transition-all duration-200 border border-white/20 flex items-center justify-center shrink-0 cursor-pointer shadow-lg hover:scale-105 active:scale-95"
+                                title="Tutup (Esc)"
+                                aria-label="Tutup Trailer"
+                            >
+                                <X className="size-5" />
+                            </button>
+                        </div>
+
+                        {/* Video Frame with Golden Cinema Glow */}
+                        <div className="relative w-full aspect-video rounded-2xl sm:rounded-3xl overflow-hidden bg-black shadow-[0_0_60px_rgba(0,0,0,0.9)] border border-white/15 ring-1 ring-amber-500/30">
+                            <iframe
+                                src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&rel=0&modestbranding=1`}
+                                title={`Trailer ${film?.title}`}
+                                className="size-full border-0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            />
+                        </div>
+
+                        {/* Footer Bar: Movie Quick Meta & Booking CTA */}
+                        <div className="mt-3.5 flex flex-wrap items-center justify-between gap-3 px-1.5 text-xs text-slate-300">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {film?.age_rating && (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-black bg-black/80 text-amber-400 border border-amber-500/40">
+                                        {film.age_rating}
+                                    </span>
+                                )}
+                                {film?.duration_minutes && (
+                                    <span className="flex items-center gap-1 font-semibold text-slate-300">
+                                        <Clock className="size-3.5 text-amber-400" />
+                                        {film.duration_minutes} menit
+                                    </span>
+                                )}
+                                {film?.genre && (
+                                    <span className="text-slate-400 hidden sm:inline">&bull; {film.genre}</span>
+                                )}
+                            </div>
+
+                            <Link
+                                href={bookingUrl}
+                                onClick={() => setTrailerOpen(false)}
+                                className="btn-gold-cinema inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black shadow-md cursor-pointer hover:scale-102 active:scale-98 transition-transform"
+                            >
+                                <span>Pilih Film Ini</span>
+                                <ArrowRight className="size-3.5" />
+                            </Link>
+                        </div>
                     </div>
-                )}
-            </Modal>
+                </div>
+            )}
 
             {/* Header Hero Banner with visible cinematic poster backdrop (CGV Style) */}
             <div className="relative overflow-hidden bg-bg dark:bg-[#07090E] transition-colors duration-200 border-b border-border/60">
