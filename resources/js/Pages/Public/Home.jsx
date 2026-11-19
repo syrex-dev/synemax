@@ -3,8 +3,6 @@ import { Link, Head, router } from '@inertiajs/react';
 import PublicLayout from '../../Layouts/PublicLayout';
 import { FilmCardSkeleton } from '../../Components/Skeleton';
 import {
-    ChevronLeft,
-    ChevronRight,
     Film as FilmIcon,
     Calendar,
     RotateCcw,
@@ -270,41 +268,21 @@ export default function Home({
                                     );
                                 })}
 
-                                {/* Next & Prev Arrows */}
+                                {/* Indicators */}
                                 {heroCount > 1 && (
-                                    <>
-                                        <button
-                                            type="button"
-                                            onClick={() => setHeroIndex((prev) => (prev - 1 + heroCount) % heroCount)}
-                                            className="absolute left-3 top-1/2 -translate-y-1/2 z-20 flex size-9 sm:size-11 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm border border-white/20 hover:bg-black/75 transition"
-                                            aria-label="Banner sebelumnya"
-                                        >
-                                            <ChevronLeft className="size-5" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setHeroIndex((prev) => (prev + 1) % heroCount)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 z-20 flex size-9 sm:size-11 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm border border-white/20 hover:bg-black/75 transition"
-                                            aria-label="Banner berikutnya"
-                                        >
-                                            <ChevronRight className="size-5" />
-                                        </button>
-
-                                        {/* Indicators */}
-                                        <div className="absolute bottom-3 inset-x-0 z-20 flex items-center justify-center gap-1.5">
-                                            {validHeroBanners.map((_, dotIdx) => (
-                                                <button
-                                                    key={dotIdx}
-                                                    type="button"
-                                                    onClick={() => setHeroIndex(dotIdx)}
-                                                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                                                        dotIdx === heroIndex ? 'w-6 bg-amber-500' : 'w-2 bg-white/40'
-                                                    }`}
-                                                    aria-label={`Lihat banner ${dotIdx + 1}`}
-                                                />
-                                            ))}
-                                        </div>
-                                    </>
+                                    <div className="absolute bottom-3 inset-x-0 z-20 flex items-center justify-center gap-1.5 pointer-events-none">
+                                        {validHeroBanners.map((_, dotIdx) => (
+                                            <button
+                                                key={dotIdx}
+                                                type="button"
+                                                onClick={() => setHeroIndex(dotIdx)}
+                                                className={`pointer-events-auto h-1.5 rounded-full transition-all duration-300 ${
+                                                    dotIdx === heroIndex ? 'w-6 bg-amber-500' : 'w-2 bg-white/40'
+                                                }`}
+                                                aria-label={`Lihat banner ${dotIdx + 1}`}
+                                            />
+                                        ))}
+                                    </div>
                                 )}
                             </div>
                         </div>
