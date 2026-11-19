@@ -168,7 +168,7 @@
 
     {{-- Sleek, Neat Single-Line Horizontal Genre Scroll Track --}}
     <div
-        class="flex items-center gap-2 overflow-x-auto py-1 scroll-smooth custom-scrollbar -mx-1 px-1"
+        class="flex items-center gap-2 overflow-x-auto pt-1 pb-2.5 sm:pb-3 scroll-smooth custom-scrollbar -mx-1 px-1"
         style="touch-action: pan-x pan-y pinch-zoom; -webkit-overflow-scrolling: touch;"
         @wheel.passive="$el.scrollLeft += $event.deltaY"
     >
