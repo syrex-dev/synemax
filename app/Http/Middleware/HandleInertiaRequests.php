@@ -111,11 +111,11 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
             ],
             'flash' => [
-                'success' => fn () => $request->session()->get('success'),
-                'status' => fn () => $request->session()->get('status'),
-                'error' => fn () => $request->session()->get('error'),
-                'warning' => fn () => $request->session()->get('warning'),
-                'info' => fn () => $request->session()->get('info'),
+                'success' => fn () => $request->hasSession() ? $request->session()->get('success') : null,
+                'status' => fn () => $request->hasSession() ? $request->session()->get('status') : null,
+                'error' => fn () => $request->hasSession() ? $request->session()->get('error') : null,
+                'warning' => fn () => $request->hasSession() ? $request->session()->get('warning') : null,
+                'info' => fn () => $request->hasSession() ? $request->session()->get('info') : null,
             ],
             'cinemaSettings' => $settingsData,
         ];
