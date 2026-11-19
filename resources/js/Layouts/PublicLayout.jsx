@@ -233,17 +233,14 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
             <Head title={pageTitle} />
             <FlashMessage />
 
-            {/* Header Sticky Navbar with Cinema Gradient */}
+            {/* Header Sticky Navbar with Solid Opaque Background & Cinema Gradient */}
             <header
-                className={`sticky top-0 z-40 w-full transition-all duration-300 ${
+                className={`sticky top-0 z-40 w-full transition-all duration-200 ${
                     isScrolled
-                        ? 'bg-gradient-to-r from-white/95 via-amber-50/50 to-white/95 dark:from-[#06080E]/95 dark:via-[#0D1424]/95 dark:to-[#170E1A]/95 backdrop-blur-md shadow-xs border-b border-border/80 dark:border-white/10'
-                        : 'bg-gradient-to-r from-amber-50/90 via-[#FFFDF9] to-orange-50/70 dark:from-[#06080E] dark:via-[#0D1424] dark:to-[#170E1A] backdrop-blur-md border-b border-amber-200/50 dark:border-white/10'
+                        ? 'bg-white dark:bg-[#0B0F19] shadow-md border-b border-slate-200/90 dark:border-white/10'
+                        : 'bg-gradient-to-r from-[#FFFFFF] via-[#FFFDF7] to-[#FFF8E7] dark:from-[#0B0F19] dark:via-[#111728] dark:to-[#0B0F19] shadow-xs border-b border-amber-200/70 dark:border-white/10'
                 }`}
             >
-                {/* Micro gold luxury bottom accent glow line */}
-                <div className="absolute bottom-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-amber-500/50 to-transparent pointer-events-none" />
-
                 <div className="mx-auto flex h-14 md:h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 relative">
                     {isSearchOpen ? (
                         /* Active CGV-style search input bar */
@@ -332,9 +329,9 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                         <Link
                                             key={item.key || item.url}
                                             href={item.url}
-                                            className={`relative inline-flex min-h-10 shrink-0 items-center px-3 py-1.5 font-bold transition rounded-lg ${active
+                                            className={`relative inline-flex min-h-10 shrink-0 items-center px-3.5 py-1.5 font-bold transition rounded-lg ${active
                                                 ? 'text-[#0F172A] font-extrabold after:content-[\'\'] after:absolute after:bottom-0 after:left-2 after:right-2 after:h-[3px] after:bg-[#F59E0B] after:rounded-full dark:after:hidden dark:bg-amber-500/15 dark:text-amber-400 dark:border dark:border-amber-400/40'
-                                                : 'text-slate-600 hover:bg-[#F1F5F9] hover:text-[#0F172A] dark:text-text-muted dark:hover:bg-surface-2 dark:hover:text-amber-400'
+                                                : 'text-slate-700 hover:text-slate-950 hover:bg-black/5 dark:text-slate-200 dark:hover:text-white dark:hover:bg-white/10'
                                                 }`}
                                         >
                                             {item.label}
@@ -348,7 +345,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                 <button
                                     type="button"
                                     onClick={handleOpenSearch}
-                                    className="flex size-9 sm:size-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 hover:bg-amber-500 hover:text-white dark:bg-amber-400/15 dark:text-amber-400 dark:hover:bg-amber-500 dark:hover:text-slate-950 transition-all duration-200 shadow-xs ring-1 ring-amber-500/25 hover:scale-105 active:scale-95 shrink-0"
+                                    className="flex size-9 sm:size-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-700 hover:bg-amber-500 hover:text-white dark:bg-amber-400/15 dark:text-amber-400 dark:hover:bg-amber-500 dark:hover:text-slate-950 transition-all duration-200 shadow-xs ring-1 ring-amber-500/30 hover:scale-105 active:scale-95 shrink-0"
                                     title="Cari film (CGV style)"
                                     aria-label="Cari Film"
                                 >
