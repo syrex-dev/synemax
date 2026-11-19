@@ -906,6 +906,22 @@ textarea:focus {
     outline: none !important;
 }
 
+/* Seamless / borderless search & inline inputs */
+.input-borderless,
+input.input-borderless,
+input[type='text'].input-borderless,
+input[type='search'].input-borderless,
+.input-borderless:focus,
+input.input-borderless:focus {
+    border: none !important;
+    border-width: 0 !important;
+    border-color: transparent !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
 /* Admin Panel Crisp Clean Typography & Tabular Figures */
 .font-admin,
 [data-admin-panel] {

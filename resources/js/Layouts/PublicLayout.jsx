@@ -237,33 +237,35 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                 <div className="mx-auto flex h-14 md:h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 relative">
                     {isSearchOpen ? (
                         /* Active CGV-style search input bar */
-                        <div className="flex w-full items-center gap-2 sm:gap-3 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex w-full items-center gap-2 sm:gap-3 animate-in fade-in zoom-in-95 duration-200 py-1">
                             <Link
                                 href="/"
                                 onClick={handleCloseSearch}
-                                className="hidden sm:inline-flex shrink-0 items-center gap-2 group transition-transform hover:scale-102"
+                                className="hidden md:inline-flex shrink-0 items-center gap-2 group transition-transform hover:scale-102"
                             >
                                 <BrandLogo size="default" />
                             </Link>
 
-                            <form onSubmit={handleSearchSubmit} className="relative flex-1 flex items-center">
-                                <div className="relative w-full flex items-center rounded-full bg-surface-2/90 dark:bg-white/10 border border-amber-500/30 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-500/20 px-3.5 py-1.5 transition-all shadow-inner">
-                                    <Search className="size-4 text-amber-500 shrink-0 mr-2" />
+                            <form onSubmit={handleSearchSubmit} className="relative flex-1 flex items-center min-w-0">
+                                <div className="relative w-full h-10 sm:h-11 flex items-center rounded-full bg-white dark:bg-[#0D121F] border border-amber-500/40 dark:border-amber-400/30 focus-within:border-amber-500 focus-within:ring-4 focus-within:ring-amber-500/15 pl-3 sm:pl-3.5 pr-1 sm:pr-1.5 transition-all shadow-[0_2px_12px_rgba(217,119,6,0.1)]">
+                                    <Search className="size-4 sm:size-4.5 text-amber-500 shrink-0 mr-2 sm:mr-2.5 opacity-90" />
                                     <input
                                         ref={searchInputRef}
-                                        type="search"
+                                        type="text"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         onKeyDown={handleSearchKeyDown}
                                         placeholder="Cari film, genre, tahun rilis..."
-                                        className="w-full bg-transparent border-0 p-0 text-xs sm:text-sm text-text placeholder:text-text-muted/70 focus:outline-none focus:ring-0"
+                                        className="input-borderless flex-1 h-full p-0 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium leading-none"
+                                        style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
                                         aria-label="Cari film"
+                                        autoComplete="off"
                                     />
                                     {searchQuery && (
                                         <button
                                             type="button"
                                             onClick={() => setSearchQuery('')}
-                                            className="p-1 text-text-muted hover:text-text shrink-0 rounded-full hover:bg-surface-3 transition mr-1"
+                                            className="size-6 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition mr-1.5 shrink-0"
                                             title="Hapus teks"
                                         >
                                             <X className="size-3.5" />
@@ -271,7 +273,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                     )}
                                     <button
                                         type="submit"
-                                        className="btn-gold-cinema shrink-0 rounded-full px-3.5 py-1 text-xs font-bold text-slate-950 shadow-xs"
+                                        className="h-7 sm:h-8 px-3.5 sm:px-4 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-[11px] sm:text-xs uppercase tracking-wider shadow-sm hover:shadow transition-all active:scale-95 shrink-0 flex items-center justify-center cursor-pointer"
                                     >
                                         Cari
                                     </button>
@@ -281,11 +283,11 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                             <button
                                 type="button"
                                 onClick={handleCloseSearch}
-                                className="size-8 sm:size-9 flex items-center justify-center rounded-full bg-surface-2 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-text-muted hover:text-text transition-all shrink-0"
+                                className="size-9 sm:size-10 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-600 dark:text-slate-200 hover:text-slate-950 transition-all shrink-0 border border-slate-200/80 dark:border-white/10 shadow-xs cursor-pointer"
                                 aria-label="Tutup pencarian"
                                 title="Tutup (Esc)"
                             >
-                                <X className="size-4 sm:size-5" />
+                                <X className="size-4.5 sm:size-5" />
                             </button>
                         </div>
                     ) : (

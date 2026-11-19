@@ -5,6 +5,7 @@ import { FilmCardSkeleton } from '../../Components/Skeleton';
 import {
     Film as FilmIcon,
     Calendar,
+    Sparkles,
     RotateCcw,
     ChevronDown,
     Search,
@@ -243,9 +244,8 @@ export default function Home({
                                     return (
                                         <div
                                             key={banner.id || idx}
-                                            className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${
-                                                active ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
-                                            }`}
+                                            className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${active ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+                                                }`}
                                         >
                                             {banner.cta_url ? (
                                                 <a
@@ -289,7 +289,26 @@ export default function Home({
                     </section>
                 )}
 
-                {/* 2. KATALOG FILM SECTION */}
+                {/* 2. INFO CHIPS & QUICK ACCESS */}
+                {infoChips && infoChips.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {infoChips.map((chip, i) => (
+                            <div
+                                key={i}
+                                className="flex items-center gap-3 p-3.5 sm:p-4 rounded-2xl border border-border/70 bg-surface shadow-xs"
+                            >
+                                <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0">
+                                    <Sparkles className="size-4" />
+                                </div>
+                                <span className="text-xs sm:text-sm font-bold text-text truncate">
+                                    {chip.text}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* 3. KATALOG FILM SECTION */}
                 <section aria-label="Katalog Film" id="katalog-film" className="space-y-4 sm:space-y-6">
                     {/* Header */}
                     <div className="flex items-center justify-between gap-3 border-l-4 border-amber-500 pl-3 sm:pl-4">
@@ -315,11 +334,10 @@ export default function Home({
                             <button
                                 type="button"
                                 onClick={() => handleSelectGenre('')}
-                                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition shadow-xs ${
-                                    genre === ''
-                                        ? 'bg-amber-500 text-slate-950 font-black shadow-amber-500/20'
-                                        : 'border border-border bg-surface text-text hover:bg-surface-2'
-                                }`}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition shadow-xs ${genre === ''
+                                    ? 'bg-amber-500 text-slate-950 font-black shadow-amber-500/20'
+                                    : 'border border-border bg-surface text-text hover:bg-surface-2'
+                                    }`}
                             >
                                 Semua Genre
                             </button>
@@ -328,11 +346,10 @@ export default function Home({
                                     key={g}
                                     type="button"
                                     onClick={() => handleSelectGenre(g)}
-                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition shadow-xs ${
-                                        genre === g
-                                            ? 'bg-amber-500 text-slate-950 font-black shadow-amber-500/20'
-                                            : 'border border-border bg-surface text-text hover:bg-surface-2'
-                                    }`}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition shadow-xs ${genre === g
+                                        ? 'bg-amber-500 text-slate-950 font-black shadow-amber-500/20'
+                                        : 'border border-border bg-surface text-text hover:bg-surface-2'
+                                        }`}
                                 >
                                     {g}
                                 </button>
@@ -345,11 +362,10 @@ export default function Home({
                                 <button
                                     type="button"
                                     onClick={() => setYearDropdownOpen(!yearDropdownOpen)}
-                                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold border transition ${
-                                        year
-                                            ? 'bg-amber-500/15 border-amber-500 text-amber-900 dark:text-amber-300'
-                                            : 'border-border bg-surface text-text hover:bg-surface-2'
-                                    }`}
+                                    className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold border transition ${year
+                                        ? 'bg-amber-500/15 border-amber-500 text-amber-900 dark:text-amber-300'
+                                        : 'border-border bg-surface text-text hover:bg-surface-2'
+                                        }`}
                                 >
                                     <Calendar className="size-3.5 text-amber-500" />
                                     <span>{year ? `Tahun: ${year}` : 'Tahun'}</span>
@@ -361,9 +377,8 @@ export default function Home({
                                         <button
                                             type="button"
                                             onClick={() => handleSelectYear('')}
-                                            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition ${
-                                                year === '' ? 'bg-amber-500 text-slate-950 font-black' : 'hover:bg-surface-raised text-text'
-                                            }`}
+                                            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition ${year === '' ? 'bg-amber-500 text-slate-950 font-black' : 'hover:bg-surface-raised text-text'
+                                                }`}
                                         >
                                             Semua Tahun
                                         </button>
@@ -372,11 +387,10 @@ export default function Home({
                                                 key={y}
                                                 type="button"
                                                 onClick={() => handleSelectYear(y)}
-                                                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition ${
-                                                    year === String(y)
-                                                        ? 'bg-amber-500 text-slate-950 font-black'
-                                                        : 'hover:bg-surface-raised text-text'
-                                                }`}
+                                                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition ${year === String(y)
+                                                    ? 'bg-amber-500 text-slate-950 font-black'
+                                                    : 'hover:bg-surface-raised text-text'
+                                                    }`}
                                             >
                                                 {y}
                                             </button>
@@ -405,66 +419,66 @@ export default function Home({
                             <FilmCardSkeleton count={filmsLimit || 8} />
                         ) : (
                             filmList.map((film) => {
-                            const poster = film.poster_url || (film.poster_path ? (film.poster_path.startsWith('http') ? film.poster_path : `/storage/${film.poster_path}`) : null);
-                            const filmUrl = film.url || `/film/${film.slug || film.id}`;
-                            const mainGenre = film.genre ? film.genre.split(',')[0].trim() : '-';
+                                const poster = film.poster_url || (film.poster_path ? (film.poster_path.startsWith('http') ? film.poster_path : `/storage/${film.poster_path}`) : null);
+                                const filmUrl = film.url || `/film/${film.slug || film.id}`;
+                                const mainGenre = film.genre ? film.genre.split(',')[0].trim() : '-';
 
-                            return (
-                                <Link
-                                    key={film.id}
-                                    href={filmUrl}
-                                    className="group relative flex flex-col rounded-2xl overflow-hidden border border-border/80 bg-surface shadow-2xs hover:border-amber-500 transition-all duration-200"
-                                >
-                                    {/* Poster 2:3 */}
-                                    <div className="relative w-full aspect-[2/3] overflow-hidden bg-slate-900">
-                                        {poster ? (
-                                            <img
-                                                src={poster}
-                                                alt={film.title}
-                                                loading="lazy"
-                                                className="size-full object-cover transition-transform duration-200 group-hover:scale-103 select-none"
-                                            />
-                                        ) : (
-                                            <div className="flex size-full flex-col items-center justify-center p-3 text-center bg-slate-900 border border-white/10 text-white">
-                                                <FilmIcon className="size-8 text-amber-500/60 mb-1.5" />
-                                                <span className="text-[11px] font-bold text-amber-200 line-clamp-2">
-                                                    {film.title}
-                                                </span>
-                                            </div>
-                                        )}
+                                return (
+                                    <Link
+                                        key={film.id}
+                                        href={filmUrl}
+                                        className="group relative flex flex-col rounded-2xl overflow-hidden border border-border/80 bg-surface shadow-2xs hover:border-amber-500 transition-all duration-200"
+                                    >
+                                        {/* Poster 2:3 */}
+                                        <div className="relative w-full aspect-[2/3] overflow-hidden bg-slate-900">
+                                            {poster ? (
+                                                <img
+                                                    src={poster}
+                                                    alt={film.title}
+                                                    loading="lazy"
+                                                    className="size-full object-cover transition-transform duration-200 group-hover:scale-103 select-none"
+                                                />
+                                            ) : (
+                                                <div className="flex size-full flex-col items-center justify-center p-3 text-center bg-slate-900 border border-white/10 text-white">
+                                                    <FilmIcon className="size-8 text-amber-500/60 mb-1.5" />
+                                                    <span className="text-[11px] font-bold text-amber-200 line-clamp-2">
+                                                        {film.title}
+                                                    </span>
+                                                </div>
+                                            )}
 
-                                        {/* Age Rating Badge */}
-                                        {film.age_rating && (
-                                            <div className="absolute top-2 right-2 z-10">
-                                                <span className="inline-flex items-center rounded-md bg-black/80 px-1.5 py-0.5 text-[10px] font-black text-white border border-white/20">
-                                                    {film.age_rating}
-                                                </span>
-                                            </div>
-                                        )}
+                                            {/* Age Rating Badge */}
+                                            {film.age_rating && (
+                                                <div className="absolute top-2 right-2 z-10">
+                                                    <span className="inline-flex items-center rounded-md bg-black/80 px-1.5 py-0.5 text-[10px] font-black text-white border border-white/20">
+                                                        {film.age_rating}
+                                                    </span>
+                                                </div>
+                                            )}
 
-                                        {/* Custom Badge */}
-                                        {film.custom_badge && (
-                                            <div className="absolute bottom-2 inset-x-0 flex justify-center px-2 z-10 pointer-events-none">
-                                                <span className="inline-flex items-center justify-center bg-[#E50914] text-white font-black text-[10px] sm:text-xs px-2.5 py-0.5 rounded shadow-md truncate max-w-full border border-white/20">
-                                                    {film.custom_badge}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Film Info */}
-                                    <div className="p-3 flex flex-col flex-1 justify-between gap-2">
-                                        <h3 className="font-bold text-xs sm:text-sm text-text line-clamp-2 min-h-[2.2rem] group-hover:text-amber-500 transition-colors">
-                                            {film.title}
-                                        </h3>
-                                        <div className="flex items-center justify-between text-[11px] text-text-muted border-t border-border/60 pt-1.5 font-medium">
-                                            <span className="truncate max-w-[65%]">{mainGenre}</span>
-                                            <span>{film.release_year || '-'}</span>
+                                            {/* Custom Badge */}
+                                            {film.custom_badge && (
+                                                <div className="absolute bottom-2 inset-x-0 flex justify-center px-2 z-10 pointer-events-none">
+                                                    <span className="inline-flex items-center justify-center bg-[#E50914] text-white font-black text-[10px] sm:text-xs px-2.5 py-0.5 rounded shadow-md truncate max-w-full border border-white/20">
+                                                        {film.custom_badge}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                </Link>
-                            );
-                        }))}
+
+                                        {/* Film Info */}
+                                        <div className="p-3 flex flex-col flex-1 justify-between gap-2">
+                                            <h3 className="font-bold text-xs sm:text-sm text-text line-clamp-2 min-h-[2.2rem] group-hover:text-amber-500 transition-colors">
+                                                {film.title}
+                                            </h3>
+                                            <div className="flex items-center justify-between text-[11px] text-text-muted border-t border-border/60 pt-1.5 font-medium">
+                                                <span className="truncate max-w-[65%]">{mainGenre}</span>
+                                                <span>{film.release_year || '-'}</span>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                );
+                            }))}
                     </div>
 
                     {/* Empty State */}
