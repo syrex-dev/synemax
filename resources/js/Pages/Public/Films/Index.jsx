@@ -74,6 +74,8 @@ export default function Index({
             replace: true,
             only: ['films', 'searchQuery', 'selectedGenre', 'selectedYear'],
             onFinish: () => setIsFiltering(false),
+            onCancel: () => setIsFiltering(false),
+            onError: () => setIsFiltering(false),
         });
     };
 
@@ -133,6 +135,8 @@ export default function Index({
             preserveScroll: true,
             only: ['films', 'searchQuery', 'selectedGenre', 'selectedYear'],
             onFinish: () => setIsFiltering(false),
+            onCancel: () => setIsFiltering(false),
+            onError: () => setIsFiltering(false),
         });
     };
 
@@ -286,7 +290,7 @@ export default function Index({
                         )}
                     </div>
 
-                    <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 transition-opacity duration-200 ${isFiltering ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                    <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 transition-opacity duration-200 ${isFiltering ? 'opacity-70' : 'opacity-100'}`}>
                         {filmItems.length > 0 ? (
                             filmItems.map((film) => {
                             const poster = film.poster_url || (film.poster_path ? (film.poster_path.startsWith('http') ? film.poster_path : `/storage/${film.poster_path}`) : null);
@@ -296,16 +300,16 @@ export default function Index({
                                 <Link
                                     key={film.id}
                                     href={filmUrl}
-                                    className="group relative flex flex-col rounded-2xl overflow-hidden border border-border/80 bg-surface shadow-xs hover:shadow-xl hover:border-amber-500 transition-all duration-200"
+                                    className="group relative flex flex-col rounded-2xl overflow-hidden border border-border/80 bg-surface shadow-xs hover:shadow-xl hover:border-amber-500 transition-all duration-200 cursor-pointer select-none"
                                 >
                                     {/* Poster 2:3 */}
-                                    <div className="relative w-full aspect-[2/3] overflow-hidden bg-slate-900">
+                                    <div className="relative w-full aspect-[2/3] overflow-hidden bg-slate-900 pointer-events-none select-none">
                                         {poster ? (
                                             <img
                                                 src={poster}
                                                 alt={film.title}
                                                 loading="lazy"
-                                                className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                                className="size-full object-cover transition-transform duration-300 group-hover:scale-105 pointer-events-none select-none"
                                             />
                                         ) : (
                                             <div className="flex size-full flex-col items-center justify-center bg-slate-900 border border-white/10 p-3 text-center">
@@ -330,7 +334,7 @@ export default function Index({
                                     </div>
 
                                     {/* Info */}
-                                    <div className="flex flex-1 flex-col p-3 sm:p-3.5 justify-between">
+                                    <div className="flex flex-1 flex-col p-3 sm:p-3.5 justify-between pointer-events-none select-none">
                                         <div>
                                             <h3 className="text-xs sm:text-sm font-black text-text line-clamp-1 group-hover:text-amber-500 transition">
                                                 {film.title}

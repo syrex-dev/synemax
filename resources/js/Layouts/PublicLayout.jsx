@@ -129,6 +129,16 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
         setIsSearchOpen(false);
     };
 
+    const handleFilmClick = (e, film) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        setIsSearchOpen(false);
+        const targetUrl = `/film/${film.slug || film.id}`;
+        router.visit(targetUrl);
+    };
+
     const handleSearchSubmit = (e) => {
         if (e) e.preventDefault();
         const trimmed = searchQuery.trim();
@@ -390,13 +400,17 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                     Film ({isSearching ? '...' : searchTotalCount})
                                 </span>
                                 {searchTotalCount > 0 && (
-                                    <Link
+                                    <a
                                         href={`/film?cari=${encodeURIComponent(searchQuery.trim())}`}
-                                        onClick={handleCloseSearch}
-                                        className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-0.5"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setIsSearchOpen(false);
+                                            router.visit(`/film?cari=${encodeURIComponent(searchQuery.trim())}`);
+                                        }}
+                                        className="text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-0.5 cursor-pointer"
                                     >
                                         Lihat di katalog &rarr;
-                                    </Link>
+                                    </a>
                                 )}
                             </div>
 
@@ -418,56 +432,62 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                         <Film className="size-8 text-text-muted/40 mx-auto mb-2" />
                                         <p className="text-xs sm:text-sm font-semibold text-text">Tidak ada film yang cocok dengan "{searchQuery}"</p>
                                         <p className="text-[11px] text-text-muted mt-1">Coba kata kunci lain atau telusuri seluruh koleksi film.</p>
-                                        <Link
-                                            href="/film"
-                                            onClick={handleCloseSearch}
-                                            className="btn-gold-cinema inline-flex items-center gap-1.5 mt-3 rounded-xl px-3.5 py-1.5 text-xs font-bold shadow-xs"
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsSearchOpen(false);
+                                                router.visit('/film');
+                                            }}
+                                            className="btn-gold-cinema inline-flex items-center gap-1.5 mt-3 rounded-xl px-3.5 py-1.5 text-xs font-bold shadow-xs cursor-pointer"
                                         >
                                             Jelajahi Katalog Film &rarr;
-                                        </Link>
+                                        </button>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 p-4 sm:p-6">
-                                        {searchResults.map((film) => (
-                                            <Link
-                                                key={film.id}
-                                                href={film.url}
-                                                onClick={handleCloseSearch}
-                                                className="group flex flex-col rounded-xl overflow-hidden bg-surface-2/40 hover:bg-surface-2 transition-all duration-200 border border-transparent hover:border-amber-500/30 hover:shadow-md p-2"
-                                            >
-                                                {/* Poster Image */}
-                                                <div className="relative aspect-[2/3] w-full rounded-lg overflow-hidden bg-surface-sunken">
-                                                    {film.poster_url ? (
-                                                        <img
-                                                            src={film.poster_url}
-                                                            alt={film.title}
-                                                            className="size-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                            loading="lazy"
-                                                        />
-                                                    ) : (
-                                                        <div className="size-full flex items-center justify-center text-text-muted">
-                                                            <Film className="size-8 opacity-40" />
-                                                        </div>
-                                                    )}
-                                                    {film.age_rating && (
-                                                        <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-black bg-black/80 text-amber-400 border border-white/20 shadow-xs">
-                                                            {film.age_rating}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* Movie Metadata */}
-                                                <div className="mt-2 flex flex-col flex-1">
-                                                    <h5 className="text-xs sm:text-sm font-bold text-text group-hover:text-amber-600 dark:group-hover:text-amber-400 line-clamp-2 leading-tight uppercase transition-colors">
-                                                        {film.title}
-                                                    </h5>
-                                                    <div className="mt-auto pt-1 flex items-center justify-between text-[10px] sm:text-[11px] text-text-muted">
-                                                        <span className="truncate max-w-[90px]">{film.genre || '-'}</span>
-                                                        {film.release_year && <span>{film.release_year}</span>}
+                                        {searchResults.map((film) => {
+                                            const targetUrl = `/film/${film.slug || film.id}`;
+                                            return (
+                                                <a
+                                                    key={film.id}
+                                                    href={targetUrl}
+                                                    onClick={(e) => handleFilmClick(e, film)}
+                                                    className="group flex flex-col rounded-xl overflow-hidden bg-surface-2/40 hover:bg-surface-2 transition-all duration-200 border border-transparent hover:border-amber-500/30 hover:shadow-md p-2 cursor-pointer select-none"
+                                                >
+                                                    {/* Poster Image */}
+                                                    <div className="relative aspect-[2/3] w-full rounded-lg overflow-hidden bg-surface-sunken pointer-events-none select-none">
+                                                        {film.poster_url ? (
+                                                            <img
+                                                                src={film.poster_url}
+                                                                alt={film.title}
+                                                                className="size-full object-cover group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
+                                                                loading="lazy"
+                                                            />
+                                                        ) : (
+                                                            <div className="size-full flex items-center justify-center text-text-muted">
+                                                                <Film className="size-8 opacity-40" />
+                                                            </div>
+                                                        )}
+                                                        {film.age_rating && (
+                                                            <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[10px] font-black bg-black/80 text-amber-400 border border-white/20 shadow-xs">
+                                                                {film.age_rating}
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                </div>
-                                            </Link>
-                                        ))}
+
+                                                    {/* Movie Metadata */}
+                                                    <div className="mt-2 flex flex-col flex-1 pointer-events-none select-none">
+                                                        <h5 className="text-xs sm:text-sm font-bold text-text group-hover:text-amber-600 dark:group-hover:text-amber-400 line-clamp-2 leading-tight uppercase transition-colors">
+                                                            {film.title}
+                                                        </h5>
+                                                        <div className="mt-auto pt-1 flex items-center justify-between text-[10px] sm:text-[11px] text-text-muted">
+                                                            <span className="truncate max-w-[90px]">{film.genre || '-'}</span>
+                                                            {film.release_year && <span>{film.release_year}</span>}
+                                                        </div>
+                                                    </div>
+                                                </a>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -475,13 +495,16 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                             {/* Footer link to catalog if many results */}
                             {searchTotalCount > searchResults.length && (
                                 <div className="border-t border-border/60 dark:border-white/10 px-4 py-2.5 sm:px-6 bg-surface-2/40 text-center shrink-0">
-                                    <Link
-                                        href={`/film?cari=${encodeURIComponent(searchQuery.trim())}`}
-                                        onClick={handleCloseSearch}
-                                        className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline inline-flex items-center gap-1"
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsSearchOpen(false);
+                                            router.visit(`/film?cari=${encodeURIComponent(searchQuery.trim())}`);
+                                        }}
+                                        className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
                                     >
                                         Lihat semua {searchTotalCount} film di katalog &rarr;
-                                    </Link>
+                                    </button>
                                 </div>
                             )}
                         </div>

@@ -427,16 +427,16 @@ export default function Home({
                                     <Link
                                         key={film.id}
                                         href={filmUrl}
-                                        className="group relative flex flex-col rounded-2xl overflow-hidden border border-border/80 bg-surface shadow-2xs hover:border-amber-500 transition-all duration-200"
+                                        className="group relative flex flex-col rounded-2xl overflow-hidden border border-border/80 bg-surface shadow-2xs hover:border-amber-500 transition-all duration-200 cursor-pointer select-none"
                                     >
                                         {/* Poster 2:3 */}
-                                        <div className="relative w-full aspect-[2/3] overflow-hidden bg-slate-900">
+                                        <div className="relative w-full aspect-[2/3] overflow-hidden bg-slate-900 pointer-events-none select-none">
                                             {poster ? (
                                                 <img
                                                     src={poster}
                                                     alt={film.title}
                                                     loading="lazy"
-                                                    className="size-full object-cover transition-transform duration-200 group-hover:scale-103 select-none"
+                                                    className="size-full object-cover transition-transform duration-200 group-hover:scale-103 select-none pointer-events-none"
                                                 />
                                             ) : (
                                                 <div className="flex size-full flex-col items-center justify-center p-3 text-center bg-slate-900 border border-white/10 text-white">
