@@ -77,7 +77,7 @@ export default function SearchableSelect({
     const selectedOptions = multiple && Array.isArray(value) ? options.filter((o) => value.includes(o.value)) : [];
 
     return (
-        <div ref={containerRef} className={`relative w-full ${className}`}>
+        <div ref={containerRef} className={`relative w-full ${isOpen ? 'z-30' : ''} ${className}`}>
             <div
                 role="combobox"
                 aria-expanded={isOpen}
@@ -152,7 +152,7 @@ export default function SearchableSelect({
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute z-50 mt-1.5 w-full rounded-2xl border border-border/80 dark:border-white/10 bg-surface/95 dark:bg-[#0E131F]/95 backdrop-blur-md shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute z-50 mt-1.5 w-full rounded-2xl border border-border/80 dark:border-white/10 bg-surface dark:bg-[#0E131F] shadow-[0_10px_38px_rgba(0,0,0,0.35),0_10px_20px_rgba(0,0,0,0.2)] p-2 animate-in fade-in zoom-in-95 duration-100">
                     {/* Live Search Input */}
                     <div className="relative mb-2">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-text-muted" />

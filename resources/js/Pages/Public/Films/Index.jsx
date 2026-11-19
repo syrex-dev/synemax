@@ -191,7 +191,7 @@ export default function Index({
                     </form>
 
                     {/* Genre and Year Filter Bar */}
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl border border-border/80 bg-surface/80 dark:bg-black/20 backdrop-blur-sm">
+                    <div className="relative z-30 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl border border-border/80 bg-surface/80 dark:bg-black/20 backdrop-blur-sm">
                         {/* Genre Pills */}
                         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 custom-scrollbar flex-1">
                             <button
@@ -223,7 +223,7 @@ export default function Index({
 
                         {/* Year Selector & Reset */}
                         <div className="flex items-center gap-2 shrink-0">
-                            <div ref={yearDropdownRef} className="relative">
+                            <div ref={yearDropdownRef} className="relative z-30">
                                 <button
                                     type="button"
                                     onClick={() => setYearDropdownOpen(!yearDropdownOpen)}
@@ -239,7 +239,7 @@ export default function Index({
                                 </button>
 
                                 {yearDropdownOpen && (
-                                    <div className="absolute right-0 mt-1.5 w-40 max-h-56 overflow-y-auto rounded-2xl border border-border/80 dark:border-white/10 bg-surface/95 dark:bg-[#0E131F]/95 backdrop-blur-md p-1.5 shadow-2xl z-40 custom-scrollbar">
+                                    <div className="absolute left-0 sm:left-auto sm:right-0 mt-1.5 w-44 max-h-56 overflow-y-auto rounded-2xl border border-border/80 dark:border-white/10 bg-surface dark:bg-[#0E131F] p-1.5 shadow-[0_10px_38px_rgba(0,0,0,0.35),0_10px_20px_rgba(0,0,0,0.2)] z-50 custom-scrollbar animate-in fade-in zoom-in-95 duration-100">
                                         <button
                                             type="button"
                                             onClick={() => handleSelectYear('')}
