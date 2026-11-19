@@ -39,6 +39,16 @@ class Film extends Model
     use SoftDeletes;
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'poster_url',
+        'banner_url',
+    ];
+
+    /**
      * Check whether film has a custom promotional/informative badge.
      */
     public function hasCustomBadge(): bool

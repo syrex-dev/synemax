@@ -28,7 +28,9 @@ export default function Show({
     };
 
     const ytId = extractYoutubeId(film?.trailer_url);
-    const poster = film?.poster_url || (film?.poster_path ? (film.poster_path.startsWith('http') ? film.poster_path : `/storage/${film.poster_path}`) : null);
+    const poster = film?.poster_url || (film?.poster_path ? (film.poster_path.startsWith('http') || film.poster_path.startsWith('/') ? film.poster_path : `/storage/${film.poster_path}`) : null);
+    const banner = film?.banner_url || (film?.banner_path ? (film.banner_path.startsWith('http') || film.banner_path.startsWith('/') ? film.banner_path : `/storage/${film.banner_path}`) : null);
+    const backdropImage = banner || poster;
     const genres = film?.genresList || (film?.genre ? film.genre.split(',').map((g) => g.trim()) : []);
     const bookingUrl = `/jadwal?film=${film?.id}`;
 
@@ -61,18 +63,22 @@ export default function Show({
                 )}
             </Modal>
 
-            {/* Header Hero Banner with visible cinematic blurred backdrop */}
+            {/* Header Hero Banner with visible cinematic poster backdrop (CGV Style) */}
             <div className="relative overflow-hidden bg-bg dark:bg-[#07090E] transition-colors duration-200 border-b border-border/60">
-                {poster && (
-                    <div
-                        className="absolute inset-0 z-0 bg-cover bg-[center_20%] pointer-events-none opacity-45 dark:opacity-30 blur-2xl scale-110 transform"
-                        style={{ backgroundImage: `url('${poster}')` }}
-                        aria-hidden="true"
-                    />
+                {backdropImage && (
+                    <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none">
+                        {/* Movie Poster Backdrop - Clearly visible across the hero like CGV */}
+                        <div
+                            className="absolute inset-0 bg-cover bg-center md:bg-[center_25%] scale-105 opacity-35 dark:opacity-45 transition-opacity duration-300"
+                            style={{ backgroundImage: `url('${backdropImage}')` }}
+                            aria-hidden="true"
+                        />
+                        {/* Soft directional scrim for readable typography without burying the image */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-bg/95 via-bg/75 to-bg/25 dark:from-[#07090E]/95 dark:via-[#07090E]/70 dark:to-[#07090E]/20" />
+                        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-bg dark:from-[#07090E] to-transparent" />
+                        <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-bg/70 dark:from-[#07090E]/70 to-transparent" />
+                    </div>
                 )}
-                {/* Gradient overlays to ensure high contrast & readable typography */}
-                <div className="absolute inset-0 z-0 bg-gradient-to-t from-bg via-bg/85 to-bg/30 dark:from-[#07090E] dark:via-[#07090E]/85 dark:to-[#07090E]/30 pointer-events-none" />
-                <div className="absolute inset-0 z-0 bg-gradient-to-r from-bg/95 via-bg/75 to-transparent dark:from-[#07090E]/95 dark:via-[#07090E]/75 dark:to-transparent pointer-events-none" />
 
                 <div className="relative z-10 mx-auto max-w-6xl px-4 pt-4 sm:pt-6 pb-8 sm:px-6">
                     {/* Back Link */}
