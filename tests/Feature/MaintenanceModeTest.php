@@ -60,6 +60,15 @@ class MaintenanceModeTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_admin_sees_503_on_regular_public_visit_during_maintenance(): void
+    {
+        $this->settings->set('maintenance_mode', '1', 'operasional');
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $response = $this->actingAs($admin)->get('/');
+        $response->assertStatus(503);
+    }
+
     public function test_json_requests_receive_503_json_during_maintenance(): void
     {
         $this->settings->set('maintenance_mode', '1', 'operasional');

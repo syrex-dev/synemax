@@ -39,20 +39,15 @@ class CheckMaintenanceMode
             return $next($request);
         }
 
-        // Allow preview for logged-in admin if requested
+        // Clear legacy sticky preview from session if present
+        if ($request->hasSession() && $request->session()->has('maintenance_preview')) {
+            $request->session()->forget('maintenance_preview');
+        }
+
+        // Allow preview for logged-in admin only when explicitly requested via ?preview=1
         $isAdmin = (bool) ($request->user()?->is_admin ?? false);
-        if ($isAdmin) {
-            if ($request->query('preview') === '1') {
-                if ($request->hasSession()) {
-                    $request->session()->put('maintenance_preview', true);
-                }
-
-                return $next($request);
-            }
-
-            if ($request->hasSession() && $request->session()->get('maintenance_preview') === true) {
-                return $next($request);
-            }
+        if ($isAdmin && $request->query('preview') === '1') {
+            return $next($request);
         }
 
         $message = $settings->maintenanceMessage();
