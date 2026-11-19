@@ -3,8 +3,9 @@ import PublicLayout from '../Layouts/PublicLayout';
 import { Film, Home, Calendar, MessageCircle, AlertTriangle, ShieldAlert, ServerCrash, Clock, RefreshCw } from 'lucide-react';
 
 export default function Error({ status = 404, message = null }) {
-    const { auth, cinemaSettings } = usePage().props;
+    const { cinemaSettings } = usePage().props;
     const waNumber = cinemaSettings?.contactWhatsapp ? String(cinemaSettings.contactWhatsapp).replace(/\D/g, '') : '6285169730960';
+
     const errorConfigs = {
         404: {
             title: 'Halaman Tidak Ditemukan',
@@ -12,7 +13,9 @@ export default function Error({ status = 404, message = null }) {
             description: message || 'Maaf, halaman, film, atau sesi penayangan yang Anda tuju tidak ditemukan atau tautan telah dipindahkan.',
             icon: Film,
             color: 'text-amber-500',
-            bg: 'bg-amber-500/10 border-amber-500/30',
+            borderColor: 'border-amber-500/30',
+            bgColor: 'bg-amber-500/10',
+            glowColor: 'bg-amber-500/15',
         },
         403: {
             title: 'Akses Ditolak',
@@ -20,7 +23,9 @@ export default function Error({ status = 404, message = null }) {
             description: message || 'Anda tidak memiliki hak akses yang cukup untuk membuka halaman ini.',
             icon: ShieldAlert,
             color: 'text-rose-500',
-            bg: 'bg-rose-500/10 border-rose-500/30',
+            borderColor: 'border-rose-500/30',
+            bgColor: 'bg-rose-500/10',
+            glowColor: 'bg-rose-500/15',
         },
         419: {
             title: 'Sesi Kedaluwarsa',
@@ -28,7 +33,9 @@ export default function Error({ status = 404, message = null }) {
             description: message || 'Sesi penjelajahan Anda telah berakhir demi keamanan. Silakan muat ulang halaman atau login kembali.',
             icon: Clock,
             color: 'text-amber-500',
-            bg: 'bg-amber-500/10 border-amber-500/30',
+            borderColor: 'border-amber-500/30',
+            bgColor: 'bg-amber-500/10',
+            glowColor: 'bg-amber-500/15',
         },
         500: {
             title: 'Terjadi Kendala Server',
@@ -36,15 +43,19 @@ export default function Error({ status = 404, message = null }) {
             description: message || 'Terjadi gangguan internal sementara pada server kami. Mohon coba beberapa saat lagi.',
             icon: ServerCrash,
             color: 'text-rose-500',
-            bg: 'bg-rose-500/10 border-rose-500/30',
+            borderColor: 'border-rose-500/30',
+            bgColor: 'bg-rose-500/10',
+            glowColor: 'bg-rose-500/15',
         },
         503: {
             title: 'Sedang Dalam Pemeliharaan',
-            badge: '503 · Maintenance',
-            description: message || 'Layanan SynemaX sedang dalam proses pemeliharaan rutin untuk meningkatkan kualitas. Segera kembali.',
+            badge: '503 · Mode Pemeliharaan',
+            description: message || 'Layanan SynemaX sedang dalam peningkatan sistem berkala untuk kenyamanan menonton Anda. Silakan kembali beberapa saat lagi.',
             icon: RefreshCw,
-            color: 'text-sky-500',
-            bg: 'bg-sky-500/10 border-sky-500/30',
+            color: 'text-amber-500',
+            borderColor: 'border-amber-500/30',
+            bgColor: 'bg-amber-500/10',
+            glowColor: 'bg-amber-500/20',
         },
     };
 
@@ -54,69 +65,67 @@ export default function Error({ status = 404, message = null }) {
         description: message || 'Terjadi kesalahan saat memproses permintaan Anda.',
         icon: AlertTriangle,
         color: 'text-amber-500',
-        bg: 'bg-amber-500/10 border-amber-500/30',
+        borderColor: 'border-amber-500/30',
+        bgColor: 'bg-amber-500/10',
+        glowColor: 'bg-amber-500/15',
     };
 
     const Icon = config.icon;
+    const isMaintenance = status === 503;
 
     return (
         <PublicLayout title={`${config.title} (${status})`}>
             <Head title={`${config.title} · SynemaX`} />
 
-            <div className="min-h-[70vh] flex items-center justify-center px-4 py-12 sm:px-6">
-                <div className="w-full max-w-lg text-center space-y-6">
+            <div className="relative min-h-[70vh] flex items-center justify-center px-4 py-12 sm:px-6">
+                {/* Ambient Glow */}
+                <div
+                    className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 size-72 sm:size-96 rounded-full ${config.glowColor} blur-3xl -z-10`}
+                    aria-hidden="true"
+                />
+
+                {/* Central Card */}
+                <div className="relative w-full max-w-lg rounded-3xl border border-border/80 dark:border-white/10 bg-surface/90 dark:bg-[#0B0F19]/90 backdrop-blur-xl p-6 sm:p-10 shadow-2xl space-y-6 text-center animate-in fade-in zoom-in-95 duration-200">
                     {/* Status Badge */}
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-black tracking-wider uppercase shadow-xs transition-all animate-in fade-in zoom-in-95 duration-200">
-                        <span className={`inline-block size-2 rounded-full ${config.color === 'text-rose-500' ? 'bg-rose-500' : 'bg-amber-500'} animate-ping`} />
-                        <span className={config.color}>{config.badge}</span>
+                    <div>
+                        <span className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-black tracking-wider uppercase shadow-xs ${config.borderColor} ${config.bgColor}`}>
+                            <span className="relative flex size-2">
+                                <span className={`animate-ping absolute inline-flex size-full rounded-full opacity-75 ${status === 503 ? 'bg-amber-400' : config.color.replace('text-', 'bg-')}`} />
+                                <span className={`relative inline-flex size-2 rounded-full ${status === 503 ? 'bg-amber-500' : config.color.replace('text-', 'bg-')}`} />
+                            </span>
+                            <span className={config.color}>{config.badge}</span>
+                        </span>
                     </div>
 
                     {/* Icon Container */}
-                    <div className="mx-auto flex size-20 sm:size-24 items-center justify-center rounded-3xl border bg-surface-2/80 dark:bg-surface/50 shadow-inner">
-                        <Icon className={`size-10 sm:size-12 ${config.color}`} />
+                    <div className="relative mx-auto size-20 sm:size-24 flex items-center justify-center">
+                        <div className={`absolute inset-0 rounded-3xl ${config.glowColor} blur-lg animate-pulse`} />
+                        <div className={`relative size-full rounded-3xl border ${config.borderColor} bg-surface dark:bg-black/40 flex items-center justify-center shadow-inner`}>
+                            <Icon className={`size-9 sm:size-10 ${config.color} ${isMaintenance ? 'animate-spin' : ''}`} style={isMaintenance ? { animationDuration: '10s' } : undefined} />
+                        </div>
                     </div>
 
                     {/* Heading & Description */}
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                         <h1 className="text-2xl sm:text-3xl font-black text-text tracking-tight">
                             {config.title}
                         </h1>
-                        <p className="text-xs sm:text-sm text-text-muted max-w-md mx-auto leading-relaxed">
+                        <div className="rounded-2xl border border-border/70 dark:border-white/5 bg-surface-2/60 dark:bg-white/[0.02] p-4 text-xs sm:text-sm text-text-muted leading-relaxed font-medium">
                             {config.description}
-                        </p>
+                        </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-                        {status === 503 ? (
-                            <>
-                                <button
-                                    type="button"
-                                    onClick={() => window.location.reload()}
-                                    className="btn-gold-cinema inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black shadow-md shadow-amber-500/20"
-                                >
-                                    <RefreshCw className="size-4" />
-                                    <span>Muat Ulang Halaman</span>
-                                </button>
-
-                                {auth?.user?.is_admin && (
-                                    <div className="flex flex-wrap items-center justify-center gap-2">
-                                        <a
-                                            href="/admin/pengaturan?tab=operasional"
-                                            className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition shadow-xs"
-                                        >
-                                            <ShieldAlert className="size-4" />
-                                            <span>Buka Pengaturan Admin</span>
-                                        </a>
-                                        <a
-                                            href="/?preview=1"
-                                            className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-xs font-bold text-text hover:bg-surface-2 transition shadow-xs"
-                                        >
-                                            <span>Pratinjau Situs</span>
-                                        </a>
-                                    </div>
-                                )}
-                            </>
+                    <div className="pt-1 flex flex-col sm:flex-row items-center justify-center gap-3">
+                        {isMaintenance ? (
+                            <button
+                                type="button"
+                                onClick={() => window.location.reload()}
+                                className="btn-gold-cinema inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-7 py-2.5 text-xs font-black shadow-md shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer"
+                            >
+                                <RefreshCw className="size-4" />
+                                <span>Muat Ulang Halaman</span>
+                            </button>
                         ) : (
                             <>
                                 <Link
@@ -138,16 +147,16 @@ export default function Error({ status = 404, message = null }) {
                         )}
                     </div>
 
-                    {/* Quick Help */}
-                    <div className="pt-6 border-t border-border/60 text-xs text-text-muted">
-                        <span>Butuh bantuan segera? Hubungi kami via </span>
+                    {/* Support Help */}
+                    <div className="pt-4 border-t border-border/60 flex flex-col items-center justify-center gap-2 text-xs text-text-muted">
+                        <span>{isMaintenance ? 'Pertanyaan seputar pemesanan & tiket bioskop?' : 'Butuh bantuan segera? Hubungi kami via'}</span>
                         <a
                             href={`https://wa.me/${waNumber}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1"
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold hover:bg-emerald-500/20 transition"
                         >
-                            <MessageCircle className="size-3.5 inline" />
+                            <MessageCircle className="size-3.5 text-emerald-500" />
                             <span>WhatsApp Customer Care</span>
                         </a>
                     </div>
