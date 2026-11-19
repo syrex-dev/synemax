@@ -1,8 +1,10 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import PublicLayout from '../Layouts/PublicLayout';
 import { Film, Home, Calendar, MessageCircle, AlertTriangle, ShieldAlert, ServerCrash, Clock, RefreshCw } from 'lucide-react';
 
 export default function Error({ status = 404, message = null }) {
+    const { auth, cinemaSettings } = usePage().props;
+    const waNumber = cinemaSettings?.contactWhatsapp ? String(cinemaSettings.contactWhatsapp).replace(/\D/g, '') : '6285169730960';
     const errorConfigs = {
         404: {
             title: 'Halaman Tidak Ditemukan',
@@ -86,28 +88,61 @@ export default function Error({ status = 404, message = null }) {
 
                     {/* Action Buttons */}
                     <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-                        <Link
-                            href="/"
-                            className="btn-gold-cinema inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black shadow-md shadow-amber-500/20"
-                        >
-                            <Home className="size-4" />
-                            <span>Kembali ke Beranda</span>
-                        </Link>
+                        {status === 503 ? (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() => window.location.reload()}
+                                    className="btn-gold-cinema inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black shadow-md shadow-amber-500/20"
+                                >
+                                    <RefreshCw className="size-4" />
+                                    <span>Muat Ulang Halaman</span>
+                                </button>
 
-                        <Link
-                            href="/jadwal"
-                            className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-border bg-surface px-5 py-2.5 text-xs font-bold text-text hover:bg-surface-2 transition shadow-xs"
-                        >
-                            <Calendar className="size-4 text-amber-500" />
-                            <span>Lihat Jadwal Tayang</span>
-                        </Link>
+                                {auth?.user?.is_admin && (
+                                    <div className="flex flex-wrap items-center justify-center gap-2">
+                                        <a
+                                            href="/admin/pengaturan?tab=operasional"
+                                            className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition shadow-xs"
+                                        >
+                                            <ShieldAlert className="size-4" />
+                                            <span>Buka Pengaturan Admin</span>
+                                        </a>
+                                        <a
+                                            href="/?preview=1"
+                                            className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-xs font-bold text-text hover:bg-surface-2 transition shadow-xs"
+                                        >
+                                            <span>Pratinjau Situs</span>
+                                        </a>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <Link
+                                    href="/"
+                                    className="btn-gold-cinema inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-black shadow-md shadow-amber-500/20"
+                                >
+                                    <Home className="size-4" />
+                                    <span>Kembali ke Beranda</span>
+                                </Link>
+
+                                <Link
+                                    href="/jadwal"
+                                    className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-border bg-surface px-5 py-2.5 text-xs font-bold text-text hover:bg-surface-2 transition shadow-xs"
+                                >
+                                    <Calendar className="size-4 text-amber-500" />
+                                    <span>Lihat Jadwal Tayang</span>
+                                </Link>
+                            </>
+                        )}
                     </div>
 
                     {/* Quick Help */}
                     <div className="pt-6 border-t border-border/60 text-xs text-text-muted">
                         <span>Butuh bantuan segera? Hubungi kami via </span>
                         <a
-                            href="https://wa.me/6285169730960"
+                            href={`https://wa.me/${waNumber}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1"
