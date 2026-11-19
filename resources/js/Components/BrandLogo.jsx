@@ -71,9 +71,11 @@ export default function BrandLogo({
                         <span className={`font-black tracking-widest uppercase text-slate-900 ${sizeClasses}`}>
                             {brandText}
                         </span>
-                        <span className="text-[9px] -mt-1 font-bold tracking-[0.25em] text-amber-700 uppercase">
-                            Premiere Cinema
-                        </span>
+                        {cinemaSettings?.siteTagline && (
+                            <span className="text-[9px] -mt-1 font-bold tracking-[0.2em] text-amber-700 uppercase truncate max-w-[180px]">
+                                {cinemaSettings.siteTagline}
+                            </span>
+                        )}
                     </span>
                 )}
             </span>
@@ -116,9 +118,11 @@ export default function BrandLogo({
                     <span className={`font-black tracking-widest uppercase text-slate-900 dark:text-transparent dark:bg-gradient-to-r dark:from-amber-200 dark:via-amber-400 dark:to-amber-500 dark:bg-clip-text ${sizeClasses}`}>
                         {brandText}
                     </span>
-                    <span className="text-[9px] -mt-1 font-bold tracking-[0.25em] text-amber-700 dark:text-amber-400 uppercase">
-                        Premiere Cinema
-                    </span>
+                    {cinemaSettings?.siteTagline && (
+                        <span className="text-[9px] -mt-1 font-bold tracking-[0.2em] text-amber-700 dark:text-amber-400 uppercase truncate max-w-[180px]">
+                            {cinemaSettings.siteTagline}
+                        </span>
+                    )}
                 </span>
             )}
         </span>

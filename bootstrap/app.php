@@ -79,7 +79,15 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->respond(function ($response, Throwable $exception, Request $request) {
             if (! app()->environment(['local', 'testing']) && in_array($response->getStatusCode(), [500, 503, 404, 403, 419])) {
-                return Inertia::render('Error', ['status' => $response->getStatusCode()])
+                $sharedData = [];
+                try {
+                    $sharedData = app(HandleInertiaRequests::class)->share($request);
+                } catch (Throwable) {
+                }
+
+                return Inertia::render('Error', array_merge($sharedData, [
+                    'status' => $response->getStatusCode(),
+                ]))
                     ->toResponse($request)
                     ->setStatusCode($response->getStatusCode());
             }

@@ -186,10 +186,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/jadwal/libur', [ScheduleController::class, 'storeHoliday'])->name('schedule.holidays.store');
     Route::delete('/jadwal/libur/{holiday}', [ScheduleController::class, 'destroyHoliday'])->name('schedule.holidays.destroy');
     Route::post('/jadwal/tutup', [ScheduleController::class, 'storeBlockedDate'])->name('schedule.blocked.store');
+    Route::post('/jadwal', [ScheduleController::class, 'storeSession'])->name('schedule.store');
     Route::post('/jadwal/sesi', [ScheduleController::class, 'storeSession'])->name('schedule.sessions.store');
-    Route::patch('/jadwal/sesi/{session}', [ScheduleController::class, 'updateSession'])->name('schedule.sessions.update');
+    Route::match(['put', 'patch'], '/jadwal/{session}', [ScheduleController::class, 'updateSession'])->name('schedule.update');
+    Route::match(['put', 'patch'], '/jadwal/sesi/{session}', [ScheduleController::class, 'updateSession'])->name('schedule.sessions.update');
+    Route::delete('/jadwal/{session}', [ScheduleController::class, 'destroySession'])->name('schedule.destroy');
     Route::delete('/jadwal/sesi/{session}', [ScheduleController::class, 'destroySession'])->name('schedule.sessions.destroy');
-    Route::patch('/jadwal/sesi/{session}/toggle', [ScheduleController::class, 'toggleSessionStatus'])->name('schedule.sessions.toggle');
+    Route::match(['post', 'patch'], '/jadwal/{session}/toggle-status', [ScheduleController::class, 'toggleSessionStatus'])->name('schedule.sessions.toggle_status');
+    Route::match(['post', 'patch'], '/jadwal/sesi/{session}/toggle', [ScheduleController::class, 'toggleSessionStatus'])->name('schedule.sessions.toggle');
     Route::post('/jadwal/sesi/{session}/selesaikan', [ScheduleController::class, 'resolveSession'])->name('schedule.sessions.resolve');
     Route::post('/jadwal/hari/toggle', [ScheduleController::class, 'toggleDaySessions'])->name('schedule.day.toggle');
     Route::patch('/density', [DashboardController::class, 'updateDensity'])->name('density.update');
