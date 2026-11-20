@@ -126,118 +126,95 @@
                 $pastSessions = $sessions->filter(fn($s) => $s->statusWaktu($bookingCutoffMinutes)['is_past']);
             @endphp
 
-            <div class="mt-6 space-y-3.5 pb-8 sm:pb-4">
-                @if ($upcomingSessions->isEmpty())
-                    <div class="rounded-2xl border border-dashed border-border bg-surface-2 p-5 text-center text-xs text-text-muted">
-                        Semua sesi penayangan untuk hari ini telah selesai atau sedang berlangsung. Silakan cek bagian sesi yang sudah lewat di bawah atau pilih tanggal lain di atas.
+            <div class="mt-6 space-y-4 pb-8 sm:pb-4">
+                {{-- TIX ID Style Studio Card with Showtime Grid --}}
+                <div class="rounded-3xl border border-border bg-surface shadow-xs overflow-hidden">
+                    {{-- Studio Header --}}
+                    <div class="p-4 sm:p-5 border-b border-border/70 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 bg-surface-2/40">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-base sm:text-lg font-black text-text tracking-tight">STUDIO 1</h3>
+                                <span class="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-black">
+                                    DOLBY SURROUND
+                                </span>
+                            </div>
+                            <p class="text-xs sm:text-sm text-text-muted mt-1">
+                                {{ $selectedFilm ? 'Pilih jam tayang yang cocok untukmu' : 'Film bebas dipilih pemesan pertama pada jam yang tersedia' }}
+                            </p>
+                        </div>
+                        <div class="text-left sm:text-right">
+                            <span class="text-xs text-text-muted block">Harga Tiket:</span>
+                            <span class="text-sm sm:text-base font-black text-amber-600 dark:text-amber-400 font-mono">
+                                Mulai Rp {{ number_format($sessionPrice ?? 5000, 0, ',', '.') }}
+                            </span>
+                        </div>
                     </div>
-                @else
-                    @foreach ($upcomingSessions as $session)
-                        @php
-                            $sw = $session->statusWaktu($bookingCutoffMinutes);
-                            $canBook = $sw['can_book'];
-                            $occupied = $session->is_private
-                                ? $session->seatCapacity()
-                                : $session->seatCapacity() - $session->remainingSeats();
-                            $startTime = format_jam_id($session->start_time, false);
-                            $endTime = format_jam_id($session->end_time, true);
-                        @endphp
-                        @php
-                            $sessionFilmId = $session->film_id ?: $session->activeFilm()?->id;
-                            $isLockedOtherFilm = $selectedFilm && ($session->isConfirmed() || $session->status === 'terkonfirmasi') && $sessionFilmId && (int) $sessionFilmId !== (int) $selectedFilm->id;
-                            $canBookThisSession = $canBook && ! $isLockedOtherFilm;
-                        @endphp
-                        <article class="rounded-2xl border border-border bg-surface p-4 sm:p-5 transition hover:border-amber-500 shadow-2xs {{ $isLockedOtherFilm ? 'opacity-60 bg-surface/50 border-dashed hover:border-border' : '' }}">
-                            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div class="flex min-w-0 items-start gap-4">
-                                    {{-- Kotak Waktu Sesi ala XXI Clock --}}
-                                    <div class="w-24 shrink-0 rounded-xl border border-border dark:border-white/10 bg-surface-2 dark:bg-black/40 px-2 py-3 text-center shadow-inner">
-                                        <p class="font-tabular text-xl font-black text-amber-600 dark:text-amber-400">{{ $startTime }}</p>
-                                        <p class="mt-0.5 font-tabular text-[11px] font-medium text-text-muted">{{ $endTime }}</p>
-                                    </div>
-                                    <div class="min-w-0">
-                                        @php
-                                            $confirmed = $session->isConfirmed();
-                                            $activeFilm = $session->activeFilm();
-                                            $leadingTally = $session->leadingFilmTally();
-                                            $quorum = $session->quorum();
-                                        @endphp
 
-                                        <h3 class="text-base font-bold text-text truncate sm:whitespace-normal">
-                                            @if ($session->film)
-                                                {{ $session->film->title }}
-                                            @elseif ($leadingTally && $leadingTally['film'])
-                                                {{ $leadingTally['title'] }} <span class="text-xs font-normal text-text-muted">(Calon terdepan)</span>
-                                            @else
-                                                <span class="italic text-text-muted font-medium">Belum ada film, kamu yang menentukan</span>
-                                            @endif
-                                        </h3>
-
-                                        <p class="mt-0.5 text-xs text-text-muted">
-                                            @if ($activeFilm)
-                                                {{ $activeFilm->genre }}, {{ $activeFilm->duration_minutes }} menit, batas usia {{ $activeFilm->age_rating }}
-                                            @else
-                                                Pilih paket dan tentukan film pertama di sesi ini
-                                            @endif
-                                        </p>
-
-                                        <div class="mt-2.5 flex flex-wrap items-center gap-2">
-                                            @if ($confirmed)
-                                                <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold border border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                                                    <span class="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                                    <span>Pasti tayang: {{ $session->film?->title }}</span>
-                                                </span>
-                                            @elseif ($leadingTally)
-                                                <div class="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-400">
-                                                    <span>{{ $leadingTally['title'] }} {{ $leadingTally['seats'] }}/{{ $quorum }} · butuh {{ $leadingTally['needed_seats'] }} lagi</span>
-                                                    <div class="w-12 h-1.5 bg-amber-200 dark:bg-white/20 rounded-full overflow-hidden">
-                                                        <div class="h-full bg-amber-500 rounded-full" style="width: {{ min(100, round(($leadingTally['seats'] / $quorum) * 100)) }}%"></div>
-                                                    </div>
-                                                </div>
-                                            @else
-                                                <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] border {{ $sw['badge_class'] }}">
-                                                    <span class="size-1.5 rounded-full {{ $canBook ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400' }}"></span>
-                                                    <span>{{ $sw['label'] }}</span>
-                                                </span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="flex items-center justify-between gap-4 sm:justify-end">
-                                    <div class="text-right">
-                                        <p class="font-tabular text-xs font-bold text-text">
-                                            {{ $session->remainingSeats() }} slot tersisa
-                                        </p>
-                                        <p class="text-[11px] text-text-muted">
-                                            ({{ $occupied }} dari {{ $session->seatCapacity() }} terisi)
-                                        </p>
-                                    </div>
+                    {{-- Showtimes Grid --}}
+                    <div class="p-4 sm:p-6">
+                        @if ($upcomingSessions->isEmpty())
+                            <div class="rounded-2xl border border-dashed border-border bg-surface-2/60 p-6 text-center text-xs sm:text-sm text-text-muted">
+                                Semua sesi penayangan untuk hari ini telah selesai atau sedang berlangsung.
+                            </div>
+                        @else
+                            <div class="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-4 gap-2.5 sm:gap-3.5">
+                                @foreach ($upcomingSessions as $session)
+                                    @php
+                                        $sw = $session->statusWaktu($bookingCutoffMinutes);
+                                        $canBook = $sw['can_book'];
+                                        $occupied = $session->is_private
+                                            ? $session->seatCapacity()
+                                            : $session->seatCapacity() - $session->remainingSeats();
+                                        $remainingSeats = max(0, $session->seatCapacity() - $occupied);
+                                        $startTime = format_jam_id($session->start_time, false);
+                                        $endTime = format_jam_id($session->end_time, true);
+                                        $sessionFilmId = $session->film_id ?: $session->activeFilm()?->id;
+                                        $isLockedOtherFilm = $selectedFilm && ($session->isConfirmed() || $session->status === 'terkonfirmasi') && $sessionFilmId && (int) $sessionFilmId !== (int) $selectedFilm->id;
+                                        $canBookThisSession = $canBook && ! $isLockedOtherFilm;
+                                    @endphp
 
                                     @if ($canBookThisSession)
-                                        @php
-                                            $btnLabel = match (true) {
-                                                $selectedFilm !== null => 'Pilih jam ini',
-                                                $confirmed => 'Pesan tiket',
-                                                $leadingTally !== null => 'Gabung film ini',
-                                                default => 'Pilih paket',
-                                            };
-                                        @endphp
                                         <a href="{{ route('booking.create', array_filter(['session' => $session->id, 'film' => $selectedFilm?->id ?: request('film')])) }}"
-                                           @click="sessionStorage.setItem('synemax:booking-wizard', JSON.stringify({ sessionId: {{ $session->id }}, date: @js($date->toDateString()), step: 1 }))"
-                                           class="btn-gold-cinema inline-flex min-h-11 min-w-28 items-center justify-center rounded-xl px-4 text-xs font-bold shadow-md">
-                                            {{ $btnLabel }}
+                                           title="Pilih jam ini"
+                                           class="group flex flex-col items-center justify-center p-3 sm:p-3.5 rounded-2xl border border-border bg-surface hover:border-amber-500 hover:bg-amber-500/10 hover:shadow-md transition text-center min-h-[78px] sm:min-h-[86px]">
+                                            <span class="font-tabular text-lg sm:text-xl font-black text-text group-hover:text-amber-500 transition">
+                                                {{ $startTime }}
+                                            </span>
+                                            <span class="text-xs text-text-muted mt-0.5 font-medium">
+                                                s/d {{ $endTime }}
+                                            </span>
+                                            <div class="mt-1.5 flex items-center justify-center">
+                                                @if ($session->is_private)
+                                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-purple-500/15 text-purple-700 dark:text-purple-300">
+                                                        Privat
+                                                    </span>
+                                                @else
+                                                    <span class="px-2 py-0.5 rounded-full text-xs font-bold {{ $remainingSeats > 0 ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' : 'bg-red-500/15 text-red-600 dark:text-red-400' }}">
+                                                        {{ $remainingSeats > 0 ? "{$remainingSeats} Kursi" : 'Penuh' }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                            @if ($session->film && ! $selectedFilm)
+                                                <span class="mt-1 text-xs font-bold text-amber-600 dark:text-amber-400 truncate max-w-full">
+                                                    {{ $session->film->title }}
+                                                </span>
+                                            @endif
                                         </a>
                                     @else
-                                        <span class="inline-flex min-h-11 min-w-36 items-center justify-center rounded-xl border border-border dark:border-white/10 bg-surface-2 dark:bg-white/5 px-3 text-center text-xs font-semibold text-text-muted">
-                                            {{ $isLockedOtherFilm ? 'Sesi ini sudah memilih film lain' : $sw['label'] }}
-                                        </span>
+                                        <div class="flex flex-col items-center justify-center p-3 sm:p-3.5 rounded-2xl border border-border/40 bg-surface-2/30 opacity-40 cursor-not-allowed text-center min-h-[78px] sm:min-h-[86px]">
+                                            <span class="font-tabular text-base sm:text-lg font-bold text-text-muted line-through">
+                                                {{ $startTime }}
+                                            </span>
+                                            <span class="text-xs text-text-muted mt-1 font-medium">
+                                                {{ $isLockedOtherFilm ? 'Film Lain' : ($sw['label'] ?? 'Selesai') }}
+                                            </span>
+                                        </div>
                                     @endif
-                                </div>
+                                @endforeach
                             </div>
-                        </article>
-                    @endforeach
-                @endif
+                        @endif
+                    </div>
+                </div>
 
                 {{-- Sesi yang Sudah Lewat (Diciutkan di Bawah, Tanpa Tombol Pesan) --}}
                 @if ($pastSessions->isNotEmpty())

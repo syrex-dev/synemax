@@ -336,10 +336,10 @@ export default function Index({
                                     {/* Info */}
                                     <div className="flex flex-1 flex-col p-3 sm:p-3.5 justify-between pointer-events-none select-none">
                                         <div>
-                                            <h3 className="text-xs sm:text-sm font-black text-text line-clamp-1 group-hover:text-amber-500 transition">
+                                            <h3 className="text-sm sm:text-base font-black text-text line-clamp-1 group-hover:text-amber-500 transition">
                                                 {film.title}
                                             </h3>
-                                            <div className="mt-1 flex items-center justify-between gap-1 text-[11px] font-semibold text-text-muted">
+                                            <div className="mt-1 flex items-center justify-between gap-1 text-xs font-semibold text-text-muted">
                                                 <span className="truncate">{film.genre || '-'}</span>
                                                 {film.release_year && (
                                                     <span className="shrink-0">{film.release_year}</span>
@@ -348,7 +348,7 @@ export default function Index({
                                         </div>
 
                                         {film.duration_minutes && (
-                                            <div className="mt-2 pt-2 border-t border-border/60 flex items-center gap-1 text-[10px] text-text-muted">
+                                            <div className="mt-2 pt-2 border-t border-border/60 flex items-center gap-1 text-xs text-text-muted">
                                                 <Clock className="size-3 text-amber-500" />
                                                 <span>{film.duration_minutes} menit</span>
                                             </div>

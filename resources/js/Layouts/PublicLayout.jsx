@@ -517,9 +517,9 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                 <nav
                     aria-label="Navigasi Bawah Mobile"
                     className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/90 dark:bg-[#07090E]/90 backdrop-blur-md border-t border-border/80 dark:border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-colors duration-200"
-                    style={{ height: 'calc(60px + env(safe-area-inset-bottom, 0px))', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+                    style={{ height: 'calc(64px + env(safe-area-inset-bottom, 0px))', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
                 >
-                    <div className="h-[60px] flex items-stretch justify-around w-full max-w-lg mx-auto">
+                    <div className="h-[64px] flex items-stretch justify-around w-full max-w-lg mx-auto">
                         {bottomBarItems.map((bItem) => {
                             const active = isItemActive(bItem);
                             const label = bItem.short_label || bItem.label;
@@ -530,7 +530,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                     <Link
                                         key={bItem.key || bItem.url}
                                         href={bItem.url || '/tiket'}
-                                        className={`flex-1 min-h-[60px] flex flex-col items-center justify-center relative py-1 px-1 transition-colors ${active
+                                        className={`flex-1 min-h-[64px] flex flex-col items-center justify-center relative py-1.5 px-1 transition-colors ${active
                                             ? 'text-slate-950 dark:text-amber-400 font-extrabold'
                                             : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium'
                                             }`}
@@ -539,7 +539,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                             <span className="absolute top-0 inset-x-0 mx-auto h-[3px] w-7 bg-amber-500 rounded-full" />
                                         )}
                                         {getIconForNav(bItem.key)}
-                                        <span className="text-[11px] leading-tight mt-1">{label}</span>
+                                        <span className="text-xs font-semibold leading-tight mt-1">{label}</span>
                                     </Link>
                                 );
                             }
@@ -548,7 +548,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                 <Link
                                     key={bItem.key || bItem.url}
                                     href={bItem.url}
-                                    className={`flex-1 min-h-[60px] flex flex-col items-center justify-center relative py-1 px-1 transition-colors ${active
+                                    className={`flex-1 min-h-[64px] flex flex-col items-center justify-center relative py-1.5 px-1 transition-colors ${active
                                         ? 'text-slate-950 dark:text-amber-400 font-extrabold'
                                         : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium'
                                         }`}
@@ -557,7 +557,7 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                         <span className="absolute top-0 inset-x-0 mx-auto h-[3px] w-7 bg-amber-500 rounded-full" />
                                     )}
                                     {getIconForNav(bItem.key)}
-                                    <span className="text-[11px] leading-tight mt-1">{label}</span>
+                                    <span className="text-xs font-semibold leading-tight mt-1">{label}</span>
                                 </Link>
                             );
                         })}
@@ -566,10 +566,10 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                         <button
                             type="button"
                             onClick={() => setMenuSheetOpen(true)}
-                            className="flex-1 min-h-[60px] flex flex-col items-center justify-center relative py-1 px-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium transition-colors"
+                            className="flex-1 min-h-[64px] flex flex-col items-center justify-center relative py-1.5 px-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white font-medium transition-colors"
                         >
                             <Menu className="size-5" />
-                            <span className="text-[11px] leading-tight mt-1">Menu</span>
+                            <span className="text-xs font-semibold leading-tight mt-1">Menu</span>
                         </button>
                     </div>
                 </nav>

@@ -289,25 +289,6 @@ export default function Home({
                     </section>
                 )}
 
-                {/* 2. INFO CHIPS & QUICK ACCESS */}
-                {infoChips && infoChips.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {infoChips.map((chip, i) => (
-                            <div
-                                key={i}
-                                className="flex items-center gap-3 p-3.5 sm:p-4 rounded-2xl border border-border/70 bg-surface shadow-xs"
-                            >
-                                <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0">
-                                    <Sparkles className="size-4" />
-                                </div>
-                                <span className="text-xs sm:text-sm font-bold text-text truncate">
-                                    {chip.text}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
                 {/* 3. KATALOG FILM SECTION */}
                 <section aria-label="Katalog Film" id="katalog-film" className="space-y-4 sm:space-y-6">
                     {/* Header */}
@@ -467,11 +448,11 @@ export default function Home({
                                         </div>
 
                                         {/* Film Info */}
-                                        <div className="p-3 flex flex-col flex-1 justify-between gap-2">
-                                            <h3 className="font-bold text-xs sm:text-sm text-text line-clamp-2 min-h-[2.2rem] group-hover:text-amber-500 transition-colors">
+                                        <div className="p-3 sm:p-4 flex flex-col flex-1 justify-between gap-2">
+                                            <h3 className="font-bold text-sm sm:text-base text-text line-clamp-2 min-h-[2.5rem] group-hover:text-amber-500 transition-colors">
                                                 {film.title}
                                             </h3>
-                                            <div className="flex items-center justify-between text-[11px] text-text-muted border-t border-border/60 pt-1.5 font-medium">
+                                            <div className="flex items-center justify-between text-xs text-text-muted border-t border-border/60 pt-2 font-medium">
                                                 <span className="truncate max-w-[65%]">{mainGenre}</span>
                                                 <span>{film.release_year || '-'}</span>
                                             </div>

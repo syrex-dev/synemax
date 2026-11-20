@@ -56,9 +56,10 @@ export default function Create({
     const lockedFilm = session.film;
     const remainingSeats = session.remaining_seats ?? (session.capacity - occupiedSeats);
 
-    // Initial selected film
-    const requestedFilmId = new URLSearchParams(window.location.search).get('film');
+    // Initial selected film & fixed state
+    const requestedFilmId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('film') : null;
     const initialFilm = session.film || (requestedFilmId ? films.find((f) => String(f.id) === String(requestedFilmId)) : null) || films[0];
+    const isFilmFixed = Boolean(session.film || (requestedFilmId && films.some((f) => String(f.id) === String(requestedFilmId))));
 
     // Wizard step: 1 (Jadwal), 2 (Paket & Film), 3 (Jajan), 4 (Ringkasan)
     const [step, setStep] = useState(2);
@@ -337,14 +338,14 @@ export default function Create({
                     <div className="mt-6 space-y-6">
                         {/* 1. Pilih Paket Nonton */}
                         <div>
-                            <h2 className="text-sm font-black uppercase tracking-wider text-text-muted">1. Pilih Paket Nonton</h2>
+                            <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-text-muted">1. Pilih Paket Nonton</h2>
                             <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 {/* Reguler */}
                                 <button
                                     type="button"
                                     onClick={() => handlePackageSelect('reguler')}
                                     disabled={!canReguler}
-                                    className={`relative flex flex-col justify-between p-4 rounded-2xl border text-left transition ${
+                                    className={`relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition ${
                                         selectedPackage === 'reguler'
                                             ? 'border-amber-500 bg-amber-500/10 shadow-md ring-1 ring-amber-500'
                                             : canReguler
@@ -353,14 +354,14 @@ export default function Create({
                                     }`}
                                 >
                                     <div>
-                                        <p className="text-xs font-black text-text uppercase tracking-wide">Reguler</p>
-                                        <p className="text-[11px] text-text-muted mt-0.5">Per orang/kursi</p>
+                                        <p className="text-sm sm:text-base font-black text-text uppercase tracking-wide">Reguler</p>
+                                        <p className="text-xs text-text-muted mt-0.5">Per orang/kursi</p>
                                     </div>
-                                    <p className="mt-3 font-mono text-sm font-black text-amber-600 dark:text-amber-400">
+                                    <p className="mt-3 font-mono text-base sm:text-lg font-black text-amber-600 dark:text-amber-400">
                                         Rp {Number(unitPrice).toLocaleString('id-ID')}
                                     </p>
                                     {!canReguler && (
-                                        <span className="text-[10px] text-danger-text mt-1">{regulerDisabledReason}</span>
+                                        <span className="text-xs text-danger-text mt-1">{regulerDisabledReason}</span>
                                     )}
                                 </button>
 
@@ -369,7 +370,7 @@ export default function Create({
                                     type="button"
                                     onClick={() => handlePackageSelect('couple')}
                                     disabled={!canCouple}
-                                    className={`relative flex flex-col justify-between p-4 rounded-2xl border text-left transition ${
+                                    className={`relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition ${
                                         selectedPackage === 'couple'
                                             ? 'border-amber-500 bg-amber-500/10 shadow-md ring-1 ring-amber-500'
                                             : canCouple
@@ -378,14 +379,14 @@ export default function Create({
                                     }`}
                                 >
                                     <div>
-                                        <p className="text-xs font-black text-text uppercase tracking-wide">Couple</p>
-                                        <p className="text-[11px] text-text-muted mt-0.5">Paket 2 kursi santai</p>
+                                        <p className="text-sm sm:text-base font-black text-text uppercase tracking-wide">Couple</p>
+                                        <p className="text-xs text-text-muted mt-0.5">Paket 2 kursi santai</p>
                                     </div>
-                                    <p className="mt-3 font-mono text-sm font-black text-amber-600 dark:text-amber-400">
+                                    <p className="mt-3 font-mono text-base sm:text-lg font-black text-amber-600 dark:text-amber-400">
                                         Rp {Number(couplePrice).toLocaleString('id-ID')}
                                     </p>
                                     {!canCouple && (
-                                        <span className="text-[10px] text-danger-text mt-1">{coupleDisabledReason}</span>
+                                        <span className="text-xs text-danger-text mt-1">{coupleDisabledReason}</span>
                                     )}
                                 </button>
 
@@ -394,7 +395,7 @@ export default function Create({
                                     type="button"
                                     onClick={() => handlePackageSelect('private')}
                                     disabled={!canPrivate}
-                                    className={`relative flex flex-col justify-between p-4 rounded-2xl border text-left transition ${
+                                    className={`relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition ${
                                         selectedPackage === 'private'
                                             ? 'border-amber-500 bg-amber-500/10 shadow-md ring-1 ring-amber-500'
                                             : canPrivate
@@ -403,72 +404,102 @@ export default function Create({
                                     }`}
                                 >
                                     <div>
-                                        <p className="text-xs font-black text-text uppercase tracking-wide">Private Studio</p>
-                                        <p className="text-[11px] text-text-muted mt-0.5">Sewa seluruh studio (6 kursi)</p>
+                                        <p className="text-sm sm:text-base font-black text-text uppercase tracking-wide">Private Studio</p>
+                                        <p className="text-xs text-text-muted mt-0.5">Sewa seluruh studio (6 kursi)</p>
                                     </div>
-                                    <p className="mt-3 font-mono text-sm font-black text-amber-600 dark:text-amber-400">
+                                    <p className="mt-3 font-mono text-base sm:text-lg font-black text-amber-600 dark:text-amber-400">
                                         Rp {Number(privatePrice).toLocaleString('id-ID')}
                                     </p>
                                     {!canPrivate && (
-                                        <span className="text-[10px] text-danger-text mt-1">{privateDisabledReason}</span>
+                                        <span className="text-xs text-danger-text mt-1">{privateDisabledReason}</span>
                                     )}
                                 </button>
                             </div>
 
                             {/* Pax counter for reguler */}
                             {selectedPackage === 'reguler' && (
-                                <div className="mt-3 flex items-center justify-between rounded-xl border border-border bg-surface p-3 text-xs">
+                                <div className="mt-3 flex items-center justify-between rounded-2xl border border-border bg-surface p-3.5 sm:p-4 text-sm">
                                     <span className="font-bold text-text">Jumlah Tiket:</span>
                                     <div className="flex items-center gap-3">
                                         <button
                                             type="button"
                                             onClick={() => setPax(Math.max(1, pax - 1))}
                                             disabled={pax <= 1}
-                                            className="flex size-8 items-center justify-center rounded-lg border border-border bg-surface-2 text-text hover:bg-surface transition disabled:opacity-30"
+                                            className="flex size-9 items-center justify-center rounded-xl border border-border bg-surface-2 text-text hover:bg-surface transition disabled:opacity-30 cursor-pointer"
                                         >
-                                            <Minus className="size-3.5" />
+                                            <Minus className="size-4" />
                                         </button>
-                                        <span className="font-mono text-base font-black w-6 text-center">{pax}</span>
+                                        <span className="font-mono text-lg font-black w-7 text-center">{pax}</span>
                                         <button
                                             type="button"
                                             onClick={() => setPax(Math.min(remainingSeats, pax + 1))}
                                             disabled={pax >= remainingSeats}
-                                            className="flex size-8 items-center justify-center rounded-lg border border-border bg-surface-2 text-text hover:bg-surface transition disabled:opacity-30"
+                                            className="flex size-9 items-center justify-center rounded-xl border border-border bg-surface-2 text-text hover:bg-surface transition disabled:opacity-30 cursor-pointer"
                                         >
-                                            <Plus className="size-3.5" />
+                                            <Plus className="size-4" />
                                         </button>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* 2. Pilih Film */}
-                        <div>
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-sm font-black uppercase tracking-wider text-text-muted">2. Pilih Film Tayang</h2>
-                                {isConfirmed ? (
-                                    <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                                        Terkunci: {lockedFilm?.title}
+                        {/* 2. Film Selection or Fixed Film Display */}
+                        {isFilmFixed && initialFilm ? (
+                            <div>
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-text-muted">2. Film Pilihan</h2>
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                                        <Check className="size-3.5" />
+                                        <span>Film Terpilih</span>
                                     </span>
-                                ) : (
-                                    <span className="text-[11px] text-text-muted">Bebas pilih film calon</span>
-                                )}
-                            </div>
+                                </div>
 
-                            {!isConfirmed && (
+                                <div className="mt-3 flex items-center gap-3.5 p-3.5 sm:p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 shadow-xs">
+                                    <CinemaImage
+                                        src={initialFilm.poster_url || (initialFilm.poster_path ? `/storage/${initialFilm.poster_path}` : null)}
+                                        alt={initialFilm.title}
+                                        title={initialFilm.title}
+                                        aspect="aspect-[2/3]"
+                                        className="w-14 sm:w-16 shrink-0 rounded-xl shadow-xs"
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="text-base sm:text-lg font-black text-text truncate">{initialFilm.title}</p>
+                                        <p className="text-xs sm:text-sm text-text-muted mt-1">
+                                            {initialFilm.genre} · {initialFilm.duration_minutes} menit {initialFilm.age_rating ? `· ${initialFilm.age_rating}` : ''}
+                                        </p>
+                                        {initialFilm.trailer_url && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setTrailerModalFilm(initialFilm)}
+                                                className="mt-2.5 inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-500 hover:text-amber-400 transition cursor-pointer"
+                                            >
+                                                <Play className="size-3.5 fill-amber-500" />
+                                                <span>Lihat Trailer</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div>
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-text-muted">2. Pilih Film Tayang</h2>
+                                    <span className="text-xs text-text-muted">Bebas tentukan film</span>
+                                </div>
+
                                 <div className="mt-3 space-y-3">
                                     <div className="relative">
-                                        <Search className="size-4 text-text-muted absolute left-3 top-3" />
+                                        <Search className="size-4 text-text-muted absolute left-3.5 top-3.5" />
                                         <input
                                             type="text"
                                             value={filmSearch}
                                             onChange={(e) => setFilmSearch(e.target.value)}
                                             placeholder="Cari judul film atau genre..."
-                                            className="w-full rounded-xl border border-border bg-surface pl-9 pr-4 py-2 text-xs text-text placeholder:text-text-muted focus:border-amber-500 focus:outline-none"
+                                            className="w-full rounded-xl border border-border bg-surface pl-10 pr-4 py-3 text-sm sm:text-base text-text placeholder:text-text-muted focus:border-amber-500 focus:outline-none min-h-[46px]"
                                         />
                                     </div>
 
-                                    <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                                    <div className="max-h-64 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                                         {filteredFilms.map((f) => {
                                             const isPicked = String(f.id) === String(selectedFilmId);
                                             return (
@@ -490,8 +521,8 @@ export default function Create({
                                                             className="w-12 shrink-0 rounded-lg"
                                                         />
                                                         <div className="min-w-0 truncate">
-                                                            <p className="text-xs font-black text-text truncate">{f.title}</p>
-                                                            <p className="text-[11px] text-text-muted mt-0.5">
+                                                            <p className="text-xs sm:text-sm font-black text-text truncate">{f.title}</p>
+                                                            <p className="text-xs text-text-muted mt-0.5">
                                                                 {f.genre} · {f.duration_minutes}m · {f.age_rating || 'SU'}
                                                             </p>
                                                         </div>
@@ -508,33 +539,15 @@ export default function Create({
                                         })}
                                     </div>
                                 </div>
-                            )}
-
-                            {isConfirmed && lockedFilm && (
-                                <div className="mt-3 flex items-center gap-3 p-3.5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10">
-                                    <CinemaImage
-                                        src={lockedFilm.poster_url || (lockedFilm.poster_path ? `/storage/${lockedFilm.poster_path}` : null)}
-                                        alt={lockedFilm.title}
-                                        title={lockedFilm.title}
-                                        aspect="aspect-[2/3]"
-                                        className="w-14 shrink-0 rounded-lg"
-                                    />
-                                    <div>
-                                        <p className="text-xs font-black text-text">{lockedFilm.title}</p>
-                                        <p className="text-[11px] text-text-muted mt-0.5">
-                                            {lockedFilm.genre} · {lockedFilm.duration_minutes}m · {lockedFilm.age_rating}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
 
                         {/* 3. Data Diri */}
                         <div>
-                            <h2 className="text-sm font-black uppercase tracking-wider text-text-muted">3. Data Diri Pemesan</h2>
-                            <div className="mt-3 space-y-3">
+                            <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-text-muted">3. Data Diri Pemesan</h2>
+                            <div className="mt-3 space-y-4">
                                 <div>
-                                    <label htmlFor="customer_name" className="block text-xs font-bold text-text-muted mb-1">
+                                    <label htmlFor="customer_name" className="block text-xs sm:text-sm font-bold text-text-muted mb-1.5">
                                         Nama Lengkap
                                     </label>
                                     <input
@@ -544,11 +557,11 @@ export default function Create({
                                         value={customerName}
                                         onChange={(e) => setCustomerName(e.target.value)}
                                         placeholder="Contoh: Budi Santoso"
-                                        className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-xs text-text focus:border-amber-500 focus:outline-none"
+                                        className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm sm:text-base min-h-[46px] text-text placeholder:text-text-muted focus:border-amber-500 focus:outline-none transition"
                                     />
                                 </div>
                                 <div>
-                                    <label htmlFor="whatsapp" className="block text-xs font-bold text-text-muted mb-1">
+                                    <label htmlFor="whatsapp" className="block text-xs sm:text-sm font-bold text-text-muted mb-1.5">
                                         Nomor WhatsApp (Aktif)
                                     </label>
                                     <input
@@ -558,9 +571,9 @@ export default function Create({
                                         value={whatsapp}
                                         onChange={(e) => setWhatsapp(e.target.value)}
                                         placeholder="Contoh: 081234567890"
-                                        className="w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-xs text-text focus:border-amber-500 focus:outline-none"
+                                        className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm sm:text-base min-h-[46px] text-text placeholder:text-text-muted focus:border-amber-500 focus:outline-none transition"
                                     />
-                                    <p className="mt-1 text-[11px] text-text-muted">Tiket digital akan dikirimkan dan diverifikasi melalui nomor ini.</p>
+                                    <p className="mt-1.5 text-xs text-text-muted">Tiket digital akan dikirimkan dan diverifikasi melalui nomor ini.</p>
                                 </div>
                             </div>
                         </div>
@@ -571,7 +584,7 @@ export default function Create({
                                 type="button"
                                 onClick={() => setStep(snacksEnabled ? 3 : 4)}
                                 disabled={!customerName.trim() || !whatsapp.trim() || !selectedFilmId}
-                                className="btn-gold-cinema inline-flex min-h-11 items-center gap-2 rounded-xl px-6 text-xs font-bold shadow-md disabled:opacity-40"
+                                className="btn-gold-cinema inline-flex min-h-12 items-center gap-2 rounded-xl px-7 text-sm font-black shadow-md shadow-amber-500/20 disabled:opacity-40 cursor-pointer"
                             >
                                 <span>{snacksEnabled ? 'Pilih Jajan' : 'Lanjut ke Pembayaran'}</span>
                                 <ArrowRight className="size-4" />
