@@ -119,6 +119,7 @@ export default function Edit({
         transfer_payment_notes: settings.transfer_payment_notes || '',
         qris_image: null,
     });
+    const [qrisPreview, setQrisPreview] = useState(null);
 
     // Form for Kontak & Sosial
     const kontakForm = useForm({
@@ -994,28 +995,42 @@ export default function Edit({
                                             <input
                                                 type="file"
                                                 accept="image/png,image/jpeg,image/webp"
-                                                onChange={(e) => hargaForm.setData('qris_image', e.target.files[0])}
-                                                className="text-xs text-text file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-surface file:text-text hover:file:bg-border"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    hargaForm.setData('qris_image', file);
+                                                    if (file) {
+                                                        setQrisPreview(URL.createObjectURL(file));
+                                                    } else {
+                                                        setQrisPreview(null);
+                                                    }
+                                                }}
+                                                className="text-xs text-text file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-surface file:text-text hover:file:bg-border cursor-pointer"
                                             />
                                         </div>
                                     </div>
 
-                                    {settings.qris_image_url && (
+                                    {(qrisPreview || settings.qris_image_url) && (
                                         <div className="pt-2 flex items-center gap-4">
-                                            <div className="p-2 bg-white rounded-xl border border-border inline-block">
-                                                <img src={settings.qris_image_url} alt="QRIS Aktif" className="size-24 object-contain" />
+                                            <div className="p-2 bg-white rounded-xl border border-border inline-block shadow-xs">
+                                                <img src={qrisPreview || settings.qris_image_url} alt="QRIS Aktif" className="size-24 object-contain rounded-lg" />
                                             </div>
                                             <div>
-                                                <p className="text-xs font-bold text-text">QRIS Aktif Tersimpan</p>
-                                                <p className="text-[11px] text-text-muted">Siap dipindai oleh penonton saat checkout.</p>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => router.delete('/admin/pengaturan/qris')}
-                                                    className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-rose-500 hover:underline"
-                                                >
-                                                    <Trash2 className="size-3" />
-                                                    <span>Hapus QRIS</span>
-                                                </button>
+                                                <p className="text-xs font-bold text-text">
+                                                    {qrisPreview ? 'Pratinjau File QRIS Baru Dipilih' : 'QRIS Aktif Tersimpan'}
+                                                </p>
+                                                <p className="text-[11px] text-text-muted">
+                                                    {qrisPreview ? 'Klik "Simpan Harga & Pembayaran" di bawah untuk menerapkan.' : 'Siap dipindai oleh penonton saat checkout.'}
+                                                </p>
+                                                {settings.qris_image_url && !qrisPreview && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => router.delete('/admin/pengaturan/qris')}
+                                                        className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-rose-500 hover:underline cursor-pointer"
+                                                    >
+                                                        <Trash2 className="size-3" />
+                                                        <span>Hapus QRIS</span>
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     )}

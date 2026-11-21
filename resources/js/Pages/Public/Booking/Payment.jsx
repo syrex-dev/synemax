@@ -234,7 +234,7 @@ export default function Payment({
             <Head title={`Pembayaran Booking ${booking.code}`}>
                 <meta name="description" content={`Selesaikan pembayaran untuk booking ${booking.code} di SynemaX.`} />
                 {booking.payment_method === 'qris' && hasQrisImage && (
-                    <link rel="preload" as="image" href={`/payment/qris?v=${qrisVersion}`} fetchpriority="high" />
+                    <link rel="preload" as="image" href={`/pembayaran/qris?v=${qrisVersion}`} fetchpriority="high" />
                 )}
             </Head>
 
@@ -436,7 +436,7 @@ export default function Payment({
                                             <div className="absolute bottom-2 right-2 size-4 border-b-2 border-r-2 border-black" />
 
                                             <img
-                                                src={`/payment/qris?v=${qrisVersion}`}
+                                                src={`/pembayaran/qris?v=${qrisVersion}`}
                                                 alt={`QRIS ${qrisMerchantName}`}
                                                 width="280"
                                                 height="280"
@@ -455,7 +455,7 @@ export default function Payment({
 
                                         <div className="mt-3">
                                             <a
-                                                href="/payment/qris?download=1"
+                                                href="/pembayaran/qris?download=1"
                                                 download="QRIS-SynemaX"
                                                 className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-border dark:border-white/20 bg-surface dark:bg-white/5 px-4 text-xs font-bold text-text dark:text-white hover:border-amber-400 transition"
                                             >
@@ -678,7 +678,7 @@ export default function Payment({
                         <p className="mt-1 text-lg font-black text-neutral-900">{qrisMerchantName || 'SynemaX Cinema'}</p>
                         <div className="mx-auto mt-4 max-w-sm rounded-2xl border border-neutral-200 p-3">
                             <img
-                                src={`/payment/qris?v=${qrisVersion}`}
+                                src={`/pembayaran/qris?v=${qrisVersion}`}
                                 alt={`QRIS ${qrisMerchantName}`}
                                 className="max-h-[60vh] w-auto max-w-full mx-auto object-contain rounded-xl"
                             />

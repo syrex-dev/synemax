@@ -78,6 +78,7 @@ Route::post('/booking/{session}', [PublicBookingController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('booking.store');
 Route::get('/pembayaran/qris', [PublicBookingController::class, 'qrisImage'])->name('payment.qris');
+Route::get('/payment/qris', [PublicBookingController::class, 'qrisImage']);
 Route::get('/pembayaran/{code}', [PublicBookingController::class, 'paymentView'])->name('booking.payment');
 Route::get('/bayar/{code}', fn (string $code) => redirect()->route('booking.payment', ['code' => $code], 301));
 Route::get('/tiket/{code}', [PublicBookingController::class, 'ticketView'])->name('booking.ticket');
