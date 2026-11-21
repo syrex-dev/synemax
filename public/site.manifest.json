@@ -7,7 +7,7 @@
     "start_url": "/?source=pwa",
     "scope": "/",
     "display": "standalone",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "background_color": "#07090E",
     "theme_color": "#07090E",
     "categories": ["entertainment", "lifestyle"],

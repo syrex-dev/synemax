@@ -12,7 +12,7 @@ function syncPwaHead(pathname) {
     const isAdmin = path.startsWith('/admin');
 
     const manifestEl = document.getElementById('app-manifest') || document.querySelector('link[rel="manifest"]');
-    const targetManifest = isAdmin ? '/admin.webmanifest?v=7' : '/site.webmanifest?v=7';
+    const targetManifest = isAdmin ? '/admin.webmanifest?v=8' : '/site.webmanifest?v=8';
     if (manifestEl && manifestEl.getAttribute('href') !== targetManifest) {
         const newManifestEl = document.createElement('link');
         newManifestEl.id = 'app-manifest';

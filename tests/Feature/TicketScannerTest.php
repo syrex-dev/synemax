@@ -8,6 +8,7 @@ use App\Models\Session;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\CinemaSettings;
+use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
@@ -62,8 +63,10 @@ class TicketScannerTest extends TestCase
             'is_active' => true,
         ]);
 
-        // Today's active session: starts 30 mins ago, ends 60 mins from now
-        $now = CarbonImmutable::now();
+        // Today's active session: starts 30 mins ago, ends 60 mins from now (pinned midday to avoid midnight rollover)
+        $now = CarbonImmutable::create(2026, 11, 21, 14, 0, 0);
+        Carbon::setTestNow($now);
+        CarbonImmutable::setTestNow($now);
         $this->todaySession = Session::query()->create([
             'film_id' => $this->film->id,
             'session_date' => $now->toDateString(),
@@ -72,6 +75,13 @@ class TicketScannerTest extends TestCase
             'status' => 'tersedia',
             'confirmed_at' => $now,
         ]);
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        CarbonImmutable::setTestNow();
+        parent::tearDown();
     }
 
     public function test_guest_is_redirected_from_scanner_page(): void

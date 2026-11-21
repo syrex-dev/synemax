@@ -32,6 +32,7 @@ import {
     Receipt,
     Sparkles,
     Film,
+    ExternalLink,
 } from 'lucide-react';
 
 export default function Create({
@@ -88,6 +89,11 @@ export default function Create({
             setPaymentMethod(activePaymentMethods[0] || 'di_tempat');
         }
     }, [paymentMethods]);
+
+    // Auto-scroll to top of content whenever order step changes
+    useEffect(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    }, [step]);
 
     // Film search/filter & modals
     const [filmSearch, setFilmSearch] = useState('');
@@ -258,21 +264,33 @@ export default function Create({
                                 </span>
                                 <h3 className="text-sm font-bold truncate text-white">{trailerModalFilm.title}</h3>
                             </div>
-                            <button
-                                type="button"
-                                onClick={() => setTrailerModalFilm(null)}
-                                className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white transition"
-                                aria-label="Tutup trailer"
-                            >
-                                <X className="size-5" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <a
+                                    href={`https://www.youtube.com/watch?v=${activeTrailerId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition"
+                                    title="Buka di YouTube"
+                                >
+                                    <ExternalLink className="size-3.5" />
+                                    <span className="hidden sm:inline">Buka di YouTube</span>
+                                </a>
+                                <button
+                                    type="button"
+                                    onClick={() => setTrailerModalFilm(null)}
+                                    className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white transition cursor-pointer"
+                                    aria-label="Tutup trailer"
+                                >
+                                    <X className="size-5" />
+                                </button>
+                            </div>
                         </div>
                         <div className="aspect-video w-full bg-black">
                             <iframe
                                 src={`https://www.youtube.com/embed/${activeTrailerId}?autoplay=1&rel=0`}
                                 title={`Trailer ${trailerModalFilm.title}`}
                                 className="size-full border-0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                                 allowFullScreen
                             />
                         </div>

@@ -108,7 +108,7 @@ export default function Show({
                                 src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&rel=0&modestbranding=1`}
                                 title={`Trailer ${film?.title}`}
                                 className="size-full border-0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                                 allowFullScreen
                             />
                         </div>

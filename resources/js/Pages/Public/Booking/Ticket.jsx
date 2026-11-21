@@ -439,31 +439,91 @@ export default function Ticket({
                         </div>
 
                         {/* QR Code Barcode Area */}
-                        <div className="flex flex-col items-center justify-center rounded-2xl border border-border/80 bg-white p-5 text-center text-black">
-                            <img
-                                src={`/qr-code?code=${encodeURIComponent(booking.code)}`}
-                                alt={`QR Tiket ${booking.code}`}
-                                width="180"
-                                height="180"
-                                className="size-44 object-contain"
-                            />
-                            <div className="mt-3 flex items-center gap-2">
-                                <span className="font-mono text-xl font-black tracking-widest text-black">
-                                    {booking.code}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={handleCopyCode}
-                                    className="no-print rounded-lg bg-neutral-200 p-1.5 text-neutral-800 hover:bg-neutral-300 transition"
-                                    title="Salin kode booking"
-                                >
-                                    {copiedCode ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
-                                </button>
+                        {isAktif || isCompleted ? (
+                            <div className="flex flex-col items-center justify-center rounded-2xl border border-border/80 bg-white p-5 text-center text-black">
+                                <img
+                                    src={`/qr-code?code=${encodeURIComponent(booking.code)}`}
+                                    alt={`QR Tiket ${booking.code}`}
+                                    width="180"
+                                    height="180"
+                                    className="size-44 object-contain"
+                                />
+                                <div className="mt-3 flex items-center gap-2">
+                                    <span className="font-mono text-xl font-black tracking-widest text-black">
+                                        {booking.code}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={handleCopyCode}
+                                        className="no-print rounded-lg bg-neutral-200 p-1.5 text-neutral-800 hover:bg-neutral-300 transition cursor-pointer"
+                                        title="Salin kode booking"
+                                    >
+                                        {copiedCode ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-neutral-500 mt-1">
+                                    Pindai barcode ini pada pintu masuk studio SynemaX
+                                </p>
                             </div>
-                            <p className="text-[10px] text-neutral-500 mt-1">
-                                Pindai barcode ini pada pintu masuk studio SynemaX
-                            </p>
-                        </div>
+                        ) : isWaitingConfirmation ? (
+                            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10 p-6 text-center">
+                                <div className="size-14 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
+                                    <Clock className="size-7 animate-pulse" />
+                                </div>
+                                <h3 className="font-black text-sm text-text">QR Masuk Belum Terbit</h3>
+                                <p className="text-xs text-text-muted mt-1 max-w-xs leading-relaxed">
+                                    Barcode akses masuk studio akan aktif otomatis setelah bukti pembayaran diverifikasi & disetujui oleh admin.
+                                </p>
+                                <div className="mt-4 flex items-center gap-2 rounded-xl bg-surface-2 border border-border px-3 py-1.5">
+                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Kode:</span>
+                                    <span className="font-mono text-sm font-black tracking-wider text-text">
+                                        {booking.code}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={handleCopyCode}
+                                        className="no-print rounded-lg bg-surface p-1 text-text-muted hover:text-text transition cursor-pointer"
+                                        title="Salin kode booking"
+                                    >
+                                        {copiedCode ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : isWaitingPenonton ? (
+                            <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-amber-500/40 bg-amber-500/5 dark:bg-amber-500/10 p-6 text-center">
+                                <div className="size-14 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
+                                    <Users className="size-7" />
+                                </div>
+                                <h3 className="font-black text-sm text-text">QR Masuk Ditangguhkan</h3>
+                                <p className="text-xs text-text-muted mt-1 max-w-xs leading-relaxed">
+                                    Barcode tiket akan terbit begitu sesi nonton mencapai kuorum minimal ({quorum} penonton).
+                                </p>
+                                <div className="mt-4 flex items-center gap-2 rounded-xl bg-surface-2 border border-border px-3 py-1.5">
+                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Kode:</span>
+                                    <span className="font-mono text-sm font-black tracking-wider text-text">
+                                        {booking.code}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={handleCopyCode}
+                                        className="no-print rounded-lg bg-surface p-1 text-text-muted hover:text-text transition cursor-pointer"
+                                        title="Salin kode booking"
+                                    >
+                                        {copiedCode ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center rounded-2xl border border-danger/30 bg-danger-surface p-6 text-center text-danger-text">
+                                <div className="size-12 rounded-2xl bg-danger/10 text-danger flex items-center justify-center mb-2">
+                                    <X className="size-6" />
+                                </div>
+                                <h3 className="font-black text-sm">QR Tiket Tidak Berlaku</h3>
+                                <p className="text-xs text-danger-text/80 mt-1 max-w-xs leading-relaxed">
+                                    Pesanan ini telah dibatalkan atau waktu pembayaran telah kedaluwarsa.
+                                </p>
+                            </div>
+                        )}
 
                         {/* Snack Items accordion (if any) */}
                         {snackItems.length > 0 && (

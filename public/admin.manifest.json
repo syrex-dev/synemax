@@ -7,7 +7,7 @@
     "start_url": "/admin?source=pwa",
     "scope": "/admin",
     "display": "standalone",
-    "orientation": "portrait-primary",
+    "orientation": "any",
     "background_color": "#07090E",
     "theme_color": "#07090E",
     "categories": ["business", "utilities"],

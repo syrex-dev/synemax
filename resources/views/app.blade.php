@@ -12,7 +12,7 @@
         $faviconUrl = $settingsService->siteFaviconUrl();
         $faviconMime = $settingsService->siteFaviconMime();
         $isAdmin = request()->is('admin*');
-        $manifestUrl = $isAdmin ? asset('admin.webmanifest') . '?v=7' : asset('site.webmanifest') . '?v=7';
+        $manifestUrl = $isAdmin ? asset('admin.webmanifest') . '?v=8' : asset('site.webmanifest') . '?v=8';
         $appleTouchIcon = $isAdmin ? asset('apple-touch-icon-admin.png') . '?v=7' : asset('apple-touch-icon.png') . '?v=7';
         $appTitle = $isAdmin ? 'SynemaX Admin' : ($cinemaSettings['siteName'] ?? 'SynemaX');
     @endphp
