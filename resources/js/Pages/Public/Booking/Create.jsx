@@ -8,6 +8,10 @@ import {
     Clock,
     Film as FilmIcon,
     Users,
+    User,
+    Heart,
+    Crown,
+    Ticket,
     Coffee,
     CheckCircle2,
     Check,
@@ -337,106 +341,248 @@ export default function Create({
                 {step === 2 && (
                     <div className="mt-6 space-y-6">
                         {/* 1. Pilih Paket Nonton */}
-                        <div>
-                            <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-text-muted">1. Pilih Paket Nonton</h2>
-                            <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                {/* Reguler */}
+                        <div className="space-y-3.5">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-border/60 pb-2.5">
+                                <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-text">
+                                    1. Pilih Paket Nonton
+                                </h2>
+                                <span className="text-xs sm:text-sm text-text-muted">
+                                    Pilih jenis kursi yang kamu inginkan
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                                {/* Reguler Card */}
                                 <button
                                     type="button"
                                     onClick={() => handlePackageSelect('reguler')}
                                     disabled={!canReguler}
-                                    className={`relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition ${
+                                    className={`group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                                         selectedPackage === 'reguler'
-                                            ? 'border-amber-500 bg-amber-500/10 shadow-md ring-1 ring-amber-500'
+                                            ? 'border-amber-500 ring-2 ring-amber-500/40 bg-gradient-to-br from-amber-500/15 via-amber-500/[0.04] to-surface shadow-lg shadow-amber-500/10'
                                             : canReguler
-                                            ? 'border-border bg-surface hover:bg-surface-2'
+                                            ? 'border-border/80 bg-surface hover:border-amber-500/50 hover:bg-surface-2 shadow-xs'
                                             : 'border-border/40 bg-surface-2/40 opacity-40 cursor-not-allowed'
                                     }`}
                                 >
-                                    <div>
-                                        <p className="text-sm sm:text-base font-black text-text uppercase tracking-wide">Reguler</p>
-                                        <p className="text-xs text-text-muted mt-0.5">Per orang/kursi</p>
+                                    {/* Top: Icon + Title + Radio Check */}
+                                    <div className="flex items-start justify-between gap-3 w-full">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`flex size-11 items-center justify-center rounded-xl transition ${
+                                                selectedPackage === 'reguler'
+                                                    ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/30'
+                                                    : 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                                            }`}>
+                                                <User className="size-5" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="text-base sm:text-lg font-black text-text tracking-tight">
+                                                        Reguler
+                                                    </h3>
+                                                    <span className="px-2 py-0.5 rounded-full text-[11px] font-black uppercase bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                                                        Fleksibel
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+                                                    Per orang / kursi standar
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Radio Indicator */}
+                                        <div className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                                            selectedPackage === 'reguler'
+                                                ? 'border-amber-500 bg-amber-500 text-slate-950 shadow-xs'
+                                                : 'border-border bg-surface-2'
+                                        }`}>
+                                            {selectedPackage === 'reguler' && (
+                                                <Check className="size-3.5 stroke-[3]" />
+                                            )}
+                                        </div>
                                     </div>
-                                    <p className="mt-3 font-mono text-base sm:text-lg font-black text-amber-600 dark:text-amber-400">
-                                        Rp {Number(unitPrice).toLocaleString('id-ID')}
-                                    </p>
+
+                                    {/* Bottom: Price */}
+                                    <div className="mt-4 pt-3 border-t border-border/50 flex items-baseline justify-between w-full">
+                                        <span className="text-xs text-text-muted font-medium">Tarif Tiket:</span>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="font-mono text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400">
+                                                Rp {Number(unitPrice).toLocaleString('id-ID')}
+                                            </span>
+                                            <span className="text-xs font-semibold text-text-muted">/orang</span>
+                                        </div>
+                                    </div>
+
                                     {!canReguler && (
-                                        <span className="text-xs text-danger-text mt-1">{regulerDisabledReason}</span>
+                                        <p className="text-xs text-danger-text mt-2 font-bold">{regulerDisabledReason}</p>
                                     )}
                                 </button>
 
-                                {/* Couple */}
+                                {/* Couple Card */}
                                 <button
                                     type="button"
                                     onClick={() => handlePackageSelect('couple')}
                                     disabled={!canCouple}
-                                    className={`relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition ${
+                                    className={`group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                                         selectedPackage === 'couple'
-                                            ? 'border-amber-500 bg-amber-500/10 shadow-md ring-1 ring-amber-500'
+                                            ? 'border-amber-500 ring-2 ring-amber-500/40 bg-gradient-to-br from-amber-500/15 via-amber-500/[0.04] to-surface shadow-lg shadow-amber-500/10'
                                             : canCouple
-                                            ? 'border-border bg-surface hover:bg-surface-2'
+                                            ? 'border-border/80 bg-surface hover:border-amber-500/50 hover:bg-surface-2 shadow-xs'
                                             : 'border-border/40 bg-surface-2/40 opacity-40 cursor-not-allowed'
                                     }`}
                                 >
-                                    <div>
-                                        <p className="text-sm sm:text-base font-black text-text uppercase tracking-wide">Couple</p>
-                                        <p className="text-xs text-text-muted mt-0.5">Paket 2 kursi santai</p>
+                                    {/* Top: Icon + Title + Radio Check */}
+                                    <div className="flex items-start justify-between gap-3 w-full">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`flex size-11 items-center justify-center rounded-xl transition ${
+                                                selectedPackage === 'couple'
+                                                    ? 'bg-rose-500 text-white font-black shadow-md shadow-rose-500/30'
+                                                    : 'bg-rose-500/15 text-rose-500 border border-rose-500/30'
+                                            }`}>
+                                                <Heart className="size-5 fill-current" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="text-base sm:text-lg font-black text-text tracking-tight">
+                                                        Couple
+                                                    </h3>
+                                                    <span className="px-2 py-0.5 rounded-full text-[11px] font-black uppercase bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                                                        Favorit
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+                                                    Paket 2 kursi sofa santai
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Radio Indicator */}
+                                        <div className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                                            selectedPackage === 'couple'
+                                                ? 'border-amber-500 bg-amber-500 text-slate-950 shadow-xs'
+                                                : 'border-border bg-surface-2'
+                                        }`}>
+                                            {selectedPackage === 'couple' && (
+                                                <Check className="size-3.5 stroke-[3]" />
+                                            )}
+                                        </div>
                                     </div>
-                                    <p className="mt-3 font-mono text-base sm:text-lg font-black text-amber-600 dark:text-amber-400">
-                                        Rp {Number(couplePrice).toLocaleString('id-ID')}
-                                    </p>
+
+                                    {/* Bottom: Price */}
+                                    <div className="mt-4 pt-3 border-t border-border/50 flex items-baseline justify-between w-full">
+                                        <span className="text-xs text-text-muted font-medium">Tarif Paket:</span>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="font-mono text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400">
+                                                Rp {Number(couplePrice).toLocaleString('id-ID')}
+                                            </span>
+                                            <span className="text-xs font-semibold text-text-muted">/2 orang</span>
+                                        </div>
+                                    </div>
+
                                     {!canCouple && (
-                                        <span className="text-xs text-danger-text mt-1">{coupleDisabledReason}</span>
+                                        <p className="text-xs text-danger-text mt-2 font-bold">{coupleDisabledReason}</p>
                                     )}
                                 </button>
 
-                                {/* Private */}
+                                {/* Private Studio Card */}
                                 <button
                                     type="button"
                                     onClick={() => handlePackageSelect('private')}
                                     disabled={!canPrivate}
-                                    className={`relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition ${
+                                    className={`group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                                         selectedPackage === 'private'
-                                            ? 'border-amber-500 bg-amber-500/10 shadow-md ring-1 ring-amber-500'
+                                            ? 'border-amber-500 ring-2 ring-amber-500/40 bg-gradient-to-br from-amber-500/15 via-amber-500/[0.04] to-surface shadow-lg shadow-amber-500/10'
                                             : canPrivate
-                                            ? 'border-border bg-surface hover:bg-surface-2'
+                                            ? 'border-border/80 bg-surface hover:border-amber-500/50 hover:bg-surface-2 shadow-xs'
                                             : 'border-border/40 bg-surface-2/40 opacity-40 cursor-not-allowed'
                                     }`}
                                 >
-                                    <div>
-                                        <p className="text-sm sm:text-base font-black text-text uppercase tracking-wide">Private Studio</p>
-                                        <p className="text-xs text-text-muted mt-0.5">Sewa seluruh studio (6 kursi)</p>
+                                    {/* Top: Icon + Title + Radio Check */}
+                                    <div className="flex items-start justify-between gap-3 w-full">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`flex size-11 items-center justify-center rounded-xl transition ${
+                                                selectedPackage === 'private'
+                                                    ? 'bg-purple-600 text-white font-black shadow-md shadow-purple-600/30'
+                                                    : 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30'
+                                            }`}>
+                                                <Crown className="size-5" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <h3 className="text-base sm:text-lg font-black text-text tracking-tight">
+                                                        Private Studio
+                                                    </h3>
+                                                    <span className="px-2 py-0.5 rounded-full text-[11px] font-black uppercase bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
+                                                        VIP Studio
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs sm:text-sm text-text-muted mt-0.5">
+                                                    Sewa seluruh studio ({session.capacity || 6} kursi)
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Radio Indicator */}
+                                        <div className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                                            selectedPackage === 'private'
+                                                ? 'border-amber-500 bg-amber-500 text-slate-950 shadow-xs'
+                                                : 'border-border bg-surface-2'
+                                        }`}>
+                                            {selectedPackage === 'private' && (
+                                                <Check className="size-3.5 stroke-[3]" />
+                                            )}
+                                        </div>
                                     </div>
-                                    <p className="mt-3 font-mono text-base sm:text-lg font-black text-amber-600 dark:text-amber-400">
-                                        Rp {Number(privatePrice).toLocaleString('id-ID')}
-                                    </p>
+
+                                    {/* Bottom: Price */}
+                                    <div className="mt-4 pt-3 border-t border-border/50 flex items-baseline justify-between w-full">
+                                        <span className="text-xs text-text-muted font-medium">Tarif Sewa:</span>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="font-mono text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400">
+                                                Rp {Number(privatePrice).toLocaleString('id-ID')}
+                                            </span>
+                                            <span className="text-xs font-semibold text-text-muted">/sesi</span>
+                                        </div>
+                                    </div>
+
                                     {!canPrivate && (
-                                        <span className="text-xs text-danger-text mt-1">{privateDisabledReason}</span>
+                                        <p className="text-xs text-danger-text mt-2 font-bold">{privateDisabledReason}</p>
                                     )}
                                 </button>
                             </div>
 
                             {/* Pax counter for reguler */}
                             {selectedPackage === 'reguler' && (
-                                <div className="mt-3 flex items-center justify-between rounded-2xl border border-border bg-surface p-3.5 sm:p-4 text-sm">
-                                    <span className="font-bold text-text">Jumlah Tiket:</span>
-                                    <div className="flex items-center gap-3">
+                                <div className="mt-3.5 p-4 sm:p-5 rounded-2xl border border-border/80 bg-surface/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
+                                    <div className="flex items-center gap-3.5">
+                                        <div className="flex size-11 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500 border border-amber-500/30 shrink-0">
+                                            <Ticket className="size-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-base sm:text-lg font-black text-text">Jumlah Tiket / Kursi</p>
+                                            <p className="text-xs sm:text-sm text-text-muted">Maksimal {remainingSeats} kursi tersisa di sesi penayangan ini</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 self-end sm:self-auto">
                                         <button
                                             type="button"
                                             onClick={() => setPax(Math.max(1, pax - 1))}
                                             disabled={pax <= 1}
-                                            className="flex size-9 items-center justify-center rounded-xl border border-border bg-surface-2 text-text hover:bg-surface transition disabled:opacity-30 cursor-pointer"
+                                            className="flex size-11 items-center justify-center rounded-xl border border-border bg-surface-2 text-text hover:bg-surface transition disabled:opacity-30 cursor-pointer shadow-xs active:scale-95"
+                                            aria-label="Kurangi tiket"
                                         >
-                                            <Minus className="size-4" />
+                                            <Minus className="size-5" />
                                         </button>
-                                        <span className="font-mono text-lg font-black w-7 text-center">{pax}</span>
+                                        <span className="font-mono text-2xl font-black w-10 text-center text-text">{pax}</span>
                                         <button
                                             type="button"
                                             onClick={() => setPax(Math.min(remainingSeats, pax + 1))}
                                             disabled={pax >= remainingSeats}
-                                            className="flex size-9 items-center justify-center rounded-xl border border-border bg-surface-2 text-text hover:bg-surface transition disabled:opacity-30 cursor-pointer"
+                                            className="flex size-11 items-center justify-center rounded-xl border border-border bg-surface-2 text-text hover:bg-surface transition disabled:opacity-30 cursor-pointer shadow-xs active:scale-95"
+                                            aria-label="Tambah tiket"
                                         >
-                                            <Plus className="size-4" />
+                                            <Plus className="size-5" />
                                         </button>
                                     </div>
                                 </div>

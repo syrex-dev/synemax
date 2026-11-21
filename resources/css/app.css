@@ -428,6 +428,14 @@ body {
 html {
     background-color: var(--surface-canvas);
     font-optical-sizing: auto;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+@media (max-width: 640px) {
+    html {
+        font-size: 17.5px;
+    }
 }
 
 body {

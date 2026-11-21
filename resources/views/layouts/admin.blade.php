@@ -78,6 +78,23 @@
                 --admin-card-p: 0.875rem;
                 --admin-row-h: 44px;
             }
+            @media (max-width: 640px) {
+                body {
+                    font-size: 1rem;
+                }
+                .text-xs {
+                    font-size: 0.8125rem !important;
+                    line-height: 1.25rem !important;
+                }
+                .text-sm {
+                    font-size: 0.9375rem !important;
+                    line-height: 1.375rem !important;
+                }
+                input, select, textarea {
+                    font-size: 0.9375rem !important;
+                    min-height: 44px !important;
+                }
+            }
         </style>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @stack('styles')
