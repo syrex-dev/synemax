@@ -184,9 +184,12 @@ export default function Ticket({
     };
 
     return (
-        <PublicLayout title={`Tiket ${booking.code}`}>
-            <Head title={`Tiket ${booking.code}`}>
-                <meta name="description" content={`Tiket digital resmi SynemaX untuk booking ${booking.code}.`} />
+        <PublicLayout title={isAktif || isCompleted ? `Tiket ${booking.code}` : 'Status Pemesanan'}>
+            <Head title={isAktif || isCompleted ? `Tiket ${booking.code}` : 'Status Pemesanan'}>
+                <meta
+                    name="description"
+                    content={isAktif || isCompleted ? `Tiket digital resmi SynemaX untuk booking ${booking.code}.` : 'Status pemesanan tiket bioskop SynemaX.'}
+                />
             </Head>
 
             <div className="mx-auto max-w-[520px] w-full px-4 py-5 sm:py-8 print-ticket-container">
@@ -470,23 +473,13 @@ export default function Ticket({
                                 <div className="size-14 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
                                     <Clock className="size-7 animate-pulse" />
                                 </div>
-                                <h3 className="font-black text-sm text-text">QR Masuk Belum Terbit</h3>
-                                <p className="text-xs text-text-muted mt-1 max-w-xs leading-relaxed">
-                                    Barcode akses masuk studio akan aktif otomatis setelah bukti pembayaran diverifikasi & disetujui oleh admin.
+                                <h3 className="font-black text-sm text-text">Tiket & Barcode Belum Terbit</h3>
+                                <p className="text-xs text-text-muted mt-1.5 max-w-xs leading-relaxed">
+                                    Barcode akses masuk dan kode tiket resmi baru akan diterbitkan secara otomatis setelah pembayaran Anda diverifikasi & disetujui oleh admin.
                                 </p>
-                                <div className="mt-4 flex items-center gap-2 rounded-xl bg-surface-2 border border-border px-3 py-1.5">
-                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Kode:</span>
-                                    <span className="font-mono text-sm font-black tracking-wider text-text">
-                                        {booking.code}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={handleCopyCode}
-                                        className="no-print rounded-lg bg-surface p-1 text-text-muted hover:text-text transition cursor-pointer"
-                                        title="Salin kode booking"
-                                    >
-                                        {copiedCode ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
-                                    </button>
+                                <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                                    <span className="size-2 rounded-full bg-amber-500 animate-ping" />
+                                    <span>Status: Menunggu Persetujuan Admin</span>
                                 </div>
                             </div>
                         ) : isWaitingPenonton ? (
@@ -494,23 +487,12 @@ export default function Ticket({
                                 <div className="size-14 rounded-2xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-3">
                                     <Users className="size-7" />
                                 </div>
-                                <h3 className="font-black text-sm text-text">QR Masuk Ditangguhkan</h3>
-                                <p className="text-xs text-text-muted mt-1 max-w-xs leading-relaxed">
-                                    Barcode tiket akan terbit begitu sesi nonton mencapai kuorum minimal ({quorum} penonton).
+                                <h3 className="font-black text-sm text-text">Tiket & Barcode Ditangguhkan</h3>
+                                <p className="text-xs text-text-muted mt-1.5 max-w-xs leading-relaxed">
+                                    Barcode akses masuk dan kode tiket resmi akan diterbitkan begitu sesi nonton mencapai kuorum minimal ({quorum} penonton).
                                 </p>
-                                <div className="mt-4 flex items-center gap-2 rounded-xl bg-surface-2 border border-border px-3 py-1.5">
-                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Kode:</span>
-                                    <span className="font-mono text-sm font-black tracking-wider text-text">
-                                        {booking.code}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        onClick={handleCopyCode}
-                                        className="no-print rounded-lg bg-surface p-1 text-text-muted hover:text-text transition cursor-pointer"
-                                        title="Salin kode booking"
-                                    >
-                                        {copiedCode ? <Check className="size-3.5 text-emerald-600" /> : <Copy className="size-3.5" />}
-                                    </button>
+                                <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                                    <span>Status: Menunggu Kuorum Penonton</span>
                                 </div>
                             </div>
                         ) : (
@@ -518,9 +500,9 @@ export default function Ticket({
                                 <div className="size-12 rounded-2xl bg-danger/10 text-danger flex items-center justify-center mb-2">
                                     <X className="size-6" />
                                 </div>
-                                <h3 className="font-black text-sm">QR Tiket Tidak Berlaku</h3>
+                                <h3 className="font-black text-sm">Tiket Tidak Berlaku</h3>
                                 <p className="text-xs text-danger-text/80 mt-1 max-w-xs leading-relaxed">
-                                    Pesanan ini telah dibatalkan atau waktu pembayaran telah kedaluwarsa.
+                                    Pemesanan ini telah dibatalkan atau waktu pembayaran telah kedaluwarsa. Barcode dan kode tiket tidak diterbitkan.
                                 </p>
                             </div>
                         )}
@@ -599,7 +581,7 @@ export default function Ticket({
                 <div className="p-6">
                     <h3 className="text-base font-black text-text dark:text-white">Batalkan booking ini?</h3>
                     <p className="mt-2 text-xs leading-relaxed text-text-muted">
-                        Apakah Anda yakin ingin membatalkan booking {booking.code}? Kursi pesanan Anda akan dilepaskan kembali.
+                        Apakah Anda yakin ingin membatalkan pemesanan tiket ini? Kursi pesanan Anda akan dilepaskan kembali.
                     </p>
                     <form onSubmit={handleCancelSubmit} className="mt-5 flex justify-end gap-2.5">
                         <button
