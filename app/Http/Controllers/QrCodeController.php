@@ -16,7 +16,7 @@ class QrCodeController extends Controller
 {
     public function show(Request $request): Response
     {
-        $data = trim((string) ($request->query('data') ?? $request->query('code') ?? ''));
+        $data = trim((string) ($request->query('data') ?? $request->query('code') ?? $request->query('text') ?? ''));
 
         // 1. Validasi keberadaan & panjang (maksimal 32 karakter)
         if ($data === '' || strlen($data) > 32) {

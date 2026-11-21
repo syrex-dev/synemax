@@ -31,6 +31,7 @@ import {
     Armchair,
     Receipt,
     Sparkles,
+    Film,
 } from 'lucide-react';
 
 export default function Create({
@@ -214,6 +215,17 @@ export default function Create({
 
     const activeFilm = films.find((f) => String(f.id) === String(selectedFilmId)) || initialFilm;
     const activeTrailerId = extractYoutubeId(trailerModalFilm?.trailer_url);
+
+    const resolveFilmPoster = (film) => {
+        if (!film) return null;
+        if (film.poster_url) return film.poster_url;
+        if (film.poster_path) {
+            return /^https?:\/\//i.test(film.poster_path)
+                ? film.poster_path
+                : `/storage/${film.poster_path.replace(/^\/+/, '')}`;
+        }
+        return null;
+    };
 
     return (
         <PublicLayout title="Pesan Tiket Studio">
@@ -1093,9 +1105,9 @@ export default function Create({
                         <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-surface shadow-md">
                             {/* Receipt Top Header */}
                             <div className="p-5 sm:p-6 border-b border-dashed border-border/80 relative">
-                                <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center justify-between gap-3 pb-3.5 border-b border-border/50">
                                     <div className="flex items-center gap-2">
-                                        <Receipt className="size-5 text-amber-500" />
+                                        <Receipt className="size-4.5 text-amber-500" />
                                         <span className="text-xs font-black uppercase tracking-wider text-text">
                                             Rincian Pemesanan Tiket
                                         </span>
@@ -1103,13 +1115,56 @@ export default function Create({
                                     <span className="text-[11px] font-mono text-text-muted">SYNEMAX PASS</span>
                                 </div>
 
-                                <div className="mt-3.5 space-y-1">
-                                    <h3 className="text-base sm:text-lg font-black text-text tracking-tight">
-                                        {activeFilm?.title || 'Film Studio SynemaX'}
-                                    </h3>
-                                    <p className="text-xs text-text-muted">
-                                        {formatDateId(session.session_date)} · {session.start_time?.slice(0, 5)} WIB · STUDIO 1
-                                    </p>
+                                {/* Film Poster & Details Card */}
+                                <div className="mt-4 flex items-center gap-3.5 sm:gap-4">
+                                    {resolveFilmPoster(activeFilm) ? (
+                                        <img
+                                            src={resolveFilmPoster(activeFilm)}
+                                            alt={activeFilm?.title || 'Poster Film'}
+                                            className="w-16 sm:w-20 aspect-[2/3] rounded-2xl object-cover shadow-md border border-border/80 shrink-0"
+                                        />
+                                    ) : (
+                                        <div className="w-16 sm:w-20 aspect-[2/3] rounded-2xl bg-surface-2 border border-border/80 flex flex-col items-center justify-center shrink-0 text-text-muted">
+                                            <Film className="size-6 text-amber-500/70" />
+                                        </div>
+                                    )}
+
+                                    <div className="min-w-0 flex-1 space-y-1">
+                                        <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                                            <span className="inline-block rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                                                {selectedPackage === 'private'
+                                                    ? 'Private Studio'
+                                                    : selectedPackage === 'couple'
+                                                    ? 'Paket Couple'
+                                                    : 'Reguler'}
+                                            </span>
+                                            {activeFilm?.age_rating && (
+                                                <span className="rounded-md bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold text-text-muted border border-border">
+                                                    {activeFilm.age_rating}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <h3 className="text-base sm:text-lg font-black text-text tracking-tight line-clamp-2">
+                                            {activeFilm?.title || 'Film Studio SynemaX'}
+                                        </h3>
+
+                                        <p className="text-xs text-text-muted flex items-center gap-1.5 flex-wrap">
+                                            <span>{formatDateId(session.session_date)}</span>
+                                            <span>·</span>
+                                            <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                                                {session.start_time?.slice(0, 5)} WIB
+                                            </span>
+                                            <span>·</span>
+                                            <span>STUDIO 1</span>
+                                        </p>
+
+                                        {activeFilm?.genre && (
+                                            <p className="text-[11px] text-text-muted truncate">
+                                                {activeFilm.genre} {activeFilm.duration_minutes ? `· ${activeFilm.duration_minutes} Menit` : ''}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Semicircular Ticket Notches */}

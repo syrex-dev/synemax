@@ -19,6 +19,7 @@ import {
     Check,
     Coffee,
     ArrowRight,
+    Copy,
 } from 'lucide-react';
 
 export default function Ticket({
@@ -138,11 +139,22 @@ export default function Ticket({
         });
     };
 
-    const myFilm = booking?.film;
     const bookingSession = booking?.session || session;
+    const myFilm = booking?.film || bookingSession?.film || session?.film;
     const isPrivate = booking?.booking_type === 'private' || Boolean(booking?.is_private);
     const isCouple = booking?.booking_type === 'couple';
     const snackItems = booking?.items?.filter((it) => it.status !== 'dibatalkan') || [];
+
+    const resolveTicketPoster = (film) => {
+        if (!film) return null;
+        if (film.poster_url) return film.poster_url;
+        if (film.poster_path) {
+            return /^https?:\/\//i.test(film.poster_path)
+                ? film.poster_path
+                : `/storage/${film.poster_path.replace(/^\/+/, '')}`;
+        }
+        return null;
+    };
 
     const candidateTalliesList = Array.isArray(candidateTallies)
         ? candidateTallies
@@ -378,12 +390,16 @@ export default function Ticket({
                     <div className="p-6 space-y-5">
                         {/* Film Details */}
                         <div className="flex gap-4 items-start">
-                            {myFilm?.poster_url && (
+                            {resolveTicketPoster(myFilm) ? (
                                 <img
-                                    src={myFilm.poster_url}
-                                    alt={myFilm.title}
+                                    src={resolveTicketPoster(myFilm)}
+                                    alt={myFilm?.title || 'Poster Film'}
                                     className="w-20 rounded-xl object-cover aspect-[2/3] shadow-md border border-border shrink-0"
                                 />
+                            ) : (
+                                <div className="w-20 rounded-xl aspect-[2/3] bg-surface-2 border border-border flex items-center justify-center shrink-0 text-text-muted">
+                                    <Film className="size-8 text-amber-500/70" />
+                                </div>
                             )}
                             <div className="min-w-0 flex-1">
                                 <span className="inline-block rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 border border-amber-400/30 mb-1">
@@ -425,7 +441,7 @@ export default function Ticket({
                         {/* QR Code Barcode Area */}
                         <div className="flex flex-col items-center justify-center rounded-2xl border border-border/80 bg-white p-5 text-center text-black">
                             <img
-                                src={`/qrcode?text=${encodeURIComponent(booking.code)}`}
+                                src={`/qr-code?code=${encodeURIComponent(booking.code)}`}
                                 alt={`QR Tiket ${booking.code}`}
                                 width="180"
                                 height="180"

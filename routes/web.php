@@ -84,6 +84,8 @@ Route::get('/tiket/{code}', [PublicBookingController::class, 'ticketView'])->nam
 Route::get('/qr-code', [QrCodeController::class, 'show'])
     ->middleware('throttle:60,1')
     ->name('qr.code');
+Route::get('/qrcode', [QrCodeController::class, 'show'])
+    ->middleware('throttle:60,1');
 Route::get('/booking/{code}/sukses', [PublicBookingController::class, 'success'])->name('booking.success');
 Route::get('/booking/{code}/status-ringkas', [PublicBookingController::class, 'statusJson'])->name('booking.status.json');
 Route::get('/booking/{code}/bukti', [PublicBookingController::class, 'showProof'])->name('booking.proof.show');
