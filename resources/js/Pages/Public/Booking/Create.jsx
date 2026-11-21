@@ -68,6 +68,7 @@ export default function Create({
 
     // Fallback if backend passed empty array
     const activePaymentMethods = paymentMethods && paymentMethods.length > 0 ? paymentMethods : ['di_tempat'];
+    const hasSnacks = Boolean(snacksEnabled || (snackCategories && snackCategories.length > 0));
 
     // Wizard step: 2 (Paket & Film), 3 (Jajan), 4 (Ringkasan & Bayar)
     const [step, setStep] = useState(2);
@@ -410,7 +411,7 @@ export default function Create({
                         <span className="truncate">Paket & Film</span>
                     </button>
 
-                    {snacksEnabled ? (
+                    {hasSnacks ? (
                         <button
                             type="button"
                             onClick={() => {
@@ -459,7 +460,7 @@ export default function Create({
                         <span className={`flex size-4 items-center justify-center rounded-full text-[10px] font-black shrink-0 ${
                             step === 4 ? 'bg-black text-amber-400' : 'bg-border text-text-muted'
                         }`}>
-                            {snacksEnabled ? '3' : '2'}
+                            {hasSnacks ? '3' : '2'}
                         </span>
                         <span className="truncate">Ringkasan Bayar</span>
                     </button>
@@ -953,11 +954,11 @@ export default function Create({
                         <div className="pt-4 border-t border-border flex justify-end">
                             <button
                                 type="button"
-                                onClick={() => setStep(snacksEnabled ? 3 : 4)}
+                                onClick={() => setStep(hasSnacks ? 3 : 4)}
                                 disabled={!customerName.trim() || !whatsapp.trim() || !selectedFilmId}
                                 className="btn-gold-cinema inline-flex min-h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-2xl px-8 text-sm font-black shadow-lg shadow-amber-500/20 disabled:opacity-40 cursor-pointer active:scale-95"
                             >
-                                <span>{snacksEnabled ? 'Lanjut Pilih Jajan & Minum' : 'Lanjut ke Ringkasan Bayar'}</span>
+                                <span>{hasSnacks ? 'Lanjut Pilih Jajan & Minum' : 'Lanjut ke Ringkasan Bayar'}</span>
                                 <ArrowRight className="size-4" />
                             </button>
                         </div>
@@ -965,7 +966,7 @@ export default function Create({
                 )}
 
                 {/* ==================== STEP 3: CONCESSION & CAFE ==================== */}
-                {step === 3 && snacksEnabled && (
+                {step === 3 && hasSnacks && (
                     <div className="mt-6 space-y-6">
                         <div className="flex items-center justify-between border-b border-border/60 pb-3">
                             <div>
@@ -1189,14 +1190,32 @@ export default function Create({
                                               };
 
                                     return (
-                                        <label
+                                        <div
                                             key={method}
-                                            className={`group relative flex items-start gap-3.5 p-4 rounded-2xl border cursor-pointer transition-all ${
+                                            role="radio"
+                                            tabIndex={0}
+                                            aria-checked={isMethodPicked}
+                                            onClick={() => setPaymentMethod(method)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === ' ' || e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    setPaymentMethod(method);
+                                                }
+                                            }}
+                                            className={`group relative flex items-start gap-3.5 p-4 rounded-2xl border cursor-pointer select-none transition-all ${
                                                 isMethodPicked
                                                     ? 'border-amber-500 bg-amber-500/[0.08] dark:bg-amber-500/10 shadow-sm ring-1 ring-amber-500/30'
                                                     : 'border-border bg-surface hover:bg-surface-2 hover:border-border/80'
                                             }`}
                                         >
+                                            <input
+                                                type="radio"
+                                                name="payment_method"
+                                                value={method}
+                                                checked={isMethodPicked}
+                                                onChange={() => setPaymentMethod(method)}
+                                                className="sr-only"
+                                            />
                                             <div
                                                 className={`mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-2xl transition ${
                                                     isMethodPicked
@@ -1226,7 +1245,7 @@ export default function Create({
                                                     {isMethodPicked && <Check className="size-3.5 stroke-[3]" />}
                                                 </div>
                                             </div>
-                                        </label>
+                                        </div>
                                     );
                                 })}
                             </div>
@@ -1236,11 +1255,11 @@ export default function Create({
                         <div className="pt-4 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3">
                             <button
                                 type="button"
-                                onClick={() => setStep(snacksEnabled ? 3 : 2)}
+                                onClick={() => setStep(hasSnacks ? 3 : 2)}
                                 className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold text-text-muted hover:text-text cursor-pointer"
                             >
                                 <ChevronLeft className="size-4" />
-                                <span>Kembali ke Paket & Film</span>
+                                <span>{hasSnacks ? 'Kembali ke Menu Jajan' : 'Kembali ke Paket & Film'}</span>
                             </button>
                             <button
                                 type="submit"

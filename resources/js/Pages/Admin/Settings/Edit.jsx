@@ -89,6 +89,7 @@ export default function Edit({
         check_in_open_minutes_before: settings.check_in_open_minutes_before || 30,
         check_in_close_option: settings.check_in_close_option || 'session_end',
         check_in_sound_enabled: settings.check_in_sound_enabled !== false,
+        snacks_enabled: settings.snacks_enabled !== false,
         maintenance_mode: settings.maintenance_mode || false,
         maintenance_message: settings.maintenance_message || '',
     });
@@ -752,7 +753,7 @@ export default function Edit({
                                 </div>
                             </div>
 
-                            <div className="pt-2">
+                            <div className="pt-2 space-y-3">
                                 <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-text">
                                     <input
                                         type="checkbox"
@@ -761,6 +762,16 @@ export default function Edit({
                                         className="size-4 rounded border-border bg-surface-2 text-amber-500 focus:ring-amber-400"
                                     />
                                     <span>Aktifkan Suara Beep saat Scan Tiket Masuk Berhasil</span>
+                                </label>
+
+                                <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-text">
+                                    <input
+                                        type="checkbox"
+                                        checked={operasionalForm.data.snacks_enabled}
+                                        onChange={(e) => operasionalForm.setData('snacks_enabled', e.target.checked)}
+                                        className="size-4 rounded border-border bg-surface-2 text-amber-500 focus:ring-amber-400"
+                                    />
+                                    <span>Aktifkan Menu Jajan / Concession (Pelanggan dapat memesan makanan & minuman sebelum checkout)</span>
                                 </label>
                             </div>
 
