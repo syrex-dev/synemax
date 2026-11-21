@@ -25,6 +25,9 @@ import {
     CreditCard,
     DollarSign,
     ShieldCheck,
+    QrCode,
+    Building2,
+    Wallet,
     X,
     Info,
     Search,
@@ -65,6 +68,9 @@ export default function Create({
     const initialFilm = session.film || (requestedFilmId ? films.find((f) => String(f.id) === String(requestedFilmId)) : null) || films[0];
     const isFilmFixed = Boolean(session.film || (requestedFilmId && films.some((f) => String(f.id) === String(requestedFilmId))));
 
+    // Fallback if backend passed empty array
+    const activePaymentMethods = paymentMethods && paymentMethods.length > 0 ? paymentMethods : ['di_tempat'];
+
     // Wizard step: 1 (Jadwal), 2 (Paket & Film), 3 (Jajan), 4 (Ringkasan)
     const [step, setStep] = useState(2);
     const [selectedPackage, setSelectedPackage] = useState(canReguler ? 'reguler' : canCouple ? 'couple' : 'private');
@@ -72,9 +78,16 @@ export default function Create({
     const [selectedFilmId, setSelectedFilmId] = useState(initialFilm ? String(initialFilm.id) : '');
     const [customerName, setCustomerName] = useState('');
     const [whatsapp, setWhatsapp] = useState('');
-    const [paymentMethod, setPaymentMethod] = useState(paymentMethods[0] || 'di_tempat');
+    const [paymentMethod, setPaymentMethod] = useState(activePaymentMethods[0] || 'di_tempat');
     const [snacksCart, setSnacksCart] = useState({}); // { snackId: { qty, note, item } }
     const [activeSnackCategory, setActiveSnackCategory] = useState(snackCategories[0]?.id || null);
+
+    // Keep paymentMethod synchronized if props change
+    useEffect(() => {
+        if (!activePaymentMethods.includes(paymentMethod)) {
+            setPaymentMethod(activePaymentMethods[0] || 'di_tempat');
+        }
+    }, [paymentMethods]);
 
     // Film search/filter in modal or list
     const [filmSearch, setFilmSearch] = useState('');
@@ -891,36 +904,74 @@ export default function Create({
                         </div>
 
                         {/* Pilihan Metode Pembayaran */}
-                        <div>
-                            <h2 className="text-sm font-black uppercase tracking-wider text-text-muted">Metode Pembayaran</h2>
-                            <div className="mt-3 space-y-2">
-                                {paymentMethods.map((method) => {
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-sm font-black uppercase tracking-wider text-text-muted">Metode Pembayaran</h2>
+                                <span className="text-[11px] font-semibold text-text-muted">Pilih satu metode</span>
+                            </div>
+                            <div className="space-y-2.5">
+                                {activePaymentMethods.map((method) => {
                                     const isMethodPicked = paymentMethod === method;
-                                    const label =
+                                    const meta =
                                         method === 'qris'
-                                            ? 'QRIS Instan (BCA, Mandiri, GoPay, ShopeePay, Dana, dll.)'
+                                            ? {
+                                                  icon: <QrCode className="size-5" />,
+                                                  title: 'QRIS Instan',
+                                                  badge: 'Otomatis',
+                                                  desc: 'Scan via BCA, Mandiri, GoPay, OVO, ShopeePay, Dana, dll.',
+                                              }
                                             : method === 'transfer'
-                                            ? 'Transfer Bank Manual'
-                                            : 'Bayar Tunai di Kasir Studio (Walk-in)';
+                                            ? {
+                                                  icon: <Building2 className="size-5" />,
+                                                  title: 'Transfer Bank Manual',
+                                                  badge: 'Rekening',
+                                                  desc: 'Transfer ke rekening resmi bioskop & unggah bukti.',
+                                              }
+                                            : {
+                                                  icon: <DollarSign className="size-5" />,
+                                                  title: 'Bayar di Kasir Studio (Walk-in)',
+                                                  badge: 'Tunai / Kasir',
+                                                  desc: 'Bayar langsung di kasir studio sebelum penayangan dimulai.',
+                                              };
 
                                     return (
                                         <label
                                             key={method}
-                                            className={`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition ${
+                                            className={`group relative flex items-start gap-3.5 p-4 rounded-2xl border cursor-pointer transition-all ${
                                                 isMethodPicked
-                                                    ? 'border-amber-500 bg-amber-500/10 shadow-xs'
-                                                    : 'border-border bg-surface hover:bg-surface-2'
+                                                    ? 'border-amber-500 bg-amber-500/[0.08] dark:bg-amber-500/10 shadow-sm ring-1 ring-amber-500/30'
+                                                    : 'border-border bg-surface hover:bg-surface-2 hover:border-border/80'
                                             }`}
                                         >
-                                            <input
-                                                type="radio"
-                                                name="payment_method"
-                                                value={method}
-                                                checked={isMethodPicked}
-                                                onChange={() => setPaymentMethod(method)}
-                                                className="text-amber-500 focus:ring-amber-500"
-                                            />
-                                            <span className="text-xs font-bold text-text">{label}</span>
+                                            <div
+                                                className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl transition ${
+                                                    isMethodPicked
+                                                        ? 'bg-amber-500 text-black shadow-xs'
+                                                        : 'bg-surface-2 text-text-muted group-hover:text-text'
+                                                }`}
+                                            >
+                                                {meta.icon}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-sm font-bold text-text leading-tight">{meta.title}</span>
+                                                    <span className="inline-flex items-center rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                                        {meta.badge}
+                                                    </span>
+                                                </div>
+                                                <p className="mt-1 text-xs text-text-muted leading-relaxed">{meta.desc}</p>
+                                            </div>
+                                            <div className="shrink-0 pt-0.5">
+                                                <div
+                                                    className={`flex size-5 items-center justify-center rounded-full border transition ${
+                                                        isMethodPicked
+                                                            ? 'border-amber-500 bg-amber-500 text-black'
+                                                            : 'border-border bg-surface'
+                                                    }`}
+                                                >
+                                                    {isMethodPicked && <Check className="size-3 stroke-[3]" />}
+                                                </div>
+                                            </div>
                                         </label>
                                     );
                                 })}

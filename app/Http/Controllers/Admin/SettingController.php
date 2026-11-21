@@ -452,98 +452,19 @@ class SettingController extends Controller
             'snack_prep_buffer_minutes' => ['required', 'integer', 'between:0,360'],
             'snack_max_qty_per_item' => ['required', 'integer', 'between:1,100'],
             'info_nobar_enabled' => ['required', 'boolean'],
-            'payment_methods' => ['nullable', 'array'],
-            'payment_methods.*' => ['required', 'in:di_tempat,qris,transfer'],
-            'qris_image' => ['nullable', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048', 'dimensions:min_width=300,min_height=300'],
-            'qris_merchant_name' => ['nullable', 'string', 'max:120'],
-            'qris_payment_notes' => ['nullable', 'string', 'max:2000'],
-            'delete_qris_image' => ['nullable', 'boolean'],
-            'transfer_accounts' => ['nullable', 'array'],
-            'transfer_accounts.*.bank_name' => ['nullable', 'string', 'max:50'],
-            'transfer_accounts.*.account_number' => ['nullable', 'string', 'max:50'],
-            'transfer_accounts.*.account_holder' => ['nullable', 'string', 'max:100'],
-            'transfer_payment_notes' => ['nullable', 'string', 'max:2000'],
-            'payment_time_limit_minutes' => ['nullable', 'integer', 'between:5,180'],
-            'online_payment_cutoff_minutes' => ['nullable', 'integer', 'between:0,180'],
-            'max_payment_proof_kb' => ['nullable', 'integer', 'between:512,10240'],
         ]);
-
-        $paymentMethods = array_values(array_unique($data['payment_methods'] ?? []));
-        unset($data['payment_methods']);
-
-        $deleteQris = $request->boolean('delete_qris_image');
-        $hasNewQris = $request->hasFile('qris_image');
-        $hasExistingQris = $settings->hasValidQrisImage();
 
         $warnings = [];
 
-        if (in_array('qris', $paymentMethods, true) && ! $hasNewQris && ! $hasExistingQris) {
-            $warnings[] = 'Metode QRIS dicentang aktif, namun belum akan muncul ke pelanggan sampai file gambar QRIS diunggah.';
+        if (
+            $request->has('payment_methods')
+            || $request->has('transfer_accounts')
+            || $request->hasFile('qris_image')
+            || $request->boolean('delete_qris_image')
+            || $request->has('qris_merchant_name')
+        ) {
+            $this->handlePaymentSettings($request, $settings, $warnings);
         }
-
-        // Process transfer accounts
-        $rawTransferAccounts = $request->input('transfer_accounts', []);
-        $cleanTransferAccounts = [];
-        if (is_array($rawTransferAccounts)) {
-            foreach ($rawTransferAccounts as $item) {
-                if (! is_array($item)) {
-                    continue;
-                }
-                $bankName = trim((string) ($item['bank_name'] ?? ''));
-                $accNum = trim((string) ($item['account_number'] ?? ''));
-                $accHolder = trim((string) ($item['account_holder'] ?? ''));
-                if ($bankName !== '' && $accNum !== '') {
-                    $cleanTransferAccounts[] = [
-                        'bank_name' => $bankName,
-                        'account_number' => $accNum,
-                        'account_holder' => $accHolder !== '' ? $accHolder : ($settings->string('site_name') ?: 'SynemaX Cinema'),
-                    ];
-                }
-            }
-        }
-        unset($data['transfer_accounts']);
-
-        if (in_array('transfer', $paymentMethods, true) && count($cleanTransferAccounts) === 0) {
-            throw ValidationException::withMessages([
-                'payment_methods' => 'Metode transfer bank membutuhkan minimal satu rekening tujuan yang valid.',
-            ]);
-        }
-
-        $existingQris = $settings->string('qris_image_path');
-        if (in_array('qris', $paymentMethods, true) && ! $hasNewQris && ($deleteQris || empty($existingQris) || ! Storage::disk('local')->exists($existingQris))) {
-            if ($request->input('_tab') === 'operasional' || $request->input('tab') === 'operasional' || $request->input('active_tab') === 'operasional') {
-                $warnings[] = 'QRIS diaktifkan namun belum memiliki gambar QRIS yang valid.';
-            } else {
-                throw ValidationException::withMessages([
-                    'payment_methods' => 'Metode QRIS hanya dapat diaktifkan jika gambar kode QRIS valid sudah diunggah.',
-                ]);
-            }
-        }
-
-        $settings->set('transfer_accounts', $cleanTransferAccounts, 'operasional');
-
-        if ($deleteQris) {
-            $oldPath = $settings->string('qris_image_path');
-            if ($oldPath !== '' && Storage::disk('local')->exists($oldPath)) {
-                Storage::disk('local')->delete($oldPath);
-            }
-            $settings->set('qris_image_path', '', 'operasional');
-            $settings->set('qris_image_updated_at', (string) now()->timestamp, 'operasional');
-            $paymentMethods = array_values(array_diff($paymentMethods, ['qris']));
-        } elseif ($hasNewQris) {
-            $uploaded = $request->file('qris_image');
-            $size = @getimagesize($uploaded->getPathname());
-            if ($size && $size[1] > 0) {
-                $ratio = $size[0] / $size[1];
-                if ($ratio < 0.8 || $ratio > 1.25) {
-                    $warnings[] = 'QRIS sebaiknya persegi dan rapi; pangkas bagian lain.';
-                }
-            }
-            $qrisPath = $this->processAndStoreQrisImage($uploaded, $settings);
-            $settings->set('qris_image_path', $qrisPath, 'operasional');
-            $settings->set('qris_image_updated_at', (string) now()->timestamp, 'operasional');
-        }
-        unset($data['qris_image'], $data['delete_qris_image']);
 
         foreach ($data as $key => $value) {
             if ($value !== null) {
@@ -565,8 +486,6 @@ class SettingController extends Controller
                     }
                 });
         }
-
-        $settings->set('enabled_payment_methods', $paymentMethods, 'operasional');
 
         if (count($warnings) > 0) {
             session()->flash('warning', implode(' ', $warnings));
@@ -591,6 +510,19 @@ class SettingController extends Controller
         }
         $settings->set('private_price', $validated['private_price'], 'harga');
 
+        $warnings = [];
+
+        if (
+            $request->has('payment_methods')
+            || $request->has('transfer_accounts')
+            || $request->hasFile('qris_image')
+            || $request->boolean('delete_qris_image')
+            || $request->has('qris_merchant_name')
+            || $request->has('payment_time_limit_minutes')
+        ) {
+            $this->handlePaymentSettings($request, $settings, $warnings);
+        }
+
         // Handle FAQs
         $faqsInput = $request->input('faqs', []);
         $cleanFaqs = [];
@@ -610,6 +542,127 @@ class SettingController extends Controller
         if (count($cleanFaqs) > 0) {
             usort($cleanFaqs, fn ($a, $b) => $a['order'] <=> $b['order']);
             $settings->set('faq_list', $cleanFaqs, 'harga');
+        }
+
+        if (count($warnings) > 0) {
+            session()->flash('warning', implode(' ', $warnings));
+        }
+    }
+
+    private function handlePaymentSettings(Request $request, CinemaSettings $settings, array &$warnings): void
+    {
+        $request->validate([
+            'payment_methods' => ['nullable', 'array'],
+            'payment_methods.*' => ['required', 'in:di_tempat,qris,transfer'],
+            'qris_image' => ['nullable', 'file', 'image', 'mimes:png,jpg,jpeg,webp', 'max:2048', 'dimensions:min_width=300,min_height=300'],
+            'qris_merchant_name' => ['nullable', 'string', 'max:120'],
+            'qris_payment_notes' => ['nullable', 'string', 'max:2000'],
+            'delete_qris_image' => ['nullable', 'boolean'],
+            'transfer_accounts' => ['nullable', 'array'],
+            'transfer_accounts.*.bank_name' => ['nullable', 'string', 'max:50'],
+            'transfer_accounts.*.bank' => ['nullable', 'string', 'max:50'],
+            'transfer_accounts.*.account_number' => ['nullable', 'string', 'max:50'],
+            'transfer_accounts.*.account_holder' => ['nullable', 'string', 'max:100'],
+            'transfer_payment_notes' => ['nullable', 'string', 'max:2000'],
+            'payment_time_limit_minutes' => ['nullable', 'integer', 'between:5,180'],
+            'online_payment_cutoff_minutes' => ['nullable', 'integer', 'between:0,180'],
+            'max_payment_proof_kb' => ['nullable', 'integer', 'between:512,10240'],
+        ]);
+
+        $paymentMethods = $request->has('payment_methods')
+            ? array_values(array_unique($request->input('payment_methods', [])))
+            : $settings->rawPaymentMethods();
+
+        if (empty($paymentMethods)) {
+            $paymentMethods = ['di_tempat'];
+        }
+
+        $cleanTransferAccounts = $settings->transferAccounts();
+        if ($request->has('transfer_accounts')) {
+            $rawTransferAccounts = $request->input('transfer_accounts', []);
+            $cleanTransferAccounts = [];
+            if (is_array($rawTransferAccounts)) {
+                foreach ($rawTransferAccounts as $item) {
+                    if (! is_array($item)) {
+                        continue;
+                    }
+                    $bankName = trim((string) ($item['bank_name'] ?? $item['bank'] ?? ''));
+                    $accNum = trim((string) ($item['account_number'] ?? ''));
+                    $accHolder = trim((string) ($item['account_holder'] ?? ''));
+                    if ($bankName !== '' && $accNum !== '') {
+                        $cleanTransferAccounts[] = [
+                            'bank_name' => $bankName,
+                            'account_number' => $accNum,
+                            'account_holder' => $accHolder !== '' ? $accHolder : ($settings->string('site_name') ?: 'SynemaX Cinema'),
+                        ];
+                    }
+                }
+            }
+            $settings->set('transfer_accounts', $cleanTransferAccounts, 'operasional');
+        }
+
+        if (in_array('transfer', $paymentMethods, true) && count($cleanTransferAccounts) === 0) {
+            throw ValidationException::withMessages([
+                'payment_methods' => 'Metode transfer bank membutuhkan minimal satu rekening tujuan yang valid.',
+            ]);
+        }
+
+        $deleteQris = $request->boolean('delete_qris_image');
+        $hasNewQris = $request->hasFile('qris_image');
+        $hasExistingQris = $settings->hasValidQrisImage();
+
+        $existingQris = $settings->string('qris_image_path');
+        if (in_array('qris', $paymentMethods, true) && ! $hasNewQris && ($deleteQris || empty($existingQris) || ! Storage::disk('local')->exists($existingQris))) {
+            if ($request->input('_tab') === 'operasional' || $request->input('tab') === 'operasional' || $request->input('active_tab') === 'operasional') {
+                $warnings[] = 'QRIS diaktifkan namun belum memiliki gambar QRIS yang valid.';
+            } else {
+                throw ValidationException::withMessages([
+                    'payment_methods' => 'Metode QRIS hanya dapat diaktifkan jika gambar kode QRIS valid sudah diunggah.',
+                ]);
+            }
+        }
+
+        if ($request->has('payment_methods')) {
+            $settings->set('enabled_payment_methods', $paymentMethods, 'operasional');
+        }
+
+        if ($deleteQris) {
+            $oldPath = $settings->string('qris_image_path');
+            if ($oldPath !== '' && Storage::disk('local')->exists($oldPath)) {
+                Storage::disk('local')->delete($oldPath);
+            }
+            $settings->set('qris_image_path', '', 'operasional');
+            $settings->set('qris_image_updated_at', (string) now()->timestamp, 'operasional');
+            $paymentMethods = array_values(array_diff($settings->rawPaymentMethods(), ['qris']));
+            $settings->set('enabled_payment_methods', $paymentMethods, 'operasional');
+        } elseif ($hasNewQris) {
+            $uploaded = $request->file('qris_image');
+            $size = @getimagesize($uploaded->getPathname());
+            if ($size && $size[1] > 0) {
+                $ratio = $size[0] / $size[1];
+                if ($ratio < 0.8 || $ratio > 1.25) {
+                    $warnings[] = 'QRIS sebaiknya persegi dan rapi; pangkas bagian lain.';
+                }
+            }
+            $qrisPath = $this->processAndStoreQrisImage($uploaded, $settings);
+            $settings->set('qris_image_path', $qrisPath, 'operasional');
+            $settings->set('qris_image_updated_at', (string) now()->timestamp, 'operasional');
+        }
+
+        foreach ([
+            'qris_merchant_name',
+            'qris_payment_notes',
+            'transfer_payment_notes',
+            'payment_time_limit_minutes',
+            'online_payment_cutoff_minutes',
+            'max_payment_proof_kb',
+        ] as $field) {
+            if ($request->has($field)) {
+                $val = $request->input($field);
+                if ($val !== null) {
+                    $settings->set($field, (string) $val, 'operasional');
+                }
+            }
         }
     }
 

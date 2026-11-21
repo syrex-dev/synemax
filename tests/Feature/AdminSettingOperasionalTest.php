@@ -184,4 +184,67 @@ class AdminSettingOperasionalTest extends TestCase
         $this->settings->clearCache();
         $this->assertSame(8, $this->settings->capacityPerSession());
     }
+
+    public function test_submitting_operasional_tab_without_payment_methods_preserves_existing_methods(): void
+    {
+        $this->settings->set('enabled_payment_methods', ['di_tempat', 'qris'], 'operasional');
+        $this->settings->clearCache();
+
+        $response = $this->actingAs($this->admin)->post(route('admin.settings.update'), [
+            'active_tab' => 'operasional',
+            'capacity_per_session' => 6,
+            'max_seats_per_booking' => 6,
+            'minimum_public_viewers' => 2,
+            'low_attendance_warning_window' => 24,
+            'booking_cutoff_minutes' => 30,
+            'cancellation_cutoff_hours' => 6,
+            'check_in_open_minutes_before' => 30,
+            'check_in_close_after' => 'session_end',
+            'check_in_sound_enabled' => true,
+            'admin_whatsapp' => '6281234567890',
+            'electricity_cost_per_session' => 0,
+            'snacks_enabled' => true,
+            'snack_prep_buffer_minutes' => 15,
+            'snack_max_qty_per_item' => 10,
+            'info_nobar_enabled' => true,
+        ]);
+
+        $response->assertRedirect(route('admin.settings.edit', ['tab' => 'operasional']));
+        $this->settings->clearCache();
+        $this->assertSame(['di_tempat', 'qris'], $this->settings->rawPaymentMethods());
+    }
+
+    public function test_submitting_harga_tab_persists_payment_methods_and_transfer_accounts(): void
+    {
+        $response = $this->actingAs($this->admin)->post(route('admin.settings.update'), [
+            'active_tab' => 'harga',
+            'weekday_price' => 20000,
+            'weekend_price' => 25000,
+            'holiday_price' => 30000,
+            'couple_price' => 45000,
+            'private_price' => 120000,
+            'payment_methods' => ['di_tempat', 'transfer'],
+            'transfer_accounts' => [
+                [
+                    'bank_name' => 'BCA',
+                    'account_number' => '1234567890',
+                    'account_holder' => 'SynemaX Cinema',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect(route('admin.settings.edit', ['tab' => 'harga']));
+        $this->settings->clearCache();
+        $this->assertSame(['di_tempat', 'transfer'], $this->settings->rawPaymentMethods());
+        $this->assertTrue($this->settings->hasValidTransferAccounts());
+    }
+
+    public function test_cinema_settings_always_fallbacks_to_di_tempat_when_no_valid_methods(): void
+    {
+        $this->settings->set('enabled_payment_methods', [], 'operasional');
+        $this->settings->clearCache();
+
+        $this->assertSame(['di_tempat'], $this->settings->rawPaymentMethods());
+        $this->assertSame(['di_tempat'], $this->settings->enabledPaymentMethods());
+    }
 }

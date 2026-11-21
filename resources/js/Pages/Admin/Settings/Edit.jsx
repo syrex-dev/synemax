@@ -100,7 +100,7 @@ export default function Edit({
             : [{ bank: 'BCA', account_number: '', account_holder: '' }]
     );
     const [selectedMethods, setSelectedMethods] = useState(
-        enabledMethods && enabledMethods.length > 0 ? enabledMethods : ['qris', 'transfer']
+        enabledMethods && enabledMethods.length > 0 ? enabledMethods : ['di_tempat', 'qris']
     );
 
     const hargaForm = useForm({
@@ -887,7 +887,30 @@ export default function Edit({
                                 Metode Pembayaran Diterima
                             </h2>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <label className={`p-4 rounded-xl border cursor-pointer transition ${
+                                    selectedMethods.includes('di_tempat') ? 'border-amber-500 bg-amber-500/10' : 'border-border bg-surface-2'
+                                }`}>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedMethods.includes('di_tempat')}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedMethods([...selectedMethods, 'di_tempat']);
+                                                } else {
+                                                    setSelectedMethods(selectedMethods.filter(m => m !== 'di_tempat'));
+                                                }
+                                            }}
+                                            className="size-4 rounded border-border bg-surface text-amber-500 focus:ring-amber-400"
+                                        />
+                                        <div>
+                                            <p className="text-xs font-bold text-text">Bayar di Kasir (Walk-in)</p>
+                                            <p className="text-[11px] text-text-muted mt-0.5">Penonton bayar tunai / offline di kasir bioskop</p>
+                                        </div>
+                                    </div>
+                                </label>
+
                                 <label className={`p-4 rounded-xl border cursor-pointer transition ${
                                     selectedMethods.includes('qris') ? 'border-amber-500 bg-amber-500/10' : 'border-border bg-surface-2'
                                 }`}>
@@ -905,7 +928,7 @@ export default function Edit({
                                             className="size-4 rounded border-border bg-surface text-amber-500 focus:ring-amber-400"
                                         />
                                         <div>
-                                            <p className="text-xs font-bold text-text">QRIS (Semua E-Wallet & Mobile Banking)</p>
+                                            <p className="text-xs font-bold text-text">QRIS (Semua E-Wallet & M-Banking)</p>
                                             <p className="text-[11px] text-text-muted mt-0.5">Pengunjung scan kode QRIS langsung di layar</p>
                                         </div>
                                     </div>
@@ -929,7 +952,7 @@ export default function Edit({
                                         />
                                         <div>
                                             <p className="text-xs font-bold text-text">Transfer Bank Manual</p>
-                                            <p className="text-[11px] text-text-muted mt-0.5">Transfer rekening bank & unggah bukti pembayaran</p>
+                                            <p className="text-[11px] text-text-muted mt-0.5">Transfer rekening bank & unggah bukti transfer</p>
                                         </div>
                                     </div>
                                 </label>

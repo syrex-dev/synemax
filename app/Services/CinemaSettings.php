@@ -120,16 +120,18 @@ class CinemaSettings
      */
     public function rawPaymentMethods(): array
     {
-        $val = $this->get('enabled_payment_methods', ['di_tempat']);
+        $val = $this->get('enabled_payment_methods', ['di_tempat', 'qris']);
         if (is_string($val)) {
             $val = json_decode($val, true);
         }
 
-        if (! is_array($val)) {
+        if (! is_array($val) || empty($val)) {
             return ['di_tempat'];
         }
 
-        return array_values(array_intersect($val, ['di_tempat', 'qris', 'transfer']));
+        $methods = array_values(array_intersect($val, ['di_tempat', 'qris', 'transfer']));
+
+        return ! empty($methods) ? $methods : ['di_tempat'];
     }
 
     public function hasValidQrisImage(): bool
@@ -240,6 +242,10 @@ class CinemaSettings
             $methods = array_values(array_diff($methods, ['transfer']));
         }
 
+        if (empty($methods)) {
+            return ['di_tempat'];
+        }
+
         return $methods;
     }
 
@@ -253,6 +259,10 @@ class CinemaSettings
 
         if (now()->greaterThanOrEqualTo($cutoff)) {
             $methods = array_values(array_intersect($methods, ['di_tempat']));
+        }
+
+        if (empty($methods)) {
+            return ['di_tempat'];
         }
 
         return $methods;
