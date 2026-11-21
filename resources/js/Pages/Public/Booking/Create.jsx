@@ -1,37 +1,36 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link, Head, useForm, router } from '@inertiajs/react';
+import { useState, useEffect } from 'react';
+import { Link, Head, useForm } from '@inertiajs/react';
 import PublicLayout from '../../../Layouts/PublicLayout';
 import Modal from '../../../Components/Modal';
 import CinemaImage from '../../../Components/CinemaImage';
 import {
     Calendar,
     Clock,
-    Film as FilmIcon,
-    Users,
     User,
     Heart,
     Crown,
     Ticket,
-    Coffee,
-    CheckCircle2,
     Check,
     AlertCircle,
     ChevronLeft,
-    ChevronRight,
     Plus,
     Minus,
     ArrowRight,
-    Sparkles,
     CreditCard,
     DollarSign,
     ShieldCheck,
     QrCode,
     Building2,
-    Wallet,
     X,
-    Info,
     Search,
     Play,
+    Volume2,
+    Lock,
+    BadgeCheck,
+    Phone,
+    Armchair,
+    Receipt,
+    Sparkles,
 } from 'lucide-react';
 
 export default function Create({
@@ -60,7 +59,6 @@ export default function Create({
     existingUnpaidBooking = null,
 }) {
     const isConfirmed = Boolean(session.is_confirmed || session.status === 'terkonfirmasi');
-    const lockedFilm = session.film;
     const remainingSeats = session.remaining_seats ?? (session.capacity - occupiedSeats);
 
     // Initial selected film & fixed state
@@ -71,7 +69,7 @@ export default function Create({
     // Fallback if backend passed empty array
     const activePaymentMethods = paymentMethods && paymentMethods.length > 0 ? paymentMethods : ['di_tempat'];
 
-    // Wizard step: 1 (Jadwal), 2 (Paket & Film), 3 (Jajan), 4 (Ringkasan)
+    // Wizard step: 2 (Paket & Film), 3 (Jajan), 4 (Ringkasan & Bayar)
     const [step, setStep] = useState(2);
     const [selectedPackage, setSelectedPackage] = useState(canReguler ? 'reguler' : canCouple ? 'couple' : 'private');
     const [pax, setPax] = useState(1);
@@ -79,20 +77,21 @@ export default function Create({
     const [customerName, setCustomerName] = useState('');
     const [whatsapp, setWhatsapp] = useState('');
     const [paymentMethod, setPaymentMethod] = useState(activePaymentMethods[0] || 'di_tempat');
-    const [snacksCart, setSnacksCart] = useState({}); // { snackId: { qty, note, item } }
+    const [snacksCart, setSnacksCart] = useState({});
     const [activeSnackCategory, setActiveSnackCategory] = useState(snackCategories[0]?.id || null);
 
-    // Keep paymentMethod synchronized if props change
+    // Synchronize payment method if options change
     useEffect(() => {
         if (!activePaymentMethods.includes(paymentMethod)) {
             setPaymentMethod(activePaymentMethods[0] || 'di_tempat');
         }
     }, [paymentMethods]);
 
-    // Film search/filter in modal or list
+    // Film search/filter & modals
     const [filmSearch, setFilmSearch] = useState('');
     const [trailerModalFilm, setTrailerModalFilm] = useState(null);
     const [unpaidModalOpen, setUnpaidModalOpen] = useState(Boolean(existingUnpaidBooking));
+    const [showFullSynopsis, setShowFullSynopsis] = useState(false);
 
     // Form submission
     const { data, setData, post, processing, errors } = useForm({
@@ -106,7 +105,7 @@ export default function Create({
         snacks: [],
     });
 
-    // Update form data when state changes
+    // Update form data on state change
     useEffect(() => {
         const type = selectedPackage === 'private' ? 'private' : selectedPackage === 'couple' ? 'couple' : 'per_orang';
         const finalPax = selectedPackage === 'private' ? session.capacity : selectedPackage === 'couple' ? 2 : pax;
@@ -200,6 +199,12 @@ export default function Create({
         }
     };
 
+    const extractYoutubeId = (url) => {
+        if (!url) return null;
+        const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+        return match ? match[1] : null;
+    };
+
     const filteredFilms = films.filter((f) => {
         if (!filmSearch.trim()) return true;
         const q = filmSearch.toLowerCase();
@@ -207,160 +212,273 @@ export default function Create({
     });
 
     const activeFilm = films.find((f) => String(f.id) === String(selectedFilmId)) || initialFilm;
+    const activeTrailerId = extractYoutubeId(trailerModalFilm?.trailer_url);
 
     return (
         <PublicLayout title="Pesan Tiket Studio">
             <Head title="Pesan Tiket Studio">
                 <meta
                     name="description"
-                    content="Pilih paket, film calon/terkunci, suasana studio, dan jajan untuk sesi studio mini SynemaX dengan standar bioskop modern."
+                    content="Pemesanan tiket bioskop mini privat SynemaX. Pengalaman menonton eksklusif ber-AC dengan tata suara Dolby surround."
                 />
             </Head>
 
-            <div className="mx-auto max-w-xl px-4 pb-8 pt-4 sm:px-6 sm:pb-12 sm:pt-6">
-                {/* Modal Notifikasi Unpaid Booking Sebelumnya */}
-                {unpaidModalOpen && existingUnpaidBooking && (
-                    <Modal show={unpaidModalOpen} onClose={() => setUnpaidModalOpen(false)} maxWidth="md">
-                        <div className="p-6 space-y-4">
-                            <div className="flex items-start gap-3">
-                                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                                    <AlertCircle className="size-5" />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-bold text-text">Kamu masih punya booking yang belum dibayar</h3>
-                                    <p className="mt-1 text-xs text-text-muted leading-relaxed">
-                                        Booking <strong className="text-text font-mono">{existingUnpaidBooking.code}</strong> masih aktif menahan tempatmu.
-                                    </p>
-                                </div>
+            {/* Trailer Lightbox Modal */}
+            {trailerModalFilm && activeTrailerId && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={`Trailer ${trailerModalFilm.title}`}
+                >
+                    <div
+                        className="fixed inset-0 bg-black/90 backdrop-blur-md"
+                        onClick={() => setTrailerModalFilm(null)}
+                        aria-hidden="true"
+                    />
+                    <div className="relative z-10 w-full max-w-3xl overflow-hidden rounded-2xl border border-white/10 bg-slate-950 shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 text-white">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-2.5 py-0.5 text-[11px] font-black uppercase text-amber-400">
+                                    <Play className="size-3 fill-amber-400" />
+                                    <span>Trailer</span>
+                                </span>
+                                <h3 className="text-sm font-bold truncate text-white">{trailerModalFilm.title}</h3>
                             </div>
+                            <button
+                                type="button"
+                                onClick={() => setTrailerModalFilm(null)}
+                                className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white transition"
+                                aria-label="Tutup trailer"
+                            >
+                                <X className="size-5" />
+                            </button>
+                        </div>
+                        <div className="aspect-video w-full bg-black">
+                            <iframe
+                                src={`https://www.youtube.com/embed/${activeTrailerId}?autoplay=1&rel=0`}
+                                title={`Trailer ${trailerModalFilm.title}`}
+                                className="size-full border-0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
-                            <div className="rounded-xl border border-border bg-surface-2 p-3.5 text-xs space-y-1">
-                                <div className="flex justify-between">
-                                    <span className="text-text-muted">Total Tagihan:</span>
-                                    <span className="font-bold text-text">
-                                        Rp {Number(existingUnpaidBooking.total_price || 0).toLocaleString('id-ID')}
-                                    </span>
-                                </div>
+            {/* Modal Notifikasi Unpaid Booking Sebelumnya */}
+            {unpaidModalOpen && existingUnpaidBooking && (
+                <Modal show={unpaidModalOpen} onClose={() => setUnpaidModalOpen(false)} maxWidth="md">
+                    <div className="p-6 space-y-4">
+                        <div className="flex items-start gap-3">
+                            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                <AlertCircle className="size-5" />
                             </div>
-
-                            <div className="space-y-2 pt-2">
-                                <Link
-                                    href={`/pembayaran/${existingUnpaidBooking.code}`}
-                                    className="btn-gold-cinema flex w-full min-h-[44px] items-center justify-center rounded-xl text-xs font-bold shadow-md"
-                                >
-                                    Lanjutkan Pembayaran
-                                </Link>
-                                <button
-                                    type="button"
-                                    onClick={() => setUnpaidModalOpen(false)}
-                                    className="flex w-full min-h-[40px] items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:bg-surface-2 transition"
-                                >
-                                    Tutup & Lanjutkan Pesan Baru
-                                </button>
+                            <div>
+                                <h3 className="text-base font-black text-text">Selesaikan Pembayaran Sebelumnya</h3>
+                                <p className="mt-1 text-xs text-text-muted leading-relaxed">
+                                    Kamu masih memiliki pesanan aktif dengan kode <strong className="font-mono text-text">{existingUnpaidBooking.code}</strong>.
+                                </p>
                             </div>
                         </div>
-                    </Modal>
-                )}
 
-                {/* Header & Sesi Yang Dipilih */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-                    <div>
-                        <Link
-                            href={`/jadwal/${session.session_date}`}
-                            className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline"
-                        >
-                            <ChevronLeft className="size-4" />
-                            <span>Ganti jadwal</span>
-                        </Link>
-                        <h1 className="mt-1 text-2xl font-black tracking-tight text-text sm:text-3xl">Amankan tempatmu</h1>
+                        <div className="rounded-2xl border border-border bg-surface-2 p-4 text-xs space-y-1.5">
+                            <div className="flex justify-between items-center">
+                                <span className="text-text-muted">Total Pembayaran:</span>
+                                <span className="font-mono text-base font-black text-amber-600 dark:text-amber-400">
+                                    Rp {Number(existingUnpaidBooking.total_price || 0).toLocaleString('id-ID')}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 pt-2">
+                            <Link
+                                href={`/pembayaran/${existingUnpaidBooking.code}`}
+                                className="btn-gold-cinema flex w-full min-h-[44px] items-center justify-center rounded-xl text-xs font-black shadow-md"
+                            >
+                                Lanjutkan Pembayaran
+                            </Link>
+                            <button
+                                type="button"
+                                onClick={() => setUnpaidModalOpen(false)}
+                                className="flex w-full min-h-[44px] items-center justify-center rounded-xl border border-border bg-surface px-4 text-xs font-bold text-text hover:bg-surface-2 transition"
+                            >
+                                Tutup & Buat Pesanan Baru
+                            </button>
+                        </div>
                     </div>
-                    <div className="rounded-xl border border-border bg-surface-2 px-3 py-2 text-right">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Sisa Kursi</span>
-                        <p className="font-mono text-base font-black text-amber-600 dark:text-amber-400">
-                            {remainingSeats} / {session.capacity}
-                        </p>
+                </Modal>
+            )}
+
+            <div className="mx-auto max-w-2xl px-4 pt-3 pb-28 sm:px-6 sm:pb-20 sm:pt-6">
+                {/* 1. TOP BAR NAVIGATION */}
+                <div className="flex items-center justify-between gap-3 pb-4">
+                    <Link
+                        href={`/jadwal/${session.session_date}`}
+                        className="group inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-bold text-text-muted transition hover:border-amber-500/40 hover:text-text hover:bg-surface-2 active:scale-95 shadow-xs"
+                    >
+                        <ChevronLeft className="size-4 transition group-hover:-translate-x-0.5" />
+                        <span>Ganti Jadwal</span>
+                    </Link>
+
+                    <div className="flex items-center gap-2">
+                        <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span>{remainingSeats} / {session.capacity} Kursi Tersedia</span>
+                        </span>
                     </div>
                 </div>
 
-                {/* Info Jadwal Mini Banner */}
-                <div className="mt-4 flex items-center justify-between rounded-2xl border border-border bg-surface p-4 shadow-xs">
-                    <div className="flex items-center gap-3">
-                        <span className="flex size-10 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-400/30">
-                            <Clock className="size-5" />
-                        </span>
-                        <div>
-                            <p className="text-xs font-bold text-text">{formatDateId(session.session_date)}</p>
-                            <p className="font-mono text-sm font-black text-amber-600 dark:text-amber-400">
-                                {session.start_time?.slice(0, 5)} - {session.end_time?.slice(0, 5)} WIB
-                            </p>
+                {/* 2. CINEMA SESSION PASS MARQUEE CARD */}
+                <div className="relative overflow-hidden rounded-3xl border border-amber-500/25 bg-gradient-to-br from-surface via-surface to-amber-500/[0.04] p-5 sm:p-6 shadow-sm">
+                    <div className="absolute -right-8 -top-8 size-32 rounded-full bg-amber-500/10 blur-2xl pointer-events-none" />
+
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-black">
+                                    SynemaX Premiere
+                                </span>
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-text-muted">
+                                    <Volume2 className="size-3 text-amber-500" />
+                                    <span>Dolby Surround</span>
+                                </span>
+                                {isConfirmed && (
+                                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">
+                                        <Lock className="size-3" />
+                                        <span>Film Terkunci</span>
+                                    </span>
+                                )}
+                            </div>
+                            <h1 className="text-xl sm:text-2xl font-black text-text tracking-tight pt-1">
+                                Pemesanan Tiket Studio
+                            </h1>
+                        </div>
+
+                        <div className="shrink-0 text-right">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted block">Studio</span>
+                            <span className="font-mono text-sm sm:text-base font-black text-amber-600 dark:text-amber-400">
+                                STUDIO 1
+                            </span>
                         </div>
                     </div>
-                    {isConfirmed && (
-                        <span className="rounded-lg bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400">
-                            Film Terkunci
-                        </span>
-                    )}
+
+                    {/* Session Time & Date Pill Bar */}
+                    <div className="mt-4 pt-4 border-t border-border/70 flex flex-wrap items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2 text-xs font-bold text-text">
+                            <Calendar className="size-4 text-amber-500 shrink-0" />
+                            <span>{formatDateId(session.session_date)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 font-mono text-xs font-black text-amber-600 dark:text-amber-400">
+                            <Clock className="size-3.5 text-amber-500 shrink-0" />
+                            <span>{session.start_time?.slice(0, 5)} - {session.end_time?.slice(0, 5)} WIB</span>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Error Banner */}
                 {Object.keys(errors).length > 0 && (
-                    <div className="mt-4 rounded-xl border border-danger/40 bg-danger-surface p-4 text-xs font-semibold text-danger-text space-y-1">
+                    <div className="mt-4 rounded-2xl border border-danger/40 bg-danger-surface p-4 text-xs font-semibold text-danger-text space-y-1">
                         {Object.values(errors).map((err, i) => (
-                            <p key={i}>{err}</p>
+                            <p key={i} className="flex items-center gap-1.5">
+                                <AlertCircle className="size-3.5 shrink-0" />
+                                <span>{err}</span>
+                            </p>
                         ))}
                     </div>
                 )}
 
-                {/* Stepper Wizard Indicator */}
-                <div className="mt-6 flex items-center justify-between border-b border-border pb-4 text-xs">
+                {/* 3. STEPPER WIZARD INDICATOR */}
+                <div className="mt-5 grid grid-cols-3 gap-1.5 sm:gap-2 p-1.5 rounded-2xl border border-border/80 bg-surface-2/60">
                     <button
                         type="button"
                         onClick={() => setStep(2)}
-                        className={`font-black pb-1 border-b-2 transition ${
+                        className={`flex items-center justify-center gap-1.5 rounded-xl py-2 px-2 text-xs transition cursor-pointer ${
                             step === 2
-                                ? 'border-amber-500 text-amber-600 dark:text-amber-400'
-                                : 'border-transparent text-text-muted hover:text-text'
+                                ? 'bg-amber-500 text-black shadow-xs font-black'
+                                : step > 2
+                                ? 'bg-surface text-amber-600 dark:text-amber-400 font-bold'
+                                : 'text-text-muted hover:text-text font-semibold'
                         }`}
                     >
-                        1. Paket & Film
+                        <span className={`flex size-4 items-center justify-center rounded-full text-[10px] font-black shrink-0 ${
+                            step === 2 ? 'bg-black text-amber-400' : step > 2 ? 'bg-amber-500 text-black' : 'bg-border text-text-muted'
+                        }`}>
+                            {step > 2 ? <Check className="size-2.5 stroke-[3]" /> : '1'}
+                        </span>
+                        <span className="truncate">Paket & Film</span>
                     </button>
-                    {snacksEnabled && (
+
+                    {snacksEnabled ? (
                         <button
                             type="button"
-                            onClick={() => setStep(3)}
-                            className={`font-black pb-1 border-b-2 transition ${
+                            onClick={() => {
+                                if (customerName.trim() && whatsapp.trim() && selectedFilmId) {
+                                    setStep(3);
+                                }
+                            }}
+                            disabled={!customerName.trim() || !whatsapp.trim() || !selectedFilmId}
+                            className={`flex items-center justify-center gap-1.5 rounded-xl py-2 px-2 text-xs transition disabled:opacity-40 cursor-pointer ${
                                 step === 3
-                                    ? 'border-amber-500 text-amber-600 dark:text-amber-400'
-                                    : 'border-transparent text-text-muted hover:text-text'
+                                    ? 'bg-amber-500 text-black shadow-xs font-black'
+                                    : step > 3
+                                    ? 'bg-surface text-amber-600 dark:text-amber-400 font-bold'
+                                    : 'text-text-muted hover:text-text font-semibold'
                             }`}
                         >
-                            2. Menu Jajan ({Object.keys(snacksCart).length})
+                            <span className={`flex size-4 items-center justify-center rounded-full text-[10px] font-black shrink-0 ${
+                                step === 3 ? 'bg-black text-amber-400' : step > 3 ? 'bg-amber-500 text-black' : 'bg-border text-text-muted'
+                            }`}>
+                                {step > 3 ? <Check className="size-2.5 stroke-[3]" /> : '2'}
+                            </span>
+                            <span className="truncate">
+                                Jajan {Object.keys(snacksCart).length > 0 ? `(${Object.keys(snacksCart).length})` : ''}
+                            </span>
                         </button>
+                    ) : (
+                        <div className="flex items-center justify-center py-2 px-2 text-[11px] font-medium text-text-subtle opacity-50 select-none">
+                            <span>(Tanpa Jajan)</span>
+                        </div>
                     )}
+
                     <button
                         type="button"
-                        onClick={() => setStep(4)}
-                        className={`font-black pb-1 border-b-2 transition ${
+                        onClick={() => {
+                            if (customerName.trim() && whatsapp.trim() && selectedFilmId) {
+                                setStep(4);
+                            }
+                        }}
+                        disabled={!customerName.trim() || !whatsapp.trim() || !selectedFilmId}
+                        className={`flex items-center justify-center gap-1.5 rounded-xl py-2 px-2 text-xs transition disabled:opacity-40 cursor-pointer ${
                             step === 4
-                                ? 'border-amber-500 text-amber-600 dark:text-amber-400'
-                                : 'border-transparent text-text-muted hover:text-text'
+                                ? 'bg-amber-500 text-black shadow-xs font-black'
+                                : 'text-text-muted hover:text-text font-semibold'
                         }`}
                     >
-                        {snacksEnabled ? '3. Ringkasan & Bayar' : '2. Ringkasan & Bayar'}
+                        <span className={`flex size-4 items-center justify-center rounded-full text-[10px] font-black shrink-0 ${
+                            step === 4 ? 'bg-black text-amber-400' : 'bg-border text-text-muted'
+                        }`}>
+                            {snacksEnabled ? '3' : '2'}
+                        </span>
+                        <span className="truncate">Ringkasan Bayar</span>
                     </button>
                 </div>
 
                 {/* ==================== STEP 2: PAKET, FILM, & DATA DIRI ==================== */}
                 {step === 2 && (
-                    <div className="mt-6 space-y-6">
-                        {/* 1. Pilih Paket Nonton */}
-                        <div className="space-y-3.5">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-border/60 pb-2.5">
-                                <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-text">
-                                    1. Pilih Paket Nonton
+                    <div className="mt-6 space-y-7">
+                        {/* 1. PILIH PAKET NONTON */}
+                        <section className="space-y-3.5">
+                            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-border/60 pb-2">
+                                <h2 className="text-base sm:text-lg font-black text-text tracking-tight flex items-center gap-2">
+                                    <span className="flex size-6 items-center justify-center rounded-lg bg-amber-500 text-black text-xs font-black">
+                                        1
+                                    </span>
+                                    <span>Pilih Tipe Pengalaman Nonton</span>
                                 </h2>
-                                <span className="text-xs sm:text-sm text-text-muted">
-                                    Pilih jenis kursi yang kamu inginkan
+                                <span className="text-xs text-text-muted">
+                                    Sesuaikan dengan suasana dan teman nontonmu
                                 </span>
                             </div>
 
@@ -372,20 +490,21 @@ export default function Create({
                                     disabled={!canReguler}
                                     className={`group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                                         selectedPackage === 'reguler'
-                                            ? 'border-amber-500 ring-2 ring-amber-500/40 bg-gradient-to-br from-amber-500/15 via-amber-500/[0.04] to-surface shadow-lg shadow-amber-500/10'
+                                            ? 'border-amber-500 ring-2 ring-amber-500/40 bg-gradient-to-br from-amber-500/15 via-amber-500/[0.04] to-surface shadow-md shadow-amber-500/10'
                                             : canReguler
                                             ? 'border-border/80 bg-surface hover:border-amber-500/50 hover:bg-surface-2 shadow-xs'
                                             : 'border-border/40 bg-surface-2/40 opacity-40 cursor-not-allowed'
                                     }`}
                                 >
-                                    {/* Top: Icon + Title + Radio Check */}
                                     <div className="flex items-start justify-between gap-3 w-full">
                                         <div className="flex items-center gap-3">
-                                            <div className={`flex size-11 items-center justify-center rounded-xl transition ${
-                                                selectedPackage === 'reguler'
-                                                    ? 'bg-amber-500 text-slate-950 font-black shadow-md shadow-amber-500/30'
-                                                    : 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
-                                            }`}>
+                                            <div
+                                                className={`flex size-11 items-center justify-center rounded-2xl transition ${
+                                                    selectedPackage === 'reguler'
+                                                        ? 'bg-amber-500 text-black font-black shadow-md shadow-amber-500/30'
+                                                        : 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                                                }`}
+                                            >
                                                 <User className="size-5" />
                                             </div>
                                             <div>
@@ -393,31 +512,29 @@ export default function Create({
                                                     <h3 className="text-base sm:text-lg font-black text-text tracking-tight">
                                                         Reguler
                                                     </h3>
-                                                    <span className="px-2 py-0.5 rounded-full text-[11px] font-black uppercase bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
                                                         Fleksibel
                                                     </span>
                                                 </div>
-                                                <p className="text-xs sm:text-sm text-text-muted mt-0.5">
-                                                    Per orang / kursi standar
+                                                <p className="text-xs text-text-muted mt-0.5">
+                                                    Per kursi, bebas atur jumlah
                                                 </p>
                                             </div>
                                         </div>
 
-                                        {/* Radio Indicator */}
-                                        <div className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
-                                            selectedPackage === 'reguler'
-                                                ? 'border-amber-500 bg-amber-500 text-slate-950 shadow-xs'
-                                                : 'border-border bg-surface-2'
-                                        }`}>
-                                            {selectedPackage === 'reguler' && (
-                                                <Check className="size-3.5 stroke-[3]" />
-                                            )}
+                                        <div
+                                            className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                                                selectedPackage === 'reguler'
+                                                    ? 'border-amber-500 bg-amber-500 text-black shadow-xs'
+                                                    : 'border-border bg-surface-2'
+                                            }`}
+                                        >
+                                            {selectedPackage === 'reguler' && <Check className="size-3.5 stroke-[3]" />}
                                         </div>
                                     </div>
 
-                                    {/* Bottom: Price */}
                                     <div className="mt-4 pt-3 border-t border-border/50 flex items-baseline justify-between w-full">
-                                        <span className="text-xs text-text-muted font-medium">Tarif Tiket:</span>
+                                        <span className="text-xs text-text-muted font-medium">Tarif:</span>
                                         <div className="flex items-baseline gap-1">
                                             <span className="font-mono text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400">
                                                 Rp {Number(unitPrice).toLocaleString('id-ID')}
@@ -431,57 +548,56 @@ export default function Create({
                                     )}
                                 </button>
 
-                                {/* Couple Card */}
+                                {/* Couple Velvet Card */}
                                 <button
                                     type="button"
                                     onClick={() => handlePackageSelect('couple')}
                                     disabled={!canCouple}
                                     className={`group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                                         selectedPackage === 'couple'
-                                            ? 'border-amber-500 ring-2 ring-amber-500/40 bg-gradient-to-br from-amber-500/15 via-amber-500/[0.04] to-surface shadow-lg shadow-amber-500/10'
+                                            ? 'border-amber-500 ring-2 ring-amber-500/40 bg-gradient-to-br from-amber-500/15 via-amber-500/[0.04] to-surface shadow-md shadow-amber-500/10'
                                             : canCouple
                                             ? 'border-border/80 bg-surface hover:border-amber-500/50 hover:bg-surface-2 shadow-xs'
                                             : 'border-border/40 bg-surface-2/40 opacity-40 cursor-not-allowed'
                                     }`}
                                 >
-                                    {/* Top: Icon + Title + Radio Check */}
                                     <div className="flex items-start justify-between gap-3 w-full">
                                         <div className="flex items-center gap-3">
-                                            <div className={`flex size-11 items-center justify-center rounded-xl transition ${
-                                                selectedPackage === 'couple'
-                                                    ? 'bg-rose-500 text-white font-black shadow-md shadow-rose-500/30'
-                                                    : 'bg-rose-500/15 text-rose-500 border border-rose-500/30'
-                                            }`}>
+                                            <div
+                                                className={`flex size-11 items-center justify-center rounded-2xl transition ${
+                                                    selectedPackage === 'couple'
+                                                        ? 'bg-rose-500 text-white font-black shadow-md shadow-rose-500/30'
+                                                        : 'bg-rose-500/15 text-rose-500 border border-rose-500/30'
+                                                }`}
+                                            >
                                                 <Heart className="size-5 fill-current" />
                                             </div>
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     <h3 className="text-base sm:text-lg font-black text-text tracking-tight">
-                                                        Couple
+                                                        Couple Velvet
                                                     </h3>
-                                                    <span className="px-2 py-0.5 rounded-full text-[11px] font-black uppercase bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
                                                         Favorit
                                                     </span>
                                                 </div>
-                                                <p className="text-xs sm:text-sm text-text-muted mt-0.5">
-                                                    Paket 2 kursi sofa santai
+                                                <p className="text-xs text-text-muted mt-0.5">
+                                                    2 Kursi sofa tanpa sekat
                                                 </p>
                                             </div>
                                         </div>
 
-                                        {/* Radio Indicator */}
-                                        <div className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
-                                            selectedPackage === 'couple'
-                                                ? 'border-amber-500 bg-amber-500 text-slate-950 shadow-xs'
-                                                : 'border-border bg-surface-2'
-                                        }`}>
-                                            {selectedPackage === 'couple' && (
-                                                <Check className="size-3.5 stroke-[3]" />
-                                            )}
+                                        <div
+                                            className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                                                selectedPackage === 'couple'
+                                                    ? 'border-amber-500 bg-amber-500 text-black shadow-xs'
+                                                    : 'border-border bg-surface-2'
+                                            }`}
+                                        >
+                                            {selectedPackage === 'couple' && <Check className="size-3.5 stroke-[3]" />}
                                         </div>
                                     </div>
 
-                                    {/* Bottom: Price */}
                                     <div className="mt-4 pt-3 border-t border-border/50 flex items-baseline justify-between w-full">
                                         <span className="text-xs text-text-muted font-medium">Tarif Paket:</span>
                                         <div className="flex items-baseline gap-1">
@@ -497,27 +613,28 @@ export default function Create({
                                     )}
                                 </button>
 
-                                {/* Private Studio Card */}
+                                {/* Private Studio VIP Card */}
                                 <button
                                     type="button"
                                     onClick={() => handlePackageSelect('private')}
                                     disabled={!canPrivate}
                                     className={`group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                                         selectedPackage === 'private'
-                                            ? 'border-amber-500 ring-2 ring-amber-500/40 bg-gradient-to-br from-amber-500/15 via-amber-500/[0.04] to-surface shadow-lg shadow-amber-500/10'
+                                            ? 'border-amber-500 ring-2 ring-amber-500/40 bg-gradient-to-br from-amber-500/15 via-amber-500/[0.04] to-surface shadow-md shadow-amber-500/10'
                                             : canPrivate
                                             ? 'border-border/80 bg-surface hover:border-amber-500/50 hover:bg-surface-2 shadow-xs'
                                             : 'border-border/40 bg-surface-2/40 opacity-40 cursor-not-allowed'
                                     }`}
                                 >
-                                    {/* Top: Icon + Title + Radio Check */}
                                     <div className="flex items-start justify-between gap-3 w-full">
                                         <div className="flex items-center gap-3">
-                                            <div className={`flex size-11 items-center justify-center rounded-xl transition ${
-                                                selectedPackage === 'private'
-                                                    ? 'bg-purple-600 text-white font-black shadow-md shadow-purple-600/30'
-                                                    : 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30'
-                                            }`}>
+                                            <div
+                                                className={`flex size-11 items-center justify-center rounded-2xl transition ${
+                                                    selectedPackage === 'private'
+                                                        ? 'bg-purple-600 text-white font-black shadow-md shadow-purple-600/30'
+                                                        : 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30'
+                                                }`}
+                                            >
                                                 <Crown className="size-5" />
                                             </div>
                                             <div>
@@ -525,29 +642,27 @@ export default function Create({
                                                     <h3 className="text-base sm:text-lg font-black text-text tracking-tight">
                                                         Private Studio
                                                     </h3>
-                                                    <span className="px-2 py-0.5 rounded-full text-[11px] font-black uppercase bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
-                                                        VIP Studio
+                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
+                                                        VIP Hall
                                                     </span>
                                                 </div>
-                                                <p className="text-xs sm:text-sm text-text-muted mt-0.5">
-                                                    Sewa seluruh studio ({session.capacity || 6} kursi)
+                                                <p className="text-xs text-text-muted mt-0.5">
+                                                    Sewa penuh ({session.capacity || 6} kursi)
                                                 </p>
                                             </div>
                                         </div>
 
-                                        {/* Radio Indicator */}
-                                        <div className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
-                                            selectedPackage === 'private'
-                                                ? 'border-amber-500 bg-amber-500 text-slate-950 shadow-xs'
-                                                : 'border-border bg-surface-2'
-                                        }`}>
-                                            {selectedPackage === 'private' && (
-                                                <Check className="size-3.5 stroke-[3]" />
-                                            )}
+                                        <div
+                                            className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                                                selectedPackage === 'private'
+                                                    ? 'border-amber-500 bg-amber-500 text-black shadow-xs'
+                                                    : 'border-border bg-surface-2'
+                                            }`}
+                                        >
+                                            {selectedPackage === 'private' && <Check className="size-3.5 stroke-[3]" />}
                                         </div>
                                     </div>
 
-                                    {/* Bottom: Price */}
                                     <div className="mt-4 pt-3 border-t border-border/50 flex items-baseline justify-between w-full">
                                         <span className="text-xs text-text-muted font-medium">Tarif Sewa:</span>
                                         <div className="flex items-baseline gap-1">
@@ -564,208 +679,312 @@ export default function Create({
                                 </button>
                             </div>
 
-                            {/* Pax counter for reguler */}
+                            {/* Interactive Ticket & Seat Selector for Reguler */}
                             {selectedPackage === 'reguler' && (
-                                <div className="mt-3.5 p-4 sm:p-5 rounded-2xl border border-border/80 bg-surface/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in duration-200">
-                                    <div className="flex items-center gap-3.5">
-                                        <div className="flex size-11 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500 border border-amber-500/30 shrink-0">
-                                            <Ticket className="size-5" />
-                                        </div>
-                                        <div>
-                                            <p className="text-base sm:text-lg font-black text-text">Jumlah Tiket / Kursi</p>
-                                            <p className="text-xs sm:text-sm text-text-muted">Maksimal {remainingSeats} kursi tersisa di sesi penayangan ini</p>
-                                        </div>
-                                    </div>
+                                <div className="p-4 sm:p-5 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/[0.06] to-surface shadow-xs animate-in fade-in duration-200">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <Ticket className="size-5 text-amber-500" />
+                                                <p className="text-base font-black text-text">Berapa Tiket yang Kamu Pesan?</p>
+                                            </div>
+                                            <p className="text-xs text-text-muted">
+                                                Tersedia {remainingSeats} kursi tersisa di studio penayangan ini
+                                            </p>
 
-                                    <div className="flex items-center gap-3 self-end sm:self-auto">
-                                        <button
-                                            type="button"
-                                            onClick={() => setPax(Math.max(1, pax - 1))}
-                                            disabled={pax <= 1}
-                                            className="flex size-11 items-center justify-center rounded-xl border border-border bg-surface-2 text-text hover:bg-surface transition disabled:opacity-30 cursor-pointer shadow-xs active:scale-95"
-                                            aria-label="Kurangi tiket"
-                                        >
-                                            <Minus className="size-5" />
-                                        </button>
-                                        <span className="font-mono text-2xl font-black w-10 text-center text-text">{pax}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => setPax(Math.min(remainingSeats, pax + 1))}
-                                            disabled={pax >= remainingSeats}
-                                            className="flex size-11 items-center justify-center rounded-xl border border-border bg-surface-2 text-text hover:bg-surface transition disabled:opacity-30 cursor-pointer shadow-xs active:scale-95"
-                                            aria-label="Tambah tiket"
-                                        >
-                                            <Plus className="size-5" />
-                                        </button>
+                                            {/* Visual Armchair Dots */}
+                                            <div className="pt-2 flex items-center gap-1.5 flex-wrap">
+                                                {Array.from({ length: Math.min(10, remainingSeats) }).map((_, i) => (
+                                                    <div
+                                                        key={i}
+                                                        className={`flex size-7 items-center justify-center rounded-lg border transition ${
+                                                            i < pax
+                                                                ? 'border-amber-500 bg-amber-500 text-black shadow-xs'
+                                                                : 'border-border/60 bg-surface-2 text-text-muted opacity-50'
+                                                        }`}
+                                                        title={`Kursi ${i + 1}`}
+                                                    >
+                                                        <Armchair className="size-3.5" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 self-end sm:self-auto shrink-0 bg-surface p-1.5 rounded-2xl border border-border shadow-xs">
+                                            <button
+                                                type="button"
+                                                onClick={() => setPax(Math.max(1, pax - 1))}
+                                                disabled={pax <= 1}
+                                                className="flex size-11 items-center justify-center rounded-xl bg-surface-2 text-text hover:bg-surface-sunken transition disabled:opacity-30 cursor-pointer active:scale-95"
+                                                aria-label="Kurangi tiket"
+                                            >
+                                                <Minus className="size-5" />
+                                            </button>
+                                            <div className="w-12 text-center">
+                                                <span className="font-mono text-2xl font-black text-text block leading-none">{pax}</span>
+                                                <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Tiket</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setPax(Math.min(remainingSeats, pax + 1))}
+                                                disabled={pax >= remainingSeats}
+                                                className="flex size-11 items-center justify-center rounded-xl bg-amber-500 text-black hover:bg-amber-400 font-bold transition disabled:opacity-30 cursor-pointer active:scale-95 shadow-xs"
+                                                aria-label="Tambah tiket"
+                                            >
+                                                <Plus className="size-5" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )}
-                        </div>
+                        </section>
 
-                        {/* 2. Film Selection or Fixed Film Display */}
-                        {isFilmFixed && initialFilm ? (
-                            <div>
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-text-muted">2. Film Pilihan</h2>
-                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-xs font-bold text-emerald-700 dark:text-emerald-400">
-                                        <Check className="size-3.5" />
-                                        <span>Film Terpilih</span>
+                        {/* 2. FILM SHOWCASE OR SELECTION */}
+                        <section className="space-y-3.5">
+                            <div className="flex items-baseline justify-between gap-1 border-b border-border/60 pb-2">
+                                <h2 className="text-base sm:text-lg font-black text-text tracking-tight flex items-center gap-2">
+                                    <span className="flex size-6 items-center justify-center rounded-lg bg-amber-500 text-black text-xs font-black">
+                                        2
                                     </span>
-                                </div>
+                                    <span>{isFilmFixed ? 'Film yang Diputar' : 'Pilih Film Tayang'}</span>
+                                </h2>
+                                <span className="text-xs text-text-muted">
+                                    {isFilmFixed ? 'Terkunci untuk sesi ini' : 'Bebas pilih film favoritmu'}
+                                </span>
+                            </div>
 
-                                <div className="mt-3 flex items-center gap-3.5 p-3.5 sm:p-4 rounded-2xl border border-amber-500/30 bg-amber-500/5 shadow-xs">
-                                    <CinemaImage
-                                        src={initialFilm.poster_url || (initialFilm.poster_path ? `/storage/${initialFilm.poster_path}` : null)}
-                                        alt={initialFilm.title}
-                                        title={initialFilm.title}
-                                        aspect="aspect-[2/3]"
-                                        className="w-14 sm:w-16 shrink-0 rounded-xl shadow-xs"
-                                    />
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-base sm:text-lg font-black text-text truncate">{initialFilm.title}</p>
-                                        <p className="text-xs sm:text-sm text-text-muted mt-1">
-                                            {initialFilm.genre} · {initialFilm.duration_minutes} menit {initialFilm.age_rating ? `· ${initialFilm.age_rating}` : ''}
-                                        </p>
-                                        {initialFilm.trailer_url && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setTrailerModalFilm(initialFilm)}
-                                                className="mt-2.5 inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-amber-500 hover:text-amber-400 transition cursor-pointer"
-                                            >
-                                                <Play className="size-3.5 fill-amber-500" />
-                                                <span>Lihat Trailer</span>
-                                            </button>
-                                        )}
+                            {isFilmFixed && initialFilm ? (
+                                <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-surface-2 via-surface to-surface p-4 sm:p-5 shadow-sm">
+                                    <div className="flex gap-4 sm:gap-5 items-start">
+                                        <div className="shrink-0 relative group">
+                                            <CinemaImage
+                                                src={initialFilm.poster_url || (initialFilm.poster_path ? `/storage/${initialFilm.poster_path}` : null)}
+                                                alt={initialFilm.title}
+                                                title={initialFilm.title}
+                                                aspect="aspect-[2/3]"
+                                                className="w-20 sm:w-24 rounded-2xl shadow-md border border-white/10"
+                                            />
+                                            {initialFilm.age_rating && (
+                                                <span className="absolute top-1.5 left-1.5 rounded-md bg-black/80 px-1.5 py-0.5 text-[9px] font-black text-amber-400 border border-white/20">
+                                                    {initialFilm.age_rating}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="min-w-0 flex-1 space-y-2">
+                                            <div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                                                        <Check className="size-3" />
+                                                        <span>Film Terpilih</span>
+                                                    </span>
+                                                    <span className="text-xs font-semibold text-text-muted">
+                                                        {initialFilm.release_year || '2026'}
+                                                    </span>
+                                                </div>
+                                                <h3 className="text-lg sm:text-xl font-black text-text tracking-tight mt-1 line-clamp-1">
+                                                    {initialFilm.title}
+                                                </h3>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 flex-wrap text-xs text-text-muted">
+                                                <span className="rounded-lg bg-surface-2 px-2 py-1 font-semibold text-text">
+                                                    {initialFilm.genre}
+                                                </span>
+                                                <span className="rounded-lg bg-surface-2 px-2 py-1 font-semibold text-text">
+                                                    {initialFilm.duration_minutes} Menit
+                                                </span>
+                                            </div>
+
+                                            {initialFilm.synopsis && (
+                                                <div className="text-xs text-text-muted leading-relaxed">
+                                                    <p className={showFullSynopsis ? '' : 'line-clamp-2'}>
+                                                        {initialFilm.synopsis}
+                                                    </p>
+                                                    {initialFilm.synopsis.length > 120 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowFullSynopsis(!showFullSynopsis)}
+                                                            className="text-amber-500 font-bold hover:underline mt-0.5 cursor-pointer"
+                                                        >
+                                                            {showFullSynopsis ? 'Ringkas' : 'Baca selengkapnya'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {initialFilm.trailer_url && (
+                                                <div className="pt-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setTrailerModalFilm(initialFilm)}
+                                                        className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-500 hover:bg-amber-500 hover:text-black transition cursor-pointer active:scale-95"
+                                                    >
+                                                        <Play className="size-3.5 fill-current" />
+                                                        <span>Putar Trailer</span>
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ) : (
-                            <div>
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-text-muted">2. Pilih Film Tayang</h2>
-                                    <span className="text-xs text-text-muted">Bebas tentukan film</span>
-                                </div>
-
-                                <div className="mt-3 space-y-3">
+                            ) : (
+                                <div className="space-y-3">
                                     <div className="relative">
-                                        <Search className="size-4 text-text-muted absolute left-3.5 top-3.5" />
+                                        <Search className="size-4 text-text-muted absolute left-4 top-3.5" />
                                         <input
                                             type="text"
                                             value={filmSearch}
                                             onChange={(e) => setFilmSearch(e.target.value)}
-                                            placeholder="Cari judul film atau genre..."
-                                            className="w-full rounded-xl border border-border bg-surface pl-10 pr-4 py-3 text-sm sm:text-base text-text placeholder:text-text-muted focus:border-amber-500 focus:outline-none min-h-[46px]"
+                                            placeholder="Cari judul film atau genre favorit..."
+                                            className="w-full rounded-2xl border border-border bg-surface pl-11 pr-4 py-3 text-sm text-text placeholder:text-text-muted focus:border-amber-500 focus:outline-none min-h-[46px] shadow-xs"
                                         />
                                     </div>
 
-                                    <div className="max-h-64 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                                    <div className="max-h-72 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                                         {filteredFilms.map((f) => {
                                             const isPicked = String(f.id) === String(selectedFilmId);
                                             return (
                                                 <div
                                                     key={f.id}
                                                     onClick={() => setSelectedFilmId(String(f.id))}
-                                                    className={`flex items-center justify-between p-3 rounded-2xl border cursor-pointer transition ${
+                                                    className={`group flex items-center justify-between p-3.5 rounded-2xl border cursor-pointer transition ${
                                                         isPicked
-                                                            ? 'border-amber-500 bg-amber-500/10 shadow-xs'
+                                                            ? 'border-amber-500 ring-1 ring-amber-500/40 bg-amber-500/[0.08] dark:bg-amber-500/10 shadow-xs'
                                                             : 'border-border bg-surface hover:bg-surface-2'
                                                     }`}
                                                 >
-                                                    <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="flex items-center gap-3.5 min-w-0">
                                                         <CinemaImage
                                                             src={f.poster_url || (f.poster_path ? `/storage/${f.poster_path}` : null)}
                                                             alt={f.title}
                                                             title={f.title}
                                                             aspect="aspect-[2/3]"
-                                                            className="w-12 shrink-0 rounded-lg"
+                                                            className="w-12 shrink-0 rounded-xl shadow-xs"
                                                         />
-                                                        <div className="min-w-0 truncate">
-                                                            <p className="text-xs sm:text-sm font-black text-text truncate">{f.title}</p>
+                                                        <div className="min-w-0">
+                                                            <p className="text-sm font-black text-text truncate group-hover:text-amber-500 transition">
+                                                                {f.title}
+                                                            </p>
                                                             <p className="text-xs text-text-muted mt-0.5">
                                                                 {f.genre} · {f.duration_minutes}m · {f.age_rating || 'SU'}
                                                             </p>
                                                         </div>
                                                     </div>
-                                                    <div className="shrink-0 flex items-center gap-2">
-                                                        {isPicked && (
-                                                            <span className="flex size-5 items-center justify-center rounded-full bg-amber-500 text-black">
-                                                                <Check className="size-3 font-bold" />
-                                                            </span>
-                                                        )}
+
+                                                    <div className="shrink-0 pl-2">
+                                                        <div
+                                                            className={`size-6 rounded-full border-2 flex items-center justify-center transition ${
+                                                                isPicked
+                                                                    ? 'border-amber-500 bg-amber-500 text-black shadow-xs'
+                                                                    : 'border-border bg-surface'
+                                                            }`}
+                                                        >
+                                                            {isPicked && <Check className="size-3.5 stroke-[3]" />}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             );
                                         })}
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </section>
 
-                        {/* 3. Data Diri */}
-                        <div>
-                            <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-text-muted">3. Data Diri Pemesan</h2>
-                            <div className="mt-3 space-y-4">
-                                <div>
-                                    <label htmlFor="customer_name" className="block text-xs sm:text-sm font-bold text-text-muted mb-1.5">
-                                        Nama Lengkap
+                        {/* 3. DATA PEMESAN */}
+                        <section className="space-y-3.5">
+                            <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-border/60 pb-2">
+                                <h2 className="text-base sm:text-lg font-black text-text tracking-tight flex items-center gap-2">
+                                    <span className="flex size-6 items-center justify-center rounded-lg bg-amber-500 text-black text-xs font-black">
+                                        3
+                                    </span>
+                                    <span>Data Pemesan</span>
+                                </h2>
+                                <span className="text-xs text-text-muted">
+                                    E-tiket & kode QR masuk akan dikirimkan ke WhatsApp
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label htmlFor="customer_name" className="block text-xs font-bold text-text">
+                                        Nama Lengkap Pemesan *
                                     </label>
-                                    <input
-                                        id="customer_name"
-                                        type="text"
-                                        required
-                                        value={customerName}
-                                        onChange={(e) => setCustomerName(e.target.value)}
-                                        placeholder="Contoh: Budi Santoso"
-                                        className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm sm:text-base min-h-[46px] text-text placeholder:text-text-muted focus:border-amber-500 focus:outline-none transition"
-                                    />
+                                    <div className="relative">
+                                        <User className="size-4 text-text-muted absolute left-3.5 top-3.5" />
+                                        <input
+                                            id="customer_name"
+                                            type="text"
+                                            required
+                                            value={customerName}
+                                            onChange={(e) => setCustomerName(e.target.value)}
+                                            placeholder="Nama sesuai identitas"
+                                            className="w-full rounded-2xl border border-border bg-surface pl-10 pr-4 py-3 text-sm min-h-[46px] text-text placeholder:text-text-muted focus:border-amber-500 focus:outline-none transition shadow-xs"
+                                        />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label htmlFor="whatsapp" className="block text-xs sm:text-sm font-bold text-text-muted mb-1.5">
-                                        Nomor WhatsApp (Aktif)
+
+                                <div className="space-y-1.5">
+                                    <label htmlFor="whatsapp" className="block text-xs font-bold text-text">
+                                        Nomor WhatsApp Aktif *
                                     </label>
-                                    <input
-                                        id="whatsapp"
-                                        type="tel"
-                                        required
-                                        value={whatsapp}
-                                        onChange={(e) => setWhatsapp(e.target.value)}
-                                        placeholder="Contoh: 081234567890"
-                                        className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm sm:text-base min-h-[46px] text-text placeholder:text-text-muted focus:border-amber-500 focus:outline-none transition"
-                                    />
-                                    <p className="mt-1.5 text-xs text-text-muted">Tiket digital akan dikirimkan dan diverifikasi melalui nomor ini.</p>
+                                    <div className="relative">
+                                        <Phone className="size-4 text-text-muted absolute left-3.5 top-3.5" />
+                                        <input
+                                            id="whatsapp"
+                                            type="tel"
+                                            required
+                                            value={whatsapp}
+                                            onChange={(e) => setWhatsapp(e.target.value)}
+                                            placeholder="Contoh: 081234567890"
+                                            className="w-full rounded-2xl border border-border bg-surface pl-10 pr-4 py-3 text-sm min-h-[46px] text-text placeholder:text-text-muted focus:border-amber-500 focus:outline-none transition shadow-xs"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Action CTA Next */}
+                            <div className="flex items-center gap-2 rounded-2xl border border-border bg-surface-2/60 p-3 text-xs text-text-muted">
+                                <ShieldCheck className="size-4 text-emerald-500 shrink-0" />
+                                <span>Privasi data terjaga. Tiket resmi terverifikasi langsung secara digital.</span>
+                            </div>
+                        </section>
+
+                        {/* CTA Next */}
                         <div className="pt-4 border-t border-border flex justify-end">
                             <button
                                 type="button"
                                 onClick={() => setStep(snacksEnabled ? 3 : 4)}
                                 disabled={!customerName.trim() || !whatsapp.trim() || !selectedFilmId}
-                                className="btn-gold-cinema inline-flex min-h-12 items-center gap-2 rounded-xl px-7 text-sm font-black shadow-md shadow-amber-500/20 disabled:opacity-40 cursor-pointer"
+                                className="btn-gold-cinema inline-flex min-h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-2xl px-8 text-sm font-black shadow-lg shadow-amber-500/20 disabled:opacity-40 cursor-pointer active:scale-95"
                             >
-                                <span>{snacksEnabled ? 'Pilih Jajan' : 'Lanjut ke Pembayaran'}</span>
+                                <span>{snacksEnabled ? 'Lanjut Pilih Jajan & Minum' : 'Lanjut ke Ringkasan Bayar'}</span>
                                 <ArrowRight className="size-4" />
                             </button>
                         </div>
                     </div>
                 )}
 
-                {/* ==================== STEP 3: MENU JAJAN ==================== */}
+                {/* ==================== STEP 3: CONCESSION & CAFE ==================== */}
                 {step === 3 && snacksEnabled && (
                     <div className="mt-6 space-y-6">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between border-b border-border/60 pb-3">
                             <div>
-                                <h2 className="text-sm font-black uppercase tracking-wider text-text-muted">Menu Makanan & Minuman</h2>
-                                <p className="text-xs text-text-muted mt-0.5">Pesan jajan sekarang agar siap saat kamu tiba.</p>
+                                <h2 className="text-base sm:text-lg font-black text-text tracking-tight flex items-center gap-2">
+                                    <span className="flex size-6 items-center justify-center rounded-lg bg-amber-500 text-black text-xs font-black">
+                                        2
+                                    </span>
+                                    <span>SynemaX Concession & Café</span>
+                                </h2>
+                                <p className="text-xs text-text-muted mt-0.5">
+                                    Camilan hangat & minuman segar siap saji saat kamu tiba di studio
+                                </p>
                             </div>
                             <button
                                 type="button"
                                 onClick={() => setStep(4)}
-                                className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline"
+                                className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
                             >
-                                Lewati jajan
+                                Lewati
                             </button>
                         </div>
 
@@ -776,10 +995,10 @@ export default function Create({
                                     key={cat.id}
                                     type="button"
                                     onClick={() => setActiveSnackCategory(cat.id)}
-                                    className={`shrink-0 rounded-xl px-3.5 py-1.5 text-xs font-bold transition ${
+                                    className={`shrink-0 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
                                         activeSnackCategory === cat.id
-                                            ? 'btn-gold-cinema shadow-xs'
-                                            : 'border border-border bg-surface text-text-muted hover:text-text'
+                                            ? 'bg-amber-500 text-black font-black shadow-xs'
+                                            : 'border border-border bg-surface text-text-muted hover:text-text hover:bg-surface-2'
                                     }`}
                                 >
                                     {cat.name}
@@ -796,41 +1015,47 @@ export default function Create({
                                     return (
                                         <div
                                             key={item.id}
-                                            className="flex items-center justify-between p-3.5 rounded-2xl border border-border bg-surface shadow-xs"
+                                            className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border border-border bg-surface shadow-xs hover:border-amber-500/40 transition"
                                         >
-                                            <div className="flex items-center gap-3 min-w-0">
+                                            <div className="flex items-center gap-3.5 min-w-0">
                                                 <CinemaImage
                                                     src={item.photo_url || (item.photo_path ? `/storage/${item.photo_path}` : null)}
                                                     alt={item.name}
                                                     title={item.name}
                                                     aspect="aspect-square"
-                                                    className="size-14 shrink-0 rounded-xl"
+                                                    className="size-14 sm:size-16 shrink-0 rounded-2xl shadow-xs"
                                                 />
                                                 <div className="min-w-0">
-                                                    <p className="text-xs font-bold text-text truncate">{item.name}</p>
-                                                    <p className="font-mono text-xs font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                                                    <p className="text-sm font-black text-text truncate">{item.name}</p>
+                                                    <p className="font-mono text-sm font-bold text-amber-600 dark:text-amber-400 mt-0.5">
                                                         Rp {Number(item.price || 0).toLocaleString('id-ID')}
                                                     </p>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 bg-surface-2 p-1 rounded-xl border border-border">
                                                 {qty > 0 && (
                                                     <button
                                                         type="button"
                                                         onClick={() => updateSnackQty(item, -1)}
-                                                        className="flex size-7 items-center justify-center rounded-lg border border-border bg-surface-2 text-text"
+                                                        className="flex size-8 items-center justify-center rounded-lg bg-surface text-text hover:bg-surface-sunken transition cursor-pointer"
+                                                        aria-label="Kurang"
                                                     >
-                                                        <Minus className="size-3" />
+                                                        <Minus className="size-3.5" />
                                                     </button>
                                                 )}
-                                                {qty > 0 && <span className="font-mono text-xs font-bold w-4 text-center">{qty}</span>}
+                                                {qty > 0 && (
+                                                    <span className="font-mono text-xs font-black w-6 text-center text-text">
+                                                        {qty}
+                                                    </span>
+                                                )}
                                                 <button
                                                     type="button"
                                                     onClick={() => updateSnackQty(item, 1)}
-                                                    className="flex size-7 items-center justify-center rounded-lg bg-amber-500 text-black font-bold"
+                                                    className="flex size-8 items-center justify-center rounded-lg bg-amber-500 text-black font-black hover:bg-amber-400 transition cursor-pointer shadow-xs"
+                                                    aria-label="Tambah"
                                                 >
-                                                    <Plus className="size-3" />
+                                                    <Plus className="size-3.5" />
                                                 </button>
                                             </div>
                                         </div>
@@ -843,15 +1068,15 @@ export default function Create({
                             <button
                                 type="button"
                                 onClick={() => setStep(2)}
-                                className="inline-flex min-h-10 items-center gap-1 text-xs font-bold text-text-muted hover:text-text"
+                                className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold text-text-muted hover:text-text cursor-pointer"
                             >
                                 <ChevronLeft className="size-4" />
-                                <span>Kembali</span>
+                                <span>Kembali ke Paket</span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setStep(4)}
-                                className="btn-gold-cinema inline-flex min-h-11 items-center gap-2 rounded-xl px-6 text-xs font-bold shadow-md"
+                                className="btn-gold-cinema inline-flex min-h-12 items-center gap-2 rounded-2xl px-7 text-xs sm:text-sm font-black shadow-md cursor-pointer"
                             >
                                 <span>Lanjut ke Ringkasan</span>
                                 <ArrowRight className="size-4" />
@@ -863,19 +1088,44 @@ export default function Create({
                 {/* ==================== STEP 4: RINGKASAN & METODE BAYAR ==================== */}
                 {step === 4 && (
                     <form onSubmit={handleSubmitBooking} className="mt-6 space-y-6">
-                        {/* Ringkasan Biaya */}
-                        <div className="rounded-2xl border border-border bg-surface-2 p-5 shadow-xs space-y-4">
-                            <h2 className="text-sm font-black uppercase tracking-wider text-text">Ringkasan Pesanan</h2>
+                        {/* THE PREMIERE CINEMA TICKET RECEIPT */}
+                        <div className="relative overflow-hidden rounded-3xl border border-amber-500/30 bg-surface shadow-md">
+                            {/* Receipt Top Header */}
+                            <div className="p-5 sm:p-6 border-b border-dashed border-border/80 relative">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <Receipt className="size-5 text-amber-500" />
+                                        <span className="text-xs font-black uppercase tracking-wider text-text">
+                                            Rincian Pemesanan Tiket
+                                        </span>
+                                    </div>
+                                    <span className="text-[11px] font-mono text-text-muted">SYNEMAX PASS</span>
+                                </div>
 
-                            <div className="space-y-2 text-xs border-b border-border pb-3">
-                                <div className="flex justify-between text-text-muted">
-                                    <span>
-                                        Tiket (
+                                <div className="mt-3.5 space-y-1">
+                                    <h3 className="text-base sm:text-lg font-black text-text tracking-tight">
+                                        {activeFilm?.title || 'Film Studio SynemaX'}
+                                    </h3>
+                                    <p className="text-xs text-text-muted">
+                                        {formatDateId(session.session_date)} · {session.start_time?.slice(0, 5)} WIB · STUDIO 1
+                                    </p>
+                                </div>
+
+                                {/* Semicircular Ticket Notches */}
+                                <div className="absolute -bottom-3 -left-3 size-6 rounded-full bg-[var(--surface-canvas)] border-r border-border/80" />
+                                <div className="absolute -bottom-3 -right-3 size-6 rounded-full bg-[var(--surface-canvas)] border-l border-border/80" />
+                            </div>
+
+                            {/* Receipt Line Items */}
+                            <div className="p-5 sm:p-6 space-y-3 bg-surface-2/30">
+                                <div className="flex justify-between items-center text-xs">
+                                    <span className="text-text-muted">
+                                        Tiket Nonton (
                                         {selectedPackage === 'private'
-                                            ? 'Private Studio (6 Kursi)'
+                                            ? `Private Studio · ${session.capacity || 6} Kursi`
                                             : selectedPackage === 'couple'
-                                            ? 'Paket Couple (2 Kursi)'
-                                            : `${pax} Orang`}
+                                            ? 'Couple Velvet · 2 Kursi'
+                                            : `Reguler · ${pax} Orang`}
                                         )
                                     </span>
                                     <span className="font-mono font-bold text-text">
@@ -884,8 +1134,8 @@ export default function Create({
                                 </div>
 
                                 {Object.values(snacksCart).map((entry) => (
-                                    <div key={entry.item.id} className="flex justify-between text-text-muted">
-                                        <span>
+                                    <div key={entry.item.id} className="flex justify-between items-center text-xs">
+                                        <span className="text-text-muted">
                                             {entry.item.name} × {entry.qty}
                                         </span>
                                         <span className="font-mono font-bold text-text">
@@ -893,22 +1143,26 @@ export default function Create({
                                         </span>
                                     </div>
                                 ))}
-                            </div>
 
-                            <div className="flex justify-between items-baseline pt-1">
-                                <span className="text-xs font-bold text-text">Total Pembayaran</span>
-                                <span className="font-mono text-2xl font-black text-amber-600 dark:text-amber-400">
-                                    Rp {Number(grandTotal).toLocaleString('id-ID')}
-                                </span>
+                                <div className="pt-3 border-t border-border flex justify-between items-baseline">
+                                    <span className="text-sm font-black text-text">Total Pembayaran</span>
+                                    <span className="font-mono text-2xl font-black text-amber-600 dark:text-amber-400">
+                                        Rp {Number(grandTotal).toLocaleString('id-ID')}
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Pilihan Metode Pembayaran */}
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-sm font-black uppercase tracking-wider text-text-muted">Metode Pembayaran</h2>
-                                <span className="text-[11px] font-semibold text-text-muted">Pilih satu metode</span>
+                        {/* PILIHAN METODE PEMBAYARAN */}
+                        <div className="space-y-3.5">
+                            <div className="flex items-baseline justify-between border-b border-border/60 pb-2">
+                                <h2 className="text-base font-black text-text tracking-tight flex items-center gap-2">
+                                    <CreditCard className="size-4 text-amber-500" />
+                                    <span>Pilih Metode Pembayaran</span>
+                                </h2>
+                                <span className="text-xs text-text-muted">Pilih satu opsi pembayaran</span>
                             </div>
+
                             <div className="space-y-2.5">
                                 {activePaymentMethods.map((method) => {
                                     const isMethodPicked = paymentMethod === method;
@@ -918,7 +1172,7 @@ export default function Create({
                                                   icon: <QrCode className="size-5" />,
                                                   title: 'QRIS Instan',
                                                   badge: 'Otomatis',
-                                                  desc: 'Scan via BCA, Mandiri, GoPay, OVO, ShopeePay, Dana, dll.',
+                                                  desc: 'BCA, Mandiri, GoPay, OVO, ShopeePay, Dana, dll.',
                                               }
                                             : method === 'transfer'
                                             ? {
@@ -944,9 +1198,9 @@ export default function Create({
                                             }`}
                                         >
                                             <div
-                                                className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl transition ${
+                                                className={`mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-2xl transition ${
                                                     isMethodPicked
-                                                        ? 'bg-amber-500 text-black shadow-xs'
+                                                        ? 'bg-amber-500 text-black shadow-xs font-black'
                                                         : 'bg-surface-2 text-text-muted group-hover:text-text'
                                                 }`}
                                             >
@@ -963,13 +1217,13 @@ export default function Create({
                                             </div>
                                             <div className="shrink-0 pt-0.5">
                                                 <div
-                                                    className={`flex size-5 items-center justify-center rounded-full border transition ${
+                                                    className={`flex size-6 items-center justify-center rounded-full border-2 transition ${
                                                         isMethodPicked
-                                                            ? 'border-amber-500 bg-amber-500 text-black'
+                                                            ? 'border-amber-500 bg-amber-500 text-black shadow-xs'
                                                             : 'border-border bg-surface'
                                                     }`}
                                                 >
-                                                    {isMethodPicked && <Check className="size-3 stroke-[3]" />}
+                                                    {isMethodPicked && <Check className="size-3.5 stroke-[3]" />}
                                                 </div>
                                             </div>
                                         </label>
@@ -978,24 +1232,46 @@ export default function Create({
                             </div>
                         </div>
 
-                        {/* Submit Button */}
-                        <div className="pt-4 border-t border-border flex justify-between items-center">
+                        {/* Submit Actions */}
+                        <div className="pt-4 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3">
                             <button
                                 type="button"
                                 onClick={() => setStep(snacksEnabled ? 3 : 2)}
-                                className="inline-flex min-h-10 items-center gap-1 text-xs font-bold text-text-muted hover:text-text"
+                                className="inline-flex min-h-11 items-center gap-1.5 text-xs font-bold text-text-muted hover:text-text cursor-pointer"
                             >
                                 <ChevronLeft className="size-4" />
-                                <span>Kembali</span>
+                                <span>Kembali ke Paket & Film</span>
                             </button>
                             <button
                                 type="submit"
                                 disabled={processing}
-                                className="btn-gold-cinema inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-7 text-sm font-black shadow-lg disabled:opacity-40"
+                                className="btn-gold-cinema inline-flex min-h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-2xl px-8 text-sm font-black shadow-lg shadow-amber-500/25 disabled:opacity-40 cursor-pointer active:scale-95"
                             >
                                 <span>{processing ? 'Memproses Pesanan...' : 'Konfirmasi & Pesan Tiket'}</span>
                                 <Check className="size-4" />
                             </button>
+                        </div>
+
+                        {/* FLOATING MOBILE CHECKOUT BAR */}
+                        <div className="fixed bottom-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur-md border-t border-border p-3.5 sm:hidden shadow-2xl">
+                            <div className="flex items-center justify-between gap-3 max-w-xl mx-auto">
+                                <div>
+                                    <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
+                                        Total Bayar
+                                    </span>
+                                    <span className="font-mono text-lg font-black text-amber-600 dark:text-amber-400">
+                                        Rp {Number(grandTotal).toLocaleString('id-ID')}
+                                    </span>
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={processing}
+                                    className="btn-gold-cinema inline-flex min-h-[46px] items-center justify-center gap-1.5 rounded-xl px-5 text-xs font-black shadow-md disabled:opacity-40"
+                                >
+                                    <span>{processing ? 'Memproses...' : 'Pesan Tiket'}</span>
+                                    <ArrowRight className="size-4" />
+                                </button>
+                            </div>
                         </div>
                     </form>
                 )}
@@ -1003,4 +1279,3 @@ export default function Create({
         </PublicLayout>
     );
 }
-
