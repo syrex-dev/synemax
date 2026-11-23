@@ -90,9 +90,9 @@ export default function Create({
         }
     }, [paymentMethods]);
 
-    // Auto-scroll to top of content whenever order step changes
+    // Auto-scroll to top of content whenever order step changes or on mount
     useEffect(() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     }, [step]);
 
     // Film search/filter & modals
@@ -342,7 +342,7 @@ export default function Create({
                 </Modal>
             )}
 
-            <div className="mx-auto max-w-2xl px-4 pt-3 pb-28 sm:px-6 sm:pb-20 sm:pt-6">
+            <div className="mx-auto max-w-3xl px-4 pt-3 pb-28 sm:px-6 sm:pb-20 sm:pt-6">
                 {/* 1. TOP BAR NAVIGATION */}
                 <div className="flex items-center justify-between gap-3 pb-4">
                     <Link
@@ -513,13 +513,13 @@ export default function Create({
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4">
                                 {/* Reguler Card */}
                                 <button
                                     type="button"
                                     onClick={() => handlePackageSelect('reguler')}
                                     disabled={!canReguler}
-                                    className={`group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
+                                    className={`group relative flex flex-col justify-between overflow-hidden p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                                         selectedPackage === 'reguler'
                                             ? 'border-amber-500 ring-2 ring-amber-500/40 bg-gradient-to-br from-amber-500/15 via-amber-500/[0.04] to-surface shadow-md shadow-amber-500/10'
                                             : canReguler
@@ -527,10 +527,10 @@ export default function Create({
                                             : 'border-border/40 bg-surface-2/40 opacity-40 cursor-not-allowed'
                                     }`}
                                 >
-                                    <div className="flex items-start justify-between gap-3 w-full">
-                                        <div className="flex items-center gap-3">
+                                    <div className="flex items-start justify-between gap-2.5 w-full">
+                                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
                                             <div
-                                                className={`flex size-11 items-center justify-center rounded-2xl transition ${
+                                                className={`flex size-10 shrink-0 items-center justify-center rounded-xl transition ${
                                                     selectedPackage === 'reguler'
                                                         ? 'bg-amber-500 text-black font-black shadow-md shadow-amber-500/30'
                                                         : 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
@@ -538,35 +538,37 @@ export default function Create({
                                             >
                                                 <User className="size-5" />
                                             </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="text-base sm:text-lg font-black text-text tracking-tight">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <h3 className="text-sm sm:text-base font-black text-text tracking-tight">
                                                         Reguler
                                                     </h3>
-                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                                                    <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30">
                                                         Fleksibel
                                                     </span>
                                                 </div>
-                                                <p className="text-xs text-text-muted mt-0.5">
+                                                <p className="text-xs text-text-muted mt-1 leading-snug">
                                                     Per kursi, bebas atur jumlah
                                                 </p>
                                             </div>
                                         </div>
 
                                         <div
-                                            className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                                            className={`size-5 rounded-full border-2 flex items-center justify-center shrink-0 transition mt-0.5 ${
                                                 selectedPackage === 'reguler'
                                                     ? 'border-amber-500 bg-amber-500 text-black shadow-xs'
                                                     : 'border-border bg-surface-2'
                                             }`}
                                         >
-                                            {selectedPackage === 'reguler' && <Check className="size-3.5 stroke-[3]" />}
+                                            {selectedPackage === 'reguler' && <Check className="size-3 stroke-[3]" />}
                                         </div>
                                     </div>
 
-                                    <div className="mt-4 pt-3 border-t border-border/50 flex items-baseline justify-between w-full">
-                                        <span className="text-xs text-text-muted font-medium">Tarif:</span>
-                                        <div className="flex items-baseline gap-1">
+                                    <div className="mt-4 pt-3 border-t border-border/50 w-full">
+                                        <span className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                                            Tarif Per Orang
+                                        </span>
+                                        <div className="mt-0.5 flex items-baseline gap-1.5 flex-wrap">
                                             <span className="font-mono text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400">
                                                 Rp {Number(unitPrice).toLocaleString('id-ID')}
                                             </span>
@@ -575,7 +577,7 @@ export default function Create({
                                     </div>
 
                                     {!canReguler && (
-                                        <p className="text-xs text-danger-text mt-2 font-bold">{regulerDisabledReason}</p>
+                                        <p className="text-xs text-danger-text mt-2 font-bold leading-tight">{regulerDisabledReason}</p>
                                     )}
                                 </button>
 
@@ -584,7 +586,7 @@ export default function Create({
                                     type="button"
                                     onClick={() => handlePackageSelect('couple')}
                                     disabled={!canCouple}
-                                    className={`group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
+                                    className={`group relative flex flex-col justify-between overflow-hidden p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                                         selectedPackage === 'couple'
                                             ? 'border-amber-500 ring-2 ring-amber-500/40 bg-gradient-to-br from-amber-500/15 via-amber-500/[0.04] to-surface shadow-md shadow-amber-500/10'
                                             : canCouple
@@ -592,10 +594,10 @@ export default function Create({
                                             : 'border-border/40 bg-surface-2/40 opacity-40 cursor-not-allowed'
                                     }`}
                                 >
-                                    <div className="flex items-start justify-between gap-3 w-full">
-                                        <div className="flex items-center gap-3">
+                                    <div className="flex items-start justify-between gap-2.5 w-full">
+                                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
                                             <div
-                                                className={`flex size-11 items-center justify-center rounded-2xl transition ${
+                                                className={`flex size-10 shrink-0 items-center justify-center rounded-xl transition ${
                                                     selectedPackage === 'couple'
                                                         ? 'bg-rose-500 text-white font-black shadow-md shadow-rose-500/30'
                                                         : 'bg-rose-500/15 text-rose-500 border border-rose-500/30'
@@ -603,35 +605,37 @@ export default function Create({
                                             >
                                                 <Heart className="size-5 fill-current" />
                                             </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="text-base sm:text-lg font-black text-text tracking-tight">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <h3 className="text-sm sm:text-base font-black text-text tracking-tight">
                                                         Couple Velvet
                                                     </h3>
-                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                                                    <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
                                                         Favorit
                                                     </span>
                                                 </div>
-                                                <p className="text-xs text-text-muted mt-0.5">
-                                                    2 Kursi sofa tanpa sekat
+                                                <p className="text-xs text-text-muted mt-1 leading-snug">
+                                                    2 Kursi sofa santai tanpa sekat
                                                 </p>
                                             </div>
                                         </div>
 
                                         <div
-                                            className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                                            className={`size-5 rounded-full border-2 flex items-center justify-center shrink-0 transition mt-0.5 ${
                                                 selectedPackage === 'couple'
                                                     ? 'border-amber-500 bg-amber-500 text-black shadow-xs'
                                                     : 'border-border bg-surface-2'
                                             }`}
                                         >
-                                            {selectedPackage === 'couple' && <Check className="size-3.5 stroke-[3]" />}
+                                            {selectedPackage === 'couple' && <Check className="size-3 stroke-[3]" />}
                                         </div>
                                     </div>
 
-                                    <div className="mt-4 pt-3 border-t border-border/50 flex items-baseline justify-between w-full">
-                                        <span className="text-xs text-text-muted font-medium">Tarif Paket:</span>
-                                        <div className="flex items-baseline gap-1">
+                                    <div className="mt-4 pt-3 border-t border-border/50 w-full">
+                                        <span className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                                            Tarif Paket
+                                        </span>
+                                        <div className="mt-0.5 flex items-baseline gap-1.5 flex-wrap">
                                             <span className="font-mono text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400">
                                                 Rp {Number(couplePrice).toLocaleString('id-ID')}
                                             </span>
@@ -640,7 +644,7 @@ export default function Create({
                                     </div>
 
                                     {!canCouple && (
-                                        <p className="text-xs text-danger-text mt-2 font-bold">{coupleDisabledReason}</p>
+                                        <p className="text-xs text-danger-text mt-2 font-bold leading-tight">{coupleDisabledReason}</p>
                                     )}
                                 </button>
 
@@ -649,7 +653,7 @@ export default function Create({
                                     type="button"
                                     onClick={() => handlePackageSelect('private')}
                                     disabled={!canPrivate}
-                                    className={`group relative flex flex-col justify-between p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
+                                    className={`group relative flex flex-col justify-between overflow-hidden p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${
                                         selectedPackage === 'private'
                                             ? 'border-amber-500 ring-2 ring-amber-500/40 bg-gradient-to-br from-amber-500/15 via-amber-500/[0.04] to-surface shadow-md shadow-amber-500/10'
                                             : canPrivate
@@ -657,10 +661,10 @@ export default function Create({
                                             : 'border-border/40 bg-surface-2/40 opacity-40 cursor-not-allowed'
                                     }`}
                                 >
-                                    <div className="flex items-start justify-between gap-3 w-full">
-                                        <div className="flex items-center gap-3">
+                                    <div className="flex items-start justify-between gap-2.5 w-full">
+                                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
                                             <div
-                                                className={`flex size-11 items-center justify-center rounded-2xl transition ${
+                                                className={`flex size-10 shrink-0 items-center justify-center rounded-xl transition ${
                                                     selectedPackage === 'private'
                                                         ? 'bg-purple-600 text-white font-black shadow-md shadow-purple-600/30'
                                                         : 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30'
@@ -668,35 +672,37 @@ export default function Create({
                                             >
                                                 <Crown className="size-5" />
                                             </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <h3 className="text-base sm:text-lg font-black text-text tracking-tight">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <h3 className="text-sm sm:text-base font-black text-text tracking-tight">
                                                         Private Studio
                                                     </h3>
-                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
+                                                    <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30">
                                                         VIP Hall
                                                     </span>
                                                 </div>
-                                                <p className="text-xs text-text-muted mt-0.5">
+                                                <p className="text-xs text-text-muted mt-1 leading-snug">
                                                     Sewa penuh ({session.capacity || 6} kursi)
                                                 </p>
                                             </div>
                                         </div>
 
                                         <div
-                                            className={`size-6 rounded-full border-2 flex items-center justify-center shrink-0 transition ${
+                                            className={`size-5 rounded-full border-2 flex items-center justify-center shrink-0 transition mt-0.5 ${
                                                 selectedPackage === 'private'
                                                     ? 'border-amber-500 bg-amber-500 text-black shadow-xs'
                                                     : 'border-border bg-surface-2'
                                             }`}
                                         >
-                                            {selectedPackage === 'private' && <Check className="size-3.5 stroke-[3]" />}
+                                            {selectedPackage === 'private' && <Check className="size-3 stroke-[3]" />}
                                         </div>
                                     </div>
 
-                                    <div className="mt-4 pt-3 border-t border-border/50 flex items-baseline justify-between w-full">
-                                        <span className="text-xs text-text-muted font-medium">Tarif Sewa:</span>
-                                        <div className="flex items-baseline gap-1">
+                                    <div className="mt-4 pt-3 border-t border-border/50 w-full">
+                                        <span className="block text-[11px] font-bold uppercase tracking-wider text-text-muted">
+                                            Tarif Sewa Studio
+                                        </span>
+                                        <div className="mt-0.5 flex items-baseline gap-1.5 flex-wrap">
                                             <span className="font-mono text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400">
                                                 Rp {Number(privatePrice).toLocaleString('id-ID')}
                                             </span>
@@ -705,7 +711,7 @@ export default function Create({
                                     </div>
 
                                     {!canPrivate && (
-                                        <p className="text-xs text-danger-text mt-2 font-bold">{privateDisabledReason}</p>
+                                        <p className="text-xs text-danger-text mt-2 font-bold leading-tight">{privateDisabledReason}</p>
                                     )}
                                 </button>
                             </div>
@@ -1346,7 +1352,7 @@ export default function Create({
 
                         {/* FLOATING MOBILE CHECKOUT BAR */}
                         <div className="fixed bottom-0 left-0 right-0 z-40 bg-surface/95 backdrop-blur-md border-t border-border p-3.5 sm:hidden shadow-2xl">
-                            <div className="flex items-center justify-between gap-3 max-w-xl mx-auto">
+                            <div className="flex items-center justify-between gap-3 max-w-3xl mx-auto">
                                 <div>
                                     <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider block">
                                         Total Bayar

@@ -34,6 +34,30 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
     const [deleteModalData, setDeleteModalData] = useState(null);
     const [editBookingData, setEditBookingData] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [confirmModal, setConfirmModal] = useState({
+        show: false,
+        title: '',
+        message: '',
+        confirmText: 'Lanjutkan',
+        cancelText: 'Batal',
+        variant: 'danger',
+        onConfirm: () => {},
+    });
+
+    // Auto-refresh when new bookings arrive (poll every 10 seconds if window visible)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                router.reload({
+                    only: ['bookings'],
+                    preserveScroll: true,
+                    preserveState: true,
+                });
+            }
+        }, 10000);
+
+        return () => clearInterval(interval);
+    }, []);
 
     const handleFilter = (e) => {
         e?.preventDefault();
@@ -81,14 +105,65 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
     };
 
     const handleStatusAction = (bookingId, action, confirmMsg) => {
-        if (confirmMsg && !window.confirm(confirmMsg)) return;
-        router.patch(`/admin/booking/${bookingId}/status`, { action });
+        if (!confirmMsg) {
+            router.patch(`/admin/booking/${bookingId}/status`, { action });
+            return;
+        }
+
+        const isDanger = action === 'batal';
+        const isWarning = action === 'tidak_hadir';
+        const actionTitle = action === 'batal'
+            ? 'Batalkan Booking?'
+            : action === 'tandai_dibayar'
+            ? 'Konfirmasi Pembayaran?'
+            : action === 'tidak_hadir'
+            ? 'Tandai Tidak Hadir?'
+            : action === 'pulihkan'
+            ? 'Pulihkan Booking?'
+            : 'Konfirmasi Aksi';
+
+        const confirmButtonText = action === 'batal'
+            ? 'Ya, Batalkan'
+            : action === 'tandai_dibayar'
+            ? 'Ya, Tandai Dibayar'
+            : action === 'tidak_hadir'
+            ? 'Tandai Tidak Hadir'
+            : action === 'pulihkan'
+            ? 'Ya, Pulihkan'
+            : 'Lanjutkan';
+
+        setConfirmModal({
+            show: true,
+            title: actionTitle,
+            message: confirmMsg,
+            confirmText: confirmButtonText,
+            cancelText: 'Batal',
+            variant: isDanger ? 'danger' : isWarning ? 'warning' : 'primary',
+            onConfirm: () => {
+                router.patch(`/admin/booking/${bookingId}/status`, { action });
+                setConfirmModal(prev => ({ ...prev, show: false }));
+            },
+        });
     };
 
     const handleToggleBlock = (profileId, isBlocked) => {
-        const msg = isBlocked ? 'Buka blokir nomor WhatsApp ini?' : 'Blokir nomor WhatsApp ini dari booking baru?';
-        if (!window.confirm(msg)) return;
-        router.patch(`/admin/pelanggan/${profileId}/blokir`);
+        const title = isBlocked ? 'Buka Blokir Nomor WhatsApp?' : 'Blokir Nomor WhatsApp?';
+        const message = isBlocked
+            ? 'Nomor WhatsApp ini akan dapat melakukan pemesanan tiket kembali di SynemaX.'
+            : 'Nomor WhatsApp ini tidak akan dapat membuat booking tiket baru di SynemaX.';
+
+        setConfirmModal({
+            show: true,
+            title,
+            message,
+            confirmText: isBlocked ? 'Buka Blokir' : 'Blokir Nomor',
+            cancelText: 'Batal',
+            variant: isBlocked ? 'primary' : 'danger',
+            onConfirm: () => {
+                router.patch(`/admin/pelanggan/${profileId}/blokir`);
+                setConfirmModal(prev => ({ ...prev, show: false }));
+            },
+        });
     };
 
     const formatRupiah = (val) => {
@@ -157,7 +232,16 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
                 <div className="flex flex-wrap items-end justify-between gap-4">
                     <div>
                         <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent">Pelanggan</p>
-                        <h1 className="mt-1 text-2xl sm:text-3xl font-black text-text">Kelola booking</h1>
+                        <div className="flex items-center gap-3 mt-1 flex-wrap">
+                            <h1 className="text-2xl sm:text-3xl font-black text-text">Kelola booking</h1>
+                            <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                <span className="relative flex size-2">
+                                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
+                                </span>
+                                <span>Auto-refresh aktif</span>
+                            </div>
+                        </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2.5">
                         <Link
@@ -677,6 +761,52 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
                         >
                             <Trash2 className="size-3.5" />
                             <span>{isDeleting ? 'Menghapus...' : 'Ya, Hapus Permanen'}</span>
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* In-App Styled Confirmation Modal */}
+            <Modal show={confirmModal.show} onClose={() => setConfirmModal(prev => ({ ...prev, show: false }))} maxWidth="md">
+                <div className="p-6 space-y-4">
+                    <div className="flex items-start gap-3.5">
+                        <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${
+                            confirmModal.variant === 'danger'
+                                ? 'bg-rose-500/15 text-rose-500'
+                                : confirmModal.variant === 'warning'
+                                ? 'bg-amber-500/15 text-amber-500'
+                                : 'bg-emerald-500/15 text-emerald-500'
+                        }`}>
+                            <AlertTriangle className="size-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-black text-text">{confirmModal.title}</h3>
+                            <p className="mt-1 text-xs text-text-muted leading-relaxed">
+                                {confirmModal.message}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border">
+                        <button
+                            type="button"
+                            onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+                            className="min-h-10 rounded-xl border border-border bg-surface px-4 text-xs font-semibold text-text hover:bg-surface-2 transition"
+                        >
+                            {confirmModal.cancelText || 'Batal'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={confirmModal.onConfirm}
+                            className={`min-h-10 rounded-xl px-4 text-xs font-bold transition inline-flex items-center gap-1.5 ${
+                                confirmModal.variant === 'danger'
+                                    ? 'bg-rose-600 text-white hover:bg-rose-500 active:scale-95'
+                                    : confirmModal.variant === 'warning'
+                                    ? 'bg-amber-600 text-white hover:bg-amber-500 active:scale-95'
+                                    : 'bg-amber-500 text-slate-950 hover:bg-amber-400 active:scale-95'
+                            }`}
+                        >
+                            <span>{confirmModal.confirmText}</span>
                         </button>
                     </div>
                 </div>

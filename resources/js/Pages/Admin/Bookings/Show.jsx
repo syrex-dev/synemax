@@ -21,7 +21,8 @@ import {
     XCircle, 
     ChevronDown, 
     History,
-    QrCode
+    QrCode,
+    AlertTriangle
 } from 'lucide-react';
 
 export default function Show({ 
@@ -52,6 +53,15 @@ export default function Show({
     const [selectedSnacks, setSelectedSnacks] = useState(initialItems);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [confirmModal, setConfirmModal] = useState({
+        show: false,
+        title: '',
+        message: '',
+        confirmText: 'Lanjutkan',
+        cancelText: 'Batal',
+        variant: 'primary',
+        onConfirm: () => {},
+    });
 
     const copyToClipboard = (code) => {
         navigator.clipboard.writeText(code);
@@ -64,8 +74,41 @@ export default function Show({
     };
 
     const handleStatusAction = (action, confirmMsg) => {
-        if (confirmMsg && !window.confirm(confirmMsg)) return;
-        router.patch(`/admin/booking/${booking.id}/status`, { action });
+        if (!confirmMsg) {
+            router.patch(`/admin/booking/${booking.id}/status`, { action });
+            return;
+        }
+
+        const isDanger = action === 'batal';
+        const isWarning = action === 'tidak_hadir';
+        const actionTitle = action === 'batal'
+            ? 'Batalkan Booking?'
+            : action === 'tandai_dibayar'
+            ? 'Konfirmasi Pembayaran?'
+            : action === 'tidak_hadir'
+            ? 'Tandai Tidak Hadir?'
+            : 'Konfirmasi Aksi';
+
+        const confirmButtonText = action === 'batal'
+            ? 'Ya, Batalkan'
+            : action === 'tandai_dibayar'
+            ? 'Konfirmasi Pembayaran'
+            : action === 'tidak_hadir'
+            ? 'Tandai Tidak Hadir'
+            : 'Lanjutkan';
+
+        setConfirmModal({
+            show: true,
+            title: actionTitle,
+            message: confirmMsg,
+            confirmText: confirmButtonText,
+            cancelText: 'Batal',
+            variant: isDanger ? 'danger' : isWarning ? 'warning' : 'primary',
+            onConfirm: () => {
+                router.patch(`/admin/booking/${booking.id}/status`, { action });
+                setConfirmModal(prev => ({ ...prev, show: false }));
+            },
+        });
     };
 
     const handleSaveSnacks = (e) => {
@@ -669,6 +712,52 @@ export default function Show({
                         >
                             <Trash2 className="size-3.5" />
                             <span>{isDeleting ? 'Menghapus...' : 'Ya, Hapus Permanen'}</span>
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* In-App Styled Confirmation Modal */}
+            <Modal show={confirmModal.show} onClose={() => setConfirmModal(prev => ({ ...prev, show: false }))} maxWidth="md">
+                <div className="p-6 space-y-4">
+                    <div className="flex items-start gap-3.5">
+                        <div className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${
+                            confirmModal.variant === 'danger'
+                                ? 'bg-rose-500/15 text-rose-500'
+                                : confirmModal.variant === 'warning'
+                                ? 'bg-amber-500/15 text-amber-500'
+                                : 'bg-emerald-500/15 text-emerald-500'
+                        }`}>
+                            <AlertTriangle className="size-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-black text-text">{confirmModal.title}</h3>
+                            <p className="mt-1 text-xs text-text-muted leading-relaxed">
+                                {confirmModal.message}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border">
+                        <button
+                            type="button"
+                            onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+                            className="min-h-10 rounded-xl border border-border bg-surface px-4 text-xs font-semibold text-text hover:bg-surface-2 transition"
+                        >
+                            {confirmModal.cancelText || 'Batal'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={confirmModal.onConfirm}
+                            className={`min-h-10 rounded-xl px-4 text-xs font-bold transition inline-flex items-center gap-1.5 ${
+                                confirmModal.variant === 'danger'
+                                    ? 'bg-rose-600 text-white hover:bg-rose-500 active:scale-95'
+                                    : confirmModal.variant === 'warning'
+                                    ? 'bg-amber-600 text-white hover:bg-amber-500 active:scale-95'
+                                    : 'bg-amber-500 text-slate-950 hover:bg-amber-400 active:scale-95'
+                            }`}
+                        >
+                            <span>{confirmModal.confirmText}</span>
                         </button>
                     </div>
                 </div>

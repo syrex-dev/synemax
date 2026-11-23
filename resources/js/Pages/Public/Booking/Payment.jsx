@@ -28,14 +28,12 @@ export default function Payment({
     maxPaymentProofKb = 4096,
     paymentTimeLimitMinutes = 15,
 }) {
-    // Expiration & countdown timer
-    const targetTime = booking?.payment_expires_at ? new Date(booking.payment_expires_at).getTime() : null;
-    const initialDiff = targetTime ? Math.max(0, Math.floor((targetTime - Date.now()) / 1000)) : 0;
+    // Lock scroll to top of content on mount
+    useEffect(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }, []);
 
-    const [timeLeft, setTimeLeft] = useState(initialDiff);
-    const [isExpired, setIsExpired] = useState(
-        booking?.status === 'kedaluwarsa' || (targetTime !== null && Date.now() > targetTime)
-    );
+    const [isExpired] = useState(booking?.status === 'kedaluwarsa');
     const [copiedNominal, setCopiedNominal] = useState(false);
     const [copiedAccount, setCopiedAccount] = useState(null);
     const [enlargeModal, setEnlargeModal] = useState(false);
@@ -53,33 +51,6 @@ export default function Payment({
         whatsapp: booking?.whatsapp || '',
         payment_proof: null,
     });
-
-    const totalSeconds = (paymentTimeLimitMinutes || 15) * 60;
-    const progressPct = Math.min(100, Math.max(0, (timeLeft / (totalSeconds || 900)) * 100));
-    const isUrgent = timeLeft > 0 && timeLeft <= 180;
-
-    // Timer effect
-    useEffect(() => {
-        if (!targetTime || isExpired) return;
-
-        const interval = setInterval(() => {
-            const now = Date.now();
-            const diff = Math.max(0, Math.floor((targetTime - now) / 1000));
-            setTimeLeft(diff);
-            if (diff <= 0) {
-                setIsExpired(true);
-                clearInterval(interval);
-            }
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [targetTime, isExpired]);
-
-    const formatTime = (seconds) => {
-        const m = Math.floor(seconds / 60);
-        const s = seconds % 60;
-        return `${m}:${s < 10 ? '0' : ''}${s}`;
-    };
 
     const copyNominal = (amount) => {
         if (navigator.clipboard?.writeText) {
@@ -277,79 +248,12 @@ export default function Payment({
                     </div>
                 )}
 
-                {/* ==================== COUNTDOWN TIMER PEMBAYARAN & PROGRESS BAR ==================== */}
-                {!isExpired && (
-                    <div
-                        className={`mb-6 rounded-xl border p-5 shadow-xs transition-all ${
-                            isUrgent ? 'border-danger/40 bg-danger-surface' : 'border-amber-400/40 bg-amber-500/10'
-                        }`}
-                    >
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <span className={`size-2 rounded-full ${isUrgent ? 'bg-danger animate-pulse' : 'bg-amber-600 dark:bg-amber-400'}`} />
-                                    <p className="text-xs font-bold uppercase tracking-wider text-text-muted">
-                                        Sisa waktu pembayaran
-                                    </p>
-                                </div>
-                                <div className="mt-1 flex items-baseline gap-2">
-                                    <p
-                                        className={`font-mono text-3xl font-black sm:text-4xl ${
-                                            isUrgent ? 'text-danger-text' : 'text-amber-800 dark:text-amber-300'
-                                        }`}
-                                    >
-                                        {formatTime(timeLeft)}
-                                    </p>
-                                    <span className="text-xs text-text-muted">Menit : Detik</span>
-                                </div>
-                            </div>
-                            <div className="text-right">
-                                <span className="rounded-lg bg-surface-2 px-2.5 py-1 text-[11px] font-bold text-text-muted">
-                                    Batas: {paymentTimeLimitMinutes ?? 15} Menit
-                                </span>
-                                <p className="mt-1 text-[11px] text-text-muted">Tempatmu ditahan sementara</p>
-                            </div>
-                        </div>
-
-                        {/* Visual Progress Bar */}
-                        <div className="mt-4 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-white/10 h-2">
-                            <div
-                                className={`h-full rounded-full transition-all duration-1000 ease-linear ${
-                                    isUrgent ? 'bg-danger' : 'bg-gradient-to-r from-amber-400 to-amber-600'
-                                }`}
-                                style={{ width: `${progressPct}%` }}
-                            />
-                        </div>
-                        <p className="mt-2 text-[11px] text-text-muted text-center sm:text-left">
-                            Kirim bukti transfer sebelum penghitung waktu habis agar tempat Anda tidak dibatalkan otomatis.
-                        </p>
-                    </div>
-                )}
-
-                {/* Banner Jika Waktu Pembayaran Habis */}
-                {isExpired && (
-                    <div className="mb-6 rounded-xl border border-danger/40 bg-danger-surface p-6 text-center text-danger-text">
-                        <h1 className="text-lg font-black text-danger-text sm:text-xl">Waktu Pembayaran Habis</h1>
-                        <p className="mt-1.5 text-xs text-danger-text/90 leading-relaxed">
-                            Batas waktu transfer telah berakhir dan tempat pesanan telah dilepaskan kembali ke publik.
-                        </p>
-                        <div className="mt-5 flex flex-wrap justify-center gap-3">
-                            <Link
-                                href={`/booking/${booking.session_id}`}
-                                className="btn-gold-cinema inline-flex min-h-11 items-center justify-center rounded-xl px-5 text-xs font-bold"
-                            >
-                                Buat Booking Baru
-                            </Link>
-                        </div>
-                    </div>
-                )}
-
                 {/* Catatan Penolakan Bukti Sebelumnya (Jika Ada) */}
                 {booking.proof_rejection_note && (
                     <div className="mb-5 rounded-xl border border-danger/40 bg-danger-surface p-4 text-xs text-danger-text">
                         <p className="font-bold">Bukti pembayaran sebelumnya belum dapat disetujui admin:</p>
                         <p className="mt-1 font-semibold">{booking.proof_rejection_note}</p>
-                        <p className="mt-1 opacity-90">Silakan unggah ulang bukti transfer yang jelas sebelum waktu pembayaran habis.</p>
+                        <p className="mt-1 opacity-90">Silakan unggah ulang bukti transfer yang jelas agar pesanan Anda dapat segera diverifikasi oleh admin.</p>
                     </div>
                 )}
 

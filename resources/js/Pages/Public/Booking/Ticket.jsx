@@ -59,6 +59,11 @@ export default function Ticket({
 
     const canPrint = isAktif || isCompleted;
 
+    // Lock scroll to top of content on mount
+    useEffect(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }, []);
+
     // Polling when waiting confirmation
     useEffect(() => {
         if (!isWaitingConfirmation) return;
