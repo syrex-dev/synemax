@@ -24,6 +24,7 @@ import {
     CheckSquare,
     ExternalLink,
     Smartphone,
+    Bot,
 } from 'lucide-react';
 
 export default function AdminLayout({ children, title, isFormPage = false }) {
@@ -47,6 +48,7 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
                 { name: 'Scan Tiket', href: '/admin/scan', icon: QrCode },
                 { name: 'Scan Member', href: '/admin/members/scan', icon: Users },
                 { name: 'Booking', href: '/admin/booking', icon: FileText, exact: true },
+                { name: 'Bot Keluhan & Feedback', href: '/admin/bot-feedbacks', icon: Bot },
                 { name: 'Member', href: '/admin/members', icon: Users },
                 { name: 'Jadwal', href: '/admin/jadwal', icon: Calendar },
                 { name: 'Nobar', href: '/admin/nobar', icon: Sparkles },

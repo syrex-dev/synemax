@@ -13,6 +13,7 @@ use App\Models\Promo;
 use App\Models\Session;
 use App\Models\Setting;
 use App\Services\CinemaSettings;
+use App\Services\Telegram\TelegramBotService;
 use App\Services\TelegramNotificationService;
 use App\Support\WhatsAppNumber;
 use Illuminate\Http\JsonResponse;
@@ -67,6 +68,8 @@ class SettingController extends Controller
         $telegramSettings = [
             'enabled' => $settings->boolean('telegram_notifications_enabled', false),
             'masked_token' => app(TelegramNotificationService::class)->getMaskedToken(),
+            'bot_username' => $settings->string('telegram_bot_username'),
+            'webhook_info' => app(TelegramBotService::class)->getWebhookInfo(),
             'chat_ids' => $settings->string('telegram_chat_ids'),
             'notify_booking_created' => $settings->boolean('telegram_notify_booking_created', true),
             'notify_proof_uploaded' => $settings->boolean('telegram_notify_proof_uploaded', true),
@@ -960,6 +963,9 @@ class SettingController extends Controller
             $settings->set('telegram_bot_token', Crypt::encryptString($newToken), 'notifikasi');
         }
 
+        $botUsername = trim((string) $request->input('telegram_bot_username', ''));
+        $settings->set('telegram_bot_username', ltrim($botUsername, '@'), 'notifikasi');
+
         $chatIds = trim((string) $request->input('telegram_chat_ids', ''));
         $settings->set('telegram_chat_ids', $chatIds, 'notifikasi');
 
@@ -980,7 +986,7 @@ class SettingController extends Controller
         }
     }
 
-    public function testTelegram(Request $request, TelegramNotificationService $telegram): JsonResponse
+    public function testTelegram(Request $request, TelegramNotificationService $telegram): JsonResponse|RedirectResponse
     {
         $chatId = $request->input('chat_id');
         $token = $request->input('token');
@@ -991,7 +997,47 @@ class SettingController extends Controller
 
         $result = $telegram->sendTestMessage($chatId, $token);
 
+        if ($request->header('X-Inertia')) {
+            return back()->with(
+                $result['success'] ? 'status' : 'error',
+                $result['message']
+            );
+        }
+
         return response()->json($result);
+    }
+
+    public function setupTelegramWebhook(Request $request, TelegramBotService $botService): JsonResponse|RedirectResponse
+    {
+        $webhookUrl = url('/telegram/webhook');
+        $res = $botService->setWebhook($webhookUrl);
+
+        $ok = (bool) ($res['ok'] ?? false);
+        $msg = $ok
+            ? 'Webhook bot Telegram berhasil dipasang ke: '.$webhookUrl
+            : 'Gagal memasang webhook: '.($res['description'] ?? 'Kesalahan tidak diketahui.');
+
+        if ($request->header('X-Inertia')) {
+            return back()->with($ok ? 'status' : 'error', $msg);
+        }
+
+        return response()->json(['success' => $ok, 'message' => $msg, 'result' => $res]);
+    }
+
+    public function removeTelegramWebhook(Request $request, TelegramBotService $botService): JsonResponse|RedirectResponse
+    {
+        $res = $botService->deleteWebhook();
+
+        $ok = (bool) ($res['ok'] ?? false);
+        $msg = $ok
+            ? 'Webhook bot Telegram berhasil dinonaktifkan.'
+            : 'Gagal menghapus webhook: '.($res['description'] ?? 'Kesalahan tidak diketahui.');
+
+        if ($request->header('X-Inertia')) {
+            return back()->with($ok ? 'status' : 'error', $msg);
+        }
+
+        return response()->json(['success' => $ok, 'message' => $msg, 'result' => $res]);
     }
 
     public function detectTelegramChats(Request $request, TelegramNotificationService $telegram): JsonResponse
