@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class MediaRouteTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_nobar_poster_media_route_serves_image(): void
     {
         $response = $this->get('/media/nobar/contoh-nobar-tim-garuda-muda-vs-tim-bintang-timur.png');

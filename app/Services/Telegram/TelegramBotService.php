@@ -13,7 +13,9 @@ use Throwable;
 
 class TelegramBotService
 {
-    protected ?string $token;
+    protected ?string $adminToken;
+
+    protected ?string $csToken;
 
     /** @var list<string> */
     protected array $adminChatIds = [];
@@ -22,23 +24,49 @@ class TelegramBotService
         protected CinemaSettings $settings,
         protected TelegramNotificationService $telegramService,
     ) {
-        $this->token = $this->telegramService->getDecryptedToken();
+        $this->adminToken = $this->telegramService->getDecryptedToken();
+        $this->csToken = $this->telegramService->getCsDecryptedToken() ?? $this->adminToken;
         $this->adminChatIds = $this->telegramService->getChatIds();
+    }
+
+    public function getAdminToken(): ?string
+    {
+        return $this->adminToken;
+    }
+
+    public function getCsToken(): ?string
+    {
+        return $this->csToken;
     }
 
     public function getToken(): ?string
     {
-        return $this->token;
+        return $this->csToken ?? $this->adminToken;
     }
 
     public function getMe(): ?array
     {
-        if (! $this->token) {
+        return $this->getCsMe() ?? $this->getAdminMe();
+    }
+
+    public function getAdminMe(): ?array
+    {
+        return $this->apiGetMe($this->adminToken);
+    }
+
+    public function getCsMe(): ?array
+    {
+        return $this->apiGetMe($this->csToken);
+    }
+
+    protected function apiGetMe(?string $token): ?array
+    {
+        if (! $token) {
             return null;
         }
 
         try {
-            $res = Http::timeout(10)->get("https://api.telegram.org/bot{$this->token}/getMe");
+            $res = Http::timeout(10)->get("https://api.telegram.org/bot{$token}/getMe");
             if ($res->successful() && $res->json('ok')) {
                 return $res->json('result');
             }
@@ -51,7 +79,22 @@ class TelegramBotService
 
     public function setWebhook(string $webhookUrl, ?string $secretToken = null): array
     {
-        if (! $this->token) {
+        return $this->setCsWebhook($webhookUrl, $secretToken);
+    }
+
+    public function setAdminWebhook(string $webhookUrl, ?string $secretToken = null): array
+    {
+        return $this->apiSetWebhook($this->adminToken, $webhookUrl, $secretToken);
+    }
+
+    public function setCsWebhook(string $webhookUrl, ?string $secretToken = null): array
+    {
+        return $this->apiSetWebhook($this->csToken, $webhookUrl, $secretToken);
+    }
+
+    protected function apiSetWebhook(?string $token, string $webhookUrl, ?string $secretToken = null): array
+    {
+        if (! $token) {
             return ['ok' => false, 'description' => 'Token bot Telegram belum dikonfigurasi.'];
         }
 
@@ -66,7 +109,7 @@ class TelegramBotService
                 $payload['secret_token'] = $secretToken;
             }
 
-            $res = Http::timeout(12)->post("https://api.telegram.org/bot{$this->token}/setWebhook", $payload);
+            $res = Http::timeout(12)->post("https://api.telegram.org/bot{$token}/setWebhook", $payload);
 
             return $res->json() ?? ['ok' => false, 'description' => 'Gagal membaca respon Telegram API.'];
         } catch (Throwable $e) {
@@ -76,12 +119,27 @@ class TelegramBotService
 
     public function getWebhookInfo(): array
     {
-        if (! $this->token) {
+        return $this->getCsWebhookInfo();
+    }
+
+    public function getAdminWebhookInfo(): array
+    {
+        return $this->apiGetWebhookInfo($this->adminToken);
+    }
+
+    public function getCsWebhookInfo(): array
+    {
+        return $this->apiGetWebhookInfo($this->csToken);
+    }
+
+    protected function apiGetWebhookInfo(?string $token): array
+    {
+        if (! $token) {
             return ['ok' => false, 'description' => 'Token bot Telegram belum dikonfigurasi.'];
         }
 
         try {
-            $res = Http::timeout(10)->get("https://api.telegram.org/bot{$this->token}/getWebhookInfo");
+            $res = Http::timeout(10)->get("https://api.telegram.org/bot{$token}/getWebhookInfo");
 
             return $res->json() ?? ['ok' => false, 'description' => 'Gagal membaca info webhook.'];
         } catch (Throwable $e) {
@@ -91,12 +149,27 @@ class TelegramBotService
 
     public function deleteWebhook(): array
     {
-        if (! $this->token) {
+        return $this->deleteCsWebhook();
+    }
+
+    public function deleteAdminWebhook(): array
+    {
+        return $this->apiDeleteWebhook($this->adminToken);
+    }
+
+    public function deleteCsWebhook(): array
+    {
+        return $this->apiDeleteWebhook($this->csToken);
+    }
+
+    protected function apiDeleteWebhook(?string $token): array
+    {
+        if (! $token) {
             return ['ok' => false, 'description' => 'Token bot Telegram belum dikonfigurasi.'];
         }
 
         try {
-            $res = Http::timeout(10)->post("https://api.telegram.org/bot{$this->token}/deleteWebhook");
+            $res = Http::timeout(10)->post("https://api.telegram.org/bot{$token}/deleteWebhook");
 
             return $res->json() ?? ['ok' => false, 'description' => 'Gagal menghapus webhook.'];
         } catch (Throwable $e) {
@@ -106,7 +179,22 @@ class TelegramBotService
 
     public function sendMessage(string|int $chatId, string $text, ?array $replyMarkup = null): bool
     {
-        if (! $this->token) {
+        return $this->sendCsMessage($chatId, $text, $replyMarkup);
+    }
+
+    public function sendAdminMessage(string|int $chatId, string $text, ?array $replyMarkup = null): bool
+    {
+        return $this->apiSendMessage($this->adminToken ?? $this->csToken, $chatId, $text, $replyMarkup);
+    }
+
+    public function sendCsMessage(string|int $chatId, string $text, ?array $replyMarkup = null): bool
+    {
+        return $this->apiSendMessage($this->csToken ?? $this->adminToken, $chatId, $text, $replyMarkup);
+    }
+
+    protected function apiSendMessage(?string $token, string|int $chatId, string $text, ?array $replyMarkup = null): bool
+    {
+        if (! $token) {
             return false;
         }
 
@@ -122,7 +210,7 @@ class TelegramBotService
                 $payload['reply_markup'] = json_encode($replyMarkup);
             }
 
-            $res = Http::timeout(10)->post("https://api.telegram.org/bot{$this->token}/sendMessage", $payload);
+            $res = Http::timeout(10)->post("https://api.telegram.org/bot{$token}/sendMessage", $payload);
 
             return $res->successful() && $res->json('ok');
         } catch (Throwable $e) {
@@ -134,7 +222,8 @@ class TelegramBotService
 
     public function answerCallbackQuery(string $callbackQueryId, ?string $text = null, bool $showAlert = false): bool
     {
-        if (! $this->token) {
+        $token = $this->csToken ?? $this->adminToken;
+        if (! $token) {
             return false;
         }
 
@@ -145,12 +234,97 @@ class TelegramBotService
                 $payload['show_alert'] = $showAlert;
             }
 
-            $res = Http::timeout(8)->post("https://api.telegram.org/bot{$this->token}/answerCallbackQuery", $payload);
+            $res = Http::timeout(8)->post("https://api.telegram.org/bot{$token}/answerCallbackQuery", $payload);
 
             return $res->successful();
         } catch (Throwable) {
             return false;
         }
+    }
+
+    /**
+     * Handle incoming webhook updates for Admin Bot.
+     */
+    public function handleAdminUpdate(array $update): void
+    {
+        if (isset($update['message'])) {
+            $this->handleAdminMessage($update['message']);
+        }
+    }
+
+    /**
+     * Process message sent to Admin Bot. Automatically registers the admin's Chat ID.
+     */
+    protected function handleAdminMessage(array $message): void
+    {
+        $chatId = $message['chat']['id'] ?? null;
+        $from = $message['from'] ?? [];
+        $text = trim($message['text'] ?? '');
+        $firstName = $from['first_name'] ?? 'Admin';
+        $lastName = $from['last_name'] ?? '';
+        $senderName = trim("{$firstName} {$lastName}") ?: 'Admin';
+
+        if (! $chatId) {
+            return;
+        }
+
+        // Auto-register Chat ID to system settings
+        $isNew = $this->telegramService->addChatId((string) $chatId);
+        // Refresh local cache of chat IDs
+        $this->adminChatIds = $this->telegramService->getChatIds();
+
+        $cinemaName = $this->settings->siteName() ?: 'SynemaX';
+        $siteUrl = config('app.url', 'https://synemax.web.id');
+
+        if (str_starts_with($text, '/status')) {
+            $pendingBookings = Booking::whereIn('status', ['menunggu_pembayaran', 'menunggu_konfirmasi'])->count();
+            $todayBookings = Booking::whereDate('created_at', today())->count();
+
+            $reply = "<b>[STATUS KONTROL {$cinemaName}]</b>\n\n"
+                ."• <b>Sistem:</b> Online & Beroperasi\n"
+                ."• <b>Website:</b> {$siteUrl}\n"
+                ."• <b>Chat ID Anda:</b> <code>{$chatId}</code>\n"
+                ."• <b>Booking Perlu Tindakan:</b> {$pendingBookings} pesanan\n"
+                ."• <b>Total Booking Hari Ini:</b> {$todayBookings} pesanan\n\n"
+                .'<i>Bot kontrol siap mengirimkan setiap update real-time ke akun ini.</i>';
+
+            $this->sendAdminMessage($chatId, $reply, [
+                'inline_keyboard' => [
+                    [
+                        ['text' => '📊 Buka Dashboard Kelola Booking', 'url' => "{$siteUrl}/admin/booking"],
+                    ],
+                ],
+            ]);
+
+            return;
+        }
+
+        // Welcome / Start message
+        $reply = "<b>[BOT KONTROL ADMIN {$cinemaName}]</b>\n\n"
+            ."Halo <b>{$senderName}</b>,\n\n"
+            ."🆔 <b>Chat ID Anda:</b> <code>{$chatId}</code>\n"
+            .($isNew
+                ? "✅ <b>Chat ID Anda telah otomatis terdaftar ke notifikasi sistem!</b>\n\n"
+                : "✅ <b>Chat ID Anda sudah aktif terhubung ke notifikasi sistem.</b>\n\n")
+            ."Anda akan menerima notifikasi otomatis langsung di sini saat:\n"
+            ."• Pesanan tiket baru masuk\n"
+            ."• Penonton mengunggah bukti transfer\n"
+            ."• Pembayaran dikonfirmasi kasir/admin\n"
+            ."• Sesi nonton mencapai kuorum & siap tayang\n"
+            ."• Penonton melapor keluhan atau kendala di Bot CS (@SynemaXChat_bot)\n\n"
+            .'Ketik <code>/status</code> kapan saja untuk melihat status operasional bioskop.';
+
+        $this->sendAdminMessage($chatId, $reply, [
+            'inline_keyboard' => [
+                [
+                    ['text' => '🎟️ Kelola Booking', 'url' => "{$siteUrl}/admin/booking"],
+                    ['text' => '💬 Bot Keluhan & Feedback', 'url' => "{$siteUrl}/admin/bot-feedbacks"],
+                ],
+                [
+                    ['text' => '⚙️ Pengaturan Notifikasi', 'url' => "{$siteUrl}/admin/pengaturan?tab=notifikasi"],
+                ],
+            ],
+        ]);
     }
 
     /**
@@ -673,7 +847,7 @@ class TelegramBotService
      */
     public function notifyAdminOfBuyerFeedback(BotFeedback $feedback, ?Booking $booking = null): void
     {
-        if (empty($this->adminChatIds) || empty($this->token)) {
+        if (empty($this->adminChatIds) || (empty($this->adminToken) && empty($this->csToken))) {
             return;
         }
 
@@ -718,7 +892,7 @@ class TelegramBotService
         }
 
         foreach ($this->adminChatIds as $adminChatId) {
-            $this->sendMessage($adminChatId, $msg, ['inline_keyboard' => $buttons]);
+            $this->sendAdminMessage($adminChatId, $msg, ['inline_keyboard' => $buttons]);
         }
     }
 }

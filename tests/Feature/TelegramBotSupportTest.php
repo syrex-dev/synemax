@@ -224,4 +224,89 @@ class TelegramBotSupportTest extends TestCase
         $response->assertRedirect('/admin/pengaturan?tab=notifikasi');
         $response->assertSessionHas('status');
     }
+
+    public function test_admin_webhook_start_command_auto_registers_chat_id(): void
+    {
+        $payload = [
+            'update_id' => 20001,
+            'message' => [
+                'message_id' => 10,
+                'from' => [
+                    'id' => 55667788,
+                    'first_name' => 'Owner',
+                    'username' => 'synemaxowner',
+                ],
+                'chat' => [
+                    'id' => 55667788,
+                    'type' => 'private',
+                ],
+                'text' => '/start',
+                'date' => time(),
+            ],
+        ];
+
+        $response = $this->postJson('/telegram/webhook/admin', $payload);
+
+        $response->assertStatus(200);
+        $response->assertJson(['ok' => true]);
+
+        // Assert Chat ID auto-registered in settings
+        $chatIds = app(CinemaSettings::class)->string('telegram_chat_ids');
+        $this->assertStringContainsString('55667788', $chatIds);
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'sendMessage')
+                && str_contains($request['text'], 'BOT KONTROL ADMIN')
+                && (string) $request['chat_id'] === '55667788';
+        });
+    }
+
+    public function test_admin_webhook_status_command(): void
+    {
+        $payload = [
+            'update_id' => 20002,
+            'message' => [
+                'message_id' => 11,
+                'from' => [
+                    'id' => 55667788,
+                    'first_name' => 'Owner',
+                    'username' => 'synemaxowner',
+                ],
+                'chat' => [
+                    'id' => 55667788,
+                    'type' => 'private',
+                ],
+                'text' => '/status',
+                'date' => time(),
+            ],
+        ];
+
+        $response = $this->postJson('/telegram/webhook/admin', $payload);
+
+        $response->assertStatus(200);
+        $response->assertJson(['ok' => true]);
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'sendMessage')
+                && str_contains($request['text'], 'STATUS KONTROL')
+                && (string) $request['chat_id'] === '55667788';
+        });
+    }
+
+    public function test_admin_can_setup_and_remove_dual_webhooks(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $setupResponse = $this->actingAs($admin)->postJson('/admin/pengaturan/telegram/setup-webhook', [
+            'bot_type' => 'all',
+        ]);
+        $setupResponse->assertStatus(200);
+        $setupResponse->assertJson(['success' => true]);
+
+        $removeResponse = $this->actingAs($admin)->postJson('/admin/pengaturan/telegram/remove-webhook', [
+            'bot_type' => 'admin',
+        ]);
+        $removeResponse->assertStatus(200);
+        $removeResponse->assertJson(['success' => true]);
+    }
 }

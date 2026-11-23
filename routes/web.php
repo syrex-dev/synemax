@@ -31,8 +31,10 @@ use App\Http\Controllers\Telegram\TelegramWebhookController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// Telegram Bot Webhook
-Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle'])->name('telegram.webhook');
+// Telegram Bot Webhooks (Admin & CS Support 24/7)
+Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handleCs'])->name('telegram.webhook');
+Route::post('/telegram/webhook/cs', [TelegramWebhookController::class, 'handleCs'])->name('telegram.webhook.cs');
+Route::post('/telegram/webhook/admin', [TelegramWebhookController::class, 'handleAdmin'])->name('telegram.webhook.admin');
 
 Route::get('/', [PublicCinemaController::class, 'index'])->name('home');
 Route::get('/jadwal', [PublicCinemaController::class, 'schedule'])->name('schedule.index');

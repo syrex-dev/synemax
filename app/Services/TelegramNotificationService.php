@@ -26,11 +26,11 @@ class TelegramNotificationService
     }
 
     /**
-     * Retrieve decrypted bot token.
+     * Retrieve decrypted Admin bot token.
      */
     public function getDecryptedToken(): ?string
     {
-        $raw = $this->settings->string('telegram_bot_token');
+        $raw = $this->settings->string('telegram_admin_bot_token') ?: $this->settings->string('telegram_bot_token');
         if (empty($raw)) {
             return null;
         }
@@ -44,11 +44,46 @@ class TelegramNotificationService
     }
 
     /**
-     * Get masked token for display in UI.
+     * Retrieve decrypted CS Support bot token.
      */
-    public function getMaskedToken(): string
+    public function getCsDecryptedToken(): ?string
     {
-        $token = $this->getDecryptedToken();
+        $raw = $this->settings->string('telegram_cs_bot_token') ?: $this->settings->string('telegram_bot_token');
+        if (empty($raw)) {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($raw);
+        } catch (Throwable) {
+            return $raw;
+        }
+    }
+
+    /**
+     * Get Admin Bot username.
+     */
+    public function getAdminBotUsername(): string
+    {
+        return $this->settings->string('telegram_admin_bot_username')
+            ?: $this->settings->string('telegram_bot_username')
+            ?: 'SynemaXAdmin_bot';
+    }
+
+    /**
+     * Get CS Support Bot username.
+     */
+    public function getCsBotUsername(): string
+    {
+        return $this->settings->string('telegram_cs_bot_username')
+            ?: 'SynemaXChat_bot';
+    }
+
+    /**
+     * Mask any given token for safe UI display.
+     */
+    public static function maskToken(?string $token): string
+    {
         if (empty($token)) {
             return '';
         }
@@ -63,6 +98,51 @@ class TelegramNotificationService
         }
 
         return strlen($token) > 8 ? substr($token, 0, 3).'••••••'.substr($token, -3) : '••••••••';
+    }
+
+    /**
+     * Get masked token for Admin Bot display in UI.
+     */
+    public function getMaskedToken(): string
+    {
+        return self::maskToken($this->getDecryptedToken());
+    }
+
+    /**
+     * Alias for Admin Bot masked token.
+     */
+    public function getAdminMaskedToken(): string
+    {
+        return $this->getMaskedToken();
+    }
+
+    /**
+     * Get masked token for CS Support Bot display in UI.
+     */
+    public function getCsMaskedToken(): string
+    {
+        return self::maskToken($this->getCsDecryptedToken());
+    }
+
+    /**
+     * Add a chat ID to the settings if not already present.
+     */
+    public function addChatId(string $newChatId): bool
+    {
+        $newChatId = trim($newChatId);
+        if ($newChatId === '') {
+            return false;
+        }
+
+        $existing = $this->getChatIds();
+        if (in_array($newChatId, $existing, true)) {
+            return false;
+        }
+
+        $existing[] = $newChatId;
+        $this->settings->set('telegram_chat_ids', implode(', ', $existing), 'notifikasi');
+
+        return true;
     }
 
     /**

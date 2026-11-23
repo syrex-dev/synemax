@@ -21,6 +21,9 @@ import {
     Plus,
     X,
     ExternalLink,
+    Bot,
+    Headphones,
+    ShieldCheck,
 } from 'lucide-react';
 
 export default function Edit({
@@ -145,12 +148,18 @@ export default function Edit({
         formatted_footer_text: settings.formatted_footer_text || '',
     });
 
-    // Form for Telegram
+    // Form for Telegram (Dual Bots: Admin Control & 24/7 CS Support)
     const telegramForm = useForm({
         active_tab: 'notifikasi',
         telegram_notifications_enabled: telegramSettings.enabled || false,
-        telegram_bot_token: '',
-        telegram_bot_username: telegramSettings.bot_username || '',
+        // Admin Bot
+        telegram_admin_bot_token: '',
+        telegram_admin_bot_username: telegramSettings.admin_bot_username || telegramSettings.bot_username || 'SynemaXAdmin_bot',
+        // CS Bot
+        telegram_cs_bot_enabled: telegramSettings.cs_bot_enabled !== false,
+        telegram_cs_bot_token: '',
+        telegram_cs_bot_username: telegramSettings.cs_bot_username || 'SynemaXChat_bot',
+        // Chat IDs & Notifications
         telegram_chat_ids: telegramSettings.chat_ids || '',
         telegram_notify_booking_created: telegramSettings.notify_booking_created !== false,
         telegram_notify_proof_uploaded: telegramSettings.notify_proof_uploaded !== false,
@@ -247,17 +256,17 @@ export default function Edit({
         });
     };
 
-    const handleSetupWebhook = () => {
+    const handleSetupWebhook = (botType = 'all') => {
         setIsSettingWebhook(true);
-        router.post('/admin/pengaturan/telegram/setup-webhook', {}, {
+        router.post('/admin/pengaturan/telegram/setup-webhook', { bot_type: botType }, {
             preserveScroll: true,
             onFinish: () => setIsSettingWebhook(false),
         });
     };
 
-    const handleRemoveWebhook = () => {
+    const handleRemoveWebhook = (botType = 'all') => {
         setIsSettingWebhook(true);
-        router.post('/admin/pengaturan/telegram/remove-webhook', {}, {
+        router.post('/admin/pengaturan/telegram/remove-webhook', { bot_type: botType }, {
             preserveScroll: true,
             onFinish: () => setIsSettingWebhook(false),
         });
@@ -1357,29 +1366,37 @@ export default function Edit({
                     </form>
                 )}
 
-                {/* TAB 8: NOTIFIKASI TELEGRAM */}
+                {/* TAB 8: NOTIFIKASI TELEGRAM DUAL BOTS */}
                 {activeTab === 'notifikasi' && (
                     <form onSubmit={submitTelegram} className="space-y-6">
+                        {/* 1. BOT KONTROL ADMIN */}
                         <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm space-y-5">
-                            <div className="flex items-center justify-between pb-2 border-b border-border">
-                                <div>
-                                    <h2 className="text-sm font-bold uppercase tracking-wider text-text">
-                                        Integrasi Notifikasi Bot Telegram
-                                    </h2>
-                                    <p className="text-xs text-text-muted mt-0.5">
-                                        Dapatkan notifikasi instan langsung di Telegram saat pesanan baru masuk atau bukti bayar diunggah.
-                                    </p>
+                            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
+                                        <ShieldCheck className="size-5" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-sm font-bold uppercase tracking-wider text-text">
+                                            1. Bot Kontrol Admin (@{telegramForm.data.telegram_admin_bot_username || 'SynemaXAdmin_bot'})
+                                        </h2>
+                                        <p className="text-xs text-text-muted mt-0.5">
+                                            Menerima notifikasi pesanan masuk, bukti bayar penonton, konfirmasi kasir, dan alert eskalasi keluhan.
+                                        </p>
+                                    </div>
                                 </div>
 
-                                <button
-                                    type="button"
-                                    onClick={handleTestTelegram}
-                                    disabled={isTestingTelegram}
-                                    className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 active:scale-95 transition disabled:opacity-50"
-                                >
-                                    <Send className="size-3.5" />
-                                    <span>{isTestingTelegram ? 'Mengirim...' : 'Tes Kirim Pesan'}</span>
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleTestTelegram}
+                                        disabled={isTestingTelegram}
+                                        className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 active:scale-95 transition disabled:opacity-50"
+                                    >
+                                        <Send className="size-3.5" />
+                                        <span>{isTestingTelegram ? 'Mengirim...' : 'Tes Kirim Notifikasi Admin'}</span>
+                                    </button>
+                                </div>
                             </div>
 
                             <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-text">
@@ -1389,36 +1406,36 @@ export default function Edit({
                                     onChange={(e) => telegramForm.setData('telegram_notifications_enabled', e.target.checked)}
                                     className="size-4 rounded border-border bg-surface-2 text-amber-500 focus:ring-amber-400"
                                 />
-                                <span>Aktifkan Notifikasi Bot Telegram</span>
+                                <span>Aktifkan Notifikasi Bot Kontrol Admin</span>
                             </label>
 
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                 <div>
-                                    <label htmlFor="telegram_bot_token" className="block text-xs font-bold text-text mb-1">
-                                        HTTP API Bot Token (dari @BotFather)
+                                    <label htmlFor="telegram_admin_bot_token" className="block text-xs font-bold text-text mb-1">
+                                        HTTP API Bot Token Admin (@BotFather)
                                     </label>
                                     <input
-                                        id="telegram_bot_token"
+                                        id="telegram_admin_bot_token"
                                         type="password"
-                                        placeholder={telegramSettings.masked_token ? `Tersimpan: ${telegramSettings.masked_token}` : '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11'}
-                                        value={telegramForm.data.telegram_bot_token}
-                                        onChange={(e) => telegramForm.setData('telegram_bot_token', e.target.value)}
+                                        placeholder={telegramSettings.admin_masked_token ? `Tersimpan: ${telegramSettings.admin_masked_token}` : '9245078183:AAFSFIt6...'}
+                                        value={telegramForm.data.telegram_admin_bot_token}
+                                        onChange={(e) => telegramForm.setData('telegram_admin_bot_token', e.target.value)}
                                         className="min-h-11 w-full rounded-xl border border-border bg-surface-2 px-3 text-sm text-text focus:border-amber-400 focus:outline-none"
                                     />
                                 </div>
 
                                 <div>
-                                    <label htmlFor="telegram_bot_username" className="block text-xs font-bold text-text mb-1">
-                                        Username Bot Telegram (@...)
+                                    <label htmlFor="telegram_admin_bot_username" className="block text-xs font-bold text-text mb-1">
+                                        Username Bot Admin (@...)
                                     </label>
                                     <div className="relative">
                                         <span className="absolute left-3 top-3 text-xs font-bold text-text-muted">@</span>
                                         <input
-                                            id="telegram_bot_username"
+                                            id="telegram_admin_bot_username"
                                             type="text"
-                                            placeholder="SynemaXBot"
-                                            value={telegramForm.data.telegram_bot_username}
-                                            onChange={(e) => telegramForm.setData('telegram_bot_username', e.target.value.replace(/^@/, ''))}
+                                            placeholder="SynemaXAdmin_bot"
+                                            value={telegramForm.data.telegram_admin_bot_username}
+                                            onChange={(e) => telegramForm.setData('telegram_admin_bot_username', e.target.value.replace(/^@/, ''))}
                                             className="min-h-11 w-full rounded-xl border border-border bg-surface-2 pl-7 pr-3 text-sm text-text focus:border-amber-400 focus:outline-none"
                                         />
                                     </div>
@@ -1426,7 +1443,7 @@ export default function Edit({
 
                                 <div>
                                     <label htmlFor="telegram_chat_ids" className="block text-xs font-bold text-text mb-1">
-                                        Chat ID Penerima (Pisahkan koma)
+                                        Chat ID Penerima (Otomatis / Manual)
                                     </label>
                                     <input
                                         id="telegram_chat_ids"
@@ -1436,70 +1453,73 @@ export default function Edit({
                                         onChange={(e) => telegramForm.setData('telegram_chat_ids', e.target.value)}
                                         className="min-h-11 w-full rounded-xl border border-border bg-surface-2 px-3 text-sm text-text focus:border-amber-400 focus:outline-none"
                                     />
+                                    <p className="text-[11px] text-text-muted mt-1">
+                                        Kirim /start ke bot kontrol di Telegram untuk menyimpan Chat ID secara otomatis.
+                                    </p>
                                 </div>
                             </div>
 
-                            {/* Status & Webhook Interaktif Bot Telegram */}
+                            {/* Status & Webhook Bot Admin */}
                             <div className="rounded-xl border border-border/80 bg-surface-2/40 p-4 space-y-3">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                     <div>
                                         <h3 className="text-xs font-black uppercase tracking-wider text-text">
-                                            Webhook Interaktif Bot (Layanan 24 Jam)
+                                            Webhook Bot Kontrol Admin (/telegram/webhook/admin)
                                         </h3>
                                         <p className="text-[11px] text-text-muted mt-0.5">
-                                            Webhook memungkinkan bot merespons perintah penonton (/start, cek tiket, lapor keluhan) secara otomatis.
+                                            Menerima perintah /start dari admin untuk menangkap dan menyimpan Chat ID secara otomatis.
                                         </p>
                                     </div>
-                                    {telegramSettings.webhook_info?.url ? (
+                                    {telegramSettings.admin_webhook_info?.url ? (
                                         <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                                             <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-                                            <span>Webhook Aktif</span>
+                                            <span>Webhook Admin Aktif</span>
                                         </span>
                                     ) : (
                                         <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">
-                                            <span>Webhook Belum Dipasang</span>
+                                            <span>Webhook Belum Terpasang</span>
                                         </span>
                                     )}
                                 </div>
 
-                                {telegramSettings.webhook_info?.url && (
+                                {telegramSettings.admin_webhook_info?.url && (
                                     <div className="rounded-lg bg-bg p-2.5 font-mono text-[11px] text-text-muted break-all border border-border/50">
-                                        URL: {telegramSettings.webhook_info.url}
+                                        URL: {telegramSettings.admin_webhook_info.url}
                                     </div>
                                 )}
 
                                 <div className="flex flex-wrap items-center gap-2 pt-1">
                                     <button
                                         type="button"
-                                        onClick={handleSetupWebhook}
+                                        onClick={() => handleSetupWebhook('admin')}
                                         disabled={isSettingWebhook}
-                                        className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl bg-accent px-3.5 text-xs font-bold text-accent-contrast hover:opacity-90 active:scale-95 transition disabled:opacity-50"
+                                        className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 text-xs font-bold text-black hover:opacity-90 active:scale-95 transition disabled:opacity-50"
                                     >
                                         <RefreshCw className="size-3.5" />
-                                        <span>{isSettingWebhook ? 'Memasang...' : 'Pasang Webhook Otomatis'}</span>
+                                        <span>{isSettingWebhook ? 'Memasang...' : 'Pasang Webhook Admin'}</span>
                                     </button>
 
-                                    {telegramSettings.webhook_info?.url && (
+                                    {telegramSettings.admin_webhook_info?.url && (
                                         <button
                                             type="button"
-                                            onClick={handleRemoveWebhook}
+                                            onClick={() => handleRemoveWebhook('admin')}
                                             disabled={isSettingWebhook}
                                             className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 active:scale-95 transition disabled:opacity-50"
                                         >
                                             <Trash2 className="size-3.5" />
-                                            <span>Hapus Webhook</span>
+                                            <span>Hapus Webhook Admin</span>
                                         </button>
                                     )}
 
-                                    {telegramForm.data.telegram_bot_username && (
+                                    {telegramForm.data.telegram_admin_bot_username && (
                                         <a
-                                            href={`https://t.me/${telegramForm.data.telegram_bot_username}`}
+                                            href={`https://t.me/${telegramForm.data.telegram_admin_bot_username}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/10 px-3 text-xs font-bold text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 active:scale-95 transition"
                                         >
                                             <Send className="size-3" />
-                                            <span>Buka Bot @{telegramForm.data.telegram_bot_username}</span>
+                                            <span>Buka @{telegramForm.data.telegram_admin_bot_username}</span>
                                             <ExternalLink className="size-3" />
                                         </a>
                                     )}
@@ -1508,7 +1528,7 @@ export default function Edit({
 
                             {/* Trigger Event Toggles */}
                             <div className="pt-3 border-t border-border">
-                                <p className="text-xs font-bold text-text mb-3">Pilih Kejadian yang Memicu Notifikasi:</p>
+                                <p className="text-xs font-bold text-text mb-3">Pemicu Notifikasi Kontrol Admin:</p>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {[
                                         { key: 'telegram_notify_booking_created', label: 'Booking Tiket Baru Masuk' },
@@ -1530,17 +1550,185 @@ export default function Edit({
                                     ))}
                                 </div>
                             </div>
+                        </div>
 
-                            <div className="pt-4 border-t border-border flex justify-end">
-                                <button
-                                    type="submit"
-                                    disabled={telegramForm.processing}
-                                    className="btn-gold-cinema inline-flex min-h-[44px] items-center gap-2 rounded-xl px-5 text-xs font-bold shadow-none disabled:opacity-50"
-                                >
-                                    <Save className="size-4" />
-                                    <span>{telegramForm.processing ? 'Menyimpan...' : 'Simpan Pengaturan Telegram'}</span>
-                                </button>
+                        {/* 2. BOT CS SUPPORT 24/7 PELANGGAN */}
+                        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm space-y-5">
+                            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="flex size-9 items-center justify-center rounded-xl bg-sky-500/10 text-sky-500">
+                                        <Headphones className="size-5" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-sm font-bold uppercase tracking-wider text-text">
+                                            2. Bot CS Support 24/7 (@{telegramForm.data.telegram_cs_bot_username || 'SynemaXChat_bot'})
+                                        </h2>
+                                        <p className="text-xs text-text-muted mt-0.5">
+                                            Garda depan bioskop untuk melayani penonton secara mandiri: cek booking, menu jajan, lapor keluhan, dan info studio.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-1 text-xs font-bold text-sky-600 dark:text-sky-400">
+                                    <Bot className="size-3.5" />
+                                    <span>Garda Depan Pelanggan</span>
+                                </span>
                             </div>
+
+                            <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-text">
+                                <input
+                                    type="checkbox"
+                                    checked={telegramForm.data.telegram_cs_bot_enabled}
+                                    onChange={(e) => telegramForm.setData('telegram_cs_bot_enabled', e.target.checked)}
+                                    className="size-4 rounded border-border bg-surface-2 text-sky-500 focus:ring-sky-400"
+                                />
+                                <span>Aktifkan Layanan Bot CS Support 24 Jam</span>
+                            </label>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="telegram_cs_bot_token" className="block text-xs font-bold text-text mb-1">
+                                        HTTP API Bot Token CS (@BotFather)
+                                    </label>
+                                    <input
+                                        id="telegram_cs_bot_token"
+                                        type="password"
+                                        placeholder={telegramSettings.cs_masked_token ? `Tersimpan: ${telegramSettings.cs_masked_token}` : '9235362155:AAFPXsk...'}
+                                        value={telegramForm.data.telegram_cs_bot_token}
+                                        onChange={(e) => telegramForm.setData('telegram_cs_bot_token', e.target.value)}
+                                        className="min-h-11 w-full rounded-xl border border-border bg-surface-2 px-3 text-sm text-text focus:border-sky-400 focus:outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="telegram_cs_bot_username" className="block text-xs font-bold text-text mb-1">
+                                        Username Bot CS (@...)
+                                    </label>
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-3 text-xs font-bold text-text-muted">@</span>
+                                        <input
+                                            id="telegram_cs_bot_username"
+                                            type="text"
+                                            placeholder="SynemaXChat_bot"
+                                            value={telegramForm.data.telegram_cs_bot_username}
+                                            onChange={(e) => telegramForm.setData('telegram_cs_bot_username', e.target.value.replace(/^@/, ''))}
+                                            className="min-h-11 w-full rounded-xl border border-border bg-surface-2 pl-7 pr-3 text-sm text-text focus:border-sky-400 focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Status & Webhook Bot CS */}
+                            <div className="rounded-xl border border-border/80 bg-surface-2/40 p-4 space-y-3">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <div>
+                                        <h3 className="text-xs font-black uppercase tracking-wider text-text">
+                                            Webhook CS Support (/telegram/webhook/cs)
+                                        </h3>
+                                        <p className="text-[11px] text-text-muted mt-0.5">
+                                            Webhook menerima pesan, inquiry kode booking, dan laporan kendala dari penonton.
+                                        </p>
+                                    </div>
+                                    {telegramSettings.cs_webhook_info?.url ? (
+                                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                            <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+                                            <span>Webhook CS Aktif</span>
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">
+                                            <span>Webhook Belum Terpasang</span>
+                                        </span>
+                                    )}
+                                </div>
+
+                                {telegramSettings.cs_webhook_info?.url && (
+                                    <div className="rounded-lg bg-bg p-2.5 font-mono text-[11px] text-text-muted break-all border border-border/50">
+                                        URL: {telegramSettings.cs_webhook_info.url}
+                                    </div>
+                                )}
+
+                                <div className="flex flex-wrap items-center gap-2 pt-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSetupWebhook('cs')}
+                                        disabled={isSettingWebhook}
+                                        className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl bg-sky-500 px-3.5 text-xs font-bold text-white hover:opacity-90 active:scale-95 transition disabled:opacity-50"
+                                    >
+                                        <RefreshCw className="size-3.5" />
+                                        <span>{isSettingWebhook ? 'Memasang...' : 'Pasang Webhook CS Support'}</span>
+                                    </button>
+
+                                    {telegramSettings.cs_webhook_info?.url && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveWebhook('cs')}
+                                            disabled={isSettingWebhook}
+                                            className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 active:scale-95 transition disabled:opacity-50"
+                                        >
+                                            <Trash2 className="size-3.5" />
+                                            <span>Hapus Webhook CS</span>
+                                        </button>
+                                    )}
+
+                                    {telegramForm.data.telegram_cs_bot_username && (
+                                        <a
+                                            href={`https://t.me/${telegramForm.data.telegram_cs_bot_username}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl border border-sky-500/40 bg-sky-500/10 px-3 text-xs font-bold text-sky-600 dark:text-sky-400 hover:bg-sky-500/20 active:scale-95 transition"
+                                        >
+                                            <Send className="size-3" />
+                                            <span>Uji Chat @{telegramForm.data.telegram_cs_bot_username}</span>
+                                            <ExternalLink className="size-3" />
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Info Kemampuan Bot CS */}
+                            <div className="rounded-xl border border-border/60 bg-surface-2/20 p-4">
+                                <p className="text-xs font-bold text-text mb-2">Kemampuan Otomatis Bot CS Support 24 Jam:</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-text-muted">
+                                    <div className="flex items-center gap-2">
+                                        <Check className="size-3.5 text-emerald-500 shrink-0" />
+                                        <span>Cek status booking tiket instan format [HC-...]</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Check className="size-3.5 text-emerald-500 shrink-0" />
+                                        <span>Daftar harga & stok camilan jajan bioskop</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Check className="size-3.5 text-emerald-500 shrink-0" />
+                                        <span>Lapor kendala & auto-generate tiket [TKT-...]</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Check className="size-3.5 text-emerald-500 shrink-0" />
+                                        <span>Penerusan alert keluhan otomatis ke Bot Admin</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* AKSI SIMPAN */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => handleSetupWebhook('all')}
+                                disabled={isSettingWebhook}
+                                className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-border bg-surface-2 px-4 text-xs font-bold text-text hover:bg-surface active:scale-95 transition disabled:opacity-50"
+                            >
+                                <RefreshCw className="size-4" />
+                                <span>Pasang Semua Webhook Sekaligus</span>
+                            </button>
+
+                            <button
+                                type="submit"
+                                disabled={telegramForm.processing}
+                                className="btn-gold-cinema inline-flex min-h-[44px] items-center gap-2 rounded-xl px-6 text-xs font-bold shadow-none disabled:opacity-50"
+                            >
+                                <Save className="size-4" />
+                                <span>{telegramForm.processing ? 'Menyimpan...' : 'Simpan Semua Pengaturan Telegram'}</span>
+                            </button>
                         </div>
                     </form>
                 )}

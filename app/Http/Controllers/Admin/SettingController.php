@@ -65,12 +65,26 @@ class SettingController extends Controller
             ->orderBy('title')
             ->get(['id', 'title', 'release_year', 'genre', 'poster_path']);
 
+        $telegramService = app(TelegramNotificationService::class);
+        $telegramBot = app(TelegramBotService::class);
+
         $telegramSettings = [
             'enabled' => $settings->boolean('telegram_notifications_enabled', false),
-            'masked_token' => app(TelegramNotificationService::class)->getMaskedToken(),
-            'bot_username' => $settings->string('telegram_bot_username'),
-            'webhook_info' => app(TelegramBotService::class)->getWebhookInfo(),
+            // Admin Bot
+            'admin_masked_token' => $telegramService->getMaskedToken(),
+            'admin_bot_username' => $telegramService->getAdminBotUsername(),
+            'admin_webhook_info' => $telegramBot->getAdminWebhookInfo(),
             'chat_ids' => $settings->string('telegram_chat_ids'),
+            // CS Support Bot 24/7
+            'cs_bot_enabled' => $settings->boolean('telegram_cs_bot_enabled', true),
+            'cs_masked_token' => $telegramService->getCsMaskedToken(),
+            'cs_bot_username' => $telegramService->getCsBotUsername(),
+            'cs_webhook_info' => $telegramBot->getCsWebhookInfo(),
+            // Backward compatibility aliases
+            'masked_token' => $telegramService->getMaskedToken(),
+            'bot_username' => $telegramService->getAdminBotUsername(),
+            'webhook_info' => $telegramBot->getCsWebhookInfo(),
+            // Notification Events
             'notify_booking_created' => $settings->boolean('telegram_notify_booking_created', true),
             'notify_proof_uploaded' => $settings->boolean('telegram_notify_proof_uploaded', true),
             'notify_payment_confirmed' => $settings->boolean('telegram_notify_payment_confirmed', false),
@@ -423,10 +437,10 @@ class SettingController extends Controller
             'cancellation_cutoff_hours' => $request->input('cancellation_cutoff_hours', $settings->integer('cancellation_cutoff_hours', 6)),
             'admin_whatsapp' => WhatsAppNumber::normalize((string) $request->input('admin_whatsapp', $settings->string('admin_whatsapp', '6281234567890'))),
             'electricity_cost_per_session' => $request->input('electricity_cost_per_session', $settings->integer('electricity_cost_per_session', 0)),
-            'snacks_enabled' => $request->has('snacks_enabled') ? ($request->boolean('snacks_enabled') ? 1 : 0) : $settings->integer('snacks_enabled', 1),
+            'snacks_enabled' => $request->boolean('snacks_enabled') ? 1 : 0,
             'snack_prep_buffer_minutes' => $request->input('snack_prep_buffer_minutes', $settings->integer('snack_prep_buffer_minutes', 15)),
             'snack_max_qty_per_item' => $request->input('snack_max_qty_per_item', $settings->integer('snack_max_qty_per_item', 10)),
-            'info_nobar_enabled' => $request->has('info_nobar_enabled') ? ($request->boolean('info_nobar_enabled') ? 1 : 0) : $settings->integer('info_nobar_enabled', 1),
+            'info_nobar_enabled' => $request->boolean('info_nobar_enabled') ? 1 : 0,
             'maintenance_mode' => $request->boolean('maintenance_mode') ? 1 : 0,
             'ticket_arrive_minutes' => $request->input('ticket_arrive_minutes', $settings->integer('ticket_arrive_minutes', 15)),
             'ticket_studio_name' => $request->input('ticket_studio_name', $settings->string('ticket_studio_name', 'Studio 1')),
@@ -958,14 +972,36 @@ class SettingController extends Controller
         $enabled = $request->boolean('telegram_notifications_enabled') ? 1 : 0;
         $settings->set('telegram_notifications_enabled', (string) $enabled, 'notifikasi');
 
-        $newToken = trim((string) $request->input('telegram_bot_token', ''));
-        if ($newToken !== '' && ! str_contains($newToken, '••••••')) {
-            $settings->set('telegram_bot_token', Crypt::encryptString($newToken), 'notifikasi');
+        // 1. Admin Control Bot (@SynemaXAdmin_bot)
+        $newAdminToken = trim((string) ($request->input('telegram_admin_bot_token') ?: $request->input('telegram_bot_token', '')));
+        if ($newAdminToken !== '' && ! str_contains($newAdminToken, '••••••')) {
+            $encrypted = Crypt::encryptString($newAdminToken);
+            $settings->set('telegram_admin_bot_token', $encrypted, 'notifikasi');
+            $settings->set('telegram_bot_token', $encrypted, 'notifikasi');
         }
 
-        $botUsername = trim((string) $request->input('telegram_bot_username', ''));
-        $settings->set('telegram_bot_username', ltrim($botUsername, '@'), 'notifikasi');
+        $adminBotUsername = trim((string) ($request->input('telegram_admin_bot_username') ?: $request->input('telegram_bot_username', '')));
+        if ($adminBotUsername !== '') {
+            $cleaned = ltrim($adminBotUsername, '@');
+            $settings->set('telegram_admin_bot_username', $cleaned, 'notifikasi');
+            $settings->set('telegram_bot_username', $cleaned, 'notifikasi');
+        }
 
+        // 2. CS Support Bot 24/7 (@SynemaXChat_bot)
+        $newCsToken = trim((string) $request->input('telegram_cs_bot_token', ''));
+        if ($newCsToken !== '' && ! str_contains($newCsToken, '••••••')) {
+            $settings->set('telegram_cs_bot_token', Crypt::encryptString($newCsToken), 'notifikasi');
+        }
+
+        $csBotUsername = trim((string) $request->input('telegram_cs_bot_username', ''));
+        if ($csBotUsername !== '') {
+            $settings->set('telegram_cs_bot_username', ltrim($csBotUsername, '@'), 'notifikasi');
+        }
+
+        $csEnabled = $request->boolean('telegram_cs_bot_enabled', true) ? 1 : 0;
+        $settings->set('telegram_cs_bot_enabled', (string) $csEnabled, 'notifikasi');
+
+        // Chat IDs & Notifications
         $chatIds = trim((string) $request->input('telegram_chat_ids', ''));
         $settings->set('telegram_chat_ids', $chatIds, 'notifikasi');
 
@@ -1009,35 +1045,71 @@ class SettingController extends Controller
 
     public function setupTelegramWebhook(Request $request, TelegramBotService $botService): JsonResponse|RedirectResponse
     {
-        $webhookUrl = url('/telegram/webhook');
-        $res = $botService->setWebhook($webhookUrl);
-
-        $ok = (bool) ($res['ok'] ?? false);
-        $msg = $ok
-            ? 'Webhook bot Telegram berhasil dipasang ke: '.$webhookUrl
-            : 'Gagal memasang webhook: '.($res['description'] ?? 'Kesalahan tidak diketahui.');
-
-        if ($request->header('X-Inertia')) {
-            return back()->with($ok ? 'status' : 'error', $msg);
+        $botType = $request->input('bot_type', 'all');
+        $baseUrl = url('/');
+        if (str_contains($baseUrl, 'synemax.web.id')) {
+            $baseUrl = preg_replace('/^http:/', 'https:', $baseUrl);
         }
 
-        return response()->json(['success' => $ok, 'message' => $msg, 'result' => $res]);
+        $results = [];
+
+        if ($botType === 'admin' || $botType === 'all') {
+            $adminUrl = "{$baseUrl}/telegram/webhook/admin";
+            $resAdmin = $botService->setAdminWebhook($adminUrl);
+            $results['admin'] = [
+                'url' => $adminUrl,
+                'ok' => (bool) ($resAdmin['ok'] ?? false),
+                'desc' => $resAdmin['description'] ?? '',
+            ];
+        }
+
+        if ($botType === 'cs' || $botType === 'all') {
+            $csUrl = "{$baseUrl}/telegram/webhook/cs";
+            $resCs = $botService->setCsWebhook($csUrl);
+            $results['cs'] = [
+                'url' => $csUrl,
+                'ok' => (bool) ($resCs['ok'] ?? false),
+                'desc' => $resCs['description'] ?? '',
+            ];
+        }
+
+        $allOk = collect($results)->every(fn ($r) => $r['ok']);
+        $descriptions = collect($results)->map(fn ($r, $k) => ucfirst($k).': '.($r['ok'] ? 'Berhasil' : 'Gagal ('.$r['desc'].')'))->join(' | ');
+
+        $msg = $allOk
+            ? "Webhook bot Telegram berhasil dipasang ({$descriptions})."
+            : "Pemasangan webhook selesai dengan catatan: {$descriptions}";
+
+        if ($request->header('X-Inertia')) {
+            return back()->with($allOk ? 'status' : 'error', $msg);
+        }
+
+        return response()->json(['success' => $allOk, 'message' => $msg, 'results' => $results]);
     }
 
     public function removeTelegramWebhook(Request $request, TelegramBotService $botService): JsonResponse|RedirectResponse
     {
-        $res = $botService->deleteWebhook();
+        $botType = $request->input('bot_type', 'all');
+        $results = [];
 
-        $ok = (bool) ($res['ok'] ?? false);
-        $msg = $ok
-            ? 'Webhook bot Telegram berhasil dinonaktifkan.'
-            : 'Gagal menghapus webhook: '.($res['description'] ?? 'Kesalahan tidak diketahui.');
-
-        if ($request->header('X-Inertia')) {
-            return back()->with($ok ? 'status' : 'error', $msg);
+        if ($botType === 'admin' || $botType === 'all') {
+            $res = $botService->deleteAdminWebhook();
+            $results['admin'] = (bool) ($res['ok'] ?? false);
         }
 
-        return response()->json(['success' => $ok, 'message' => $msg, 'result' => $res]);
+        if ($botType === 'cs' || $botType === 'all') {
+            $res = $botService->deleteCsWebhook();
+            $results['cs'] = (bool) ($res['ok'] ?? false);
+        }
+
+        $allOk = collect($results)->every(fn ($v) => $v);
+        $msg = $allOk ? 'Webhook bot Telegram berhasil dinonaktifkan.' : 'Gagal menonaktifkan sebagian webhook.';
+
+        if ($request->header('X-Inertia')) {
+            return back()->with($allOk ? 'status' : 'error', $msg);
+        }
+
+        return response()->json(['success' => $allOk, 'message' => $msg, 'results' => $results]);
     }
 
     public function detectTelegramChats(Request $request, TelegramNotificationService $telegram): JsonResponse
