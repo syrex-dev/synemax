@@ -4,6 +4,7 @@ import BrandLogo from '../Components/BrandLogo';
 import ThemeToggle from '../Components/ThemeToggle';
 import FlashMessage from '../Components/FlashMessage';
 import PwaInstallBanner from '../Components/PwaInstallBanner';
+import FloatingChatWidget from '../Components/Public/FloatingChatWidget';
 import {
     Home,
     Calendar,
@@ -14,6 +15,7 @@ import {
     Search,
     Loader2,
     MessageCircle,
+    MessageSquare,
     MapPin,
     Phone,
     Mail,
@@ -715,6 +717,26 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                                         </div>
                                     )}
 
+                                    {/* In-App 24/7 Chatbot & Help Trigger */}
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setMenuSheetOpen(false);
+                                            window.dispatchEvent(new CustomEvent('open-synemax-chat'));
+                                        }}
+                                        className="flex min-h-[44px] w-full items-center justify-between rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 px-3.5 py-2.5 text-xs font-bold hover:bg-amber-500/20 transition-colors shadow-xs cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-2.5">
+                                            <span className="flex size-7 items-center justify-center rounded-lg bg-amber-500 text-black shrink-0 shadow-xs">
+                                                <MessageSquare className="size-4" />
+                                            </span>
+                                            <span>Bantuan & Cek Tiket 24 Jam</span>
+                                        </div>
+                                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
+                                            Online
+                                        </span>
+                                    </button>
+
                                     {cleanWaNumber && (
                                         <a
                                             href={`https://wa.me/${cleanWaNumber}?text=${encodeURIComponent('Halo admin SynemaX, saya mau bertanya.')}`}
@@ -738,49 +760,8 @@ export default function PublicLayout({ children, title, isActionPage = false }) 
                 </div>
             )}
 
-            {/* Floating WhatsApp Action Button with Mascot on Top & Close Button */}
-            {cinemaSettings?.showFloatingWhatsapp && cleanWaNumber && !isWaBubbleDismissed && (
-                <div className="fixed bottom-24 md:bottom-8 right-4 sm:right-6 z-40 flex flex-col items-center select-none animate-in fade-in zoom-in-95 duration-200">
-                    {/* Close / Dismiss Button ("X") */}
-                    <button
-                        type="button"
-                        onClick={handleDismissWaBubble}
-                        className="absolute -top-1.5 -right-1 z-20 flex size-5 items-center justify-center rounded-full bg-slate-900/80 hover:bg-slate-950 text-white/80 hover:text-white border border-white/20 shadow-md backdrop-blur-xs transition hover:scale-110"
-                        title="Tutup chat Tanya Bioskop"
-                        aria-label="Tutup bubble Tanya Bioskop"
-                    >
-                        <X className="size-3 stroke-[2.5]" />
-                    </button>
-
-                    <a
-                        href={`https://wa.me/${cleanWaNumber}?text=Halo%20Admin%20SynemaX,%20saya%20ingin%20bertanya`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex flex-col items-center transition-all duration-300 hover:scale-105"
-                        aria-label="Hubungi kami melalui WhatsApp: Tanya Bioskop"
-                    >
-                        {/* Mascot Character on Top */}
-                        <div className="relative -mb-2 z-10 transition-transform duration-300 group-hover:-translate-y-1.5 pointer-events-none">
-                            <img
-                                src="/images/tanya-bioskop-mascot.png"
-                                alt="Maskot Customer Service SynemaX"
-                                className="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-xl"
-                            />
-                            {/* Live active status indicator */}
-                            <span className="absolute bottom-2 right-1 flex size-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full size-3 bg-emerald-500 border-2 border-white dark:border-[#07090E]"></span>
-                            </span>
-                        </div>
-
-                        {/* Green Pill / Bubble with "Tanya Bioskop" text */}
-                        <div className="flex items-center gap-1.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-emerald-600 group-hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-emerald-950/40 border border-emerald-400/40 transition-colors">
-                            <MessageCircle className="size-3.5 sm:size-4 fill-white/20 shrink-0" />
-                            <span className="whitespace-nowrap tracking-wide">Tanya Bioskop</span>
-                        </div>
-                    </a>
-                </div>
-            )}
+            {/* In-App Live Chatbot Widget & Tanya Bioskop Mascot Button */}
+            <FloatingChatWidget cinemaSettings={cinemaSettings} />
 
             {/* Footer: Hidden on mobile phones */}
             <footer className="hidden md:block border-t border-border/80 dark:border-white/10 bg-surface/90 dark:bg-[#07090E] transition-colors duration-200">

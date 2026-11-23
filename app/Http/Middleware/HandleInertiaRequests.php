@@ -65,6 +65,8 @@ class HandleInertiaRequests extends Middleware
                 'formattedFooterText' => $cinemaSettings->formattedFooterText(),
                 'showFloatingWhatsapp' => $cinemaSettings->showFloatingWhatsapp(),
                 'isMemberProgramEnabled' => $cinemaSettings->isMemberProgramEnabled(),
+                'telegramCsBotUsername' => $cinemaSettings->string('telegram_cs_bot_username', 'SynemaXChat_bot'),
+                'telegramCsBotEnabled' => $cinemaSettings->boolean('telegram_cs_bot_enabled', true),
             ];
         } catch (\Throwable $e) {
             $settingsData = [

@@ -895,4 +895,409 @@ class TelegramBotService
             $this->sendAdminMessage($adminChatId, $msg, ['inline_keyboard' => $buttons]);
         }
     }
+
+    /**
+     * Process message / action from Web In-App Chatbot Widget.
+     * Zero daemon overhead, shared logic with Telegram bot, 24/7 automated responses.
+     */
+    public function processWebChatMessage(
+        ?string $message = null,
+        ?string $action = null,
+        ?string $sessionId = null,
+        ?string $senderName = null
+    ): array {
+        $cinemaName = $this->settings->siteName() ?: 'SynemaX';
+        $siteUrl = config('app.url', 'https://synemax.web.id');
+        $csBotUsername = $this->telegramService->getCsBotUsername();
+        $telegramLink = "https://t.me/{$csBotUsername}";
+
+        $cleanName = trim((string) $senderName) ?: 'Penonton Web';
+        $cleanSession = trim((string) $sessionId) ?: 'WEB-'.substr(md5(request()->ip().request()->userAgent()), 0, 8);
+
+        // 1. Handle Explicit Actions
+        if ($action) {
+            return $this->handleWebAction($action, $cleanName, $cleanSession, $cinemaName, $siteUrl, $telegramLink);
+        }
+
+        $text = trim((string) $message);
+        if (empty($text) || in_array(strtolower($text), ['/start', '/menu', 'menu', 'bantuan', 'halo', 'hi', 'hai', 'p', 'tes', 'test', 'admin', 'min', 'assalamualaikum', 'siang', 'malam', 'pagi'], true)) {
+            return $this->handleWebAction('menu_main', $cleanName, $cleanSession, $cinemaName, $siteUrl, $telegramLink);
+        }
+
+        // 2. Check for SynemaX Booking Code Pattern (e.g. HC-261123-2D60FU)
+        if (preg_match('/HC-\d{6}-[A-Za-z0-9]+/i', $text, $matches)) {
+            $matchedCode = strtoupper($matches[0]);
+            $lowerText = strtolower($text);
+
+            $isComplaint = str_contains($lowerText, 'keluhan')
+                || str_contains($lowerText, 'kendala')
+                || str_contains($lowerText, 'lapor')
+                || str_contains($lowerText, 'komplain')
+                || str_contains($lowerText, 'batal')
+                || str_contains($lowerText, 'salah')
+                || str_contains($lowerText, 'belum di-acc')
+                || str_contains($lowerText, 'belum acc')
+                || str_contains($lowerText, 'gagal')
+                || str_contains($lowerText, 'error');
+
+            if ($isComplaint) {
+                return $this->handleWebIssueReport($text, $matchedCode, $cleanName, $cleanSession, $siteUrl);
+            }
+
+            return $this->handleWebBookingInquiry($matchedCode, $cleanName, $cleanSession, $siteUrl);
+        }
+
+        // 3. Check for Complaint Keywords without booking code
+        $lowerText = strtolower($text);
+        if (
+            str_starts_with($lowerText, 'keluhan') ||
+            str_starts_with($lowerText, 'kendala') ||
+            str_starts_with($lowerText, 'lapor') ||
+            str_starts_with($lowerText, 'komplain') ||
+            str_contains($lowerText, 'belum di-acc') ||
+            str_contains($lowerText, 'bukti bayar belum') ||
+            str_contains($lowerText, 'minta batal') ||
+            str_contains($lowerText, 'refund')
+        ) {
+            return $this->handleWebIssueReport($text, null, $cleanName, $cleanSession, $siteUrl);
+        }
+
+        // 4. Default: General Feedback / Question
+        return $this->handleWebGeneralFeedback($text, $cleanName, $cleanSession);
+    }
+
+    protected function handleWebAction(
+        string $action,
+        string $name,
+        string $sessionId,
+        string $cinemaName,
+        string $siteUrl,
+        string $telegramLink
+    ): array {
+        switch ($action) {
+            case 'menu_main':
+                return [
+                    'ok' => true,
+                    'reply' => "<b>Selamat datang di Layanan Bantuan {$cinemaName}</b><br><br>Kami siap membantu Anda untuk pengecekan status booking tiket, jadwal sesi bioskop, info menu jajanan, dan mencatat laporan keluhan Anda secara instan 24 jam.<br><br>Silakan pilih menu bantuan di bawah atau ketik langsung pesan Anda:",
+                    'quick_replies' => [
+                        ['label' => 'Cek Status Booking Tiket', 'action' => 'menu_check_booking'],
+                        ['label' => 'Menu Jajanan Bioskop', 'action' => 'menu_check_snacks'],
+                        ['label' => 'Lapor Kendala & Keluhan', 'action' => 'menu_report_issue'],
+                        ['label' => 'Info Lokasi & Studio', 'action' => 'menu_info'],
+                        ['label' => 'Kirim Masukan / Usulan', 'action' => 'menu_feedback'],
+                    ],
+                ];
+
+            case 'menu_check_booking':
+                return [
+                    'ok' => true,
+                    'reply' => '<b>Pengecekan Status Booking Tiket</b><br><br>Silakan ketik atau salin <b>Kode Booking</b> Anda di kolom pesan.<br><br><b>Contoh:</b><br><code>HC-261123-2D60FU</code><br><br><i>Sistem akan langsung menampilkan status pembayaran, ketersediaan kursi, jadwal sesi, dan link e-tiket Anda tanpa perlu menunggu admin.</i>',
+                    'quick_replies' => [
+                        ['label' => 'Kembali ke Menu Utama', 'action' => 'menu_main'],
+                    ],
+                ];
+
+            case 'menu_check_snacks':
+                $snacks = MenuItem::where('is_available', true)->limit(10)->get();
+                if ($snacks->isEmpty()) {
+                    $reply = '<b>Menu Jajanan Bioskop</b><br><br>Saat ini daftar camilan sedang diperbarui oleh kasir studio.';
+                } else {
+                    $reply = "<b>Daftar Menu Jajanan Favorit {$cinemaName}</b><br><br>";
+                    foreach ($snacks as $item) {
+                        $price = 'Rp '.number_format($item->price, 0, ',', '.');
+                        $reply .= "• <b>{$item->name}</b> — {$price}<br>";
+                    }
+                    $reply .= '<br><i>Nikmati camilan lezat selama sesi pemutaran film di studio mini!</i>';
+                }
+
+                return [
+                    'ok' => true,
+                    'reply' => $reply,
+                    'quick_replies' => [
+                        ['label' => 'Cek Status Booking', 'action' => 'menu_check_booking'],
+                        ['label' => 'Kembali ke Menu Utama', 'action' => 'menu_main'],
+                    ],
+                ];
+
+            case 'menu_info':
+                $address = $this->settings->contactAddress() ?: 'Jl. Desa Panyingkiran Blok Mawar, RT.09/RW.05, Majalengka, Jawa Barat 45459';
+                $phone = $this->settings->contactPhone() ?: $this->settings->contactWhatsapp() ?: '6285169730960';
+                $mapsUrl = $this->settings->contactMapsUrl();
+
+                $reply = "<b>Informasi Bioskop {$cinemaName}</b><br><br>"
+                    ."• <b>Alamat:</b> {$address}<br>"
+                    ."• <b>WhatsApp/Kontak:</b> {$phone}<br>"
+                    .'• <b>Fasilitas:</b> Studio Mini Privat Berpendingin Udara (AC), Sofa Empuk, Layar Sinematik, Audio Dolby Surround<br>'
+                    .'• <b>Kapasitas:</b> 6 - 10 Kursi Eksklusif<br><br>'
+                    .'<i>Harap hadir di studio minimal 10-15 menit sebelum jam tayang dimulai.</i>';
+
+                $replies = [];
+                if ($mapsUrl) {
+                    $replies[] = ['label' => 'Buka Google Maps', 'url' => $mapsUrl];
+                }
+                $replies[] = ['label' => 'Kembali ke Menu Utama', 'action' => 'menu_main'];
+
+                return [
+                    'ok' => true,
+                    'reply' => $reply,
+                    'quick_replies' => $replies,
+                ];
+
+            case 'menu_report_issue':
+                return [
+                    'ok' => true,
+                    'reply' => '<b>Pusat Bantuan & Lapor Kendala Nonton</b><br><br>Silakan pilih kategori kendala yang Anda alami untuk mendapatkan panduan cepat dan pembuatan tiket laporan:',
+                    'quick_replies' => [
+                        ['label' => 'Pembayaran Belum Di-ACC', 'action' => 'issue_payment'],
+                        ['label' => 'Kendala Tiket / Jadwal / Kursi', 'action' => 'issue_ticket_schedule'],
+                        ['label' => 'Pesanan Jajanan Bioskop', 'action' => 'issue_snacks'],
+                        ['label' => 'Fasilitas Studio (AC, Layar, Audio)', 'action' => 'issue_studio'],
+                        ['label' => 'Kendala Lainnya', 'action' => 'issue_other'],
+                        ['label' => 'Kembali ke Menu Utama', 'action' => 'menu_main'],
+                    ],
+                ];
+
+            case 'issue_payment':
+                return [
+                    'ok' => true,
+                    'reply' => '<b>Solusi: Verifikasi Bukti Pembayaran</b><br><br>1. Konfirmasi transfer diproses oleh admin/kasir secara berkala.<br>2. Pastikan nominal transfer Anda tepat sesuai tagihan pada tiket.<br>3. Pastikan foto bukti transfer terlihat jelas nama pengirim, nominal, dan tanggal.<br><br><i>Jika pembayaran belum diverifikasi lebih dari 15 menit, ketik laporan Anda:</i><br><code>KELUHAN [Kode Booking] Bukti transfer sudah dikirim mohon di-ACC</code>',
+                    'quick_replies' => [
+                        ['label' => 'Ketik Laporan Sekarang', 'action' => 'issue_other'],
+                        ['label' => 'Kembali ke Pilihan Kendala', 'action' => 'menu_report_issue'],
+                        ['label' => 'Kembali ke Menu Utama', 'action' => 'menu_main'],
+                    ],
+                ];
+
+            case 'issue_ticket_schedule':
+                return [
+                    'ok' => true,
+                    'reply' => '<b>Kendala Tiket / Jadwal Tayang / Kursi</b><br><br>1. Anda dapat melihat tiket aktif kapan saja dengan mengetikkan kode booking Anda.<br>2. Kuorum penonton: Sesi reguler siap tayang jika kuorum kursi terpenuhi.<br><br><i>Jika Anda berhalangan hadir atau ingin ubah jadwal:</i><br><code>KELUHAN [Kode Booking] Permohonan ubah jadwal sesi / kendala tiket</code>',
+                    'quick_replies' => [
+                        ['label' => 'Cek Status Booking', 'action' => 'menu_check_booking'],
+                        ['label' => 'Ketik Laporan Sekarang', 'action' => 'issue_other'],
+                        ['label' => 'Kembali ke Menu Utama', 'action' => 'menu_main'],
+                    ],
+                ];
+
+            case 'issue_snacks':
+                return [
+                    'ok' => true,
+                    'reply' => '<b>Kendala Pesanan Jajanan Bioskop</b><br><br>1. Pesanan jajan disiapkan di studio loket dan dapat diambil sebelum sesi dimulai.<br>2. Jika ada menu yang habis atau ingin tambah pesanan jajan:<br><code>KELUHAN [Kode Booking] Kendala pesanan jajan...</code>',
+                    'quick_replies' => [
+                        ['label' => 'Cek Menu Jajan', 'action' => 'menu_check_snacks'],
+                        ['label' => 'Ketik Laporan Sekarang', 'action' => 'issue_other'],
+                        ['label' => 'Kembali ke Menu Utama', 'action' => 'menu_main'],
+                    ],
+                ];
+
+            case 'issue_studio':
+                return [
+                    'ok' => true,
+                    'reply' => "<b>Fasilitas Studio {$cinemaName}</b><br><br>• Ruang studio berpendingin udara (AC dingin eksklusif)<br>• Tata suara Dolby Cinematic Surround Sound<br>• Sofa empuk nyaman tipe Reguler & Couple Velvet<br>• Kapasitas privat 6-10 kursi per sesi<br><br><i>Jika ada kritik atau masukan kenyamanan studio saat sesi berlangsung:</i><br><code>KELUHAN [Kode Booking] AC kurang dingin / suara sound...</code>",
+                    'quick_replies' => [
+                        ['label' => 'Ketik Laporan Sekarang', 'action' => 'issue_other'],
+                        ['label' => 'Kembali ke Menu Utama', 'action' => 'menu_main'],
+                    ],
+                ];
+
+            case 'issue_other':
+                return [
+                    'ok' => true,
+                    'reply' => "<b>Lapor Kendala ke Manajemen {$cinemaName}</b><br><br>Silakan ketik detail keluhan atau kendala Anda secara langsung di kolom pesan.<br><br><b>Format saran:</b><br><code>KELUHAN [Kode Booking] Penjelasan kendala Anda...</code><br><br><b>Contoh:</b><br><code>KELUHAN HC-261123-2D60FU Mau konfirmasi pembayaran transfer bank</code><br><br><i>Sistem akan otomatis mencatat tiket laporan dan langsung mengirim notifikasi darurat ke admin SynemaX.</i>",
+                    'quick_replies' => [
+                        ['label' => 'Kembali ke Menu Utama', 'action' => 'menu_main'],
+                    ],
+                ];
+
+            case 'menu_feedback':
+                return [
+                    'ok' => true,
+                    'reply' => "<b>Kirim Masukan, Review, & Usulan Film</b><br><br>Tuliskan kritik, saran pengalaman menonton, atau usulan judul film yang ingin diputar langsung di kolom pesan.<br><br>Pesan Anda akan otomatis direkam dan diteruskan ke pantauan admin {$cinemaName}. Terima kasih!",
+                    'quick_replies' => [
+                        ['label' => 'Kembali ke Menu Utama', 'action' => 'menu_main'],
+                    ],
+                ];
+
+            default:
+                return $this->handleWebAction('menu_main', $name, $sessionId, $cinemaName, $siteUrl, $telegramLink);
+        }
+    }
+
+    protected function handleWebBookingInquiry(string $bookingCode, string $name, string $sessionId, string $siteUrl): array
+    {
+        $booking = Booking::with(['session.film', 'film', 'items.menuItem'])
+            ->where('code', $bookingCode)
+            ->first();
+
+        $ticketUrl = "{$siteUrl}/tiket/{$bookingCode}";
+
+        if (! $booking) {
+            return [
+                'ok' => true,
+                'reply' => "<b>Booking Tidak Ditemukan</b><br><br>Kode booking <code>{$bookingCode}</code> tidak terdaftar di sistem.<br><br>Pastikan kode booking yang Anda masukkan sesuai format (contoh: <code>HC-261123-2D60FU</code>).",
+                'quick_replies' => [
+                    ['label' => 'Coba Cek Lagi', 'action' => 'menu_check_booking'],
+                    ['label' => 'Kembali ke Menu Utama', 'action' => 'menu_main'],
+                ],
+            ];
+        }
+
+        $filmTitle = $booking->film?->title ?? $booking->session?->film?->title ?? 'Film Studio';
+        $sessionDate = $booking->session?->session_date ? format_hari_tanggal_id($booking->session->session_date) : '-';
+        $sessionTime = $booking->session?->start_time ? substr($booking->session->start_time, 0, 5).' WIB' : '-';
+        $paxCount = $booking->pax ?? $booking->people_count ?? 1;
+
+        $packageLabel = match ($booking->booking_type) {
+            'couple' => 'Couple Velvet (2 Orang)',
+            'private' => 'Private Studio VIP',
+            default => "Reguler ({$paxCount} Orang)",
+        };
+
+        $statusLabel = match ($booking->status) {
+            'menunggu_pembayaran' => 'Menunggu Pembayaran',
+            'menunggu_konfirmasi' => 'Menunggu Verifikasi Admin',
+            'terkonfirmasi' => 'Terkonfirmasi (Tiket Aktif)',
+            'hadir' => 'Telah Hadir di Studio',
+            'kedaluwarsa' => 'Kedaluwarsa',
+            'dibatalkan' => 'Dibatalkan',
+            default => $booking->status,
+        };
+
+        $totalFormatted = 'Rp '.number_format($booking->total_price, 0, ',', '.');
+
+        $reply = "<b>Rincian Booking #{$booking->code}</b><br><br>"
+            ."• <b>Film:</b> {$filmTitle}<br>"
+            ."• <b>Jadwal:</b> {$sessionDate} · {$sessionTime}<br>"
+            ."• <b>Paket:</b> {$packageLabel}<br>"
+            ."• <b>Atas Nama:</b> {$booking->customer_name}<br>"
+            ."• <b>Total:</b> {$totalFormatted}<br>"
+            ."• <b>Status:</b> <b>{$statusLabel}</b><br>";
+
+        if ($booking->items && $booking->items->isNotEmpty()) {
+            $reply .= '<br><b>Pesanan Jajanan:</b><br>';
+            foreach ($booking->items as $it) {
+                $itemTitle = $it->menuItem?->name ?? 'Menu';
+                $reply .= " - {$it->qty}x {$itemTitle}<br>";
+            }
+        }
+
+        if ($booking->status === 'menunggu_pembayaran') {
+            $reply .= '<br><i>Silakan selesaikan pembayaran dan unggah bukti transfer di website agar tempat duduk Anda segera dikonfirmasi.</i><br>';
+        } elseif ($booking->status === 'menunggu_konfirmasi') {
+            $reply .= '<br><i>Bukti pembayaran Anda sudah masuk dan sedang diperiksa oleh admin/kasir bioskop. Tiket Anda akan aktif segera.</i><br>';
+        } elseif ($booking->status === 'terkonfirmasi') {
+            $reply .= '<br><i>Tiket Anda sudah terkonfirmasi! Harap hadir di studio minimal 10-15 menit sebelum jam tayang.</i><br>';
+        }
+
+        $reply .= "<br><b>Halaman Tiket Online:</b><br><a href='{$ticketUrl}' target='_blank' class='underline font-semibold'>{$ticketUrl}</a>";
+
+        // Save BotFeedback
+        BotFeedback::create([
+            'telegram_user_id' => 'Web In-App Chat',
+            'telegram_username' => $sessionId,
+            'sender_name' => $name,
+            'category' => 'ORDER_INQUIRY',
+            'booking_code' => $bookingCode,
+            'booking_id' => $booking->id,
+            'message' => "Cek status booking via Web: {$bookingCode}",
+            'bot_response' => "Status: {$booking->status} ({$filmTitle})",
+            'status' => 'AUTO_RESOLVED',
+        ]);
+
+        return [
+            'ok' => true,
+            'reply' => $reply,
+            'booking' => [
+                'code' => $booking->code,
+                'status' => $booking->status,
+                'ticket_url' => $ticketUrl,
+            ],
+            'quick_replies' => [
+                ['label' => 'Buka Tiket di Tab Baru', 'url' => $ticketUrl],
+                ['label' => 'Lapor Kendala Booking Ini', 'action' => 'issue_other'],
+                ['label' => 'Kembali ke Menu Utama', 'action' => 'menu_main'],
+            ],
+        ];
+    }
+
+    protected function handleWebIssueReport(
+        string $messageText,
+        ?string $bookingCode,
+        string $name,
+        string $sessionId,
+        string $siteUrl
+    ): array {
+        $booking = null;
+        if ($bookingCode) {
+            $booking = Booking::where('code', $bookingCode)->first();
+        }
+
+        $feedback = BotFeedback::create([
+            'telegram_user_id' => 'Web In-App Chat',
+            'telegram_username' => $sessionId,
+            'sender_name' => $name,
+            'category' => 'ISSUE_REPORT',
+            'booking_code' => $bookingCode,
+            'booking_id' => $booking?->id,
+            'message' => $messageText,
+            'bot_response' => 'Laporan keluhan dicatat via Web Chat dan diteruskan ke admin pantauan.',
+            'status' => 'AUTO_RESOLVED',
+        ]);
+
+        $ticketCode = 'TKT-'.str_pad((string) $feedback->id, 5, '0', STR_PAD_LEFT);
+
+        $reply = '<b>Laporan Keluhan Anda Berhasil Dicatat</b><br><br>'
+            ."• <b>Nomor Tiket:</b> <code>#{$ticketCode}</code><br>"
+            .($bookingCode ? "• <b>Kode Booking:</b> <code>{$bookingCode}</code><br>" : '')
+            .'• <b>Waktu Laporan:</b> '.now()->format('d M Y, H:i').'<br><br>'
+            .'<b>Tindak Lanjut Admin:</b><br>'
+            .'Laporan Anda telah disimpan ke sistem dan <b>otomatis diteruskan ke notifikasi admin untuk dipantau secara langsung</b>.<br><br>'
+            .'<i>Terima kasih atas laporan Anda. Tim SynemaX berkomitmen menjaga kenyamanan Anda menonton!</i>';
+
+        // Dispatch instant alert to Admin Telegram Bot (@SynemaXAdmin_bot)
+        $this->notifyAdminOfBuyerFeedback($feedback, $booking);
+
+        return [
+            'ok' => true,
+            'reply' => $reply,
+            'ticket' => [
+                'id' => $feedback->id,
+                'code' => $ticketCode,
+            ],
+            'quick_replies' => [
+                ['label' => 'Cek Status Booking', 'action' => 'menu_check_booking'],
+                ['label' => 'Kembali ke Menu Utama', 'action' => 'menu_main'],
+            ],
+        ];
+    }
+
+    protected function handleWebGeneralFeedback(string $messageText, string $name, string $sessionId): array
+    {
+        $feedback = BotFeedback::create([
+            'telegram_user_id' => 'Web In-App Chat',
+            'telegram_username' => $sessionId,
+            'sender_name' => $name,
+            'category' => 'FEEDBACK',
+            'message' => $messageText,
+            'bot_response' => 'Terima kasih atas masukan Anda. Pesan telah dicatat ke sistem.',
+            'status' => 'AUTO_RESOLVED',
+        ]);
+
+        $reply = '<b>Terima kasih atas pesan dan masukan Anda</b><br><br>'
+            .'Pesan Anda telah berhasil dicatat dan diteruskan ke pantauan manajemen admin.<br><br>'
+            .'Untuk bantuan lainnya, silakan pilih menu di bawah:';
+
+        // Dispatch alert to Admin Telegram Bot (@SynemaXAdmin_bot)
+        $this->notifyAdminOfBuyerFeedback($feedback, null);
+
+        return [
+            'ok' => true,
+            'reply' => $reply,
+            'quick_replies' => [
+                ['label' => 'Cek Booking', 'action' => 'menu_check_booking'],
+                ['label' => 'Lapor Kendala', 'action' => 'menu_report_issue'],
+                ['label' => 'Kembali ke Menu Utama', 'action' => 'menu_main'],
+            ],
+        ];
+    }
 }

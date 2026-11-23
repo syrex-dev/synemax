@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'telegram/webhook',
             'telegram/webhook/*',
+            'api/chat-bot/message',
         ]);
 
         $middleware->web(append: [

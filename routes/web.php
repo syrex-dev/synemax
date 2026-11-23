@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SnackMenuController;
 use App\Http\Controllers\Admin\SnackPreparationController;
 use App\Http\Controllers\Admin\TicketScannerController;
+use App\Http\Controllers\Api\InAppChatBotController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicBookingController;
@@ -35,6 +36,11 @@ use Illuminate\Support\Facades\Route;
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handleCs'])->name('telegram.webhook');
 Route::post('/telegram/webhook/cs', [TelegramWebhookController::class, 'handleCs'])->name('telegram.webhook.cs');
 Route::post('/telegram/webhook/admin', [TelegramWebhookController::class, 'handleAdmin'])->name('telegram.webhook.admin');
+
+// In-App Chatbot API (Zero-daemon, 24/7 in-browser customer support)
+Route::post('/api/chat-bot/message', [InAppChatBotController::class, 'handle'])
+    ->middleware('throttle:30,1')
+    ->name('chatbot.message');
 
 Route::get('/', [PublicCinemaController::class, 'index'])->name('home');
 Route::get('/jadwal', [PublicCinemaController::class, 'schedule'])->name('schedule.index');
