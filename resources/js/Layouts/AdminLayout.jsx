@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, usePage, router } from '@inertiajs/react';
 import BrandLogo from '../Components/BrandLogo';
 import ThemeToggle from '../Components/ThemeToggle';
@@ -32,12 +32,54 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
     const { auth } = usePage().props;
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+    const sidebarRef = useRef(null);
+    const mobileSidebarRef = useRef(null);
 
     useEffect(() => {
         if (title) {
             document.title = `${title} | SynemaX Admin`;
         }
     }, [title]);
+
+    // Restore and maintain sidebar scroll position on navigation so user never loses their position
+    useEffect(() => {
+        // Desktop sidebar scroll restoration
+        if (sidebarRef.current) {
+            const savedScroll = sessionStorage.getItem('synemax_admin_sidebar_scroll');
+            if (savedScroll !== null) {
+                sidebarRef.current.scrollTop = Number(savedScroll);
+            }
+            // Ensure active link stays visible in viewport
+            requestAnimationFrame(() => {
+                const activeEl = sidebarRef.current?.querySelector('[data-nav-active="true"]');
+                if (activeEl) {
+                    activeEl.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+                }
+            });
+        }
+
+        // Mobile drawer scroll restoration
+        if (mobileSidebarRef.current) {
+            const savedMobileScroll = sessionStorage.getItem('synemax_admin_mobile_sidebar_scroll');
+            if (savedMobileScroll !== null) {
+                mobileSidebarRef.current.scrollTop = Number(savedMobileScroll);
+            }
+        }
+    }, [url]);
+
+    const handleSidebarScroll = (e) => {
+        sessionStorage.setItem('synemax_admin_sidebar_scroll', String(e.currentTarget.scrollTop));
+    };
+
+    const handleMobileSidebarScroll = (e) => {
+        sessionStorage.setItem('synemax_admin_mobile_sidebar_scroll', String(e.currentTarget.scrollTop));
+    };
+
+    const handleNavClick = () => {
+        if (sidebarRef.current) {
+            sessionStorage.setItem('synemax_admin_sidebar_scroll', String(sidebarRef.current.scrollTop));
+        }
+    };
 
     const navSections = [
         {
@@ -203,7 +245,11 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                        <div
+                            ref={mobileSidebarRef}
+                            onScroll={handleMobileSidebarScroll}
+                            className="flex-1 overflow-y-auto p-4 space-y-6"
+                        >
                             {navSections.map((section) => (
                                 <div key={section.title}>
                                     <h4 className="px-3 text-[11px] font-bold uppercase tracking-[0.15em] text-text-muted mb-2">
@@ -280,7 +326,11 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
             {/* Desktop Layout Container */}
             <div className="mx-auto flex max-w-screen-2xl">
                 {/* Desktop Sticky Sidebar */}
-                <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 overflow-y-auto border-r border-border p-4 lg:block">
+                <aside
+                    ref={sidebarRef}
+                    onScroll={handleSidebarScroll}
+                    className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 overflow-y-auto border-r border-border p-4 lg:block"
+                >
                     <div className="space-y-6">
                         {navSections.map((section) => (
                             <div key={section.title}>
@@ -295,6 +345,8 @@ export default function AdminLayout({ children, title, isFormPage = false }) {
                                             <Link
                                                 key={item.href}
                                                 href={item.href}
+                                                onClick={handleNavClick}
+                                                data-nav-active={active ? 'true' : 'false'}
                                                 className={`flex min-h-[44px] items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition ${
                                                     active
                                                         ? 'bg-amber-100 text-amber-900 font-bold border-l-4 border-amber-500 rounded-r-xl rounded-l-none pl-2.5 dark:bg-amber-500/15 dark:text-amber-400 dark:border-amber-500/30 dark:rounded-xl dark:pl-3'
