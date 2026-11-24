@@ -21,3 +21,6 @@ Schedule::command('sessions:resolve-quorum')
 
 Schedule::command('notifications:flush')
     ->everyMinute();
+
+Schedule::command('feedback:cleanup')
+    ->daily();

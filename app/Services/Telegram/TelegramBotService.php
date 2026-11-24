@@ -247,9 +247,144 @@ class TelegramBotService
      */
     public function handleAdminUpdate(array $update): void
     {
+        if (isset($update['callback_query'])) {
+            $this->handleAdminCallback($update['callback_query']);
+
+            return;
+        }
+
         if (isset($update['message'])) {
             $this->handleAdminMessage($update['message']);
         }
+    }
+
+    /**
+     * Handle inline callbacks from Admin Bot notifications (claim, confirm).
+     */
+    public function handleAdminCallback(array $query): void
+    {
+        $queryId = (string) ($query['id'] ?? '');
+        $data = (string) ($query['data'] ?? '');
+        $from = $query['from'] ?? [];
+        $chatId = $query['message']['chat']['id'] ?? ($from['id'] ?? null);
+        $userId = (string) ($from['id'] ?? '');
+        $firstName = $from['first_name'] ?? 'Admin';
+        $lastName = $from['last_name'] ?? '';
+        $adminFullName = trim("{$firstName} {$lastName}");
+        $username = isset($from['username']) ? '@'.$from['username'] : '';
+        $adminDisplay = $adminFullName ?: ($username ?: "Admin #{$userId}");
+
+        if (str_starts_with($data, 'admin_claim:')) {
+            $code = substr($data, 12);
+            $booking = Booking::with(['session.film', 'film'])->where('code', $code)->first();
+
+            if (! $booking) {
+                $this->answerCallbackQuery($queryId, 'Booking tidak ditemukan.', true);
+
+                return;
+            }
+
+            if ($booking->claimed_by_name && $booking->claimed_by_id !== "tg:{$userId}") {
+                $this->answerCallbackQuery($queryId, "⛔ SUDAH DIAMBIL oleh {$booking->claimed_by_name}! Jangan proses ganda.", true);
+
+                return;
+            }
+
+            if ($booking->claimed_by_id === "tg:{$userId}") {
+                $this->answerCallbackQuery($queryId, 'ℹ️ Anda sudah mengambil booking ini sebelumnya.', true);
+
+                return;
+            }
+
+            if ($booking->status === 'terkonfirmasi') {
+                $this->answerCallbackQuery($queryId, "ℹ️ Booking {$code} sudah terkonfirmasi.", true);
+
+                return;
+            }
+
+            $booking->update([
+                'claimed_by_name' => $adminDisplay,
+                'claimed_by_id' => "tg:{$userId}",
+                'claimed_at' => now(),
+            ]);
+
+            $this->answerCallbackQuery($queryId, "⚡ Berhasil! Anda sedang memproses booking {$code}.", true);
+
+            // Broadcast to other admins
+            $adminChatIds = $this->telegramService->getChatIds();
+            $filmTitle = $booking->film?->title ?? $booking->session?->film?->title ?? 'Tiket Bioskop';
+            $broadcastMsg = "⚡ <b>[UPDATE PENANGANAN BOOKING]</b>\n"
+                ."Kode: <code>{$code}</code>\n"
+                ."Film: <b>{$filmTitle}</b>\n"
+                ."Pemesan: {$booking->customer_name}\n"
+                ."Sedang diproses oleh: <b>{$adminDisplay}</b>\n\n"
+                .'<i>Admin lain tidak perlu memproses booking ini untuk mencegah bentrok/ganda.</i>';
+
+            foreach ($adminChatIds as $cid) {
+                if ((string) $cid !== (string) $chatId) {
+                    $this->sendAdminMessage($cid, $broadcastMsg);
+                }
+            }
+
+            return;
+        }
+
+        if (str_starts_with($data, 'admin_confirm:')) {
+            $code = substr($data, 14);
+            $booking = Booking::with(['session.film', 'film'])->where('code', $code)->first();
+
+            if (! $booking) {
+                $this->answerCallbackQuery($queryId, 'Booking tidak ditemukan.', true);
+
+                return;
+            }
+
+            if ($booking->claimed_by_name && $booking->claimed_by_id !== "tg:{$userId}") {
+                $this->answerCallbackQuery($queryId, "⛔ Booking ini telah diambil oleh {$booking->claimed_by_name}!", true);
+
+                return;
+            }
+
+            if ($booking->status === 'terkonfirmasi') {
+                $this->answerCallbackQuery($queryId, "ℹ️ Booking {$code} sudah dikonfirmasi sebelumnya.", true);
+
+                return;
+            }
+
+            $booking->update([
+                'status' => 'terkonfirmasi',
+                'confirmed_at' => now(),
+                'confirmed_by_name' => $adminDisplay,
+                'proof_rejection_note' => null,
+            ]);
+
+            $booking->session?->syncPrivateStatus();
+
+            $this->answerCallbackQuery($queryId, "✅ Booking {$code} berhasil dikonfirmasi oleh Anda!", true);
+
+            app(TelegramNotificationService::class)->queue('payment_confirmed', $booking);
+            app(TelegramNotificationService::class)->flush();
+
+            // Broadcast to other admins
+            $adminChatIds = $this->telegramService->getChatIds();
+            $filmTitle = $booking->film?->title ?? $booking->session?->film?->title ?? 'Tiket Bioskop';
+            $broadcastMsg = "✅ <b>[BOOKING DIKONFIRMASI]</b>\n"
+                ."Kode: <code>{$code}</code>\n"
+                ."Film: <b>{$filmTitle}</b>\n"
+                ."Pemesan: {$booking->customer_name}\n"
+                ."Dikonfirmasi oleh: <b>{$adminDisplay}</b>\n\n"
+                .'<i>Tiket aktif dan notifikasi telah dikirim ke pelanggan.</i>';
+
+            foreach ($adminChatIds as $cid) {
+                if ((string) $cid !== (string) $chatId) {
+                    $this->sendAdminMessage($cid, $broadcastMsg);
+                }
+            }
+
+            return;
+        }
+
+        $this->answerCallbackQuery($queryId);
     }
 
     /**
@@ -263,13 +398,14 @@ class TelegramBotService
         $firstName = $from['first_name'] ?? 'Admin';
         $lastName = $from['last_name'] ?? '';
         $senderName = trim("{$firstName} {$lastName}") ?: 'Admin';
+        $username = $from['username'] ?? null;
 
         if (! $chatId) {
             return;
         }
 
         // Auto-register Chat ID to system settings
-        $isNew = $this->telegramService->addChatId((string) $chatId);
+        $isNew = $this->telegramService->addChatId((string) $chatId, $senderName, $username);
         // Refresh local cache of chat IDs
         $this->adminChatIds = $this->telegramService->getChatIds();
 
@@ -347,8 +483,14 @@ class TelegramBotService
 
     protected function handleCallbackQuery(array $query): void
     {
+        $data = (string) ($query['data'] ?? '');
+        if (str_starts_with($data, 'admin_claim:') || str_starts_with($data, 'admin_confirm:')) {
+            $this->handleAdminCallback($query);
+
+            return;
+        }
+
         $queryId = $query['id'];
-        $data = $query['data'] ?? '';
         $from = $query['from'] ?? [];
         $chatId = $query['message']['chat']['id'] ?? ($from['id'] ?? null);
         $firstName = $from['first_name'] ?? 'Penonton SynemaX';

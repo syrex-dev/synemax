@@ -24,6 +24,9 @@ import {
     Bot,
     Headphones,
     ShieldCheck,
+    UserCheck,
+    UserPlus,
+    AlertCircle,
 } from 'lucide-react';
 
 export default function Edit({
@@ -161,6 +164,7 @@ export default function Edit({
         telegram_cs_bot_username: telegramSettings.cs_bot_username || 'SynemaXChat_bot',
         // Chat IDs & Notifications
         telegram_chat_ids: telegramSettings.chat_ids || '',
+        feedback_retention_days: telegramSettings.feedback_retention_days ?? 30,
         telegram_notify_booking_created: telegramSettings.notify_booking_created !== false,
         telegram_notify_proof_uploaded: telegramSettings.notify_proof_uploaded !== false,
         telegram_notify_payment_confirmed: telegramSettings.notify_payment_confirmed || false,
@@ -270,6 +274,86 @@ export default function Edit({
             preserveScroll: true,
             onFinish: () => setIsSettingWebhook(false),
         });
+    };
+
+    const [showAddAdmin, setShowAddAdmin] = useState(false);
+    const [newAdminName, setNewAdminName] = useState('');
+    const [newAdminChatId, setNewAdminChatId] = useState('');
+    const [newAdminUsername, setNewAdminUsername] = useState('');
+    const [detectedChats, setDetectedChats] = useState([]);
+    const [isDetecting, setIsDetecting] = useState(false);
+    const [detectFeedback, setDetectFeedback] = useState(null);
+
+    const handleDetectAdmins = async () => {
+        setIsDetecting(true);
+        setDetectFeedback(null);
+        try {
+            const tokenMeta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const res = await window.fetch('/admin/pengaturan/telegram/detect', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': tokenMeta,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    token: telegramForm.data.telegram_admin_bot_token || undefined,
+                }),
+            });
+            const data = await res.json();
+            if (data.success && Array.isArray(data.chats)) {
+                setDetectedChats(data.chats);
+                setDetectFeedback({
+                    type: 'success',
+                    message: data.message || `Ditemukan ${data.chats.length} obrolan aktif.`,
+                });
+                if (data.chats.length > 0) {
+                    router.reload({ only: ['telegramSettings'] });
+                }
+            } else {
+                setDetectFeedback({
+                    type: 'error',
+                    message: data.message || 'Belum ada obrolan baru. Kirim /start ke bot kontrol di Telegram terlebih dahulu.',
+                });
+            }
+        } catch (err) {
+            setDetectFeedback({
+                type: 'error',
+                message: 'Gagal mendeteksi akun: ' + (err.message || 'Koneksi terputus'),
+            });
+        } finally {
+            setIsDetecting(false);
+        }
+    };
+
+    const handleAddAdmin = (chatId, name, username = '') => {
+        if (!chatId || !chatId.trim()) return;
+        router.post(
+            '/admin/pengaturan/telegram/admin/add',
+            {
+                chat_id: chatId.trim(),
+                name: name ? name.trim() : `Admin (${chatId})`,
+                username: username ? username.trim().replace(/^@/, '') : undefined,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setShowAddAdmin(false);
+                    setNewAdminName('');
+                    setNewAdminChatId('');
+                    setNewAdminUsername('');
+                },
+            }
+        );
+    };
+
+    const handleRemoveAdmin = (chatId) => {
+        if (!window.confirm('Hapus admin Telegram ini dari daftar penerima notifikasi?')) return;
+        router.post(
+            '/admin/pengaturan/telegram/admin/remove',
+            { chat_id: chatId },
+            { preserveScroll: true }
+        );
     };
 
     return (
@@ -1409,7 +1493,7 @@ export default function Edit({
                                 <span>Aktifkan Notifikasi Bot Kontrol Admin</span>
                             </label>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="telegram_admin_bot_token" className="block text-xs font-bold text-text mb-1">
                                         HTTP API Bot Token Admin (@BotFather)
@@ -1440,23 +1524,206 @@ export default function Edit({
                                         />
                                     </div>
                                 </div>
+                            </div>
 
-                                <div>
-                                    <label htmlFor="telegram_chat_ids" className="block text-xs font-bold text-text mb-1">
-                                        Chat ID Penerima (Otomatis / Manual)
-                                    </label>
-                                    <input
-                                        id="telegram_chat_ids"
-                                        type="text"
-                                        placeholder="123456789, -987654321"
-                                        value={telegramForm.data.telegram_chat_ids}
-                                        onChange={(e) => telegramForm.setData('telegram_chat_ids', e.target.value)}
-                                        className="min-h-11 w-full rounded-xl border border-border bg-surface-2 px-3 text-sm text-text focus:border-amber-400 focus:outline-none"
-                                    />
-                                    <p className="text-[11px] text-text-muted mt-1">
-                                        Kirim /start ke bot kontrol di Telegram untuk menyimpan Chat ID secara otomatis.
-                                    </p>
+                            {/* Multi-Admin Management Section */}
+                            <div className="rounded-xl border border-border/80 bg-surface-2/40 p-4 space-y-3">
+                                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-xs font-black uppercase tracking-wider text-text">
+                                                Daftar Akun Admin Telegram ({telegramSettings.admin_list?.length || 0} Terdaftar)
+                                            </h3>
+                                            <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                                                Anti-Bentrok Order
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-text-muted mt-0.5">
+                                            Setiap admin dapat menggunakan akun Telegram masing-masing untuk menerima notifikasi dan memproses orderan tanpa bentrok.
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleDetectAdmins}
+                                            disabled={isDetecting}
+                                            className="inline-flex min-h-[34px] items-center gap-1.5 rounded-xl border border-border bg-surface px-3 text-xs font-bold text-text hover:bg-surface-2 active:scale-95 transition disabled:opacity-50"
+                                        >
+                                            <RefreshCw className={`size-3.5 ${isDetecting ? 'animate-spin' : ''}`} />
+                                            <span>{isDetecting ? 'Mendeteksi...' : 'Deteksi Otomatis'}</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAddAdmin(!showAddAdmin)}
+                                            className="inline-flex min-h-[34px] items-center gap-1.5 rounded-xl bg-amber-500 px-3 text-xs font-bold text-black hover:opacity-90 active:scale-95 transition"
+                                        >
+                                            <UserPlus className="size-3.5" />
+                                            <span>+ Tambah ID Manual</span>
+                                        </button>
+                                    </div>
                                 </div>
+
+                                {detectFeedback && (
+                                    <div className={`p-3 rounded-xl text-xs flex items-start gap-2 ${
+                                        detectFeedback.type === 'success'
+                                            ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                                            : 'bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400'
+                                    }`}>
+                                        {detectFeedback.type === 'success' ? <Check className="size-4 shrink-0 mt-0.5" /> : <AlertCircle className="size-4 shrink-0 mt-0.5" />}
+                                        <span>{detectFeedback.message}</span>
+                                    </div>
+                                )}
+
+                                {/* Detected Chats Auto-Add List */}
+                                {detectedChats.length > 0 && (
+                                    <div className="p-3 bg-surface border border-border rounded-xl space-y-2">
+                                        <span className="text-xs font-bold text-text block">
+                                            Hasil Deteksi Interaksi Telegram ({detectedChats.length} Ditemukan):
+                                        </span>
+                                        <div className="space-y-1.5">
+                                            {detectedChats.map((c) => {
+                                                const isAlreadyAdded = (telegramSettings.admin_list || []).some(a => String(a.chat_id) === String(c.id));
+                                                return (
+                                                    <div key={c.id} className="flex items-center justify-between text-xs p-2.5 bg-surface-2 rounded-lg border border-border gap-2">
+                                                        <div className="min-w-0">
+                                                            <span className="font-bold text-text">{c.name}</span>
+                                                            <span className="text-text-muted font-mono ml-2 text-[11px]">({c.id})</span>
+                                                        </div>
+                                                        {isAlreadyAdded ? (
+                                                            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 shrink-0 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md">
+                                                                <Check className="size-3" /> Terdaftar
+                                                            </span>
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleAddAdmin(String(c.id), c.name)}
+                                                                className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1 text-xs font-bold text-black hover:opacity-90 active:scale-95 transition shrink-0"
+                                                            >
+                                                                <Plus className="size-3" /> Tambahkan
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Manual Add Form */}
+                                {showAddAdmin && (
+                                    <div className="p-3.5 bg-surface border border-amber-500/30 rounded-xl space-y-3">
+                                        <div className="flex items-center justify-between text-xs font-bold text-text">
+                                            <span>Tambah Admin Telegram Baru</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAddAdmin(false)}
+                                                className="text-text-muted hover:text-text"
+                                            >
+                                                <X className="size-4" />
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                                            <div>
+                                                <label className="text-[11px] font-semibold text-text block mb-1">Nama / Panggilan Admin</label>
+                                                <input
+                                                    type="text"
+                                                    value={newAdminName}
+                                                    onChange={(e) => setNewAdminName(e.target.value)}
+                                                    placeholder="Contoh: Admin Putri"
+                                                    className="w-full h-9 px-3 text-xs bg-surface-2 border border-border rounded-xl text-text focus:outline-none focus:border-amber-400"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[11px] font-semibold text-text block mb-1">Telegram User / Chat ID</label>
+                                                <input
+                                                    type="text"
+                                                    value={newAdminChatId}
+                                                    onChange={(e) => setNewAdminChatId(e.target.value)}
+                                                    placeholder="Contoh: 123456789"
+                                                    className="w-full h-9 px-3 text-xs bg-surface-2 border border-border rounded-xl text-text font-mono focus:outline-none focus:border-amber-400"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-[11px] font-semibold text-text block mb-1">Username Telegram (Opsional)</label>
+                                                <input
+                                                    type="text"
+                                                    value={newAdminUsername}
+                                                    onChange={(e) => setNewAdminUsername(e.target.value)}
+                                                    placeholder="@username"
+                                                    className="w-full h-9 px-3 text-xs bg-surface-2 border border-border rounded-xl text-text focus:outline-none focus:border-amber-400"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-end gap-2 pt-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAddAdmin(false)}
+                                                className="h-8 px-3 text-xs font-semibold text-text-muted hover:text-text rounded-lg"
+                                            >
+                                                Batal
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={!newAdminChatId.trim()}
+                                                onClick={() => handleAddAdmin(newAdminChatId, newAdminName, newAdminUsername)}
+                                                className="h-8 px-3.5 text-xs font-bold bg-amber-500 text-black rounded-xl hover:opacity-90 active:scale-95 transition disabled:opacity-50"
+                                            >
+                                                Daftarkan Admin
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Admin List Cards */}
+                                {(!telegramSettings.admin_list || telegramSettings.admin_list.length === 0) ? (
+                                    <div className="p-4 rounded-xl border border-dashed border-border bg-surface text-center text-xs text-text-muted">
+                                        Belum ada Admin Telegram yang terdaftar. Kirim <code>/start</code> ke bot kontrol Telegram atau klik <b>Deteksi Otomatis</b> / <b>+ Tambah ID Manual</b>.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {telegramSettings.admin_list.map((adm, idx) => (
+                                            <div
+                                                key={adm.chat_id || idx}
+                                                className="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface border border-border/80 hover:border-amber-500/40 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="size-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
+                                                        <UserCheck className="size-4" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className="text-xs font-bold text-text truncate">
+                                                                {adm.name}
+                                                            </span>
+                                                            {adm.username && (
+                                                                <span className="text-[11px] font-semibold text-sky-600 dark:text-sky-400">
+                                                                    @{adm.username.replace(/^@/, '')}
+                                                                </span>
+                                                            )}
+                                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/25">
+                                                                Aktif
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-[11px] font-mono text-text-muted mt-0.5">
+                                                            Chat ID: <code>{adm.chat_id}</code>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveAdmin(adm.chat_id)}
+                                                    className="p-2 text-text-muted hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer shrink-0"
+                                                    title={`Hapus ${adm.name}`}
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Status & Webhook Bot Admin */}
@@ -1705,6 +1972,55 @@ export default function Edit({
                                         <Check className="size-3.5 text-emerald-500 shrink-0" />
                                         <span>Penerusan alert keluhan otomatis ke Bot Admin</span>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 3. RETENSI DATA FEEDBACK & KELUHAN OTOMATIS */}
+                        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm space-y-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="flex size-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500">
+                                        <Clock className="size-5" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-sm font-bold uppercase tracking-wider text-text">
+                                            3. Retensi & Pembersihan Otomatis Feedback Bot
+                                        </h2>
+                                        <p className="text-xs text-text-muted mt-0.5">
+                                            Pembersihan otomatis data riwayat percakapan bot CS dan tiket kendala penonton agar database tetap bersih dan tidak menumpuk.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+                                    <ShieldCheck className="size-3.5" />
+                                    <span>Auto-Cleanup Harian</span>
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                                <div>
+                                    <label htmlFor="feedback_retention_days" className="block text-xs font-bold text-text mb-1">
+                                        Batas Hari Simpan Data Feedback
+                                    </label>
+                                    <select
+                                        id="feedback_retention_days"
+                                        value={telegramForm.data.feedback_retention_days}
+                                        onChange={(e) => telegramForm.setData('feedback_retention_days', parseInt(e.target.value, 10) || 0)}
+                                        className="min-h-11 w-full rounded-xl border border-border bg-surface-2 px-3 text-sm text-text focus:border-amber-400 focus:outline-none"
+                                    >
+                                        <option value={7}>7 Hari (Sangat Hemat Penyimpanan)</option>
+                                        <option value={14}>14 Hari (Dianjurkan)</option>
+                                        <option value={30}>30 Hari (Default Standar Bioskop)</option>
+                                        <option value={60}>60 Hari</option>
+                                        <option value={90}>90 Hari</option>
+                                        <option value={0}>Simpan Selamanya (Pembersihan Nonaktif)</option>
+                                    </select>
+                                </div>
+
+                                <div className="text-xs text-text-muted leading-relaxed">
+                                    Data feedback dan tiket kendala penonton yang berusia lebih lama dari batas hari yang dipilih akan otomatis dibersihkan secara berkala setiap hari oleh sistem jadwal (cron schedule).
                                 </div>
                             </div>
                         </div>

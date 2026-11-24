@@ -58,6 +58,7 @@ class AdminBotFeedbackController extends Controller
                 'status' => $status,
                 'q' => $search,
             ],
+            'retentionDays' => $settings->feedbackRetentionDays(),
             'botInfo' => [
                 'username' => $settings->string('telegram_bot_username'),
                 'active' => $telegram->isEnabled(),
@@ -65,6 +66,20 @@ class AdminBotFeedbackController extends Controller
                 'adminChatConfigured' => ! empty($telegram->getChatIds()),
             ],
         ]);
+    }
+
+    public function cleanup(Request $request, CinemaSettings $settings): RedirectResponse
+    {
+        $days = (int) $request->input('days', $settings->feedbackRetentionDays());
+        if ($days <= 0) {
+            $days = 30;
+        }
+
+        $cutoff = now()->subDays($days);
+        $count = BotFeedback::where('created_at', '<', $cutoff)->count();
+        BotFeedback::where('created_at', '<', $cutoff)->delete();
+
+        return back()->with('status', "Berhasil membersihkan {$count} data keluhan/feedback yang lebih lama dari {$days} hari.");
     }
 
     public function updateStatus(Request $request, BotFeedback $feedback): RedirectResponse

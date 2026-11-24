@@ -298,6 +298,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/pengaturan/delete-sample', [SettingController::class, 'deleteSampleData'])->name('settings.delete_sample');
     Route::post('/pengaturan/telegram/test', [SettingController::class, 'testTelegram'])->name('settings.telegram.test');
     Route::post('/pengaturan/telegram/detect', [SettingController::class, 'detectTelegramChats'])->name('settings.telegram.detect');
+    Route::post('/pengaturan/telegram/admin/add', [SettingController::class, 'addTelegramAdmin'])->name('settings.telegram.add_admin');
+    Route::post('/pengaturan/telegram/admin/remove', [SettingController::class, 'removeTelegramAdmin'])->name('settings.telegram.remove_admin');
     Route::post('/pengaturan/telegram/setup-webhook', [SettingController::class, 'setupTelegramWebhook'])->name('settings.telegram.setup_webhook');
     Route::post('/pengaturan/telegram/remove-webhook', [SettingController::class, 'removeTelegramWebhook'])->name('settings.telegram.remove_webhook');
     Route::post('/pengaturan/telegram/retry/{id}', [SettingController::class, 'retryTelegramNotification'])->name('settings.telegram.retry');
@@ -306,6 +308,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/bot-feedbacks', [AdminBotFeedbackController::class, 'index'])->name('bot_feedbacks.index');
     Route::patch('/bot-feedbacks/{feedback}/status', [AdminBotFeedbackController::class, 'updateStatus'])->name('bot_feedbacks.update_status');
     Route::delete('/bot-feedbacks/{feedback}', [AdminBotFeedbackController::class, 'destroy'])->name('bot_feedbacks.destroy');
+    Route::post('/bot-feedbacks/cleanup', [AdminBotFeedbackController::class, 'cleanup'])->name('bot_feedbacks.cleanup');
     Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/laporan/export.csv', [ReportController::class, 'export'])->name('reports.export');
 

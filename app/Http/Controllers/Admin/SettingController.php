@@ -75,6 +75,8 @@ class SettingController extends Controller
             'admin_bot_username' => $telegramService->getAdminBotUsername(),
             'admin_webhook_info' => $telegramBot->getAdminWebhookInfo(),
             'chat_ids' => $settings->string('telegram_chat_ids'),
+            'admin_list' => $settings->getTelegramAdminList(),
+            'feedback_retention_days' => $settings->feedbackRetentionDays(),
             // CS Support Bot 24/7
             'cs_bot_enabled' => $settings->boolean('telegram_cs_bot_enabled', true),
             'cs_masked_token' => $telegramService->getCsMaskedToken(),
@@ -1001,9 +1003,25 @@ class SettingController extends Controller
         $csEnabled = $request->boolean('telegram_cs_bot_enabled', true) ? 1 : 0;
         $settings->set('telegram_cs_bot_enabled', (string) $csEnabled, 'notifikasi');
 
-        // Chat IDs & Notifications
+        // Chat IDs & Multi-Admin List
         $chatIds = trim((string) $request->input('telegram_chat_ids', ''));
         $settings->set('telegram_chat_ids', $chatIds, 'notifikasi');
+
+        if ($request->has('telegram_admins')) {
+            $adminInput = $request->input('telegram_admins');
+            if (is_array($adminInput)) {
+                $cleanedAdmins = array_values(array_filter($adminInput, fn ($a) => is_array($a) && ! empty($a['chat_id'])));
+                $settings->set('telegram_admins', json_encode($cleanedAdmins), 'notifikasi');
+            } elseif (is_string($adminInput)) {
+                $settings->set('telegram_admins', $adminInput, 'notifikasi');
+            }
+        }
+
+        // Feedback Retention Days
+        if ($request->has('feedback_retention_days')) {
+            $days = max(0, (int) $request->input('feedback_retention_days', 30));
+            $settings->set('feedback_retention_days', (string) $days, 'notifikasi');
+        }
 
         $events = [
             'telegram_notify_booking_created' => $request->boolean('telegram_notify_booking_created', true),
@@ -1112,7 +1130,7 @@ class SettingController extends Controller
         return response()->json(['success' => $allOk, 'message' => $msg, 'results' => $results]);
     }
 
-    public function detectTelegramChats(Request $request, TelegramNotificationService $telegram): JsonResponse
+    public function detectTelegramChats(Request $request, TelegramNotificationService $telegram): JsonResponse|RedirectResponse
     {
         $token = $request->input('token');
         if ($token && str_contains($token, '••••••')) {
@@ -1121,7 +1139,48 @@ class SettingController extends Controller
 
         $result = $telegram->detectChats($token);
 
+        if ($result['success'] && ! empty($result['chats'])) {
+            foreach ($result['chats'] as $chat) {
+                $telegram->addChatId($chat['id'], $chat['name']);
+            }
+        }
+
+        if ($request->header('X-Inertia')) {
+            return back()->with(
+                $result['success'] ? 'status' : 'error',
+                $result['message'] ?? 'Deteksi obrolan Telegram selesai.'
+            );
+        }
+
         return response()->json($result);
+    }
+
+    public function addTelegramAdmin(Request $request, TelegramNotificationService $telegram): RedirectResponse
+    {
+        $validated = $request->validate([
+            'chat_id' => ['required', 'string', 'max:50'],
+            'name' => ['required', 'string', 'max:100'],
+            'username' => ['nullable', 'string', 'max:100'],
+        ]);
+
+        $telegram->addChatId($validated['chat_id'], $validated['name'], $validated['username'] ?? null);
+
+        return back()->with('status', "Admin {$validated['name']} (ID: {$validated['chat_id']}) berhasil didaftarkan ke notifikasi.");
+    }
+
+    public function removeTelegramAdmin(Request $request, CinemaSettings $settings): RedirectResponse
+    {
+        $chatId = trim((string) $request->input('chat_id', ''));
+        if ($chatId !== '') {
+            $admins = $settings->getTelegramAdminList();
+            $filtered = array_values(array_filter($admins, fn ($a) => (string) ($a['chat_id'] ?? '') !== $chatId));
+            $settings->set('telegram_admins', json_encode($filtered), 'notifikasi');
+
+            $chatIds = array_column($filtered, 'chat_id');
+            $settings->set('telegram_chat_ids', implode(', ', $chatIds), 'notifikasi');
+        }
+
+        return back()->with('status', 'Admin Telegram berhasil dihapus dari daftar notifikasi.');
     }
 
     public function retryTelegramNotification(int $id, TelegramNotificationService $telegram): RedirectResponse

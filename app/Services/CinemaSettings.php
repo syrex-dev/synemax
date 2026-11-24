@@ -848,6 +848,76 @@ class CinemaSettings
         ];
     }
 
+    /**
+     * Get list of registered telegram admins.
+     *
+     * @return array<int, array{chat_id: string, name: string, username?: ?string, added_at?: ?string}>
+     */
+    public function getTelegramAdminList(): array
+    {
+        $admins = $this->get('telegram_admins');
+        if (is_string($admins) && ! empty($admins)) {
+            $decoded = json_decode($admins, true);
+            if (is_array($decoded)) {
+                $admins = $decoded;
+            }
+        }
+
+        if (is_array($admins) && ! empty($admins)) {
+            return array_values(array_filter($admins, fn ($a) => is_array($a) && ! empty($a['chat_id'])));
+        }
+
+        // Fallback: parse telegram_chat_ids string
+        $raw = $this->string('telegram_chat_ids');
+        if (! empty($raw)) {
+            $chatIds = array_filter(array_map('trim', preg_split('/[\r\n,]+/', (string) $raw)));
+            $result = [];
+            $i = 1;
+            foreach ($chatIds as $cid) {
+                $result[] = [
+                    'chat_id' => (string) $cid,
+                    'name' => "Admin {$i}",
+                    'username' => null,
+                    'added_at' => null,
+                ];
+                $i++;
+            }
+
+            return $result;
+        }
+
+        return [];
+    }
+
+    /**
+     * Get array of all unique admin chat IDs.
+     *
+     * @return string[]
+     */
+    public function getTelegramAdminChatIds(): array
+    {
+        $list = $this->getTelegramAdminList();
+        if (! empty($list)) {
+            return array_values(array_unique(array_column($list, 'chat_id')));
+        }
+
+        $raw = $this->string('telegram_chat_ids');
+        if (! empty($raw)) {
+            return array_values(array_filter(array_map('trim', preg_split('/[\r\n,]+/', (string) $raw))));
+        }
+
+        return [];
+    }
+
+    /**
+     * Number of days to retain bot feedbacks before auto-cleanup.
+     * 0 = keep forever (disabled).
+     */
+    public function feedbackRetentionDays(): int
+    {
+        return $this->integer('feedback_retention_days', 30);
+    }
+
     public function capacityDescription(): string
     {
         $capacity = $this->capacityPerSession();

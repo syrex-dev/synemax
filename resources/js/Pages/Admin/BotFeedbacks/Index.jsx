@@ -27,6 +27,7 @@ export default function Index({
     stats,
     filters,
     botInfo,
+    retentionDays = 30,
 }) {
     const [search, setSearch] = useState(filters.q || '');
     const [categoryFilter, setCategoryFilter] = useState(filters.category || 'all');
@@ -35,6 +36,8 @@ export default function Index({
     const [adminNote, setAdminNote] = useState('');
     const [noteModalOpen, setNoteModalOpen] = useState(false);
     const [deleteModalItem, setDeleteModalItem] = useState(null);
+    const [cleanupModalOpen, setCleanupModalOpen] = useState(false);
+    const [cleanupDays, setCleanupDays] = useState(retentionDays > 0 ? retentionDays : 30);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleFilter = (cat, st) => {
@@ -109,6 +112,19 @@ export default function Index({
             onSuccess: () => setDeleteModalItem(null),
             onFinish: () => setIsSubmitting(false),
         });
+    };
+
+    const handleCleanup = () => {
+        setIsSubmitting(true);
+        router.post(
+            '/admin/bot-feedbacks/cleanup',
+            { days: cleanupDays },
+            {
+                preserveScroll: true,
+                onSuccess: () => setCleanupModalOpen(false),
+                onFinish: () => setIsSubmitting(false),
+            }
+        );
     };
 
     const getCategoryBadge = (cat) => {
@@ -186,6 +202,16 @@ export default function Index({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2.5">
+                        <button
+                            type="button"
+                            onClick={() => setCleanupModalOpen(true)}
+                            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 active:scale-95 transition"
+                            title="Bersihkan data keluhan dan riwayat chat lama"
+                        >
+                            <Trash2 className="size-3.5" />
+                            <span>Bersihkan Data Lama</span>
+                        </button>
+
                         {botInfo.username && (
                             <a
                                 href={`https://t.me/${botInfo.username}`}
@@ -207,6 +233,22 @@ export default function Index({
                             <span>Pengaturan Bot</span>
                         </Link>
                     </div>
+                </div>
+
+                {/* Retention Info Banner */}
+                <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl border border-border/80 bg-surface text-xs">
+                    <div className="flex items-center gap-2 text-text">
+                        <Clock className="size-4 text-amber-500 shrink-0" />
+                        <span>
+                            <b>Kebijakan Retensi:</b> Data feedback dan tiket obrolan bot otomatis disimpan selama <b>{retentionDays === 0 ? 'Selamanya (Auto-cleanup nonaktif)' : `${retentionDays} hari`}</b> sebelum dibersihkan oleh sistem jadwal harian.
+                        </span>
+                    </div>
+                    <Link
+                        href="/admin/pengaturan?tab=notifikasi"
+                        className="text-accent font-semibold hover:underline shrink-0"
+                    >
+                        Ubah Batas Hari Retensi
+                    </Link>
                 </div>
 
                 {/* Stats Grid */}
@@ -615,6 +657,62 @@ export default function Index({
                         >
                             <Trash2 className="size-3.5" />
                             <span>{isSubmitting ? 'Menghapus...' : 'Ya, Hapus'}</span>
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Modal Bersihkan Data Lama */}
+            <Modal show={cleanupModalOpen} onClose={() => setCleanupModalOpen(false)} maxWidth="md">
+                <div className="p-6 space-y-4">
+                    <div className="flex items-start gap-3.5">
+                        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500">
+                            <Trash2 className="size-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-black text-text">
+                                Bersihkan Data Feedback & Keluhan Lama
+                            </h3>
+                            <p className="mt-1 text-xs text-text-muted leading-relaxed">
+                                Hapus riwayat chat bot CS dan tiket keluhan penonton yang lebih lama dari rentang waktu tertentu untuk menjaga database tetap rapi.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="cleanup_days_select" className="block text-xs font-bold text-text mb-1">
+                            Pilih Batas Hari
+                        </label>
+                        <select
+                            id="cleanup_days_select"
+                            value={cleanupDays}
+                            onChange={(e) => setCleanupDays(parseInt(e.target.value, 10) || 30)}
+                            className="min-h-11 w-full rounded-xl border border-border bg-surface-2 px-3 text-sm text-text focus:border-amber-400 focus:outline-none"
+                        >
+                            <option value={7}>Lebih lama dari 7 Hari</option>
+                            <option value={14}>Lebih lama dari 14 Hari</option>
+                            <option value={30}>Lebih lama dari 30 Hari (Default)</option>
+                            <option value={60}>Lebih lama dari 60 Hari</option>
+                            <option value={90}>Lebih lama dari 90 Hari</option>
+                        </select>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border">
+                        <button
+                            type="button"
+                            onClick={() => setCleanupModalOpen(false)}
+                            className="min-h-10 rounded-xl border border-border bg-surface px-4 text-xs font-semibold text-text hover:bg-surface-2 transition"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="button"
+                            disabled={isSubmitting}
+                            onClick={handleCleanup}
+                            className="min-h-10 rounded-xl bg-rose-600 px-4 text-xs font-bold text-white hover:bg-rose-500 active:scale-95 transition disabled:opacity-50 inline-flex items-center gap-1.5"
+                        >
+                            <Trash2 className="size-3.5" />
+                            <span>{isSubmitting ? 'Membersihkan...' : 'Bersihkan Sekarang'}</span>
                         </button>
                     </div>
                 </div>

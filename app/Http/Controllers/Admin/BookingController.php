@@ -493,7 +493,7 @@ class BookingController extends Controller
         BookingService $bookingService,
     ): RedirectResponse {
         $data = $request->validate([
-            'action' => ['required', 'in:konfirmasi,tandai_dibayar,tolak_bukti,batal,hadir,tidak_hadir,pulihkan'],
+            'action' => ['required', 'in:konfirmasi,tandai_dibayar,tolak_bukti,batal,hadir,tidak_hadir,pulihkan,ambil,lepas_klaim'],
             'rejection_note' => ['nullable', 'string', 'max:500'],
             'manual_reason' => ['nullable', 'string', 'max:120'],
         ]);
@@ -504,13 +504,15 @@ class BookingController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($booking, $data, $snackOrders, $bookingService): void {
+        DB::transaction(function () use ($booking, $data, $snackOrders, $bookingService, $request): void {
             $bookingReference = Booking::query()->findOrFail($booking->id);
             $session = Session::query()->lockForUpdate()->findOrFail($bookingReference->session_id);
             $lockedBooking = Booking::query()->lockForUpdate()->findOrFail($booking->id);
 
             match ($data['action']) {
                 'konfirmasi', 'tandai_dibayar' => $this->confirm($lockedBooking, $snackOrders),
+                'ambil' => $this->claim($lockedBooking, $request->user()),
+                'lepas_klaim' => $this->releaseClaim($lockedBooking),
                 'tolak_bukti' => $bookingService->rejectProof($lockedBooking, trim((string) $data['rejection_note'])),
                 'pulihkan' => $bookingService->restoreExpired($lockedBooking),
                 'batal' => $this->cancel($lockedBooking, $session, $snackOrders),
@@ -520,6 +522,8 @@ class BookingController extends Controller
         }, attempts: 3);
 
         $msg = match ($data['action']) {
+            'ambil' => 'Booking berhasil diambil. Anda kini tercatat menangani booking ini.',
+            'lepas_klaim' => 'Klaim booking berhasil dilepas.',
             'tolak_bukti' => 'Bukti pembayaran ditolak dan pelanggan diminta mengunggah ulang.',
             'pulihkan' => 'Booking kedaluwarsa berhasil dipulihkan.',
             default => 'Status booking berhasil diperbarui.',
@@ -554,6 +558,31 @@ class BookingController extends Controller
         return $disk->response($booking->payment_proof_path);
     }
 
+    private function claim(Booking $booking, ?User $user): void
+    {
+        $userId = $user ? "web:{$user->id}" : 'web:admin';
+        $userName = $user?->name ?: 'Admin Web';
+
+        if ($booking->claimed_by_name && $booking->claimed_by_id !== $userId) {
+            $this->reject("Booking ini sudah diambil dan sedang diproses oleh {$booking->claimed_by_name}.");
+        }
+
+        $booking->update([
+            'claimed_by_name' => $userName,
+            'claimed_by_id' => $userId,
+            'claimed_at' => now(),
+        ]);
+    }
+
+    private function releaseClaim(Booking $booking): void
+    {
+        $booking->update([
+            'claimed_by_name' => null,
+            'claimed_by_id' => null,
+            'claimed_at' => null,
+        ]);
+    }
+
     private function confirm(Booking $booking, SnackOrderService $snackOrders): void
     {
         if ($booking->status === 'kedaluwarsa') {
@@ -580,10 +609,13 @@ class BookingController extends Controller
             $this->reject('Booking ini tidak sedang menunggu konfirmasi atau pembayaran.');
         }
 
+        $adminName = auth()->user()?->name ?: 'Admin';
+
         $snackOrders->confirmStock($booking);
         $booking->update([
             'status' => 'terkonfirmasi',
             'confirmed_at' => now(),
+            'confirmed_by_name' => $adminName,
             'proof_rejection_note' => null,
         ]);
 

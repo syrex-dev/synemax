@@ -127,22 +127,35 @@ class TelegramNotificationService
     /**
      * Add a chat ID to the settings if not already present.
      */
-    public function addChatId(string $newChatId): bool
+    public function addChatId(string $newChatId, ?string $name = null, ?string $username = null): bool
     {
         $newChatId = trim($newChatId);
         if ($newChatId === '') {
             return false;
         }
 
-        $existing = $this->getChatIds();
-        if (in_array($newChatId, $existing, true)) {
-            return false;
+        $admins = $this->settings->getTelegramAdminList();
+        $existingChatIds = array_column($admins, 'chat_id');
+
+        $isNew = false;
+        if (! in_array($newChatId, $existingChatIds, true)) {
+            $admins[] = [
+                'chat_id' => $newChatId,
+                'name' => $name ?: 'Admin '.(count($admins) + 1),
+                'username' => $username ? ltrim($username, '@') : null,
+                'added_at' => now()->toDateTimeString(),
+            ];
+            $this->settings->set('telegram_admins', json_encode($admins), 'notifikasi');
+            $isNew = true;
         }
 
-        $existing[] = $newChatId;
-        $this->settings->set('telegram_chat_ids', implode(', ', $existing), 'notifikasi');
+        // Always ensure telegram_chat_ids string setting is updated and synchronized
+        $rawChatIds = array_values(array_filter(array_map('trim', preg_split('/[\r\n,]+/', (string) $this->settings->string('telegram_chat_ids')))));
+        $allAdminIds = array_values(array_unique(array_column($admins, 'chat_id')));
+        $merged = array_values(array_unique(array_merge($rawChatIds, $allAdminIds, [$newChatId])));
+        $this->settings->set('telegram_chat_ids', implode(', ', $merged), 'notifikasi');
 
-        return true;
+        return $isNew;
     }
 
     /**
@@ -152,21 +165,7 @@ class TelegramNotificationService
      */
     public function getChatIds(): array
     {
-        $raw = $this->settings->string('telegram_chat_ids');
-        if (empty($raw)) {
-            return [];
-        }
-
-        $lines = preg_split('/[\r\n,]+/', (string) $raw);
-        $ids = [];
-        foreach ($lines as $line) {
-            $t = trim($line);
-            if ($t !== '') {
-                $ids[] = $t;
-            }
-        }
-
-        return array_values(array_unique($ids));
+        return $this->settings->getTelegramAdminChatIds();
     }
 
     /**
@@ -250,17 +249,31 @@ class TelegramNotificationService
         $text = $this->buildMessageText($item->event, $booking, $item->payload ?? []);
 
         $inlineKeyboard = [];
-        if ($booking && str_starts_with((string) config('app.url'), 'https://')) {
-            $inlineKeyboard = [
-                'inline_keyboard' => [
+        if ($booking) {
+            $buttons = [];
+            if ($booking->status === 'menunggu_konfirmasi' || $booking->status === 'menunggu_pembayaran') {
+                $buttons[] = [
                     [
-                        [
-                            'text' => 'Buka di admin',
-                            'url' => route('admin.bookings.show', ['booking' => $booking->getKey()]),
-                        ],
+                        'text' => '⚡ Ambil / Proses Booking',
+                        'callback_data' => 'admin_claim:'.$booking->code,
                     ],
-                ],
-            ];
+                    [
+                        'text' => '✅ Konfirmasi Booking',
+                        'callback_data' => 'admin_confirm:'.$booking->code,
+                    ],
+                ];
+            }
+            if (str_starts_with((string) config('app.url'), 'https://')) {
+                $buttons[] = [
+                    [
+                        'text' => 'Buka di admin',
+                        'url' => route('admin.bookings.index', ['search' => $booking->code]),
+                    ],
+                ];
+            }
+            if (! empty($buttons)) {
+                $inlineKeyboard = ['inline_keyboard' => $buttons];
+            }
         }
 
         $item->increment('attempts');

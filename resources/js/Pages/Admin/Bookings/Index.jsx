@@ -19,7 +19,8 @@ import {
     CreditCard, 
     AlertTriangle,
     QrCode,
-    Edit
+    Edit,
+    Zap
 } from 'lucide-react';
 
 export default function Index({ bookings, selectedStatus = '', selectedMethod = '', search = '' }) {
@@ -120,6 +121,10 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
             ? 'Tandai Tidak Hadir?'
             : action === 'pulihkan'
             ? 'Pulihkan Booking?'
+            : action === 'ambil'
+            ? 'Ambil & Proses Booking?'
+            : action === 'lepas_klaim'
+            ? 'Lepas Klaim Booking?'
             : 'Konfirmasi Aksi';
 
         const confirmButtonText = action === 'batal'
@@ -127,9 +132,13 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
             : action === 'tandai_dibayar'
             ? 'Ya, Tandai Dibayar'
             : action === 'tidak_hadir'
-            ? 'Tandai Tidak Hadir'
+            ? 'Ya, Tandai Tidak Hadir'
             : action === 'pulihkan'
             ? 'Ya, Pulihkan'
+            : action === 'ambil'
+            ? 'Ya, Ambil Booking'
+            : action === 'lepas_klaim'
+            ? 'Ya, Lepas Klaim'
             : 'Lanjutkan';
 
         setConfirmModal({
@@ -378,6 +387,20 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
                                                     </span>
                                                 ) : null}
 
+                                                {booking.claimed_by_name && (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400">
+                                                        <Zap className="size-3" />
+                                                        <span>Diproses: {booking.claimed_by_name}</span>
+                                                    </span>
+                                                )}
+
+                                                {booking.confirmed_by_name && (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                                        <Check className="size-3" />
+                                                        <span>Dikonfirmasi: {booking.confirmed_by_name}</span>
+                                                    </span>
+                                                )}
+
                                                 {booking.customer_profile?.no_show_count >= 2 && (
                                                     <span className="rounded-full bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 text-xs font-semibold text-rose-600 dark:text-rose-400">
                                                         Peringatan tidak datang {booking.customer_profile.no_show_count}×
@@ -503,6 +526,24 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
                                             {/* Status Context Actions */}
                                             {booking.status === 'menunggu_pembayaran' && (
                                                 <>
+                                                    {!booking.claimed_by_name ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleStatusAction(booking.id, 'ambil', 'Ambil dan proses booking ini sekarang? Admin lain akan melihat Anda sedang menangani pesanan ini.')}
+                                                            className="min-h-[38px] rounded-xl border border-amber-500/60 bg-amber-500/10 px-3 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 active:scale-95 transition inline-flex items-center gap-1"
+                                                        >
+                                                            <Zap className="size-3.5" />
+                                                            <span>Ambil Booking</span>
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleStatusAction(booking.id, 'lepas_klaim', 'Lepas klaim booking ini agar admin lain dapat memprosesnya?')}
+                                                            className="min-h-[38px] rounded-xl border border-border px-3 text-xs font-semibold text-text-muted hover:text-text hover:border-text-muted active:scale-95 transition inline-flex items-center gap-1"
+                                                        >
+                                                            <span>Lepas Klaim</span>
+                                                        </button>
+                                                    )}
                                                     <button
                                                         type="button"
                                                         onClick={() => handleStatusAction(booking.id, 'tandai_dibayar', 'Tandai booking ini sudah dibayar?')}
@@ -522,6 +563,24 @@ export default function Index({ bookings, selectedStatus = '', selectedMethod = 
 
                                             {booking.status === 'menunggu_konfirmasi' && (
                                                 <>
+                                                    {!booking.claimed_by_name ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleStatusAction(booking.id, 'ambil', 'Ambil dan proses booking ini sekarang? Admin lain akan melihat Anda sedang menangani pesanan ini.')}
+                                                            className="min-h-[38px] rounded-xl border border-amber-500/60 bg-amber-500/10 px-3 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 active:scale-95 transition inline-flex items-center gap-1"
+                                                        >
+                                                            <Zap className="size-3.5" />
+                                                            <span>Ambil Booking</span>
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleStatusAction(booking.id, 'lepas_klaim', 'Lepas klaim booking ini agar admin lain dapat memprosesnya?')}
+                                                            className="min-h-[38px] rounded-xl border border-border px-3 text-xs font-semibold text-text-muted hover:text-text hover:border-text-muted active:scale-95 transition inline-flex items-center gap-1"
+                                                        >
+                                                            <span>Lepas Klaim</span>
+                                                        </button>
+                                                    )}
                                                     <button
                                                         type="button"
                                                         onClick={() => handleStatusAction(booking.id, 'konfirmasi')}
