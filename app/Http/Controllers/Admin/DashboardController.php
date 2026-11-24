@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
 use App\Models\Booking;
+use App\Models\BotFeedback;
 use App\Models\Film;
 use App\Models\MemberReward;
+use App\Models\MenuItem;
 use App\Models\Promo;
 use App\Models\Session;
 use App\Services\CinemaSettings;
@@ -179,22 +181,38 @@ class DashboardController extends Controller
             ]);
         }
 
-        if ($urgentWaitingBookings > 0) {
+        // Deduplicate waiting bookings: combine urgent and total into a single crisp item
+        if ($waitingBookings > 0) {
+            if ($urgentWaitingBookings > 0) {
+                $title = "MENDESAK: {$waitingBookings} booking menunggu konfirmasi ({$urgentWaitingBookings} > 12 jam)";
+                $level = 'critical';
+                $score = 0;
+            } else {
+                $title = "{$waitingBookings} booking online menunggu konfirmasi";
+                $level = 'warning';
+                $score = 1;
+            }
+
             $actionItems->push([
-                'type' => 'booking_urgent',
-                'level' => 'critical',
-                'urgency_score' => 0,
-                'title' => 'MENDESAK: '.$urgentWaitingBookings.' booking menunggu konfirmasi > 12 jam',
+                'type' => 'booking',
+                'level' => $level,
+                'urgency_score' => $score,
+                'title' => $title,
                 'url' => route('admin.bookings.index', ['status' => 'menunggu_konfirmasi']),
             ]);
         }
-        if ($waitingBookings > 0) {
+
+        // Bot feedback needing attention
+        $unresolvedFeedbacksCount = BotFeedback::query()
+            ->whereIn('status', ['FLAGGED', 'OPEN', 'PENDING'])
+            ->count();
+        if ($unresolvedFeedbacksCount > 0) {
             $actionItems->push([
-                'type' => 'booking',
-                'level' => 'critical',
-                'urgency_score' => 1,
-                'title' => $waitingBookings.' booking menunggu konfirmasi',
-                'url' => route('admin.bookings.index', ['status' => 'menunggu_konfirmasi']),
+                'type' => 'bot_feedback',
+                'level' => 'warning',
+                'urgency_score' => 1.2,
+                'title' => "{$unresolvedFeedbacksCount} keluhan / pesan penonton butuh perhatian",
+                'url' => route('admin.bot-feedbacks.index'),
             ]);
         }
         if ($qrisWarning) {
@@ -250,6 +268,52 @@ class DashboardController extends Controller
         $todayCapacity = (int) $todaySessions->sum(fn ($s) => $s->seatCapacity());
         $todayOccupancyPercent = $todayCapacity > 0 ? (int) round(($todayViewers / $todayCapacity) * 100) : 0;
 
+        // Today Revenue and paid transactions
+        $paidStatuses = ['terkonfirmasi', 'selesai', 'hadir'];
+        $todayBookings = Booking::query()
+            ->where(function ($q) use ($today) {
+                $q->whereHas('session', fn ($sq) => $sq->where('session_date', $today->toDateString()))
+                    ->orWhereBetween('created_at', [$today->startOfDay(), $today->endOfDay()]);
+            })
+            ->whereIn('status', $paidStatuses)
+            ->get();
+
+        $todayRevenue = (int) $todayBookings->sum('total_price');
+        $todayPaidCount = (int) $todayBookings->count();
+
+        // Recent Bookings Feed (Latest 6 bookings)
+        $recentBookings = Booking::query()
+            ->with(['film', 'session'])
+            ->orderByDesc('id')
+            ->limit(6)
+            ->get()
+            ->map(function (Booking $b) {
+                return [
+                    'id' => $b->id,
+                    'code' => $b->code,
+                    'customer_name' => $b->customer_name ?: 'Pelanggan',
+                    'whatsapp' => $b->whatsapp,
+                    'film_title' => $b->film?->title ?: 'Film Belum Ditentukan',
+                    'film_poster' => $b->film?->posterUrl(),
+                    'session_time' => $b->session ? substr($b->session->start_time, 0, 5) : '-',
+                    'session_date' => $b->session?->session_date ? (is_string($b->session->session_date) ? $b->session->session_date : $b->session->session_date->toDateString()) : '-',
+                    'seats_reserved' => (int) ($b->seats_reserved ?: $b->pax ?: 1),
+                    'package' => $b->package ?: 'reguler',
+                    'payment_method' => $b->payment_method ?: 'kasir',
+                    'has_proof' => ! empty($b->payment_proof_path),
+                    'total_price' => (int) $b->total_price,
+                    'status' => $b->status,
+                    'created_at_human' => $b->created_at?->diffForHumans() ?: '-',
+                ];
+            });
+
+        // Operational Status
+        $availableSnacksCount = MenuItem::where('is_available', true)->count();
+        $isSnacksEnabled = $settings->boolean('snacks_enabled', true);
+        $telegramCsBotEnabled = $settings->boolean('telegram_cs_bot_enabled', true);
+        $telegramCsBotUsername = $settings->string('telegram_cs_bot_username', 'SynemaXChat_bot');
+        $telegramAdminConfigured = (bool) $settings->string('telegram_admin_chat_id');
+
         $data = [
             'todaySessions' => $todaySessions,
             'todayViewers' => $todayViewers,
@@ -268,6 +332,16 @@ class DashboardController extends Controller
             'distantCount' => $distantCount,
             'hasAnyBookedLowAttendance' => $hasAnyBookedLowAttendance,
             'settings' => $settings,
+            // Quick Info Metrics & Feed
+            'todayRevenue' => $todayRevenue,
+            'todayPaidCount' => $todayPaidCount,
+            'recentBookings' => $recentBookings,
+            'unresolvedFeedbacksCount' => $unresolvedFeedbacksCount,
+            'availableSnacksCount' => $availableSnacksCount,
+            'isSnacksEnabled' => $isSnacksEnabled,
+            'telegramCsBotEnabled' => $telegramCsBotEnabled,
+            'telegramCsBotUsername' => $telegramCsBotUsername,
+            'telegramAdminConfigured' => $telegramAdminConfigured,
         ];
 
         return Inertia::render('Admin/Dashboard', $data)
